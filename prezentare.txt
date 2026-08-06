@@ -1,0 +1,107 @@
+Pachete Panel by Little Mario
+
+Pachet Standard
+
+Ideal pentru organizații mici și medii.
+
+Include:
+
+1 server al aplicației albastre;
+
+maximum 6 roluri;
+
+numele și codul organizației;
+
+adresă de lucru pentru contracte;
+
+logo și banner;
+
+Dashboard;
+
+Anunțuri;
+
+Pontaj;
+
+Cereri și învoiri;
+
+Calculator;
+
+Bucătărie;
+
+Craft Mecanics;
+
+Marketplace;
+
+Contracte;
+
+Rapoarte;
+
+Asistent;
+
+webhook-uri pentru funcțiile principale;
+
+perioadă limitată sau nelimitată;
+
+suspendare și reactivare;
+
+notificări înainte de expirare;
+
+administrarea organizației proprii;
+
+configurarea paginilor pentru fiecare rol.
+
+Pachet Premium / Full
+
+Include toate funcțiile din Standard, plus:
+
+2 servere ale aplicației albastre: principal și secundar;
+
+roluri nelimitate;
+
+webhook-uri separate pentru ambele servere;
+
+acces extins la toate modulele panelului;
+
+configurare avansată pentru Marketplace și resursele organizației;
+
+sincronizare avansată a rolurilor;
+
+audit extins;
+
+administrare avansată a membrilor;
+
+diagnostic complet;
+
+rapoarte extinse;
+
+asistent cu acces la toate paginile permise;
+
+automatizări pentru expirare și notificări;
+
+import și export de configurație;
+
+branding complet pentru organizație;
+
+posibilitate de extindere fără schimbarea structurii organizației.
+
+Siguranță și administrare
+
+Ambele pachete beneficiază de:
+
+vouchere unice;
+
+activare pe ID-ul serverului;
+
+protecție împotriva reutilizării voucherelor;
+
+organizație păstrată la expirare;
+
+statusuri Draft, Activă, Grație și Pauză;
+
+reactivare fără pierderea datelor;
+
+configurare individuală a accesului pe roluri.
+
+Contact
+
+Little MarioTelefon: 765 4321

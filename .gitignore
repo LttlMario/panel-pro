@@ -1,0 +1,17 @@
+# Secrete locale
+*.local.env
+.env
+.env.*
+!.env.example
+!*.example.env
+
+# Supabase local
+.supabase/
+supabase/.temp/
+node_modules/
+
+# Sistem/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
