@@ -182,7 +182,8 @@
                                 <input type="hidden" id="imagini_json" value="[]">
                             </div>
 
-                            <button type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-semibold py-2.5 rounded-xl transition text-xs shadow-md cursor-pointer">Publică Anunțul</button>
+                            <button id="marketSubmitBtn" type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-semibold py-2.5 rounded-xl transition text-xs shadow-md cursor-pointer">Publică Anunțul</button>
+                            <button id="marketCancelEditBtn" type="button" onclick="anuleazaEditareMarketplace()" class="hidden w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl transition text-xs cursor-pointer">Anulează editarea</button>
                         </form>
                     </div>
 
@@ -271,6 +272,22 @@
             organization_name: '',
             illegal_organization_name: ''
         };
+
+        let editingMarketplaceId = null;
+        let marketplaceItems = [];
+        const MARKETPLACE_PANEL_URL = 'https://lttlmario.github.io/panel-pro/marketplace-ilegal.html';
+        let marketplaceFocusHandled = false;
+
+        function normalizeBlackMarketName(value) {
+            return String(value || '')
+                .replace(/^\s*\d{1,12}\s+/u, '')
+                .replace(/^\s*\d{1,12}\s*[|:/#-]\s*/u, '')
+                .replace(/\s*[|:/#-]\s*\d{1,12}\s*$/u, '')
+                .replace(/\s+\d{1,12}\s*$/u, '')
+                .replace(/\s*[[(]\s*\d{1,12}\s*[\])]\s*$/u, '')
+                .replace(/\s{2,}/g, ' ')
+                .trim();
+        }
 
         const listeArmeMunitie = {
             "Arme": [
@@ -455,7 +472,13 @@
                 currentUser.username = activeUser.username || '';
                 currentUser.display_name = activeUser.display_name || activeUser.username || 'Mecanic';
                 currentUser.role = activeUser.role || activeUser.default_role || 'Ilegal';
-                currentUser.panel_level = 0;
+                currentUser.panel_level = Number(
+                    activeUser.permission_level ||
+                    activeUser.panel_level ||
+                    localData.permission_level ||
+                    localData.panel_level ||
+                    0
+                );
 
                 currentUser.organization_id =
                     localData.organization_id ||
@@ -485,7 +508,7 @@
                 document.getElementById('user-avatar').src = userAvatar;
 
                 const numeDeCompletat = currentUser.display_name || currentUser.username || '';
-                document.getElementById('nume').value = numeDeCompletat;
+                document.getElementById('nume').value = normalizeBlackMarketName(numeDeCompletat);
 
                 const roleLower = currentUser.role.toLowerCase();
                 const isPrivileged = roleLower.includes('sef') || roleLower.includes('șef') || roleLower.includes('manager') || roleLower.includes('admin') || roleLower.includes('owner');
@@ -560,6 +583,8 @@
                 return;
             }
 
+            marketplaceItems = data;
+
             const anunturiFiltrate = data.filter(item => {
                 if (filtru === 'TOATE') return true;
                 if (filtru === 'Servicii') return item.tip_actiune === 'Servicii';
@@ -595,14 +620,15 @@
                 let catBadge = item.categorie || '';
                 let subBadge = item.subcategorie ? ` / ${item.subcategorie}` : '';
                 let textCurat = item.produse || '';
+                const numeAfisat = normalizeBlackMarketName(item.nume);
+                const poateAdministra =
+                    Number(currentUser.panel_level || 0) >= 99 ||
+                    (typeof isPlatformAdmin === 'function' && isPlatformAdmin());
+                const poateEdita =
+                    poateAdministra ||
+                    String(item.created_by_discord_id || '') === String(currentUser.discord_id || '');
                 const poateSterge =
-                Number(
-                    currentUser.panel_level ??
-                    currentUser.level ??
-                    0
-                ) === 7 ||
-                String(item.created_by_discord_id || '') ===
-                String(currentUser.discord_id || '');
+                    poateEdita;
 
                 let imaginiHtml = '';
                 let listaImaginiFinala = [];
@@ -638,12 +664,12 @@
                     item.organization_name ||
                     'Organizație ilegală';
                 container.innerHTML += `
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between space-y-4">
+                    <div data-marketplace-id="${escapeHtml(item.id)}" class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between space-y-4">
                         <div class="space-y-2">
                             <div class="flex items-start justify-between">
                                 <div>
                                     <span class="font-bold text-slate-100 text-sm">
-                                            ${escapeHtml(item.nume || '')}
+                                            ${escapeHtml(numeAfisat)}
                                         </span>
 
                                         ${organizatieText ? `
@@ -667,13 +693,26 @@
                                 </div>
                                 <div>
                                     ${dataFormatata ? `<div class="text-[10px] text-slate-500">Publicat: ${dataFormatata}</div>` : ''}
-                                    ${poateSterge ? `<button type="button" onclick="stergeAnuntMarketplace('${item.id}')" class="mt-2 px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-[10px] font-bold">Șterge</button>` : ''}
+                                    ${poateEdita ? `<button type="button" onclick="editeazaAnuntMarketplace('${item.id}')" class="mt-2 px-2.5 py-1 rounded-lg border border-sky-500/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 text-[10px] font-bold">Editează</button>` : ''}
+                                    ${poateSterge ? `<button type="button" onclick="stergeAnuntMarketplace('${item.id}')" class="mt-2 ml-1 px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-[10px] font-bold">Șterge</button>` : ''}
                                 </div>
                             </div>
                             ${imaginiHtml}
                         </div>
                     </div>
                 `;
+            }
+
+            if (!marketplaceFocusHandled) {
+                const focusId = new URLSearchParams(window.location.search).get('anunt');
+                const focusedCard = focusId
+                    ? container.querySelector(`[data-marketplace-id="${CSS.escape(focusId)}"]`)
+                    : null;
+                if (focusedCard) {
+                    marketplaceFocusHandled = true;
+                    focusedCard.classList.add('ring-2', 'ring-rose-400');
+                    focusedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             }
         }
 
@@ -688,6 +727,47 @@
             const result = await response.json();
             if (!response.ok) return alert(result.error || 'Anunțul nu a putut fi șters.');
             await incarcaAnunturi();
+        }
+
+        function editeazaAnuntMarketplace(id) {
+            const item = marketplaceItems.find(entry => String(entry.id) === String(id));
+            if (!item) return;
+
+            const poateAdministra =
+                Number(currentUser.panel_level || 0) >= 99 ||
+                (typeof isPlatformAdmin === 'function' && isPlatformAdmin());
+            const poateEdita =
+                poateAdministra ||
+                String(item.created_by_discord_id || '') === String(currentUser.discord_id || '');
+            if (!poateEdita) return;
+
+            editingMarketplaceId = item.id;
+            document.getElementById('nume').value = normalizeBlackMarketName(item.nume);
+            document.getElementById('telefon').value = item.telefon || '';
+            document.getElementById('tipAcțiune').value = item.tip_actiune || 'Vânzare';
+            document.getElementById('categorie').value = item.categorie || '';
+            document.getElementById('produse').value = item.produse || '';
+            document.getElementById('pret').value = item.pret || '';
+            document.getElementById('imagine_url_direct').value = item.imagine_url || '';
+            document.getElementById('imagini_json').value = item.imagini_json || '[]';
+            toggleTipActiune();
+            toggleCategorie();
+            toggleSubcategorie();
+            document.getElementById('subcategorie').value = item.subcategorie || '';
+            document.getElementById('marketSubmitBtn').textContent = 'Salvează modificările';
+            document.getElementById('marketCancelEditBtn').classList.remove('hidden');
+            document.getElementById('marketForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function anuleazaEditareMarketplace() {
+            editingMarketplaceId = null;
+            document.getElementById('marketForm').reset();
+            document.getElementById('nume').value = normalizeBlackMarketName(currentUser.display_name || currentUser.username || '');
+            document.getElementById('imagini_json').value = '[]';
+            document.getElementById('marketSubmitBtn').textContent = 'Publică Anunțul';
+            document.getElementById('marketCancelEditBtn').classList.add('hidden');
+            toggleTipActiune();
+            toggleCategorie();
         }
 
         function dataURItoBlob(dataURI) {
@@ -708,7 +788,7 @@
             let organizatieText = currentUser.illegal_organization_name || 'Organizație ilegală';
 
             const fields = [
-                { name: '👤 Nume', value: anunt.nume, inline: true },
+                { name: '👤 Nume', value: normalizeBlackMarketName(anunt.nume), inline: true },
                 { name: '📞 Telefon', value: anunt.telefon, inline: true },
                 { name: '📌 Tip Acțiune', value: anunt.tip_actiune, inline: true },
                 { name: '📁 Categorie', value: catText + subcatText, inline: false },
@@ -739,6 +819,7 @@
 
             const embedPrincipal = {
                 title: '🚨 Anunț Nou - Black Market',
+                url: anunt.id ? `${MARKETPLACE_PANEL_URL}?anunt=${encodeURIComponent(anunt.id)}` : MARKETPLACE_PANEL_URL,
                 color: 15548997,
                 fields: fields,
                 footer: { text: 'Publicat prin Black Market - Panel by Little Mario' },
@@ -746,7 +827,16 @@
             };
 
             const payload = {
-                embeds: [embedPrincipal]
+                embeds: [embedPrincipal],
+                components: anunt.id ? [{
+                    type: 1,
+                    components: [{
+                        type: 2,
+                        style: 5,
+                        label: 'Deschide anunțul în panel',
+                        url: `${MARKETPLACE_PANEL_URL}?anunt=${encodeURIComponent(anunt.id)}`
+                    }]
+                }] : []
             };
 
             formData.append('payload_json', JSON.stringify(payload));
@@ -768,6 +858,12 @@
 
         document.getElementById('marketForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            const numeCuratat = normalizeBlackMarketName(document.getElementById('nume').value);
+            if (!numeCuratat) {
+                alert('Numele este obligatoriu și nu poate conține doar un identificator numeric.');
+                return;
+            }
 
             let pretValoare = document.getElementById('pret').value.trim();
             const tipSelectat = document.getElementById('tipAcțiune').value;
@@ -802,7 +898,7 @@
             const imagineUrlDirectValoare = document.getElementById('imagine_url_direct').value.trim();
 
             const nouAnunt = {
-                nume: document.getElementById('nume').value,
+                nume: numeCuratat,
                 telefon: document.getElementById('telefon').value,
                 tip_actiune: tipSelectat,
                 categorie: categorieSelectata,
@@ -815,18 +911,45 @@
                 organization_id: currentUser.organization_id
             };
 
-            const { error } = await supabaseClient
+            if (editingMarketplaceId) {
+                const token = localStorage.getItem('discord_access_token');
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-community-posts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, authorization: `Bearer ${SUPABASE_KEY}` },
+                    body: JSON.stringify({
+                        action: 'marketplace_update',
+                        table: 'marketplace_ilegal',
+                        item_id: editingMarketplaceId,
+                        access_token: token,
+                        ...nouAnunt
+                    })
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(result.error || 'Anunțul nu a putut fi modificat.');
+                    return;
+                }
+
+                anuleazaEditareMarketplace();
+                await incarcaAnunturi();
+                alert('Anunțul a fost modificat cu succes.');
+                return;
+            }
+
+            const { data: savedAnunt, error } = await supabaseClient
                 .from('marketplace_ilegal')
-                .insert([nouAnunt]);
+                .insert([nouAnunt])
+                .select('id')
+                .single();
 
             if (error) {
                 alert('Erore la salvare: ' + error.message);
             } else {
-                await trimitePeDiscord(nouAnunt);
+                await trimitePeDiscord({ ...nouAnunt, id: savedAnunt.id });
 
                 alert('Anunț publicat cu succes!');
                 document.getElementById('marketForm').reset();
-                document.getElementById('nume').value = currentUser.display_name || currentUser.username || '';
+                document.getElementById('nume').value = normalizeBlackMarketName(currentUser.display_name || currentUser.username || '');
 
                 imaginiCurente = [];
                 actualizeazaPrevizualizariImagini();
