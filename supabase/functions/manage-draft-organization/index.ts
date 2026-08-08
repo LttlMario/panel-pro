@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       if (title.length < 2) return reply({ error: 'Numele contractului este obligatoriu.' }, 400);
       if (template.length < 20) return reply({ error: 'Textul contractului este prea scurt.' }, 400);
       const unknown = [...template.matchAll(/{{[A-Z0-9_]+}}/g)].map((match) => match[0]).filter((value) => !allowedContractPlaceholders.has(value));
-      if (unknown.length) return reply({ error: `Câmpuri necunoscute în contract: ${[...new Set(unknown)].join(', ')}` }, 400);
+      if (unknown.length) return reply({ error: `C�mpuri necunoscute în contract: ${[...new Set(unknown)].join(', ')}` }, 400);
       const defaults = body.contract_template.defaults && typeof body.contract_template.defaults === 'object' ? body.contract_template.defaults : {};
       const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'contract_template', value: {
         title, template, defaults: { salary: String(defaults.salary || '').trim() || null },

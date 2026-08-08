@@ -10,6 +10,6 @@ Fișierul [BACKUP-COMPLET-BD.sql](BACKUP-COMPLET-BD.sql) conține schema iniția
 4. Configurează secretele Edge Functions din `edge-secrets.example.env`.
 5. Publică funcțiile din `supabase/functions`.
 
-Fișierul SQL recreează structura bazei, tabelele, indexurile, politicile RLS, trigger-ele și funcțiile SQL. Codul Edge Functions nu poate fi inclus ca SQL; el rămâne în folderul `supabase/functions` și trebuie publicat separat.
+Fișierul SQL recreează structura bazei, tabelele, indexurile, politicile RLS, trigger-ele și funcțiile SQL. Codul Edge Functions nu poate fi inclus ca SQL; el răm�ne în folderul `supabase/functions` și trebuie publicat separat.
 
 Pentru o restaurare cu date reale, exportă separat datele din proiectul Supabase activ și importă-le după rularea acestui fișier.

@@ -116,7 +116,7 @@
             <div class="paw-panel" id="panel-assistant-chat" role="dialog" aria-label="Chat cu asistentul" hidden>
                 <div class="paw-header">
                     <img class="paw-header-avatar" src="css/robot-assistant.svg" alt="Avatar asistent robot">
-                    <div class="paw-header-copy"><p class="paw-title">Asistent Panel</p><p class="paw-status">Local · acces nivel ${engine.role}</p></div>
+                    <div class="paw-header-copy"><p class="paw-title">Asistent Panel</p><p class="paw-status">Local · rol Discord: ${engine.roleName}</p></div>
                     <div class="paw-header-actions">
                         <button type="button" class="paw-icon-button paw-clear" aria-label="Curăță conversația" title="Curăță conversația">⌫</button>
                         <button type="button" class="paw-icon-button paw-minimize" aria-label="Minimizează chatul" title="Minimizează">—</button>
@@ -155,7 +155,7 @@
 
     function updateStatus(count) {
         const status = document.querySelector('#panel-assistant-widget .paw-status');
-        if (status) status.textContent = `Local · ${count} informații · nivel ${engine?.role || 0}`;
+        if (status) status.textContent = `Local · ${count} informații · rol Discord: ${engine?.roleName || 'necunoscut'}`;
     }
 
     function loadHistory() {

@@ -48,8 +48,8 @@ Deno.serve(async (request) => {
       .eq('enabled', true).eq('organizations.active', true);
     if (guildError) throw guildError;
     const organizationIds=[...new Set((guilds||[]).map((guild:any)=>String(guild.organization_id)))];
-    const {data:accessRows,error:accessError}=organizationIds.length?await db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','page_permissions','action_permissions']):{data:[],error:null};
-    if(accessError)throw accessError;const expiredIds=new Set((accessRows||[]).filter((row:any)=>row.key==='organization_access'&&row.value?.expires_at&&Date.parse(String(row.value.expires_at))<=Date.now()).map((row:any)=>String(row.organization_id))),pageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),actionSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='action_permissions').map((row:any)=>[String(row.organization_id),row.value||{}]));
+    const {data:accessRows,error:accessError}=organizationIds.length?await db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','page_permissions','assistant_page_permissions','action_permissions']):{data:[],error:null};
+    if(accessError)throw accessError;const expiredIds=new Set((accessRows||[]).filter((row:any)=>row.key==='organization_access'&&row.value?.expires_at&&Date.parse(String(row.value.expires_at))<=Date.now()).map((row:any)=>String(row.organization_id))),pageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),assistantPageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='assistant_page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),actionSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='action_permissions').map((row:any)=>[String(row.organization_id),row.value||{}]));
     if(expiredIds.size)await db.from('organizations').update({active:false,updated_at:new Date().toISOString()}).in('id',[...expiredIds]);
     const { data: mappings, error: mappingError } = await db.from('organization_role_mappings').select('*').eq('enabled', true);
     if (mappingError) throw mappingError;
@@ -218,11 +218,20 @@ if (!existing) {
         )
         .map(([page]) => page);
 
+    const assistantRules: any = assistantPageSettings.get(organization_id) || {};
+    const assistantConfigured = Object.keys(assistantRules).length > 0;
+    const assistant_allowed_pages = (assistantConfigured ? Object.entries(assistantRules) : Object.entries(rules))
+      .filter(([, roleIds]: any) => Array.isArray(roleIds) && roleIds.some((roleId: string) => value.discord_role_ids.includes(String(roleId))))
+      .map(([page]) => page)
+      .filter((page) => !['admin.html','logs.html','diagnostic.html','discord-configurare.html','organizatii.html','vouchere.html','developer.html','administrare-organizatie.html'].includes(page));
+
     return {
       organization_id,
       ...value,
       action_permissions: actionSettings.get(organization_id) || {},
       allowed_pages,
+      assistant_allowed_pages,
+      assistant_permissions_configured: assistantConfigured,
       page_permissions_configured: configured
     };
   })
@@ -233,7 +242,11 @@ if (!existing) {
         'ro'
       )
   );
-    if (!available.length) return reply({ error: 'Nu ai niciun rol configurat într-o organizație a platformei.', code: 'NO_ORGANIZATION' }, 403);
+    if (!available.length) {
+      await db.from('panel_sessions').update({ revoked_at: new Date().toISOString() }).eq('discord_id', discordUser.id).is('revoked_at', null);
+      await db.from('organization_members').update({ active: false, last_verified_at: new Date().toISOString() }).eq('discord_id', discordUser.id).eq('active', true);
+      return reply({ error: 'Nu ai niciun rol configurat într-o organizație a platformei.', code: 'NO_ORGANIZATION' }, 403);
+    }
     if (voucherCode) return reply({
       error: 'Voucherul trebuie configurat într-o organizație nouă sau existentă.',
       code: 'VOUCHER_REQUIRES_ORGANIZATION_SETUP',
@@ -366,6 +379,9 @@ return reply({
     platform_admin:
       isPlatformAdmin,
 
+    is_platform_admin:
+      isPlatformAdmin,
+
     /*
      * Rolurile Discord reale ale utilizatorului.
      */
@@ -384,6 +400,12 @@ return reply({
 
     action_permissions:
       active.action_permissions,
+
+    assistant_allowed_pages:
+      active.assistant_allowed_pages,
+
+    assistant_permissions_configured:
+      active.assistant_permissions_configured,
 
     organization_id:
       active.organization_id,
@@ -422,7 +444,11 @@ return reply({
       active.allowed_pages,
 
     action_permissions:
-      active.action_permissions
+      active.action_permissions,
+      assistant_allowed_pages:
+        active.assistant_allowed_pages,
+      assistant_permissions_configured:
+        active.assistant_permissions_configured
   },
 
 
@@ -445,7 +471,11 @@ return reply({
         item.allowed_pages,
 
       action_permissions:
-        item.action_permissions
+        item.action_permissions,
+      assistant_allowed_pages:
+        item.assistant_allowed_pages,
+      assistant_permissions_configured:
+        item.assistant_permissions_configured
 
     }))
 });

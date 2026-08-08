@@ -3,7 +3,7 @@
 
   window.PANEL_RELEASE = Object.freeze({
     version: "3.5.0",
-    releasedAt: "2026-08-08",
+    releasedAt: "2026-08-05",
     changelogUrl: "changelog.html",
     developerUrl: "developer.html"
   });

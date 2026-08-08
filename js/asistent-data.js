@@ -131,36 +131,14 @@ window.PANEL_ASSISTANT_KNOWLEDGE = [
         category: 'manager', role: 4, page: 'contracte.html',
         keywords: ['contract', 'angajez', 'manager contract', 'cnp', 'functie mecanic', 'tip contract'],
         answer: 'Pagina Contracte este disponibilă managerilor. Completezi managerul, angajatul, CNP-ul, telefonul, funcția, salariul, programul și data începerii, apoi poți genera, previzualiza, copia sau trimite contractul pe Discord și îi poți atașa imaginile necesare.'
-    },
-    {
-        title: 'Panoul Admin',
-        category: 'admin', role: 7, page: 'admin.html',
-        keywords: ['admin', 'panou admin', 'setari', 'utilizatori', 'roluri', 'oprire toate turele'],
-        answer: 'Panoul Admin gestionează utilizatorii, rolurile, setările paginilor și configurația pontajului. Include statistici operaționale și oprirea de urgență a tuturor turelor active.'
-    },
-    {
-        title: 'Rolurile și nivelurile de acces',
-        category: 'admin', role: 7, page: 'admin.html',
-        keywords: ['roluri', 'lider', 'colider', 'coordonator', 'manager', 'familia', 'sef mecanic', 'el mecanico', 'permisiuni'],
-        answer: 'Nivelurile configurate sunt: El Mecanico 1, Șef Mecanic 2, La Familia 3, Manager 4, iar Coordonator, CoLider și Lider au nivel 5. Rolurile sunt sincronizate din Discord la autentificare.'
-    },
-    {
-        title: 'Configurarea orelor de închidere',
-        category: 'admin', role: 7, page: 'admin.html',
-        keywords: ['schimb ora pontaj', 'ora inchidere zi', 'ora inchidere noapte', 'exclude pauze'],
-        answer: 'Administratorii pot modifica în Panoul Admin ora de închidere pentru tura de zi și noapte, modul de pontaj, mesajul global și excluderea pauzelor. Modificările trebuie salvate cu butonul din partea de jos.'
-    },
-    {
-        title: 'Loguri',
-        category: 'admin', role: 7, page: 'logs.html',
-        keywords: ['loguri', 'jurnal', 'evenimente', 'istoric activitate', 'audit'],
-        answer: 'Jurnalul de activitate afișează evenimentele disponibile din pontaje, învoiri, Marketplace și Black Market și permite filtrarea după text, tip și perioadă.'
     }
 ];
 
 window.PANEL_ASSISTANT_PAGES = [
     { file: 'index.html', label: 'Dashboard', role: 1 },
     { file: 'pontaj.html', label: 'Pontaj', role: 1 },
+    { file: 'bucatarie.html', label: 'Bucătărie', role: 1 },
+    { file: 'anunturi.html', label: 'Anunțuri și sondaje', role: 1 },
     { file: 'cereri.html', label: 'Cereri / Absențe', role: 1 },
     { file: 'craftmecanics.html', label: 'Craft Mecanics', role: 1 },
     { file: 'marketplace.html', label: 'Marketplace', role: 1 },
@@ -169,6 +147,5 @@ window.PANEL_ASSISTANT_PAGES = [
     { file: 'marketplace-ilegal.html', label: 'Black Market', role: 3 },
     { file: 'rapoarte.html', label: 'Rapoarte', role: 4 },
     { file: 'contracte.html', label: 'Contracte', role: 4 },
-    { file: 'admin.html', label: 'Panou Admin', role: 7 },
-    { file: 'logs.html', label: 'Loguri', role: 7 }
+    { file: 'asistent.html', label: 'Asistent', role: 1 }
 ];

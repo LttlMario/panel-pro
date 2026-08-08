@@ -54,7 +54,7 @@ Deno.serve(async (request) => {
   const { data: accessRows } = await supabase.from('app_settings').select('organization_id,value').eq('key', 'organization_access');
   const expiredOrganizationIds = (accessRows || []).filter((row: any) => row.value?.expires_at && Date.parse(String(row.value.expires_at)) <= now.getTime()).map((row: any) => row.organization_id);
   if (expiredOrganizationIds.length) await supabase.from('organizations').update({ active: false, updated_at: now.toISOString() }).in('id', expiredOrganizationIds);
-  // Preluăm atât turele care trebuie închise, cât și turele închise automat
+  // Preluăm at�t turele care trebuie închise, c�t și turele închise automat
   // pentru care confirmarea Discord nu a fost încă livrată.
   const { data: expired, error } = await supabase.from('shifts').select('*')
     .or(`and(status.in.(active,paused),auto_stop_at.lte.${now.toISOString()}),and(status.eq.auto_completed,discord_close_notified_at.is.null)`)

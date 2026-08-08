@@ -88,6 +88,21 @@
         return Array.isArray(pages) ? pages : [];
     }
 
+    function assistantPages() {
+        const user = currentUser();
+        if (user?.assistant_permissions_configured === true) {
+            return Array.isArray(user.assistant_allowed_pages)
+                ? user.assistant_allowed_pages.map(String)
+                : [];
+        }
+        // Compatibilitate pentru organizații care nu au salvat încă selectorul robotului.
+        // Robotul moștenește accesul normal, dar nu primește niciodată pagini administrative.
+        return selectedPages().filter((page) => ![
+            'admin.html', 'logs.html', 'diagnostic.html', 'discord-configurare.html',
+            'organizatii.html', 'vouchere.html', 'developer.html', 'administrare-organizatie.html'
+        ].includes(page));
+    }
+
     function create(options = {}) {
         const role = currentRole();
         const user = currentUser();
@@ -100,7 +115,19 @@
         const cacheKey = `panel_assistant_index_v${CACHE_VERSION}_role_${role}`;
 
         function roleName() {
-            return user.role || user.default_role || 'Mecanic';
+            const active = typeof getActiveOrganization === 'function' ? getActiveOrganization() : null;
+            const candidates = [
+                user.discord_role_name,
+                user.discord_role,
+                user.role_name,
+                user.panel_role,
+                active?.discord_role_name,
+                active?.panel_role,
+                user.role,
+                user.default_role
+            ];
+            return candidates.map(value => String(value || '').trim())
+                .find(value => value && !/^\d+$/.test(value) && !/^(?:level|nivel)\b/i.test(value)) || 'Rol Discord';
         }
 
         function requiredRoleForPage(page) {
@@ -114,14 +141,8 @@
 
         function isPageAllowed(page) {
             if (!page || /^\s*(?:javascript:|data:|https?:|\/\/)/i.test(String(page))) return false;
-            try {
-                const target = new URL(String(page), window.location.href);
-                if (target.origin !== window.location.origin) return false;
-            const page = target.pathname.split('/').pop();
-            return selectedPages().includes(page) || requiredRoleForPage(page) <= role;
-            } catch (_error) {
-                return false;
-            }
+            const file = String(page).split('?')[0].split('#')[0].split('/').pop();
+            return assistantPages().includes(file) && (selectedPages().includes(file) || isPlatformAdmin());
         }
 
         function searchableText(entry) {

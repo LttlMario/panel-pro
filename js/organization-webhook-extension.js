@@ -26,7 +26,7 @@
     const card = document.createElement('div');
     card.dataset.communicationPermission = 'true';
     card.className = 'rounded-xl border border-amber-700/60 bg-amber-950/10 p-3';
-    card.innerHTML = '<b class="text-sm">AnunÈ›uri È™i Amenzi</b><p class="mt-1 text-xs text-slate-400">AceeaÈ™i selecÈ›ie controleazÄƒ citirea È™i publicarea pentru ambele pagini, separat pentru OrganizaÈ›ie È™i Birouri / AngajaÈ›i.</p><div class="mt-3 grid gap-3 md:grid-cols-2">' + ['organization','departments'].map(audience => `<div class="rounded-lg border border-slate-700 p-3"><b class="text-xs">${audience === 'organization' ? 'OrganizaÈ›ie' : 'Birouri / AngajaÈ›i'}</b><div class="mt-2 text-[11px] text-slate-400">Cine poate citi</div><div data-communication-audience="${audience}" data-communication-kind="read" class="mt-1 flex flex-wrap gap-2"></div><div class="mt-2 text-[11px] text-slate-400">Cine poate scrie</div><div data-communication-audience="${audience}" data-communication-kind="write" class="mt-1 flex flex-wrap gap-2"></div></div>`).join('') + '</div>';
+    card.innerHTML = '<b class="text-sm">Anunțuri și Amenzi</b><p class="mt-1 text-xs text-slate-400">Aceeași selecție controlează citirea și publicarea pentru ambele pagini, separat pentru Organizație și Birouri / Angajați.</p><div class="mt-3 grid gap-3 md:grid-cols-2">' + ['organization','departments'].map(audience => `<div class="rounded-lg border border-slate-700 p-3"><b class="text-xs">${audience === 'organization' ? 'Organizație' : 'Birouri / Angajați'}</b><div class="mt-2 text-[11px] text-slate-400">Cine poate citi</div><div data-communication-audience="${audience}" data-communication-kind="read" class="mt-1 flex flex-wrap gap-2"></div><div class="mt-2 text-[11px] text-slate-400">Cine poate scrie</div><div data-communication-audience="${audience}" data-communication-kind="write" class="mt-1 flex flex-wrap gap-2"></div></div>`).join('') + '</div>';
     ['organization','departments'].forEach((audience) => ['read', 'write'].forEach((kind) => {
       const target = card.querySelector(`[data-communication-audience="${audience}"][data-communication-kind="${kind}"]`);
       roles.forEach((label, id) => {
@@ -60,14 +60,14 @@
     fieldset.className = 'rounded-xl border border-emerald-700/60 bg-emerald-950/10 p-3';
     fieldset.innerHTML = `
       <legend class="px-1 font-bold text-emerald-200">Status Live</legend>
-      <small class="mb-2 block text-slate-400">Embed Discord editat periodic cu mecanicii aflaÈ›i Ã®n pontaj È™i Ã®n pauzÄƒ.</small>
+      <small class="mb-2 block text-slate-400">Embed Discord editat periodic cu mecanicii aflați în pontaj și în pauză.</small>
       <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="wh_primary_enabled_status_live"> Discord principal</label>
       <input id="wh_primary_url_status_live" type="url" class="field" placeholder="Webhook Discord principal pentru Status Live">
-      <button type="button" class="mt-2 rounded-lg border border-cyan-700 px-3 py-1 text-xs font-bold text-cyan-200" data-status-test="primary">TesteazÄƒ webhookul</button>
+      <button type="button" class="mt-2 rounded-lg border border-cyan-700 px-3 py-1 text-xs font-bold text-cyan-200" data-status-test="primary">Testează webhookul</button>
       <span class="ml-2 text-xs text-slate-400" data-status-test-result="primary"></span>
       <label class="mt-3 flex items-center gap-2 text-xs"><input type="checkbox" id="wh_secondary_enabled_status_live"> Discord secundar</label>
       <input id="wh_secondary_url_status_live" type="url" class="field" placeholder="Webhook Discord secundar pentru Status Live">
-      <button type="button" class="mt-2 rounded-lg border border-cyan-700 px-3 py-1 text-xs font-bold text-cyan-200" data-status-test="secondary">TesteazÄƒ webhookul</button>
+      <button type="button" class="mt-2 rounded-lg border border-cyan-700 px-3 py-1 text-xs font-bold text-cyan-200" data-status-test="secondary">Testează webhookul</button>
       <span class="ml-2 text-xs text-slate-400" data-status-test-result="secondary"></span>`;
     host.appendChild(fieldset);
 
@@ -76,8 +76,8 @@
         const target = button.dataset.statusTest;
         const url = $(`wh_${target}_url_status_live`).value.trim();
         const result = fieldset.querySelector(`[data-status-test-result="${target}"]`);
-        if (!url) { result.textContent = 'CompleteazÄƒ webhookul.'; result.className = 'ml-2 text-xs text-amber-300'; return; }
-        button.disabled = true; result.textContent = 'Se testeazÄƒ...';
+        if (!url) { result.textContent = 'Completează webhookul.'; result.className = 'ml-2 text-xs text-amber-300'; return; }
+        button.disabled = true; result.textContent = 'Se testează...';
         try {
           const response = await fetch(`${config.url}/functions/v1/manage-organizations`, {
             method: 'POST',
@@ -85,12 +85,44 @@
             body: JSON.stringify({ action: 'test_webhook', url, organization_id: $('id').value })
           });
           const data = await response.json();
-          if (!response.ok) throw new Error(data.error || 'Testul a eÈ™uat.');
+          if (!response.ok) throw new Error(data.error || 'Testul a eșuat.');
           result.textContent = 'Trimis cu succes.'; result.className = 'ml-2 text-xs text-emerald-300';
         } catch (error) { result.textContent = error.message; result.className = 'ml-2 text-xs text-red-300'; }
         finally { button.disabled = false; }
       });
     });
+  }
+
+  function addStatusLivePagePermission() {
+    const host = $('page-permissions');
+    if (!host || host.querySelector('[data-status-live-permission]')) return;
+    const roleInputs = [...host.querySelectorAll('input[data-page-role]')];
+    if (!roleInputs.length) return;
+    const card = document.createElement('div');
+    card.dataset.statusLivePermission = 'true';
+    card.className = 'rounded-xl border border-emerald-700/60 bg-emerald-950/10 p-3';
+    card.innerHTML = '<b class="text-sm">Status Live</b><div class="mt-2 flex flex-wrap gap-3"></div>';
+    const roles = new Map();
+    roleInputs.forEach((input) => {
+      const key = input.dataset.pageRole;
+      if (roles.has(key)) return;
+      roles.set(key, input.closest('label')?.textContent?.trim() || key);
+    });
+    const target = card.querySelector('div');
+    roles.forEach((label, roleId) => {
+      const wrapper = document.createElement('label');
+      wrapper.className = 'flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2';
+      wrapper.innerHTML = `<input type="checkbox" data-status-live-role="${roleId}"><span>${label}</span>`;
+      const checkbox = wrapper.querySelector('input');
+      checkbox.checked = Array.isArray(pagePermissions['status-live.html']) && pagePermissions['status-live.html'].includes(roleId);
+      checkbox.addEventListener('change', () => {
+        const current = new Set(pagePermissions['status-live.html'] || []);
+        checkbox.checked ? current.add(roleId) : current.delete(roleId);
+        pagePermissions['status-live.html'] = [...current];
+      });
+      target.appendChild(wrapper);
+    });
+    host.appendChild(card);
   }
 
   async function loadStatusRoutes(organizationId) {
@@ -103,7 +135,7 @@
         $(`wh_${target}_url_status_live`).value = item.url || '';
         $(`wh_${target}_enabled_status_live`).checked = item.enabled === true && Boolean(item.url);
       });
-    } catch (_) { /* Lista principalÄƒ gestioneazÄƒ deja mesajul de eroare. */ }
+    } catch (_) { /* Lista principală gestionează deja mesajul de eroare. */ }
   }
 
   const originalFetch = window.fetch;
@@ -118,13 +150,13 @@
           body.communication_permissions = communicationPermissions;
           options.body = JSON.stringify(body);
         }
-      } catch (_) { /* Cererile care nu sunt JSON rÄƒmÃ¢n nemodificate. */ }
+      } catch (_) { /* Cererile care nu sunt JSON răm�n nemodificate. */ }
     }
     return originalFetch(url, options);
   };
 
   const originalRenderPermissions = renderPagePermissions;
-  renderPagePermissions = () => { originalRenderPermissions(); addAnnouncementPermissions(); };
+  renderPagePermissions = () => { originalRenderPermissions(); addStatusLivePagePermission(); addAnnouncementPermissions(); };
 
   const originalEditOrganization = editOrganization;
   editOrganization = async (...args) => {
@@ -154,8 +186,9 @@
       });
     });
     injectStatusWebhookFields();
+    addStatusLivePagePermission();
     addAnnouncementPermissions();
-    const observer = new MutationObserver(() => { injectStatusWebhookFields(); addAnnouncementPermissions(); });
+    const observer = new MutationObserver(() => { injectStatusWebhookFields(); addStatusLivePagePermission(); addAnnouncementPermissions(); });
     observer.observe(document.body, { childList: true, subtree: true });
   });
 })();

@@ -294,7 +294,7 @@ if (settingsError) {
 }
       await db.from('app_settings').upsert({organization_id:organizationId,key:'pontaj_config',value:{maxHours:12,dayEndTime:'19:59',nightEndTime:'23:00',excludeBreaks:false}},{onConflict:'organization_id,key'});
       if(body.access){const expiresAt=String(body.access.expires_at||'').trim();if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))throw new Error('Data expirării este invalidă.');const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_access',value:{expires_at:expiresAt||null},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;if(!expiresAt||Date.parse(expiresAt)>Date.now())await db.from('organizations').update({active:true,updated_at:new Date().toISOString()}).eq('id',organizationId);}
-      if(body.contract_template){const title=String(body.contract_template.title||'').trim(),template=String(body.contract_template.template||'').trim();if(title.length<2)throw new Error('Numele contractului este obligatoriu.');if(template.length<20)throw new Error('Textul contractului este prea scurt.');const allowed=['{{COMPANY}}','{{ADDRESS}}','{{MANAGER}}','{{EMPLOYEE_NAME}}','{{CNP}}','{{PHONE}}','{{POSITION}}','{{SALARY}}','{{PROGRAM}}','{{START_DATE}}','{{CONTRACT_NUMBER}}'];const unknown=[...template.matchAll(/{{[A-Z0-9_]+}}/g)].map(match=>match[0]).filter(value=>!allowed.includes(value));if(unknown.length)throw new Error(`Câmpuri necunoscute în contract: ${[...new Set(unknown)].join(', ')}`);const defaults=body.contract_template.defaults&&typeof body.contract_template.defaults==='object'?body.contract_template.defaults:{};const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'contract_template',value:{title,template,defaults:{salary:String(defaults.salary||'').trim()||null}},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;}
+      if(body.contract_template){const title=String(body.contract_template.title||'').trim(),template=String(body.contract_template.template||'').trim();if(title.length<2)throw new Error('Numele contractului este obligatoriu.');if(template.length<20)throw new Error('Textul contractului este prea scurt.');const allowed=['{{COMPANY}}','{{ADDRESS}}','{{MANAGER}}','{{EMPLOYEE_NAME}}','{{CNP}}','{{PHONE}}','{{POSITION}}','{{SALARY}}','{{PROGRAM}}','{{START_DATE}}','{{CONTRACT_NUMBER}}'];const unknown=[...template.matchAll(/{{[A-Z0-9_]+}}/g)].map(match=>match[0]).filter(value=>!allowed.includes(value));if(unknown.length)throw new Error(`C�mpuri necunoscute în contract: ${[...new Set(unknown)].join(', ')}`);const defaults=body.contract_template.defaults&&typeof body.contract_template.defaults==='object'?body.contract_template.defaults:{};const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'contract_template',value:{title,template,defaults:{salary:String(defaults.salary||'').trim()||null}},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;}
       if(body.page_permissions && typeof body.page_permissions === 'object'){
   const allowedPages = new Set([
     'index.html',
@@ -395,6 +395,31 @@ if(
       onConflict: 'organization_id,key'
     });
 
+  if(error) throw error;
+}
+if(body.assistant_page_permissions && typeof body.assistant_page_permissions === 'object'){
+  const allowedAssistantPages = new Set([
+    'index.html','anunturi.html','pontaj.html','cereri.html','bucatarie.html',
+    'contracte.html','calculatorilegal.html','craftmecanics.html',
+    'locatiiilegale.html','marketplace.html','marketplace-ilegal.html',
+    'rapoarte.html','asistent.html'
+  ]);
+  const assistantRules = Object.fromEntries(
+    Object.entries(body.assistant_page_permissions)
+      .filter(([page]) => allowedAssistantPages.has(page))
+      .map(([page, ids]: any) => [
+        page,
+        [...new Set((Array.isArray(ids) ? ids : [])
+          .map(String)
+          .filter(id => /^\d{15,22}$/.test(id)))]
+      ])
+  );
+  const { error } = await db.from('app_settings').upsert({
+    organization_id: organizationId,
+    key: 'assistant_page_permissions',
+    value: assistantRules,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'organization_id,key' });
   if(error) throw error;
 }
 if(
@@ -547,7 +572,7 @@ if (Array.isArray(body.roles)) {
   /*
    * IMPORTANT:
    *
-   * permission_level rămâne doar pentru compatibilitate
+   * permission_level răm�ne doar pentru compatibilitate
    * cu structura existentă a bazei de date.
    *
    * Accesul real la pagini este stabilit prin
@@ -633,7 +658,7 @@ if (Array.isArray(body.roles)) {
       if(findError)throw findError;if(!organization)return reply({error:'Organizația nu mai există.'},404);
       if(String(body.confirm_name||'').trim()!==organization.name)return reply({error:'Confirmarea nu corespunde numelui organizației.'},400);
       const {count,error:countError}=await db.from('organizations').select('id',{count:'exact',head:true});if(countError)throw countError;
-      if((count||0)<=1)return reply({error:'Ultima organizație nu poate fi ștearsă. Creează întâi alta.'},409);
+      if((count||0)<=1)return reply({error:'Ultima organizație nu poate fi ștearsă. Creează înt�i alta.'},409);
       const tenantTables=['panel_notification_reads','community_poll_votes','community_reactions','community_poll_options','community_posts','panel_notifications','admin_audit_log','illegal_locations','profiles','marketplace_ilegal','marketplace','app_settings','absences','shifts'];
       for(const table of tenantTables){const {error}=await db.from(table).delete().eq('organization_id',organizationId);if(error)throw new Error(`Ștergerea datelor din ${table} a eșuat: ${error.message}`);}
       const {error:deleteError}=await db.from('organizations').delete().eq('id',organizationId);if(deleteError)throw deleteError;
