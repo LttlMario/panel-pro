@@ -1,4 +1,4 @@
-<!doctype html><html lang="ro" class="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Organizații · Platformă</title>
+﻿<!doctype html><html lang="ro" class="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Organizații · Platformă</title>
 <link rel="stylesheet" href="css/tailwind.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/permissions.js"></script><script src="js/panel-layout.js"></script><link rel="stylesheet" href="css/global-footer.css">    <link rel="icon" href="img/favicon.ico">
     <link rel="apple-touch-icon" href="img/logo-180.png">
 </head>
@@ -23,6 +23,11 @@
       </p>
 
     <div id="page-permissions" class="mt-4 space-y-3"></div>
+</details>
+<details class="rounded-xl border border-violet-700/60 bg-violet-950/20 p-4" open>
+    <summary class="font-bold cursor-pointer">Acces robot / Asistent</summary>
+    <p class="mt-2 text-xs text-slate-400">Selector separat pentru informațiile pe care robotul le poate citi. Sunt disponibile numai paginile la care utilizatorul are și acces normal. Paginile administrative nu pot fi adăugate.</p>
+    <div id="assistant-page-permissions" class="mt-4 space-y-3"></div>
 </details>
 <details class="rounded-xl border border-amber-700/60 bg-amber-950/20 p-4" open>
 
@@ -358,8 +363,14 @@ let organizations=[],
     pagePermissions={},
     actionPermissions={},
     webhookRoutes={},
+    assistantPagePermissions={},
     periodOrganizationId='';
 const configurablePages=[['index.html','Dashboard'],['anunturi.html','Anunțuri și sondaje'],['pontaj.html','Pontaj'],['cereri.html','Cereri și absențe'],['bucatarie.html','Bucatarie'],['contracte.html','Contracte'],['calculatorilegal.html','Calculator ilegal'],['craftmecanics.html','Craft mecanics'],['locatiiilegale.html','Locații ilegale'],['marketplace.html','Marketplace'],['marketplace-ilegal.html','Marketplace ilegal'],['rapoarte.html','Rapoarte'],['asistent.html','Asistent']];
+const assistantPageGroups=[
+    {key:'general',label:'Generale',pages:[['index.html','Dashboard'],['pontaj.html','Pontaj'],['cereri.html','Cereri și absențe'],['bucatarie.html','Bucătărie'],['asistent.html','Asistent']]},
+    {key:'legal',label:'Legale',pages:[['anunturi.html','Anunțuri și sondaje'],['contracte.html','Contracte'],['marketplace.html','Marketplace legal'],['rapoarte.html','Rapoarte']]},
+    {key:'illegal',label:'Ilegale',pages:[['calculatorilegal.html','Calculator ilegal'],['craftmecanics.html','Craft Mecanics'],['locatiiilegale.html','Locații ilegale'],['marketplace-ilegal.html','Marketplace ilegal']]}
+];
 const webhookDefinitions={
     organization:{
         label:'Anunțuri organizație',
@@ -419,6 +430,7 @@ async function invoke(body){
 
         body.page_permissions=pagePermissions;
         body.action_permissions=actionPermissions;
+        body.assistant_page_permissions=assistantPagePermissions;
 const title=$('contract-title').value.trim(),template=$('contract-template').value.trim();if(title||template)body.contract_template={title,template}}const r=await fetch(`${cfg.url}/functions/v1/manage-organizations`,{method:'POST',headers:{'Content-Type':'application/json',apikey:cfg.publishableKey,Authorization:`Bearer ${cfg.publishableKey}`},body:JSON.stringify(body)}),j=await r.json();if(!r.ok)throw new Error(j.error||`HTTP ${r.status}`);return j}
 async function load(){
     try{
@@ -651,6 +663,7 @@ function reset(){[
 discordRoles=[];
 pagePermissions={};
 actionPermissions={};
+assistantPagePermissions={};
 
 roleRows = [{
     panel_level: 1,
@@ -663,6 +676,7 @@ roleRows = [{
 webhookRoutes={};
 renderRoles();
 renderPagePermissions();
+renderAssistantPermissions();
 renderActionPermissions();
 renderExpiry();
 $('delete').hidden=true;$('form-title').textContent='Organizație nouă';$('guild-status').textContent='';$('guild-secondary-status').textContent='';$('status').textContent=''}
@@ -784,6 +798,7 @@ async function discoverGuildRoles(guildId,statusId){
 
         renderRoles();
         renderPagePermissions();
+        renderAssistantPermissions();
         renderActionPermissions();
 
         $(statusId).textContent=
@@ -805,7 +820,11 @@ pagePermissions =
 actionPermissions =
     o.platform_settings?.action_permissions || {};
 
+assistantPagePermissions =
+    o.platform_settings?.assistant_page_permissions || {};
+
 renderPagePermissions();
+renderAssistantPermissions();
 renderActionPermissions();
 $('form-title').textContent=`Modifică organizația: ${o.name}`;const expiry=o.platform_settings?.organization_access?.expires_at;$('expires').value=expiry?toLocalInput(new Date(expiry)):'';const contract=o.platform_settings?.contract_template||{};$('contract-title').value=contract.title||'';$('contract-template').value=contract.template||'';renderExpiry()}
 function renderRoles() {
@@ -1433,6 +1452,30 @@ function renderPagePermissions() {
         };
     }
 }
+function renderAssistantPermissions() {
+    const host = document.getElementById('assistant-page-permissions');
+    if (!host) return;
+    const roles = roleRows.filter(row => row.discord_role_id).map(row => ({
+        id: String(row.discord_role_id),
+        panel: row.panel_role || row.discord_role_name || 'Rol fără nume',
+        discord: row.discord_role_name || row.panel_role || 'Rol Discord',
+        level: Number(row.panel_level) || 0
+    }));
+    if (!roles.length) {
+        host.innerHTML = '<p class="rounded-xl border border-dashed border-slate-700 p-4 text-sm text-slate-400">Alege mai întâi rolurile Discord ale organizației.</p>';
+        return;
+    }
+    host.innerHTML = `
+      <div class="rounded-xl border border-violet-700/50 bg-violet-950/20 px-3 py-2 text-xs text-violet-200">Selectorul este separat de accesul general. Dacă nu configurezi robotul, acesta moștenește accesul normal al organizației.</div>
+      ${assistantPageGroups.map(group => `
+        <section class="rounded-xl border border-slate-800 bg-slate-950 p-3">
+          <div class="mb-2 flex flex-wrap items-center justify-between gap-2"><div><h3 class="text-sm font-bold text-slate-100">${esc(group.label)}</h3><p class="text-[11px] text-slate-500">Rolurile bifate pot citi informațiile din categorie.</p></div><button type="button" class="rounded-lg border border-violet-700 px-3 py-1.5 text-xs font-bold text-violet-200" data-assistant-select-group="${esc(group.key)}">Toate rolurile</button></div>
+          <div class="space-y-1.5">${group.pages.map(([page,label]) => { const selected=(assistantPagePermissions[page]||[]).map(String); return `<div class="rounded-lg border border-slate-800 bg-slate-900 p-2.5"><div class="mb-2 flex items-center justify-between gap-2"><span class="text-xs font-bold text-slate-200">${esc(label)}</span><span class="text-[11px] text-slate-500">${selected.length} roluri</span></div><div class="flex flex-wrap gap-2">${roles.map(role => `<label class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-950 px-2.5 py-1.5 text-[11px] text-slate-300"><input type="checkbox" data-assistant-page="${esc(page)}" data-assistant-role="${esc(role.id)}" ${selected.includes(role.id)?'checked':''}><span>Discord: ${esc(role.discord)} · Panel: ${esc(role.panel)}</span></label>`).join('')}</div></div>`; }).join('')}</div>
+        </section>`).join('')}
+    `;
+    host.querySelectorAll('[data-assistant-page]').forEach(box => { box.onchange=()=>{ const page=box.dataset.assistantPage; const current=new Set((assistantPagePermissions[page]||[]).map(String)); box.checked?current.add(String(box.dataset.assistantRole)):current.delete(String(box.dataset.assistantRole)); assistantPagePermissions[page]=[...current]; renderAssistantPermissions(); }; });
+    host.querySelectorAll('[data-assistant-select-group]').forEach(button => { button.onclick=()=>{ const group=assistantPageGroups.find(item=>item.key===button.dataset.assistantSelectGroup); group?.pages.forEach(([page])=>{assistantPagePermissions[page]=roles.map(role=>role.id);}); renderAssistantPermissions(); }; });
+}
 function renderActionPermissions() {
     const host = document.getElementById('action-permissions');
     if (!host) return;
@@ -1680,6 +1723,7 @@ $('add-role').onclick = () => {
 
     renderRoles();
     renderPagePermissions();
+    renderAssistantPermissions();
     renderActionPermissions();
 };
 $('expires').oninput=renderExpiry;document.querySelectorAll('.extend').forEach(button=>button.onclick=()=>{const current=$('expires').value?new Date($('expires').value):new Date(),base=current.getTime()>Date.now()?current:new Date();base.setDate(base.getDate()+Number(button.dataset.days));$('expires').value=toLocalInput(base);renderExpiry()});function toLocalInput(date){const shifted=new Date(date.getTime()-date.getTimezoneOffset()*60000);return shifted.toISOString().slice(0,16)}function renderExpiry(){const value=$('expires').value;if(!value){$('expiry-status').textContent='Fără termen: organizația rămâne activă.';return}const difference=new Date(value).getTime()-Date.now();if(difference<=0){$('expiry-status').textContent='EXPIRATĂ — prelungește termenul pentru reactivare.';return}const days=Math.floor(difference/86400000),hours=Math.floor((difference%86400000)/3600000),minutes=Math.floor((difference%3600000)/60000);$('expiry-status').textContent=`Timp rămas: ${days} zile, ${hours} ore și ${minutes} minute.`}
@@ -1693,14 +1737,6 @@ roles.push({
     panel_level: Number(row.panel_level) || (index + 1)
 });
 }if(new Set(roles.map(role=>role.discord_role_id)).size!==roles.length)throw new Error('Același rol Discord nu poate fi adăugat de două ori.');const settings={discord_client_id:$('client').value,panel_public_url:$('url').value,webhook_routes:Object.fromEntries(fields.map(x=>[x,{primary:{enabled:$(`wh_primary_enabled_${x}`).checked,url:$(`wh_primary_url_${x}`).value.trim()},secondary:{enabled:$(`wh_secondary_enabled_${x}`).checked,url:$(`wh_secondary_url_${x}`).value.trim()}}]).filter(([,route])=>route.primary.enabled&&route.primary.url||route.secondary.enabled&&route.secondary.url))},guilds=[{guild_id:guildId,guild_name:$('guild-status').textContent.split(':')[0],kind:'primary'}];if(secondaryId)guilds.push({guild_id:secondaryId,guild_name:$('guild-secondary-status').textContent.split(':')[0],kind:'secondary'});
-console.log(
-    'FINAL ACTION PERMISSIONS BEFORE SAVE:',
-    JSON.stringify(
-        actionPermissions,
-        null,
-        2
-    )
-);
 await invoke({
     action:'save',
 
@@ -1719,7 +1755,8 @@ await invoke({
 
     page_permissions: pagePermissions,
 
-    action_permissions: actionPermissions
+    action_permissions: actionPermissions,
+    assistant_page_permissions: assistantPagePermissions
 });
 $('status').textContent=`Organizația a fost salvată cu ${roles.length} roluri din ${guilds.length} servere.`;await load()}catch(e){$('status').textContent=e.message}};reset();load();
 </script>
@@ -1788,6 +1825,7 @@ renderRoles = () => {
 
             renderRoles();
             renderPagePermissions();
+            renderAssistantPermissions();
             renderActionPermissions();
         };
     });
@@ -1820,6 +1858,7 @@ renderRoles = () => {
 
           renderRoles();
           renderPagePermissions();
+          renderAssistantPermissions();
           renderActionPermissions();
       }
 
@@ -1975,8 +2014,12 @@ renderRoles = () => {
       actionPermissions =
           data.action_permissions || actionPermissions;
 
+      assistantPagePermissions =
+          data.assistant_page_permissions || assistantPagePermissions;
+
       renderRoles();
       renderPagePermissions();
+      renderAssistantPermissions();
       renderActionPermissions();
 
       for(const channel of fields)for(const target of ['primary','secondary']){const item=data.webhooks?.[channel]?.[target]||{};$(`wh_${target}_enabled_${channel}`).checked=item.enabled===true;$(`wh_${target}_url_${channel}`).value=item.url||'';}
@@ -2012,7 +2055,8 @@ renderRoles = () => {
               guilds: full.guilds,
               roles: full.roles,
               page_permissions: full.page_permissions,
-              action_permissions: full.action_permissions
+              action_permissions: full.action_permissions,
+              assistant_page_permissions: full.assistant_page_permissions
           };
 
           localStorage.setItem(
@@ -2051,8 +2095,12 @@ renderRoles = () => {
           actionPermissions =
               saved.action_permissions || actionPermissions;
 
+          assistantPagePermissions =
+              saved.assistant_page_permissions || assistantPagePermissions;
+
           renderRoles();
           renderPagePermissions();
+          renderAssistantPermissions();
           renderActionPermissions();
 
           $('status').textContent =
@@ -2110,3 +2158,4 @@ renderRoles = () => {
   };
 })();
 </script><script src="js/organization-packages.js?v=3.3.1"></script><script src="js/organization-webhook-extension.js?v=1"></script><script src="js/global-footer.js?v=3.3.1"></script></body></html>
+

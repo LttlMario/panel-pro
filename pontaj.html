@@ -31,7 +31,7 @@
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <h3 class="text-base font-bold text-slate-100">Selectare Tip Tură</h3>
-                            <p class="text-xs text-slate-400 mt-0.5">Alege tura dorită respectând intervalul orar permis.</p>
+                            <p class="text-xs text-slate-400 mt-0.5">Alege tura dorită respect�nd intervalul orar permis.</p>
                         </div>
                         <div class="flex space-x-3">
                             <button id="btn-shift-day" onclick="selectShiftType('zi')" class="px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700">
@@ -333,7 +333,7 @@
                 historyContainer.innerHTML = `<p class="text-xs text-rose-400 text-center py-4">Erore la încărcarea datelor din Supabase.</p>`;
             }
         }
-        // Sursa unică de adevăr pentru pontaj: rândul activ din Supabase.
+        // Sursa unică de adevăr pentru pontaj: r�ndul activ din Supabase.
         let activeShiftRecord = null;
         let autoStopInProgress = false;
         let organizationPontajConfig = null;
@@ -482,7 +482,7 @@
         }
 
         async function startShift() {
-            if (isActionProcessing || !selectedShiftType) { if (!selectedShiftType) alert('Te rog selectează mai întâi o tură validă!'); return; }
+            if (isActionProcessing || !selectedShiftType) { if (!selectedShiftType) alert('Te rog selectează mai înt�i o tură validă!'); return; }
             isActionProcessing = true;
             try {
                 const existing = await findActiveShift();
@@ -573,8 +573,8 @@
                 const { data, error } = await supabaseClient.from('shifts').update(update).eq('id', record.id).in('status', ['active', 'paused']).select('*');
                 if (error) throw error;
                 if (!data?.length) {
-                    // Un UPDATE cu zero rânduri nu înseamnă automat că tura a fost
-                    // închisă. RLS sau o cerere concurentă pot lăsa rândul activ.
+                    // Un UPDATE cu zero r�nduri nu înseamnă automat că tura a fost
+                    // închisă. RLS sau o cerere concurentă pot lăsa r�ndul activ.
                     const { data: remoteShift, error: verifyError } = await supabaseClient
                         .from('shifts')
                         .select('*')

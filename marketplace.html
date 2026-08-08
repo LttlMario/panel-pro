@@ -55,7 +55,7 @@
                                 </select>
                             </div>
 
-                            <!-- Câmpul de Categorie (ascuns dacă selectează Servicii) -->
+                            <!-- C�mpul de Categorie (ascuns dacă selectează Servicii) -->
                             <div id="categorie-wrapper">
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Categorie:</label>
                                 <select id="categorie" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500">
@@ -65,13 +65,13 @@
                                 </select>
                             </div>
 
-                            <!-- Câmpul de Produse (ascuns dacă selectează Servicii) -->
+                            <!-- C�mpul de Produse (ascuns dacă selectează Servicii) -->
                             <div id="produse-wrapper">
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Produse (folosește Enter):</label>
                                 <textarea id="produse" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="- Produs 1&#10;- Produs 2" required></textarea>
                             </div>
 
-                            <!-- Câmpul specific pentru Servicii (afișat doar dacă se selectează Servicii) -->
+                            <!-- C�mpul specific pentru Servicii (afișat doar dacă se selectează Servicii) -->
                             <div id="servicii-box-wrapper" class="hidden">
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Ce servicii ceri sau prestezi:</label>
                                 <textarea id="detalii_servicii" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="Descrie serviciul pe care îl oferi sau îl soliciți..."></textarea>
@@ -82,7 +82,7 @@
                                 <input type="text" id="pret" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="Ex: 1500 sau 10000 sau Negociabil" required>
                             </div>
 
-                            <!-- Câmp suplimentar explicit pentru Link Imagine Directă (opțional) -->
+                            <!-- C�mp suplimentar explicit pentru Link Imagine Directă (opțional) -->
                             <div>
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Link Direct Imagine (Opțional):</label>
                                 <input type="url" id="imagine_url_direct" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="https://imgur.com/... sau link direct imagine">
@@ -543,7 +543,7 @@
                 }
                 pretValoare += '$';
             } else {
-                const contineLitere = /[a-zA-ZăâîșțĂĂÎȘȚ]/i.test(pretValoare);
+                const contineLitere = /[a-zA-Za��??AA�??]/i.test(pretValoare);
                 if (!contineLitere && !pretValoare.includes('$')) {
                     pretValoare += '$';
                 }

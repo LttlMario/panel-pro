@@ -96,7 +96,7 @@
             <section class="panel-action-bar"><div><span class="inline-flex items-center px-2.5 py-1 rounded-full text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>Sistem Activ • Realtime</span></div></section>
             <div class="p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto w-full">
 
-                <!-- Panou Stânga: Formular (5 coloane) -->
+                <!-- Panou St�nga: Formular (5 coloane) -->
                 <div class="lg:col-span-5 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-6">
                     <div class="flex items-center justify-between pb-4 border-b border-slate-800">
                         <span id="contractFormTitle" class="text-sm font-bold text-slate-100 uppercase tracking-wide">Date Contract</span>
@@ -258,7 +258,7 @@ Programul normal de lucru este de 3 ore/zi, între ora {{PROGRAM}}, conform prog
 Art. 5 – Salarizarea
 
 Salariul de bază net: {{SALARY}}.
-Plata salariului se efectuează săptămânal in fiecare Duminica.
+Plata salariului se efectuează săptăm�nal in fiecare Duminica.
 Angajatul poate beneficia de bonusuri sau prime de performanță, conform politicii societății.
 Orele suplimentare se efectuează numai cu aprobarea angajatorului și nu sunt remunerate prin salariul de bază. Compensarea acestora se realizează exclusiv din sumele încasate cu titlu de bacșiș („ciubuc”) sau din veniturile obținute în urma lucrărilor efectuate în intervalul respectiv, conform înțelegerii dintre părți.
 
@@ -290,7 +290,7 @@ Angajatul poate demisiona prin notificare scrisă, cu respectarea termenului de 
 
 Angajatorul poate dispune încetarea contractului numai în condițiile și pentru motivele prevăzute de legislația muncii, cu respectarea procedurilor legale.
 
-La încetarea raporturilor de muncă, angajatul va preda toate bunurile, echipamentele, documentele și materialele aparținând societății.
+La încetarea raporturilor de muncă, angajatul va preda toate bunurile, echipamentele, documentele și materialele aparțin�nd societății.
 
 Art. 9 – Fișa postului
 
@@ -305,11 +305,11 @@ respectarea normelor de protecția muncii și PSI.
 
 Art. 10 – Dispoziții finale
 
-Prezentul contract produce efecte începând cu data de {{START_DATE}}.
+Prezentul contract produce efecte încep�nd cu data de {{START_DATE}}.
 
 Orice modificare se face numai prin act adițional, semnat de ambele părți.
 
-Contractul este întocmit în două exemplare originale, câte unul pentru fiecare parte.
+Contractul este întocmit în două exemplare originale, c�te unul pentru fiecare parte.
 
 ANGAJATOR
 
@@ -453,7 +453,7 @@ Semnătură:`;
 
             const values={COMPANY:company,ADDRESS:address,MANAGER:manager,EMPLOYEE_NAME:employeeName,CNP:cnp,PHONE:phone,POSITION:position,SALARY:salary,PROGRAM:schedule,START_DATE:startDate,CONTRACT_NUMBER:currentContractNumber};
             const labels={COMPANY:'Companie',ADDRESS:'Adresă',MANAGER:'Manager',EMPLOYEE_NAME:'Nume angajat',CNP:'CNP',PHONE:'Telefon',POSITION:'Funcție',SALARY:'Salariu',PROGRAM:'Program',START_DATE:'Data începerii',CONTRACT_NUMBER:'Număr contract'};
-            const missing=Object.entries(values).filter(([key,value])=>contractTemplate.includes(`{{${key}}}`)&&!String(value).trim()).map(([key])=>labels[key]);if(missing.length){alert(`Completează câmpurile folosite de acest contract: ${missing.join(', ')}.`);return}
+            const missing=Object.entries(values).filter(([key,value])=>contractTemplate.includes(`{{${key}}}`)&&!String(value).trim()).map(([key])=>labels[key]);if(missing.length){alert(`Completează c�mpurile folosite de acest contract: ${missing.join(', ')}.`);return}
 
             let finalContract = contractTemplate
                 .replaceAll('{{CONTRACT_NUMBER}}', currentContractNumber)
@@ -480,7 +480,7 @@ Semnătură:`;
         function copyContract() {
             const previewText = document.getElementById('contractPreview').innerText;
             if (!previewText || previewText.startsWith('Completați formularul')) {
-                alert('Mai întâi generați un contract pentru a-l putea copia!');
+                alert('Mai înt�i generați un contract pentru a-l putea copia!');
                 return;
             }
 

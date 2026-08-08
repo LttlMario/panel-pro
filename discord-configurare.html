@@ -272,7 +272,7 @@
   <main class="flex-1 min-w-0">
     <div class="w-full max-w-5xl mx-auto p-4 md:p-8">
       <form id="discord-setup-form" class="setup-form">
-        <section class="setup-card"><h3>Proiect Supabase</h3><p>Acestea sunt singurele două valori publice folosite de toate paginile panelului. Generează fișierul și înlocuiește-l pe GitHub când muți baza de date.</p><div class="fields"><div class="field full"><label>Project URL</label><input id="supabase_public_url" required type="url" placeholder="https://proiect.supabase.co"></div><div class="field full"><label>Publishable / anon key</label><input id="supabase_publishable_key" required type="password" autocomplete="off" placeholder="sb_publishable_... sau cheia anon JWT"></div><div class="field full"><button class="config-action" id="download-supabase-config" type="button">Descarcă js/supabase-config.js</button></div></div><div class="download-pack"><a class="config-action" href="supabase/MASTER-MULTI-ORGANIZATIE.sql" download>🗄️ Descarcă SQL complet</a><a class="config-action" href="supabase/MASTER-MULTI-ORGANIZATIE.sql" download>🏢 Descarcă migrarea multi-organizație</a><a class="config-action" href="supabase/deploy-functions.ps1" download>⚡ Descarcă deploy Edge Functions</a><a class="config-action" href="supabase/edge-secrets.example.env" download>🔐 Descarcă șablon Secrets</a><a class="config-action" href="supabase/apply-edge-secrets.ps1" download>🔑 Descarcă aplicare Secrets</a><a class="config-action" href="supabase/INSTALARE-MASTER-MULTI-ORGANIZATIE.md" download>📘 Descarcă instrucțiunile</a></div><div class="security-note">Cheia <b>service_role / secret</b> nu se introduce și nu se salvează în această pagină. Completeaz-o numai în copia locală a șablonului Secrets și în Supabase → Edge Functions → Secrets. Nu încărca șablonul completat pe GitHub.</div></section>
+        <section class="setup-card"><h3>Proiect Supabase</h3><p>Acestea sunt singurele două valori publice folosite de toate paginile panelului. Generează fișierul și înlocuiește-l pe GitHub c�nd muți baza de date.</p><div class="fields"><div class="field full"><label>Project URL</label><input id="supabase_public_url" required type="url" placeholder="https://proiect.supabase.co"></div><div class="field full"><label>Publishable / anon key</label><input id="supabase_publishable_key" required type="password" autocomplete="off" placeholder="sb_publishable_... sau cheia anon JWT"></div><div class="field full"><button class="config-action" id="download-supabase-config" type="button">Descarcă js/supabase-config.js</button></div></div><div class="download-pack"><a class="config-action" href="supabase/MASTER-MULTI-ORGANIZATIE.sql" download>🗄️ Descarcă SQL complet</a><a class="config-action" href="supabase/MASTER-MULTI-ORGANIZATIE.sql" download>🏢 Descarcă migrarea multi-organizație</a><a class="config-action" href="supabase/deploy-functions.ps1" download>⚡ Descarcă deploy Edge Functions</a><a class="config-action" href="supabase/edge-secrets.example.env" download>🔐 Descarcă șablon Secrets</a><a class="config-action" href="supabase/apply-edge-secrets.ps1" download>🔑 Descarcă aplicare Secrets</a><a class="config-action" href="supabase/INSTALARE-MASTER-MULTI-ORGANIZATIE.md" download>📘 Descarcă instrucțiunile</a></div><div class="security-note">Cheia <b>service_role / secret</b> nu se introduce și nu se salvează în această pagină. Completeaz-o numai în copia locală a șablonului Secrets și în Supabase → Edge Functions → Secrets. Nu încărca șablonul completat pe GitHub.</div></section>
         <section class="setup-card">
         <h3>Organizație</h3>
         <p>
@@ -393,7 +393,7 @@
 
         </div>
     </section>
-        <section class="setup-card"><h3>Cele 7 roluri</h3><p>Nivelul de acces (1–7) rămâne stabil. Poți schimba separat denumirea afișată în panel, numele rolului Discord și ID-ul său.</p><div id="roles"></div></section>
+        <section class="setup-card"><h3>Cele 7 roluri</h3><p>Nivelul de acces (1–7) răm�ne stabil. Poți schimba separat denumirea afișată în panel, numele rolului Discord și ID-ul său.</p><div id="roles"></div></section>
         <section class="setup-card"><h3>Webhook-uri</h3><p>Valorile sunt păstrate în tabela privată și sunt accesibile numai funcțiilor administrative.</p><div class="fields">
           <div class="field"><label>Anunțuri Familie / Birouri</label><input id="family_webhook_url" type="password" placeholder="Webhook pentru anunțurile familiei sau birourilor"><button class="config-action test-webhook" data-channel="family" data-label="Anunțuri Familie" type="button">Verifică Anunțuri Familie</button></div>
           <div class="field"><label>Anunțuri Angajați / Mecanici</label><input id="mechanics_webhook_url" type="password" placeholder="Webhook pentru anunțurile angajaților"><button class="config-action test-webhook" data-channel="mechanics" data-label="Anunțuri Mecanici" type="button">Verifică Anunțuri Mecanici</button></div>
@@ -588,7 +588,7 @@
         if (config.organization_banner)
             document.getElementById('organization_banner').value = config.organization_banner;
 
-        // Încarcă toate câmpurile care există deja
+        // Încarcă toate c�mpurile care există deja
         Object.keys(config).forEach(key => {
             const input = document.getElementById(key);
             if (input) {
