@@ -30,10 +30,18 @@
 
         let body;
 
-        const headers = {
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`
-        };
+    const headers = {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`
+    };
+
+    const panelSession = await window.ensurePanelSession?.()
+        || localStorage.getItem('panel_session_token')
+        || '';
+    if (!panelSession) {
+        throw new Error('Sesiunea panel lipsește. Autentifică-te din nou.');
+    }
+    headers['x-panel-session'] = panelSession;
 
         // Pentru notificările care conțin fișiere.
         if (payload instanceof FormData) {
