@@ -345,8 +345,8 @@
                 }
 
                 const { data, error } = await supabaseClient
-                    .from('organization_settings')
-                    .select('*')
+                    .from('app_settings')
+                    .select('value')
                     .eq('organization_id', currentUser.organization_id)
                     .eq('key', 'pontaj_config')
                     .maybeSingle();
