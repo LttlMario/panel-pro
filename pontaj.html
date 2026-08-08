@@ -615,6 +615,12 @@
             document.getElementById('btn-start').disabled = false; document.getElementById('btn-pause').disabled = true; document.getElementById('btn-stop').disabled = true; document.getElementById('pause-btn-text').textContent = 'Pauză'; selectedShiftType = null; resetUIButtons();
         }
 
+        async function sendGeneralDiscordWebhook(title, description, color) {
+            const payload = { embeds: [{ title, description, color, timestamp: new Date().toISOString() }] };
+            try { await sendPanelDiscord('pontaj', payload); return true; }
+            catch (error) { console.error('Eroare webhook pontaj:', error); return false; }
+        }
+
         async function sendStopShiftDiscordWebhook(data) {
             const payload = { embeds: [{ title: `⏹️ Pontaj Încheiat - Tură de ${data.shift_type.toUpperCase()}`, color: data.shift_type === 'zi' ? 16766720 : 65535, fields: [
                 { name: '👤 Angajat', value: data.colleague_name, inline: true }, { name: '📅 Data', value: data.date, inline: true },
