@@ -79,12 +79,6 @@ Deno.serve(async (request) => {
       cronSecret.length > 0 &&
       receivedCronSecret === cronSecret;
 
-    console.log('STATUS LIVE AUTH DEBUG', {
-      hasCronSecret: Boolean(cronSecret),
-      hasReceivedSecret: Boolean(receivedCronSecret),
-      isCronRequest
-    });
-
     let organizationId = '';
 
     if (isCronRequest) {
@@ -159,14 +153,6 @@ Deno.serve(async (request) => {
           const patchUrl =
               `${webhook.origin}${webhook.pathname}/messages/${existingId}`;
 
-          console.log('Status Live PATCH:', {
-              organizationId,
-              organizationName: organization?.name,
-              target,
-              existingId,
-              patchUrl
-          });
-
           response = await fetch(
               patchUrl,
               {
@@ -178,11 +164,6 @@ Deno.serve(async (request) => {
               }
           );
 
-          console.log(
-              'Status Live PATCH response:',
-              response.status,
-              await response.clone().text()
-          );
       }
 
       else {

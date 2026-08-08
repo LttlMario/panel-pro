@@ -161,7 +161,6 @@ window.PANEL_ASSISTANT_KNOWLEDGE = [
 window.PANEL_ASSISTANT_PAGES = [
     { file: 'index.html', label: 'Dashboard', role: 1 },
     { file: 'pontaj.html', label: 'Pontaj', role: 1 },
-    { file: 'status-live.html', label: 'Status Live', role: 1 },
     { file: 'cereri.html', label: 'Cereri / Absențe', role: 1 },
     { file: 'craftmecanics.html', label: 'Craft Mecanics', role: 1 },
     { file: 'marketplace.html', label: 'Marketplace', role: 1 },

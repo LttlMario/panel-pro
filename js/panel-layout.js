@@ -1,4 +1,4 @@
-// Navigare comună pentru panel: meniu mobil și sidebar pliabil pe desktop.
+// Navigare comunÄƒ pentru panel: meniu mobil È™i sidebar pliabil pe desktop.
 if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetchFixed) { window.__organizationFetchFixed = true; const _fetch = window.fetch; window.fetch = (url, options = {}) => { if (String(url).includes('/functions/v1/manage-organizations')) options.headers = { ...(options.headers || {}), 'x-panel-session': localStorage.getItem('panel_session_token') || '' }; return _fetch(url, options); }; }
 (() => {
     if (window.location.pathname.endsWith('vouchere.html')) {
@@ -92,7 +92,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 .panel-global-header .panel-header-tools .panel-search-host { top:72px; }
             }
 
-            /* Tema Panel nu primește suprascrieri: păstrează exact designul original al paginilor. */
+            /* Tema Panel nu primeÈ™te suprascrieri: pÄƒstreazÄƒ exact designul original al paginilor. */
             html[data-panel-theme="dark"] { color-scheme:dark; --bg-main:#030712; --bg-panel:#080f1d; --bg-panel-hover:#111c2e; --card:#0a1220; --border:#223047; --text-main:#e5edf8; --text-muted:#91a0b6; }
             html[data-panel-theme="dark"] body, html[data-panel-theme="dark"] main, html[data-panel-theme="dark"] #app { background:#030712 !important; color:#e5edf8 !important; }
             html[data-panel-theme="dark"] aside, html[data-panel-theme="dark"] .panel-global-header, html[data-panel-theme="dark"] footer, html[data-panel-theme="dark"] .bg-slate-900, html[data-panel-theme="dark"] .post, html[data-panel-theme="dark"] .dialog, html[data-panel-theme="dark"] .panel, html[data-panel-theme="dark"] .card { background-color:#080f1d !important; }
@@ -185,7 +185,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (main) {
             main.style.minHeight = '100vh';
             // Paginile istorice aveau un offset propriu pentru sidebar.
-            // Sidebarul comun este poziționat de body.panel-shared-sidebar-page.
+            // Sidebarul comun este poziÈ›ionat de body.panel-shared-sidebar-page.
             main.style.marginLeft = '0';
         }
         const originalMainMargin = main?.style.marginLeft || '';
@@ -194,7 +194,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const toggle = document.createElement('button');
         toggle.type = 'button';
         toggle.className = 'panel-sidebar-toggle';
-        toggle.setAttribute('aria-label', 'Micșorează meniul');
+        toggle.setAttribute('aria-label', 'MicÈ™oreazÄƒ meniul');
         sidebar.appendChild(toggle);
 
         const applyCollapsedState = (collapsed) => {
@@ -216,8 +216,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             const title = sidebar.querySelector('h1');
             if (title) title.classList.toggle('hidden', collapsed);
             sidebar.querySelectorAll('#user-display-name, #user-role').forEach((element) => element.classList.toggle('hidden', collapsed));
-            toggle.textContent = collapsed ? '›' : '‹';
-            toggle.setAttribute('aria-label', collapsed ? 'Extinde meniul' : 'Micșorează meniul');
+            toggle.textContent = collapsed ? 'â€º' : 'â€¹';
+            toggle.setAttribute('aria-label', collapsed ? 'Extinde meniul' : 'MicÈ™oreazÄƒ meniul');
         };
 
         const savedState = localStorage.getItem(COLLAPSE_KEY) === 'true';
@@ -228,14 +228,14 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             applyCollapsedState(nextState);
         });
 
-        // Dashboard are deja propriul meniu mobil, păstrat pentru compatibilitate.
+        // Dashboard are deja propriul meniu mobil, pÄƒstrat pentru compatibilitate.
         if (document.getElementById('mobile-menu')) return;
 
         const backdrop = document.createElement('div');
         backdrop.id = 'panel-mobile-backdrop';
         const mobileMenu = document.createElement('aside');
         mobileMenu.id = 'panel-mobile-menu';
-        mobileMenu.innerHTML = `<div class="panel-mobile-top"><img src="img/logo-192.png" alt="Logo Panel" class="panel-brand-logo"><button type="button" class="w-9 h-9 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-lg" aria-label="Închide meniul">×</button></div><nav class="panel-mobile-nav space-y-1.5"></nav>`;
+        mobileMenu.innerHTML = `<div class="panel-mobile-top"><img src="img/logo-192.png" alt="Logo Panel" class="panel-brand-logo"><button type="button" class="w-9 h-9 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-lg" aria-label="ÃŽnchide meniul">Ã—</button></div><nav class="panel-mobile-nav space-y-1.5"></nav>`;
         document.body.append(backdrop, mobileMenu);
 
         const mobileNav = mobileMenu.querySelector('.panel-mobile-nav');
@@ -264,7 +264,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             const mobileToggle = document.createElement('button');
             mobileToggle.type = 'button';
             mobileToggle.className = 'panel-mobile-toggle';
-            mobileToggle.textContent = '☰';
+            mobileToggle.textContent = 'â˜°';
             mobileToggle.setAttribute('aria-label', 'Deschide meniul');
             mobileToggle.addEventListener('click', openMobileMenu);
             header.insertBefore(mobileToggle, header.firstChild);
@@ -299,7 +299,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         heading.classList.add('panel-brand-heading');
         heading.replaceChildren();
         const organization=typeof getActiveOrganization==='function'?getActiveOrganization():null;
-        heading.innerHTML=`<img class="panel-brand-logo" src="${organization?.logo_url||'img/logo-192.png'}" alt="${organization?.name||'Organizație'}" onerror="this.src='img/logo-192.png'"><span class="panel-org-name">${organization?.name||'Organizație'}</span>`;
+        heading.innerHTML=`<img class="panel-brand-logo" src="${organization?.logo_url||'img/logo-192.png'}" alt="${organization?.name||'OrganizaÈ›ie'}" onerror="this.src='img/logo-192.png'"><span class="panel-org-name">${organization?.name||'OrganizaÈ›ie'}</span>`;
         if(!sidebar.querySelector('.panel-sidebar-profile')){const user=typeof getUser==='function'?getUser():null;const profile=document.createElement('div');profile.className='panel-sidebar-profile';profile.innerHTML=`<img id="user-avatar" src="${user?.avatar||user?.avatar_url||''}" alt=""><div><strong id="user-display-name">${user?.display_name||user?.username||'Utilizator'}</strong><small id="user-role">${user?.role||'Rol'}</small></div><button type="button" id="logout-btn" data-sidebar-logout>Logout</button>`;heading.after(profile);profile.querySelector('[data-sidebar-logout]')?.addEventListener('click',()=>typeof logout==='function'?logout():location.replace('login.html'));}
     }
 
@@ -307,8 +307,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         let existing = document.getElementById('panel-shared-sidebar');
         if (existing) return {navigation: existing.querySelector('nav')};
 
-        // Elimină sidebarul copiat din pagină. Meniul mobil legacy (dacă există)
-        // rămâne intact pentru compatibilitatea dashboardului.
+        // EliminÄƒ sidebarul copiat din paginÄƒ. Meniul mobil legacy (dacÄƒ existÄƒ)
+        // rÄƒmÃ¢ne intact pentru compatibilitatea dashboardului.
         const legacyNavigation = document.getElementById('sidebar-nav') || [...document.querySelectorAll('aside nav')]
             .find(nav => !nav.closest('#panel-mobile-menu'));
         const legacySidebar = legacyNavigation?.closest('aside') || null;
@@ -330,8 +330,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         let header = [...main.children].find(element => element.matches('header')) ||
             [...document.body.children].find(element => element.matches('header'));
 
-        // Hostul global este singura sursă pentru header. Mutăm acțiunile utile
-        // într-o bară secundară și eliminăm markupul vechi al paginii.
+        // Hostul global este singura sursÄƒ pentru header. MutÄƒm acÈ›iunile utile
+        // Ã®ntr-o barÄƒ secundarÄƒ È™i eliminÄƒm markupul vechi al paginii.
         if (header && !header.closest('#panel-header-host')) {
             const titleBlock=[...header.children].find(child=>child.querySelector?.('h1,h2')||child.matches?.('h1,h2'));
             const extras=[...header.children].filter(child=>child!==titleBlock);
@@ -356,7 +356,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (currentPage === 'anunturi.html') {
             if (!header) {
                 header = document.createElement('header');
-                header.innerHTML = '<div class="panel-global-title"><h2>📣 Anunțuri & Sondaje</h2><p>Comunicare pentru Familie și Mecanici.</p></div>';
+                header.innerHTML = '<div class="panel-global-title"><h2>ðŸ“£ AnunÈ›uri & Sondaje</h2><p>Comunicare pentru Familie È™i Mecanici.</p></div>';
                 main.prepend(header);
             }
             header.className = 'panel-global-header';
@@ -370,7 +370,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             if (!header) return;
             header.className = 'panel-global-header';
             const search = header.querySelector('.search-container');
-            header.innerHTML = '<div class="panel-global-title"><h2>🧮 Calculator Ilegal</h2><p>Calcul pentru arme, muniție și plicuri.</p></div>';
+            header.innerHTML = '<div class="panel-global-title"><h2>ðŸ§® Calculator Ilegal</h2><p>Calcul pentru arme, muniÈ›ie È™i plicuri.</p></div>';
             if (search) header.appendChild(search);
             return;
         }
@@ -378,7 +378,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (currentPage === 'craftmecanics.html') {
             if (!header) return;
             header.className = 'panel-global-header';
-            header.innerHTML = '<div class="panel-global-title"><h2>🔨 Craft Mechanics</h2><p>Galerie capturi, rețete și echipamente.</p></div>';
+            header.innerHTML = '<div class="panel-global-title"><h2>ðŸ”¨ Craft Mechanics</h2><p>Galerie capturi, reÈ›ete È™i echipamente.</p></div>';
             return;
         }
         if (currentPage === 'bucatarie.html') {
@@ -386,8 +386,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             header.className = 'panel-global-header';
             header.innerHTML = `
                 <div class="panel-global-title">
-                    <h2>🍳 Bucătărie</h2>
-                    <p>Galerie capturi, rețete și echipamente pentru bucătărie.</p>
+                    <h2>ðŸ³ BucÄƒtÄƒrie</h2>
+                    <p>Galerie capturi, reÈ›ete È™i echipamente pentru bucÄƒtÄƒrie.</p>
                 </div>
             `;
             return;
@@ -417,7 +417,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             script.onload = resolve;
             script.onerror = () => {
                 script.remove();
-                reject(new Error(`Nu s-a putut încărca ${source}`));
+                reject(new Error(`Nu s-a putut Ã®ncÄƒrca ${source}`));
             };
             document.head.appendChild(script);
         });
@@ -432,35 +432,33 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         link.classList.add(...(currentPage === 'anunturi.html'
             ? ['bg-emerald-500/10', 'text-emerald-400', 'font-medium']
             : ['text-slate-300', 'hover:bg-slate-800']));
-        link.innerHTML = '<span>📣</span><span>Anunțuri & Sondaje</span>';
+        link.innerHTML = '<span>ðŸ“£</span><span>AnunÈ›uri & Sondaje</span>';
         const marketplace = navigation.querySelector('a[href="marketplace.html"]');
         navigation.insertBefore(link, marketplace || null);
     }
 
     function normalizeNavigation(navigation, currentPage) {
         const links = [
-            ['calculator.html', 1, '🧮', 'Calculator'],
-            ['index.html', 1, '📊', 'Dashboard'],
-            ['anunturi.html', 1, '📣', 'Anunțuri & Sondaje'],
-            ['pontaj.html', 1, '⏱️', 'Pontaj'],
-            ['cereri.html', 1, '📋', 'Cereri / Absențe'],
-            ['contracte.html', 4, '📜', 'Contracte'],
-            ['calculatorilegal.html', 3, '🧮', 'Calculator Ilegal'],
-            ['craftmecanics.html', 1, '🔨', 'Craft Mecanics'],
-            ['bucatarie.html', 1, '🍳', 'Bucătărie'],
-            ['locatiiilegale.html', 3, '🗺️', 'Locații Ilegale'],
-            ['marketplace.html', 1, '🛒', 'Marketplace'],
-            ['marketplace-ilegal.html', 3, '🚨', 'Black Market'],
-            ['rapoarte.html', 4, '📈', 'Rapoarte'],
-            ['logs.html', 7, '🧾', 'Loguri'],
-            ['diagnostic.html', 7, '🩺', 'Verificare sistem'],
-            ['discord-configurare.html', 99, '⚙️', 'Configurare Discord'],
-            ['organizatii.html', 7, '🏢', 'Organizații platformă'],
-            ['developer.html', 7, '🛠️', 'Developer'],
-            ['admin.html', 7, '👑', 'Panou Admin']
+            ['calculator.html', 1, 'ðŸ§®', 'Calculator'],
+            ['index.html', 1, 'ðŸ“Š', 'Dashboard'],
+            ['anunturi.html', 1, 'ðŸ“£', 'AnunÈ›uri & Sondaje'],
+            ['pontaj.html', 1, 'â±ï¸', 'Pontaj'],
+            ['cereri.html', 1, 'ðŸ“‹', 'Cereri / AbsenÈ›e'],
+            ['contracte.html', 4, 'ðŸ“œ', 'Contracte'],
+            ['calculatorilegal.html', 3, 'ðŸ§®', 'Calculator Ilegal'],
+            ['craftmecanics.html', 1, 'ðŸ”¨', 'Craft Mecanics'],
+            ['bucatarie.html', 1, 'ðŸ³', 'BucÄƒtÄƒrie'],
+            ['locatiiilegale.html', 3, 'ðŸ—ºï¸', 'LocaÈ›ii Ilegale'],
+            ['marketplace.html', 1, 'ðŸ›’', 'Marketplace'],
+            ['marketplace-ilegal.html', 3, 'ðŸš¨', 'Black Market'],
+            ['rapoarte.html', 4, 'ðŸ“ˆ', 'Rapoarte'],
+            ['logs.html', 7, 'ðŸ§¾', 'Loguri'],
+            ['diagnostic.html', 7, 'ðŸ©º', 'Verificare sistem'],
+            ['discord-configurare.html', 99, 'âš™ï¸', 'Configurare Discord'],
+            ['organizatii.html', 7, 'ðŸ¢', 'OrganizaÈ›ii platformÄƒ'],
+            ['developer.html', 7, 'ðŸ› ï¸', 'Developer'],
+            ['admin.html', 7, 'ðŸ‘‘', 'Panou Admin']
         ];
-
-        if (!links.some(([href]) => href === 'status-live.html')) links.splice(4, 0, ['status-live.html', 1, '📡', 'Status Live']);
         const calculatorIndex = links.findIndex(([href]) => href === 'calculator.html');
         if (calculatorIndex >= 0) {
             const [calculatorLink] = links.splice(calculatorIndex, 1);
@@ -476,7 +474,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         }).join('');
 
         if (typeof isPlatformAdmin === 'function' && isPlatformAdmin() && !navigation.querySelector('a[href="vouchere.html"]')) {
-            const voucher = document.createElement('a'); voucher.href='vouchere.html'; voucher.dataset.role='99'; voucher.className='nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm text-slate-300 hover:bg-slate-800'; voucher.innerHTML='<span>🎟️</span><span>Vouchere</span>'; navigation.appendChild(voucher);
+            const voucher = document.createElement('a'); voucher.href='vouchere.html'; voucher.dataset.role='99'; voucher.className='nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm text-slate-300 hover:bg-slate-800'; voucher.innerHTML='<span>ðŸŽŸï¸</span><span>Vouchere</span>'; navigation.appendChild(voucher);
         }
         if (typeof isPlatformAdmin === 'function' && isPlatformAdmin()) {
             navigation.querySelectorAll('a.nav-link').forEach((link) => { link.style.display = ''; });
@@ -489,7 +487,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     function ensureSidebarLogout(sidebar) {
         const existingLogout = [...sidebar.querySelectorAll('button')].find((button) => {
             const action = `${button.id} ${button.getAttribute('onclick') || ''} ${button.textContent || ''}`.toLocaleLowerCase('ro-RO');
-            return action.includes('logout') || action.includes('ieșire') || action.includes('iesire');
+            return action.includes('logout') || action.includes('ieÈ™ire') || action.includes('iesire');
         });
         if (existingLogout) {
             const cleanButton = existingLogout.cloneNode(true);
@@ -531,18 +529,18 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (!footer) return;
 
         const modes = ['panel', 'dark'];
-        const icons = { panel: '🎨', dark: '🌙' };
-        const labels = { panel: 'Tema Panel (originală)', dark: 'Tema Dark' };
+        const icons = { panel: 'ðŸŽ¨', dark: 'ðŸŒ™' };
+        const labels = { panel: 'Tema Panel (originalÄƒ)', dark: 'Tema Dark' };
         const apply = (mode) => {
             document.documentElement.dataset.panelTheme = mode;
-            // Unele pagini vechi își citesc culorile din data-theme; Panel folosește paleta lor originală întunecată.
+            // Unele pagini vechi Ã®È™i citesc culorile din data-theme; Panel foloseÈ™te paleta lor originalÄƒ Ã®ntunecatÄƒ.
             document.documentElement.dataset.theme = 'dark';
             document.documentElement.classList.add('dark');
             const button = document.getElementById('panel-theme-toggle');
             if (button) {
                 button.textContent = icons[mode];
                 button.title = labels[mode];
-                button.setAttribute('aria-label', `${labels[mode]}. Apasă pentru tema următoare.`);
+                button.setAttribute('aria-label', `${labels[mode]}. ApasÄƒ pentru tema urmÄƒtoare.`);
             }
         };
 
@@ -556,14 +554,14 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (legacyButton) legacyButton.removeAttribute('onclick');
         button.id = 'panel-theme-toggle';
         button.type = 'button';
-        button.setAttribute('aria-label', 'Schimbă tema');
+        button.setAttribute('aria-label', 'SchimbÄƒ tema');
         button.addEventListener('click', () => {
             mode = modes[(modes.indexOf(mode) + 1) % modes.length];
             localStorage.setItem('panel_theme', mode);
             apply(mode);
         });
         if (!legacyButton) {
-            const logoutButton = [...footer.querySelectorAll('button')].find((item) => item !== button && /logout|ieșire|iesire/i.test(item.textContent || ''));
+            const logoutButton = [...footer.querySelectorAll('button')].find((item) => item !== button && /logout|ieÈ™ire|iesire/i.test(item.textContent || ''));
             let reference = logoutButton || null;
             while (reference?.parentElement && reference.parentElement !== footer) reference = reference.parentElement;
             footer.insertBefore(button, reference);
@@ -585,7 +583,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             await loadAssistantScript('panel-assistant-core-script', 'js/asistent-core.js', () => Boolean(window.PanelAssistantCore));
             await loadAssistantScript('panel-assistant-widget-script', 'js/asistent-widget.js', () => Boolean(window.__panelAssistantWidgetLoaded));
         } catch (error) {
-            console.warn('Asistentul plutitor nu a putut fi inițializat.', error);
+            console.warn('Asistentul plutitor nu a putut fi iniÈ›ializat.', error);
         }
     }
 
@@ -596,9 +594,9 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         input.type = 'search';
         input.id = 'global-search';
         input.className = 'panel-global-search';
-        const title = header.querySelector('h1,h2')?.textContent?.trim() || 'pagină';
-        input.placeholder = `Caută în ${title}...`;
-        input.setAttribute('aria-label', `Caută în ${title}`);
+        const title = header.querySelector('h1,h2')?.textContent?.trim() || 'paginÄƒ';
+        input.placeholder = `CautÄƒ Ã®n ${title}...`;
+        input.setAttribute('aria-label', `CautÄƒ Ã®n ${title}`);
         input.addEventListener('input', () => runGlobalPageSearch(input.value));
         input.addEventListener('keydown', event => {
             if (event.key === 'Escape') {
@@ -653,8 +651,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const themeButton = document.getElementById('panel-theme-toggle');
         if (!header || !themeButton || document.querySelector('.panel-header-tools')) return;
 
-        // Headerul global are deja propriul câmp de căutare. Nu-l mai mutăm
-        // într-o bară absolută, deoarece paginile vechi îl așezau pe două rânduri.
+        // Headerul global are deja propriul cÃ¢mp de cÄƒutare. Nu-l mai mutÄƒm
+        // Ã®ntr-o barÄƒ absolutÄƒ, deoarece paginile vechi Ã®l aÈ™ezau pe douÄƒ rÃ¢nduri.
         if (header.classList.contains('panel-global-header')) {
             themeButton.classList.add('panel-global-theme-toggle');
             header.appendChild(themeButton);
@@ -664,7 +662,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const tools = document.createElement('div');
         tools.className = 'panel-header-tools';
         const search = document.getElementById('global-search')
-            || header.querySelector('.search-container input, input[type="search"], input[placeholder*="Caută"], input[placeholder*="caută"]')
+            || header.querySelector('.search-container input, input[type="search"], input[placeholder*="CautÄƒ"], input[placeholder*="cautÄƒ"]')
             || createGlobalPageSearch(header, currentPage);
         if (search) {
             search.classList.add('panel-global-search');
@@ -698,7 +696,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             dirty = true;
             const reminder = document.createElement('div');
             reminder.id = 'panel-save-reminder';
-            reminder.textContent = 'Ai modificări nesalvate. Apasă „Salvează Toate Setările” din partea de jos a paginii.';
+            reminder.textContent = 'Ai modificÄƒri nesalvate. ApasÄƒ â€žSalveazÄƒ Toate SetÄƒrileâ€ din partea de jos a paginii.';
             document.body.appendChild(reminder);
         };
         const clearReminder = () => {
@@ -737,7 +735,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     else setup();
 })();
 
-// În pagina Anunțuri, toate citirile comunității sunt limitate la organizația activă.
+// ÃŽn pagina AnunÈ›uri, toate citirile comunitÄƒÈ›ii sunt limitate la organizaÈ›ia activÄƒ.
 if (window.location.pathname.endsWith('anunturi.html') && window.createPanelSupabaseClient) {
     const createClient = window.createPanelSupabaseClient;
     window.createPanelSupabaseClient = function scopedPanelSupabaseClient() {
@@ -756,28 +754,28 @@ if (window.location.pathname.endsWith('anunturi.html') && window.createPanelSupa
     };
 }
 
-// Compatibilitate pentru pagini mai vechi care apelează explicit această funcție.
+// Compatibilitate pentru pagini mai vechi care apeleazÄƒ explicit aceastÄƒ funcÈ›ie.
 window.initializePanelLayout = window.initializePanelLayout || (() => undefined);
 
-// Selector multi-organizație. Este afișat numai după o autentificare validă.
+// Selector multi-organizaÈ›ie. Este afiÈ™at numai dupÄƒ o autentificare validÄƒ.
 document.addEventListener('DOMContentLoaded', () => {
     let organizations = [];
     try { organizations = JSON.parse(localStorage.getItem('panel_organizations') || '[]'); } catch (_) {}
     const active = window.getActiveOrganization?.();
     const header = document.querySelector('header');
     if (!active || !header || header.querySelector('[data-organization-switcher]')) return;
-    document.title = `${document.title.split(' · ')[0]} · ${active.name}`;
+    document.title = `${document.title.split(' Â· ')[0]} Â· ${active.name}`;
     const wrapper = document.createElement('div');
     wrapper.dataset.organizationSwitcher = 'true';
     wrapper.style.cssText = 'margin-left:auto;display:flex;align-items:center;gap:8px;padding-left:12px';
     if (organizations.length > 1) {
         const select = document.createElement('select');
-        select.setAttribute('aria-label', 'Organizația activă');
+        select.setAttribute('aria-label', 'OrganizaÈ›ia activÄƒ');
         select.style.cssText = 'max-width:220px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:700';
         organizations.forEach((organization) => {
             const option = document.createElement('option');
             option.value = organization.id;
-            option.textContent = `${organization.name} · ${organization.panel_role}`;
+            option.textContent = `${organization.name} Â· ${organization.panel_role}`;
             option.selected = organization.id === active.id;
             select.appendChild(option);
         });
@@ -790,7 +788,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     body:JSON.stringify({access_token:localStorage.getItem('discord_access_token'),organization_id:select.value})
                 });
                 const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Organizația nu poate fi activată.');
+                if (!response.ok) throw new Error(result.error || 'OrganizaÈ›ia nu poate fi activatÄƒ.');
                 localStorage.setItem('discord_user', JSON.stringify(result.user));
                 localStorage.setItem('user_role', result.user.role);
                 localStorage.setItem('panel_session_token', result.session_token);
@@ -800,7 +798,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('panel_role_synced_at', String(Date.now()));
                 location.reload();
             } catch (error) {
-                alert(error instanceof Error ? error.message : 'Schimbarea organizației a eșuat.');
+                alert(error instanceof Error ? error.message : 'Schimbarea organizaÈ›iei a eÈ™uat.');
                 select.disabled = false; select.value = active.id;
             }
         });
