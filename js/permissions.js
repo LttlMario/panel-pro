@@ -132,7 +132,8 @@ function canAccessPage(page) {
      * calculat după rolurile Discord configurate pentru
      * organizația respectivă.
      */
-    return getAllowedPages().includes(page);
+    const allowedPages = getAllowedPages();
+    return allowedPages.includes(page);
 }
 
 

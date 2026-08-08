@@ -3,6 +3,7 @@ import {requirePanelSession} from '../_shared/panel-session.ts';
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Content-Type':'application/json'};
 
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
+const normalizeBlackMarketName=(value:unknown)=>String(value??'').replace(/^\s*\d{1,12}\s+/,'').replace(/^\s*\d{1,12}\s*[|:/#-]\s*/,'').replace(/\s*[|:/#-]\s*\d{1,12}\s*$/,'').replace(/\s+\d{1,12}\s*$/,'').replace(/\s*[[(]\s*\d{1,12}\s*[\])]\s*$/,'').replace(/\s{2,}/g,' ').trim();
 Deno.serve(async(req)=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return reply({error:'Method not allowed'},405);try{
  const body=await req.json();
 if (body.action === 'create') {
@@ -30,7 +31,8 @@ const { data: permissionSettings, error: permissionSettingsError } =
         .eq('organization_id', organizationId)
         .in('key', [
             'page_permissions',
-            'action_permissions'
+            'action_permissions',
+            'communication_permissions'
         ]);
 
 if (permissionSettingsError) {
@@ -59,6 +61,12 @@ const actionPermissions =
         ? actionPermissionSetting.value
         : {};
 
+const communicationSetting =
+    (permissionSettings || []).find(item => item.key === 'communication_permissions');
+const communicationPermissions = communicationSetting?.value && typeof communicationSetting.value === 'object'
+    ? communicationSetting.value
+    : {};
+
 const allowedAnnouncementRoles =
     Array.isArray(pagePermissions['anunturi.html'])
         ? pagePermissions['anunturi.html'].map(String)
@@ -85,16 +93,30 @@ const canPublishAnnouncements =
     sessionDiscordRoleIds.some(roleId =>
         allowedAnnouncementPublishRoles.includes(roleId)
     );
+const audienceRoles = (audience:string, kind:'read'|'write') =>
+    Array.isArray(communicationPermissions?.[audience]?.[kind])
+        ? communicationPermissions[audience][kind].map(String)
+        : [];
+const canForAudience = (audience:string, kind:'read'|'write') =>
+    isPlatformAdmin || sessionDiscordRoleIds.some(roleId => audienceRoles(audience, kind).includes(roleId));
+const readAudiences = isPlatformAdmin
+    ? ['organization','departments']
+    : ['organization','departments'].filter(audience => canForAudience(audience,'read'));
+const writeAudiences = isPlatformAdmin
+    ? ['organization','departments']
+    : ['organization','departments'].filter(audience => canForAudience(audience,'write'));
 if (body.action === 'announcement_access') {
     return reply({
-        read: hasAnnouncementPageAccess,
-        write: canPublishAnnouncements,
+        read: communicationSetting ? readAudiences.length > 0 : hasAnnouncementPageAccess,
+        write: communicationSetting ? writeAudiences.length > 0 : canPublishAnnouncements,
+        read_audiences: communicationSetting ? readAudiences : (hasAnnouncementPageAccess ? ['organization','departments'] : []),
+        write_audiences: communicationSetting ? writeAudiences : (canPublishAnnouncements ? ['organization','departments'] : []),
         platform_admin: isPlatformAdmin
     });
 }
 if (
-    ['create', 'update', 'delete'].includes(body.action) &&
-    !canPublishAnnouncements
+    body.action === 'create' &&
+    !(communicationSetting ? canForAudience(String(body.audience || ''), 'write') : canPublishAnnouncements)
 ) {
     return reply({
         error: 'Rolul tău nu are permisiunea de a publica sau administra anunțuri și sondaje.'
@@ -137,12 +159,15 @@ const own = async (id:string) => {
     if (!['organization', 'departments'].includes(body.audience)) {
         throw new Error('Alege Organizație sau Birouri / Angajați.');
     }
+    if (communicationSetting && !canForAudience(String(body.audience), 'write')) {
+        return reply({ error: 'Rolul tău nu poate publica pentru această audiență.' }, 403);
+    }
 
     const audience = body.audience;
     const {data:post,error}=await db.from('community_posts').insert({
         organization_id: organizationId,
         audience: audience,
-        post_type: body.post_type,
+        post_type: body.post_type === 'fine' ? 'fine' : body.post_type,
         title: body.title,
         content: body.content,
         author_discord_id: du.id,
@@ -167,9 +192,12 @@ const own = async (id:string) => {
 
     return reply({ post });
  }
- if(body.action==='update'){const post=await own(body.post_id);const {error}=await db.from('community_posts').update({title:body.title,content:body.content,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',body.post_id);if(error)throw error;if(post.post_type==='poll'&&Array.isArray(body.options)){if(body.options.length<2)throw new Error('Sondajul trebuie să aibă minimum două opțiuni.');const {data:existing}=await db.from('community_poll_options').select('option_text').eq('organization_id',organizationId).eq('post_id',body.post_id).order('position');const changed=JSON.stringify((existing||[]).map((x:any)=>x.option_text))!==JSON.stringify(body.options);if(changed){const {error:deleteOptionsError}=await db.from('community_poll_options').delete().eq('organization_id',organizationId).eq('post_id',body.post_id);if(deleteOptionsError)throw deleteOptionsError;const {error:insertOptionsError}=await db.from('community_poll_options').insert(body.options.map((text:string,position:number)=>({organization_id:organizationId,post_id:body.post_id,option_text:text,position})));if(insertOptionsError)throw insertOptionsError}}return reply({ok:true})}
+ if(body.action==='update'){const post=await own(body.post_id);if(communicationSetting&&!canForAudience(String(post.audience||'organization'),'write'))return reply({error:'Rolul tău nu poate modifica această audiență.'},403);const {error}=await db.from('community_posts').update({title:body.title,content:body.content,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',body.post_id);if(error)throw error;if(post.post_type==='poll'&&Array.isArray(body.options)){if(body.options.length<2)throw new Error('Sondajul trebuie să aibă minimum două opțiuni.');const {data:existing}=await db.from('community_poll_options').select('option_text').eq('organization_id',organizationId).eq('post_id',body.post_id).order('position');const changed=JSON.stringify((existing||[]).map((x:any)=>x.option_text))!==JSON.stringify(body.options);if(changed){const {error:deleteOptionsError}=await db.from('community_poll_options').delete().eq('organization_id',organizationId).eq('post_id',body.post_id);if(deleteOptionsError)throw deleteOptionsError;const {error:insertOptionsError}=await db.from('community_poll_options').insert(body.options.map((text:string,position:number)=>({organization_id:organizationId,post_id:body.post_id,option_text:text,position})));if(insertOptionsError)throw insertOptionsError}}return reply({ok:true})}
  if (body.action === 'delete') {
     const post = await own(body.post_id);
+    if (communicationSetting && !canForAudience(String(post.audience || 'organization'), 'write')) {
+        return reply({ error: 'Rolul tău nu poate șterge această audiență.' }, 403);
+    }
 
     const { data: deleted, error } = await db
         .from('community_posts')
@@ -196,7 +224,10 @@ const own = async (id:string) => {
                 ? 'departments'
                 : 'organization';
 
-        const route = cfg?.webhook_routes?.[audience] || {};
+        const routeKey = post.post_type === 'fine'
+            ? (audience === 'departments' ? 'fines_departments' : 'fines_organization')
+            : audience;
+        const route = cfg?.webhook_routes?.[routeKey] || {};
 
         const webhooks = [
             route.primary?.url,
@@ -218,7 +249,29 @@ const own = async (id:string) => {
         deleted_id: body.post_id
     });
 }
- if(body.action==='marketplace_delete'){const table=body.table;if(!['marketplace','marketplace_ilegal'].includes(table))throw new Error('Tabel Marketplace invalid.');const {data:item,error:itemError}=await db.from(table).select('id,created_by_discord_id').eq('organization_id',organizationId).eq('id',body.item_id).maybeSingle();if(itemError)throw itemError;if(!item)throw new Error('Anunțul nu mai există.');if(!isPlatformAdmin&&String(item.created_by_discord_id||'')!==String(du.id))return reply({error:'Poți șterge numai anunțurile publicate de tine.'},403);const {data:deleted,error}=await db.from(table).delete().eq('organization_id',organizationId).eq('id',body.item_id).select('id');if(error)throw error;if(!deleted?.length)throw new Error('Anunțul nu a fost șters.');return reply({ok:true,deleted_id:body.item_id})}
+ if(body.action==='marketplace_delete'){
+   const table=body.table;
+   if(!['marketplace','marketplace_ilegal'].includes(table))throw new Error('Tabel Marketplace invalid.');
+   const globalMarketplace=table==='marketplace_ilegal'&&isPlatformAdmin;
+   const itemQuery=db.from(table).select('id,organization_id,created_by_discord_id,discord_message_ids').eq('id',body.item_id);
+   if(!globalMarketplace)itemQuery.eq('organization_id',organizationId);
+   const {data:item,error:itemError}=await itemQuery.maybeSingle();
+   if(itemError)throw itemError;
+   if(!item)throw new Error('Anunțul nu mai există sau nu este accesibil.');
+   if(!isPlatformAdmin&&String(item.created_by_discord_id||'')!==String(du.id))return reply({error:'Poți șterge numai anunțurile publicate de tine.'},403);
+   const deleteQuery=db.from(table).delete().eq('id',body.item_id);
+   if(!globalMarketplace)deleteQuery.eq('organization_id',organizationId);
+   const {data:deleted,error}=await deleteQuery.select('id');
+   if(error)throw error;
+   if(!deleted?.length)throw new Error('Anunțul nu a fost șters.');
+   const messageRefs = Array.isArray(item.discord_message_ids) ? item.discord_message_ids : [];
+   for (const ref of messageRefs) {
+     if (!ref?.webhook || !ref?.id) continue;
+     try { await fetch(`${String(ref.webhook).replace(/\/$/, '')}/messages/${encodeURIComponent(String(ref.id))}`, { method: 'DELETE' }); } catch (_) {}
+   }
+   return reply({ok:true,deleted_id:body.item_id});
+ }
+ if(body.action==='marketplace_update'){if(body.table!=='marketplace_ilegal')throw new Error('Tabel Marketplace invalid.');const itemQuery=db.from('marketplace_ilegal').select('id,organization_id,created_by_discord_id').eq('id',body.item_id);if(!isPlatformAdmin)itemQuery.eq('organization_id',organizationId);const {data:item,error:itemError}=await itemQuery.maybeSingle();if(itemError)throw itemError;if(!item)return reply({error:'Anunțul nu există sau nu aparține organizației active.'},404);if(!isPlatformAdmin&&String(item.created_by_discord_id||'')!==String(du.id))return reply({error:'Poți edita numai anunțurile publicate de tine.'},403);const {data:updated,error:updateError}=await db.from('marketplace_ilegal').update({nume:normalizeBlackMarketName(body.nume),telefon:String(body.telefon||''),tip_actiune:body.tip_actiune||null,categorie:body.categorie||null,subcategorie:body.subcategorie||null,produse:String(body.produse||''),pret:body.pret||null,imagini_json:body.imagini_json||'[]',imagine_url:body.imagine_url||null,updated_at:new Date().toISOString()}).eq('id',body.item_id).select('*').single();if(updateError)throw updateError;return reply({ok:true,item:updated})}
  if(body.action==='react'){const key={organization_id:organizationId,post_id:body.post_id,user_discord_id:du.id,reaction:body.reaction};const {data}=await db.from('community_reactions').select('id').match(key).maybeSingle();const q=data?db.from('community_reactions').delete().eq('organization_id',organizationId).eq('id',data.id):db.from('community_reactions').insert(key);const {error}=await q;if(error)throw error;return reply({ok:true})}
  if(body.action==='vote'){const {data:option}=await db.from('community_poll_options').select('post_id').eq('organization_id',organizationId).eq('id',body.option_id).single();if(!option||option.post_id!==body.post_id)throw new Error('Opțiune invalidă.');const {error}=await db.from('community_poll_votes').upsert({organization_id:organizationId,post_id:body.post_id,option_id:body.option_id,user_discord_id:du.id},{onConflict:'post_id,user_discord_id'});if(error)throw error;await updateDiscordPoll(body.post_id);return reply({ok:true})}
  return reply({error:'Acțiune necunoscută.'},400);
@@ -231,7 +284,10 @@ async function notifyDiscord(post:any, options:string[], audience:string){
         .maybeSingle();
 
 
-    const route = discordConfig?.webhook_routes?.[audience==='departments'?'departments':'organization'];
+    const routeKey = post.post_type === 'fine'
+        ? (audience === 'departments' ? 'fines_departments' : 'fines_organization')
+        : (audience === 'departments' ? 'departments' : 'organization');
+    const route = discordConfig?.webhook_routes?.[routeKey];
     const url = route?.primary?.url || route?.secondary?.url;
 
     if (!url) {
@@ -244,7 +300,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
 
     const site = (
         discordConfig?.panel_public_url ||
-        'https://panel-management.netlify.app'
+        'https://lttlmario.github.io/panel-pro'
     ).replace(/\/$/,'');
 
     const postUrl = `${site}/anunturi.html?post=${post.id}`;
@@ -390,7 +446,10 @@ async function notifyDiscord(post:any, options:string[], audience:string){
             ? 'departments'
             : 'organization';
 
-    const route = discordConfig?.webhook_routes?.[audience];
+    const routeKey = post.post_type === 'fine'
+        ? (audience === 'departments' ? 'fines_departments' : 'fines_organization')
+        : audience;
+    const route = discordConfig?.webhook_routes?.[routeKey];
 
     const url = route?.primary?.url || route?.secondary?.url;
 
@@ -400,7 +459,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
 
     const site = (
             discordConfig?.panel_public_url ||
-            'https://panel-management.netlify.app'
+            'https://lttlmario.github.io/panel-pro'
         ).replace(/\/$/,'');
 
 

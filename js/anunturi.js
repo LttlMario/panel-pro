@@ -1,4 +1,5 @@
 (() => {
+  const isFinesPage = false;
   const URL=window.PANEL_SUPABASE_CONFIG.url;
   const KEY=window.PANEL_SUPABASE_CONFIG.publishableKey;
   const db = window.createPanelSupabaseClient();
@@ -6,6 +7,8 @@
   let posts=[], filter='all', editing=null, draft=null;
   let canWriteAnnouncements = false;
   let isPlatformAdmin = false;
+  let readAudiences = ['organization', 'departments'];
+  let writeAudiences = ['organization', 'departments'];
   const organizationId =
     window.getActiveOrganizationId?.() ||
     user.organization_id ||
@@ -24,23 +27,16 @@
   function requestFreshLogin(){sessionStorage.setItem('panel_return_after_login',location.href);setTimeout(()=>{location.href='login.html'},700)}
   async function loadAnnouncementAccess() {
       try {
-          const access = await invoke({
-              action: 'announcement_access'
-          });
+          const access = await invoke({ action: 'announcement_access', section: isFinesPage ? 'fines' : 'announcements' });
 
           const canRead = access?.read === true;
           const canWrite = access?.write === true;
 
           canWriteAnnouncements = canWrite;
           isPlatformAdmin = access?.platform_admin === true;
+          readAudiences = Array.isArray(access?.read_audiences) ? access.read_audiences : (canRead ? ['organization', 'departments'] : []);
+          writeAudiences = Array.isArray(access?.write_audiences) ? access.write_audiences : (canWrite ? ['organization', 'departments'] : []);
 
-          console.log('=== ANUNTURI ACCESS DEBUG ===');
-          console.log('Raspuns Edge Function:', access);
-          console.log('canRead:', canRead);
-          console.log('canWrite:', canWrite);
-          console.log('isPlatformAdmin:', isPlatformAdmin);
-          console.log('User local:', user);
-          console.log('organizationId:', organizationId);
           if (!canRead) {
               $('#feed').innerHTML = `
                   <div class="empty">
@@ -150,6 +146,7 @@ async function load() {
 
         posts = (postResult.data || [])
             .filter(Boolean)
+            .filter(post => readAudiences.includes(post.audience))
             .map(post => ({
                 ...post,
 
@@ -193,8 +190,9 @@ async function load() {
 .filter(p =>
     filter==='all' ||
     p.audience===filter ||
+    (filter==='fine' && p.post_type==='fine') ||
     (filter==='poll' && p.post_type==='poll')
-);$('#feed').innerHTML=visible.length?visible.map(card).join(''):'<div class="empty">Nu există postări în această categorie.</div>';bindCards()}
+);$('#feed').innerHTML=visible.length?visible.map(card).join(''):'<div class="empty">Nu există postări în această categorie.</div>';document.querySelectorAll('.post').forEach(node=>{const id=node.id.slice(5),post=posts.find(item=>String(item.id)===id);if(post?.post_type==='fine'){const badges=node.querySelectorAll('.badge');if(badges[1])badges[1].textContent='Amendă';}});bindCards()}
   function card(p){
       const own =
           String(p.author_discord_id) ===
@@ -202,7 +200,7 @@ async function load() {
 
       const manage =
           isPlatformAdmin ||
-          (canWriteAnnouncements && own);
+          (writeAudiences.includes(p.audience) && own);
 
       const reactions = ['✅','❌','👍','❤️','🤔'];
     const totals=Object.fromEntries(reactions.map(r=>[r,p.community_reactions.filter(x=>x.reaction===r).length]));const mine=new Set(p.community_reactions.filter(x=>String(x.user_discord_id)===String(user.discord_id||user.id)).map(x=>x.reaction));const votes=p.community_poll_votes||[],myVote=votes.find(v=>String(v.user_discord_id)===String(user.discord_id||user.id)),people=p.community_voters||[];const poll=p.post_type==='poll'?`<div class="poll">${(p.community_poll_options||[]).sort((a,b)=>a.position-b.position).map(o=>{const optionVotes=votes.filter(v=>v.option_id===o.id),pc=votes.length?Math.round(optionVotes.length*100/votes.length):0,names=optionVotes.map(v=>{const person=people.find(x=>String(x.discord_id)===String(v.user_discord_id));return esc(person?.display_name||person?.username||v.user_discord_id)});return `<div class="poll-choice"><button class="poll-option" data-vote="${o.id}"><span class="poll-bar" style="width:${pc}%"></span><span class="poll-content"><span>${esc(o.option_text)}${myVote?.option_id===o.id?' ✓':''}</span><b>${pc}% · ${optionVotes.length}</b></span></button><details class="poll-voters"><summary>👥 Vezi cine a votat (${optionVotes.length})</summary><div>${names.length?names.map(n=>`<span>${n}</span>`).join(''):'<em>Nu a votat nimeni.</em>'}</div></details></div>`}).join('')}</div>`:'';return `<article id="post-${p.id}" class="post"><div class="community-head"><div class="badges"><span class="badge ${p.audience}">${p.audience==='organization'?'Organizație':'Birouri / Angajați'}</span><span class="badge">${p.post_type==='poll'?'Sondaj':p.post_type==='question'?'Întrebare':'Anunț'}</span></div></div><h3>${esc(p.title)}</h3><div class="post-body">${esc(p.content)}</div>${poll}<div class="meta">${esc(p.author_name)} · ${new Date(p.created_at).toLocaleString('ro-RO')}</div><div class="community-actions"><div class="reactions">${reactions.map(r=>`<button class="reaction ${mine.has(r)?'selected':''}" data-react="${r}">${r} ${totals[r]}</button>`).join('')}</div>${manage?`<div class="owner-actions"><button class="text-action" data-edit="${p.id}">Editează</button><button class="text-action danger" data-delete="${p.id}">Șterge</button></div>`:''}</div></article>`}
@@ -311,5 +309,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
         .subscribe();
 });
-  document.addEventListener('DOMContentLoaded',()=>{const content=$('#post-content');content.required=false;content.placeholder='Conținut opțional'});
+  document.addEventListener('DOMContentLoaded',()=>{const content=$('#post-content');content.required=false;content.placeholder='Conținut opțional';const type=$('#post-type');if(type&&!type.querySelector('option[value="fine"]'))type.insertAdjacentHTML('beforeend','<option value="fine">Amendă</option>');});
 })();

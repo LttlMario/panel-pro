@@ -6,48 +6,43 @@
   const $ = (id) => document.getElementById(id);
   const config = window.PANEL_SUPABASE_CONFIG;
   const statusChannel = 'status_live';
-  let announcementPermissions = { read: [], write: [] };
+  let communicationPermissions = { organization: { read: [], write: [] }, departments: { read: [], write: [] } };
 
-  function announcementLevels(kind) {
-    return Array.isArray(announcementPermissions[kind]) ? announcementPermissions[kind].map(String) : [];
+  function communicationRoles(audience, kind) {
+    return Array.isArray(communicationPermissions[audience]?.[kind]) ? communicationPermissions[audience][kind].map(String) : [];
   }
 
   function addAnnouncementPermissions() {
-    const host = $('page-permissions');
-    if (!host || host.querySelector('[data-announcement-permission]')) return;
-    const roleInputs = [...host.querySelectorAll('input[data-page-role]')];
-    if (!roleInputs.length) return;
+    const host = $('action-permissions');
+    if (!host || host.querySelector('[data-communication-permission]')) return;
     const roles = new Map();
     if (typeof roleRows !== 'undefined' && Array.isArray(roleRows)) {
       roleRows.filter((row) => row.discord_role_id).forEach((row) => {
-        const level = String(row.permission_level || '');
-        if (level && !roles.has(level)) roles.set(level, row.panel_role || `Grad ${level}`);
+        const id = String(row.discord_role_id || '');
+        if (id && !roles.has(id)) roles.set(id, row.panel_role || id);
       });
     }
-    if (!roles.size) roleInputs.forEach((input) => {
-      const level = String(input.dataset.pageRole || '');
-      if (level && !roles.has(level)) roles.set(level, input.closest('label')?.textContent?.trim() || `Grad ${level}`);
-    });
+    if (!roles.size) return;
     const card = document.createElement('div');
-    card.dataset.announcementPermission = 'true';
+    card.dataset.communicationPermission = 'true';
     card.className = 'rounded-xl border border-amber-700/60 bg-amber-950/10 p-3';
-    card.innerHTML = '<b class="text-sm">Anunțuri</b><p class="mt-1 text-xs text-slate-400">Alege gradele care pot citi și publica anunțuri.</p><div class="mt-3 grid gap-3 md:grid-cols-2"><div><div class="mb-2 text-xs font-bold text-slate-300">Cine poate citi</div><div data-announcement-kind="read" class="flex flex-wrap gap-2"></div></div><div><div class="mb-2 text-xs font-bold text-slate-300">Cine poate publica</div><div data-announcement-kind="write" class="flex flex-wrap gap-2"></div></div></div>';
-    ['read', 'write'].forEach((kind) => {
-      const target = card.querySelector(`[data-announcement-kind="${kind}"]`);
-      roles.forEach((label, level) => {
+    card.innerHTML = '<b class="text-sm">Anunțuri și Amenzi</b><p class="mt-1 text-xs text-slate-400">Aceeași selecție controlează citirea și publicarea pentru ambele pagini, separat pentru Organizație și Birouri / Angajați.</p><div class="mt-3 grid gap-3 md:grid-cols-2">' + ['organization','departments'].map(audience => `<div class="rounded-lg border border-slate-700 p-3"><b class="text-xs">${audience === 'organization' ? 'Organizație' : 'Birouri / Angajați'}</b><div class="mt-2 text-[11px] text-slate-400">Cine poate citi</div><div data-communication-audience="${audience}" data-communication-kind="read" class="mt-1 flex flex-wrap gap-2"></div><div class="mt-2 text-[11px] text-slate-400">Cine poate scrie</div><div data-communication-audience="${audience}" data-communication-kind="write" class="mt-1 flex flex-wrap gap-2"></div></div>`).join('') + '</div>';
+    ['organization','departments'].forEach((audience) => ['read', 'write'].forEach((kind) => {
+      const target = card.querySelector(`[data-communication-audience="${audience}"][data-communication-kind="${kind}"]`);
+      roles.forEach((label, id) => {
         const wrapper = document.createElement('label');
         wrapper.className = 'flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs';
-        wrapper.innerHTML = `<input type="checkbox" data-announcement-kind="${kind}" data-announcement-level="${level}"><span>${label}</span>`;
+        wrapper.innerHTML = `<input type="checkbox" data-communication-audience="${audience}" data-communication-kind="${kind}" data-communication-role="${id}"><span>${label}</span>`;
         const checkbox = wrapper.querySelector('input');
-        checkbox.checked = announcementLevels(kind).includes(level);
+        checkbox.checked = communicationRoles(audience, kind).includes(id);
         checkbox.addEventListener('change', () => {
-          const current = new Set(announcementLevels(kind));
-          checkbox.checked ? current.add(level) : current.delete(level);
-          announcementPermissions[kind] = [...current].map(Number).sort((a, b) => a - b);
+          const current = new Set(communicationRoles(audience, kind));
+          checkbox.checked ? current.add(id) : current.delete(id);
+          communicationPermissions[audience][kind] = [...current];
         });
         target.appendChild(wrapper);
       });
-    });
+    }));
     host.appendChild(card);
   }
 
@@ -152,7 +147,7 @@
           body.settings = body.settings || {};
           body.settings.webhook_routes = body.settings.webhook_routes || {};
           body.settings.webhook_routes[statusChannel] = { primary: routeValue('primary'), secondary: routeValue('secondary') };
-          body.announcement_permissions = announcementPermissions;
+          body.communication_permissions = communicationPermissions;
           options.body = JSON.stringify(body);
         }
       } catch (_) { /* Cererile care nu sunt JSON rămân nemodificate. */ }
@@ -167,16 +162,29 @@
   editOrganization = async (...args) => {
     await originalEditOrganization(...args);
     const organization = (typeof organizations !== 'undefined' ? organizations : []).find((item) => item.id === args[0]);
-    const saved = organization?.platform_settings?.page_permissions?.announcement_permissions;
-    announcementPermissions = {
-      read: Array.isArray(saved?.read) ? saved.read.map(Number).filter(Number.isFinite) : [],
-      write: Array.isArray(saved?.write) ? saved.write.map(Number).filter(Number.isFinite) : []
+    const saved = organization?.platform_settings?.communication_permissions || {};
+    const legacyRead = Array.isArray(pagePermissions?.['anunturi.html']) ? pagePermissions['anunturi.html'].map(String) : [];
+    const legacyWrite = Array.isArray(actionPermissions?.['anunturi.publish']) ? actionPermissions['anunturi.publish'].map(String) : [];
+    communicationPermissions = {
+      organization: { read: Array.isArray(saved.organization?.read) ? saved.organization.read.map(String) : legacyRead, write: Array.isArray(saved.organization?.write) ? saved.organization.write.map(String) : legacyWrite },
+      departments: { read: Array.isArray(saved.departments?.read) ? saved.departments.read.map(String) : legacyRead, write: Array.isArray(saved.departments?.write) ? saved.departments.write.map(String) : legacyWrite }
     };
+    document.querySelector('[data-communication-permission]')?.remove();
+    if (typeof renderActionPermissions === 'function') renderActionPermissions();
     addAnnouncementPermissions();
     await loadStatusRoutes($('id').value);
   };
 
   document.addEventListener('DOMContentLoaded', () => {
+    $('new')?.addEventListener('click', () => {
+      communicationPermissions = { organization: { read: [], write: [] }, departments: { read: [], write: [] } };
+      if (typeof renderActionPermissions === 'function') renderActionPermissions();
+    });
+    document.addEventListener('click', (event) => {
+      document.querySelectorAll('#list details[open]').forEach((details) => {
+        if (!details.contains(event.target)) details.open = false;
+      });
+    });
     injectStatusWebhookFields();
     addStatusLivePagePermission();
     addAnnouncementPermissions();

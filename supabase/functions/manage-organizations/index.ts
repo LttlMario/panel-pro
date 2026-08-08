@@ -14,7 +14,9 @@ const webhookChannels=new Set([
   'requests_departments',
   'contracts',
   'marketplace',
-  'illegal_marketplace'
+  'illegal_marketplace',
+  'fines_organization',
+  'fines_departments'
 ]);
 
 Deno.serve(async request=>{
@@ -67,7 +69,8 @@ Deno.serve(async request=>{
               'contract_template',
               'page_permissions',
               'action_permissions',
-              'announcement_permissions'
+              'announcement_permissions',
+              'communication_permissions'
             ])
         : {
             data: [],
@@ -392,6 +395,31 @@ if(
       onConflict: 'organization_id,key'
     });
 
+  if(error) throw error;
+}
+if(
+  body.communication_permissions &&
+  typeof body.communication_permissions === 'object'
+){
+  const clean = (audience:string, kind:string) => [
+    ...new Set(
+      (Array.isArray(body.communication_permissions[audience]?.[kind])
+        ? body.communication_permissions[audience][kind]
+        : [])
+        .map(String)
+        .filter(id => /^\d{15,22}$/.test(id))
+    )
+  ];
+  const communicationPermissions = {
+    organization: { read: clean('organization','read'), write: clean('organization','write') },
+    departments: { read: clean('departments','read'), write: clean('departments','write') }
+  };
+  const { error } = await db.from('app_settings').upsert({
+    organization_id: organizationId,
+    key: 'communication_permissions',
+    value: communicationPermissions,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'organization_id,key' });
   if(error) throw error;
 }
 if(

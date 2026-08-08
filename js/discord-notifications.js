@@ -54,16 +54,6 @@
             });
         }
 
-        console.log('====================');
-        console.log('SUPABASE_URL:', SUPABASE_URL);
-        console.log(
-            'Function URL:',
-            `${SUPABASE_URL}/functions/v1/send-discord-notification`
-        );
-        console.log('Channel:', channel);
-        console.log('Organization ID:', organizationId);
-        console.log('====================');
-
         const response = await fetch(
             `${SUPABASE_URL}/functions/v1/send-discord-notification`,
             {

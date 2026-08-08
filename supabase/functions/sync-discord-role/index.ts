@@ -194,8 +194,9 @@ if (!existing) {
   const available = [...matches.entries()]
   .map(([organization_id, value]) => {
 
-    const rules: any =
-      pageSettings.get(organization_id) || {};
+    const rules: any = {
+      ...(pageSettings.get(organization_id) || {})
+    };
 
     const configured =
       Object.values(rules).some(

@@ -598,6 +598,7 @@ if (finalChannel === 'illegal_marketplace') {
      */
 
 
+    const deliveredMessages: any[] = [];
     for (const webhook of webhooks) {
 
 
@@ -632,9 +633,10 @@ if (finalChannel === 'illegal_marketplace') {
 
 
 
+      const discordUrl = `${webhook}${webhook.includes('?') ? '&' : '?'}wait=true`;
       const sent =
         await fetch(
-          webhook,
+          discordUrl,
           {
             method:'POST',
             headers:forwardHeaders,
@@ -651,6 +653,10 @@ if (finalChannel === 'illegal_marketplace') {
         );
 
       }
+      try {
+        const message = await sent.json();
+        if (message?.id) deliveredMessages.push({ webhook, id: String(message.id) });
+      } catch (_) {}
 
     }
 
@@ -667,7 +673,8 @@ if (finalChannel === 'illegal_marketplace') {
         sessionOrganizationId,
 
       routes:
-        webhooks.length
+        webhooks.length,
+      messages: deliveredMessages
 
     });
 
