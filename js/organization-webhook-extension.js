@@ -1,0 +1,186 @@
+(() => {
+  'use strict';
+
+  if (!location.pathname.endsWith('organizatii.html')) return;
+
+  const $ = (id) => document.getElementById(id);
+  const config = window.PANEL_SUPABASE_CONFIG;
+  const statusChannel = 'status_live';
+  let announcementPermissions = { read: [], write: [] };
+
+  function announcementLevels(kind) {
+    return Array.isArray(announcementPermissions[kind]) ? announcementPermissions[kind].map(String) : [];
+  }
+
+  function addAnnouncementPermissions() {
+    const host = $('page-permissions');
+    if (!host || host.querySelector('[data-announcement-permission]')) return;
+    const roleInputs = [...host.querySelectorAll('input[data-page-role]')];
+    if (!roleInputs.length) return;
+    const roles = new Map();
+    if (typeof roleRows !== 'undefined' && Array.isArray(roleRows)) {
+      roleRows.filter((row) => row.discord_role_id).forEach((row) => {
+        const level = String(row.permission_level || '');
+        if (level && !roles.has(level)) roles.set(level, row.panel_role || `Grad ${level}`);
+      });
+    }
+    if (!roles.size) roleInputs.forEach((input) => {
+      const level = String(input.dataset.pageRole || '');
+      if (level && !roles.has(level)) roles.set(level, input.closest('label')?.textContent?.trim() || `Grad ${level}`);
+    });
+    const card = document.createElement('div');
+    card.dataset.announcementPermission = 'true';
+    card.className = 'rounded-xl border border-amber-700/60 bg-amber-950/10 p-3';
+    card.innerHTML = '<b class="text-sm">Anunțuri</b><p class="mt-1 text-xs text-slate-400">Alege gradele care pot citi și publica anunțuri.</p><div class="mt-3 grid gap-3 md:grid-cols-2"><div><div class="mb-2 text-xs font-bold text-slate-300">Cine poate citi</div><div data-announcement-kind="read" class="flex flex-wrap gap-2"></div></div><div><div class="mb-2 text-xs font-bold text-slate-300">Cine poate publica</div><div data-announcement-kind="write" class="flex flex-wrap gap-2"></div></div></div>';
+    ['read', 'write'].forEach((kind) => {
+      const target = card.querySelector(`[data-announcement-kind="${kind}"]`);
+      roles.forEach((label, level) => {
+        const wrapper = document.createElement('label');
+        wrapper.className = 'flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs';
+        wrapper.innerHTML = `<input type="checkbox" data-announcement-kind="${kind}" data-announcement-level="${level}"><span>${label}</span>`;
+        const checkbox = wrapper.querySelector('input');
+        checkbox.checked = announcementLevels(kind).includes(level);
+        checkbox.addEventListener('change', () => {
+          const current = new Set(announcementLevels(kind));
+          checkbox.checked ? current.add(level) : current.delete(level);
+          announcementPermissions[kind] = [...current].map(Number).sort((a, b) => a - b);
+        });
+        target.appendChild(wrapper);
+      });
+    });
+    host.appendChild(card);
+  }
+
+  function routeValue(target) {
+    return {
+      enabled: $(`wh_${target}_enabled_${statusChannel}`)?.checked === true,
+      url: $(`wh_${target}_url_${statusChannel}`)?.value.trim() || ''
+    };
+  }
+
+  function injectStatusWebhookFields() {
+    const host = $('webhooks');
+    if (!host || $('wh_primary_url_status_live')) return;
+    const fieldset = document.createElement('fieldset');
+    fieldset.className = 'rounded-xl border border-emerald-700/60 bg-emerald-950/10 p-3';
+    fieldset.innerHTML = `
+      <legend class="px-1 font-bold text-emerald-200">Status Live</legend>
+      <small class="mb-2 block text-slate-400">Embed Discord editat periodic cu mecanicii aflați în pontaj și în pauză.</small>
+      <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="wh_primary_enabled_status_live"> Discord principal</label>
+      <input id="wh_primary_url_status_live" type="url" class="field" placeholder="Webhook Discord principal pentru Status Live">
+      <button type="button" class="mt-2 rounded-lg border border-cyan-700 px-3 py-1 text-xs font-bold text-cyan-200" data-status-test="primary">Testează webhookul</button>
+      <span class="ml-2 text-xs text-slate-400" data-status-test-result="primary"></span>
+      <label class="mt-3 flex items-center gap-2 text-xs"><input type="checkbox" id="wh_secondary_enabled_status_live"> Discord secundar</label>
+      <input id="wh_secondary_url_status_live" type="url" class="field" placeholder="Webhook Discord secundar pentru Status Live">
+      <button type="button" class="mt-2 rounded-lg border border-cyan-700 px-3 py-1 text-xs font-bold text-cyan-200" data-status-test="secondary">Testează webhookul</button>
+      <span class="ml-2 text-xs text-slate-400" data-status-test-result="secondary"></span>`;
+    host.appendChild(fieldset);
+
+    fieldset.querySelectorAll('[data-status-test]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const target = button.dataset.statusTest;
+        const url = $(`wh_${target}_url_status_live`).value.trim();
+        const result = fieldset.querySelector(`[data-status-test-result="${target}"]`);
+        if (!url) { result.textContent = 'Completează webhookul.'; result.className = 'ml-2 text-xs text-amber-300'; return; }
+        button.disabled = true; result.textContent = 'Se testează...';
+        try {
+          const response = await fetch(`${config.url}/functions/v1/manage-organizations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': localStorage.getItem('panel_session_token') || '' },
+            body: JSON.stringify({ action: 'test_webhook', url, organization_id: $('id').value })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Testul a eșuat.');
+          result.textContent = 'Trimis cu succes.'; result.className = 'ml-2 text-xs text-emerald-300';
+        } catch (error) { result.textContent = error.message; result.className = 'ml-2 text-xs text-red-300'; }
+        finally { button.disabled = false; }
+      });
+    });
+  }
+
+  function addStatusLivePagePermission() {
+    const host = $('page-permissions');
+    if (!host || host.querySelector('[data-status-live-permission]')) return;
+    const roleInputs = [...host.querySelectorAll('input[data-page-role]')];
+    if (!roleInputs.length) return;
+    const card = document.createElement('div');
+    card.dataset.statusLivePermission = 'true';
+    card.className = 'rounded-xl border border-emerald-700/60 bg-emerald-950/10 p-3';
+    card.innerHTML = '<b class="text-sm">Status Live</b><div class="mt-2 flex flex-wrap gap-3"></div>';
+    const roles = new Map();
+    roleInputs.forEach((input) => {
+      const key = input.dataset.pageRole;
+      if (roles.has(key)) return;
+      roles.set(key, input.closest('label')?.textContent?.trim() || key);
+    });
+    const target = card.querySelector('div');
+    roles.forEach((label, roleId) => {
+      const wrapper = document.createElement('label');
+      wrapper.className = 'flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2';
+      wrapper.innerHTML = `<input type="checkbox" data-status-live-role="${roleId}"><span>${label}</span>`;
+      const checkbox = wrapper.querySelector('input');
+      checkbox.checked = Array.isArray(pagePermissions['status-live.html']) && pagePermissions['status-live.html'].includes(roleId);
+      checkbox.addEventListener('change', () => {
+        const current = new Set(pagePermissions['status-live.html'] || []);
+        checkbox.checked ? current.add(roleId) : current.delete(roleId);
+        pagePermissions['status-live.html'] = [...current];
+      });
+      target.appendChild(wrapper);
+    });
+    host.appendChild(card);
+  }
+
+  async function loadStatusRoutes(organizationId) {
+    try {
+      const result = await invoke({ action: 'list' });
+      const organization = (result.organizations || []).find((item) => item.id === organizationId);
+      const route = organization?.organization_settings?.[0]?.webhook_routes?.[statusChannel] || {};
+      ['primary', 'secondary'].forEach((target) => {
+        const item = route[target] || {};
+        $(`wh_${target}_url_status_live`).value = item.url || '';
+        $(`wh_${target}_enabled_status_live`).checked = item.enabled === true && Boolean(item.url);
+      });
+    } catch (_) { /* Lista principală gestionează deja mesajul de eroare. */ }
+  }
+
+  const originalFetch = window.fetch;
+  window.fetch = (url, options = {}) => {
+    if (String(url).includes('/functions/v1/manage-organizations') && options.body) {
+      try {
+        const body = JSON.parse(options.body);
+        if (body.action === 'save') {
+          body.settings = body.settings || {};
+          body.settings.webhook_routes = body.settings.webhook_routes || {};
+          body.settings.webhook_routes[statusChannel] = { primary: routeValue('primary'), secondary: routeValue('secondary') };
+          body.announcement_permissions = announcementPermissions;
+          options.body = JSON.stringify(body);
+        }
+      } catch (_) { /* Cererile care nu sunt JSON rămân nemodificate. */ }
+    }
+    return originalFetch(url, options);
+  };
+
+  const originalRenderPermissions = renderPagePermissions;
+  renderPagePermissions = () => { originalRenderPermissions(); addStatusLivePagePermission(); addAnnouncementPermissions(); };
+
+  const originalEditOrganization = editOrganization;
+  editOrganization = async (...args) => {
+    await originalEditOrganization(...args);
+    const organization = (typeof organizations !== 'undefined' ? organizations : []).find((item) => item.id === args[0]);
+    const saved = organization?.platform_settings?.page_permissions?.announcement_permissions;
+    announcementPermissions = {
+      read: Array.isArray(saved?.read) ? saved.read.map(Number).filter(Number.isFinite) : [],
+      write: Array.isArray(saved?.write) ? saved.write.map(Number).filter(Number.isFinite) : []
+    };
+    addAnnouncementPermissions();
+    await loadStatusRoutes($('id').value);
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    injectStatusWebhookFields();
+    addStatusLivePagePermission();
+    addAnnouncementPermissions();
+    const observer = new MutationObserver(() => { injectStatusWebhookFields(); addStatusLivePagePermission(); addAnnouncementPermissions(); });
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+})();

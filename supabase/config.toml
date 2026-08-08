@@ -1,0 +1,20 @@
+[functions.sync-discord-role]
+verify_jwt = false
+
+[functions.manage-discord-config]
+verify_jwt = false
+
+[functions.manage-community-posts]
+verify_jwt = false
+
+[functions.send-discord-notification]
+verify_jwt = false
+
+[functions.close-expired-shifts]
+verify_jwt = false
+
+[functions.manage-admin-center]
+verify_jwt = false
+
+[functions.manage-organizations]
+verify_jwt = false

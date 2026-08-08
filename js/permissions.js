@@ -1,0 +1,706 @@
+// ============================================================
+// PERMISSIONS.JS
+// Sistem de acces bazat pe rolurile Discord + allowed_pages.
+// ============================================================
+
+const Roles = {
+    GUEST: 0
+};
+
+const STORAGE_KEY = 'discord_user';
+
+const AdministrativePages = new Set([
+    'admin.html',
+    'logs.html',
+    'diagnostic.html',
+    'discord-configurare.html',
+    'organizatii.html',
+    'vouchere.html',
+    'developer.html',
+    'administrare-organizatie.html'
+]);
+
+
+// ============================================================
+// UTILIZATOR
+// ============================================================
+
+function getUser() {
+    try {
+        const userData = localStorage.getItem(STORAGE_KEY);
+
+        return userData
+            ? JSON.parse(userData)
+            : null;
+
+    } catch (error) {
+        console.error(
+            'Eroare la citirea utilizatorului:',
+            error
+        );
+
+        return null;
+    }
+}
+
+
+function isLogged() {
+    return getUser() !== null;
+}
+
+
+// ============================================================
+// PLATFORM ADMIN
+// ============================================================
+
+function isPlatformAdmin() {
+    const user = getUser();
+
+    if (!user) {
+        return false;
+    }
+
+    /*
+     * platform_admin este sistemul nou.
+     *
+     * permission_level >= 99 rămâne momentan doar ca
+     * fallback pentru sesiunile vechi / compatibilitate.
+     */
+    return (
+        user.platform_admin === true ||
+        Number(user.permission_level) >= 99
+    );
+}
+
+
+// ============================================================
+// PAGINI PERMISE
+// ============================================================
+
+function getAllowedPages() {
+    const user = getUser();
+
+    if (!user) {
+        return [];
+    }
+
+    if (!Array.isArray(user.allowed_pages)) {
+        return [];
+    }
+
+    return user.allowed_pages
+        .map(page => String(page || '').trim())
+        .filter(Boolean);
+}
+
+
+function hasSelectedPages() {
+    return getAllowedPages().length > 0;
+}
+
+
+// ============================================================
+// VERIFICARE ACCES PAGINĂ
+// ============================================================
+
+function canAccessPage(page) {
+
+    if (!page) {
+        return false;
+    }
+
+    /*
+     * Administratorul platformei are acces peste tot.
+     */
+    if (isPlatformAdmin()) {
+        return true;
+    }
+
+    /*
+     * Paginile administrative NU pot fi acordate
+     * prin rolurile unei organizații.
+     */
+    if (AdministrativePages.has(page)) {
+        return false;
+    }
+
+    /*
+     * Pentru utilizatorii organizațiilor nu mai există
+     * nivel numeric.
+     *
+     * Accesul este determinat exclusiv de allowed_pages,
+     * calculat după rolurile Discord configurate pentru
+     * organizația respectivă.
+     */
+    return getAllowedPages().includes(page);
+}
+
+
+// ============================================================
+// LOGOUT
+// ============================================================
+
+function logout() {
+    localStorage.clear();
+    sessionStorage.clear();
+
+    window.location.replace('login.html');
+}
+
+
+// ============================================================
+// RESINCRONIZARE DISCORD
+// ============================================================
+
+async function refreshLegacyPlatformAdmin(force = false) {
+
+    const token =
+        localStorage.getItem('discord_access_token');
+
+    const config =
+        window.PANEL_SUPABASE_CONFIG;
+
+    if (!token || !config) {
+        return false;
+    }
+
+    const cachedAt = Number(
+        localStorage.getItem('panel_role_synced_at') || 0
+    );
+
+    /*
+     * Dacă sesiunea este recentă, nu facem request inutil.
+     */
+    if (
+        !force &&
+        Date.now() - cachedAt < 5 * 60 * 1000 &&
+        getUser()
+    ) {
+        return isPlatformAdmin();
+    }
+
+    try {
+
+        const response = await fetch(
+            `${config.url}/functions/v1/sync-discord-role`,
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json',
+                    apikey: config.publishableKey,
+                    Authorization:
+                        `Bearer ${config.publishableKey}`
+                },
+
+                body: JSON.stringify({
+                    access_token: token,
+                    organization_id:
+                        window.getActiveOrganizationId?.()
+                })
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                result.error ||
+                'Resincronizarea a eșuat.'
+            );
+        }
+
+        if (result.user) {
+            localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify(result.user)
+            );
+        }
+
+        /*
+         * Păstrăm aceste valori pentru compatibilitate
+         * cu restul panelului.
+         */
+        if (result.user?.role !== undefined) {
+            localStorage.setItem(
+                'user_role',
+                result.user.role
+            );
+        }
+
+        if (result.session_token) {
+            localStorage.setItem(
+                'panel_session_token',
+                result.session_token
+            );
+        }
+
+        if (result.expires_at) {
+            localStorage.setItem(
+                'panel_session_expires_at',
+                result.expires_at
+            );
+        }
+
+        if (result.active_organization) {
+            localStorage.setItem(
+                'panel_active_organization',
+                JSON.stringify(
+                    result.active_organization
+                )
+            );
+        }
+
+        localStorage.setItem(
+            'panel_organizations',
+            JSON.stringify(
+                result.organizations || []
+            )
+        );
+
+        localStorage.setItem(
+            'panel_role_synced_at',
+            String(Date.now())
+        );
+
+        return isPlatformAdmin();
+
+    } catch (error) {
+
+        console.error(
+            'Eroare la resincronizarea permisiunilor:',
+            error
+        );
+
+        return false;
+    }
+}
+
+
+// ============================================================
+// PAGINA DE START A UTILIZATORULUI
+// ============================================================
+
+function getDefaultAllowedPage() {
+
+    if (isPlatformAdmin()) {
+        return 'index.html';
+    }
+
+    const allowedPages =
+        getAllowedPages();
+
+    /*
+     * Preferăm Dashboard dacă utilizatorul are acces.
+     */
+    if (allowedPages.includes('index.html')) {
+        return 'index.html';
+    }
+
+    /*
+     * Altfel folosim prima pagină permisă.
+     */
+    if (allowedPages.length) {
+        return allowedPages[0];
+    }
+
+    return 'guest.html';
+}
+
+
+// ============================================================
+// SECURITY MIDDLEWARE
+// ============================================================
+
+(function initSecurityMiddleware() {
+
+    const currentPage =
+        window.location.pathname
+            .split('/')
+            .pop() || 'index.html';
+
+
+    // --------------------------------------------------------
+    // PAGINI PUBLICE
+    // --------------------------------------------------------
+
+    if (
+        currentPage === 'login.html' ||
+        currentPage === '403.html'
+    ) {
+        return;
+    }
+
+
+    // --------------------------------------------------------
+    // AUTENTIFICARE
+    // --------------------------------------------------------
+
+    if (!isLogged()) {
+
+        window.location.replace(
+            'login.html'
+        );
+
+        return;
+    }
+
+
+    // --------------------------------------------------------
+    // GUEST
+    // --------------------------------------------------------
+
+    if (currentPage === 'guest.html') {
+
+        /*
+         * Adminul sau utilizatorul care are cel puțin
+         * o pagină configurată nu trebuie să rămână
+         * în pagina Guest.
+         */
+        if (
+            isPlatformAdmin() ||
+            hasSelectedPages()
+        ) {
+
+            window.location.replace(
+                getDefaultAllowedPage()
+            );
+
+            return;
+        }
+
+        /*
+         * Utilizator autentificat fără rol configurat.
+         */
+        return;
+    }
+
+
+    // --------------------------------------------------------
+    // PAGINI ADMINISTRATIVE
+    // --------------------------------------------------------
+
+    if (
+        AdministrativePages.has(currentPage) &&
+        !isPlatformAdmin()
+    ) {
+
+        const token =
+            localStorage.getItem(
+                'discord_access_token'
+            );
+
+        /*
+         * Facem o resincronizare înainte să refuzăm accesul,
+         * în cazul în care sesiunea locală este veche.
+         */
+        if (
+            token &&
+            !sessionStorage.getItem(
+                'panel_admin_sync_attempted'
+            )
+        ) {
+
+            sessionStorage.setItem(
+                'panel_admin_sync_attempted',
+                '1'
+            );
+
+            document.documentElement.style.visibility =
+                'hidden';
+
+            refreshLegacyPlatformAdmin(true)
+                .then(ok => {
+
+                    sessionStorage.removeItem(
+                        'panel_admin_sync_attempted'
+                    );
+
+                    if (ok) {
+                        window.location.reload();
+                        return;
+                    }
+
+                    document.documentElement.style.visibility =
+                        '';
+
+                    window.location.replace(
+                        '403.html'
+                    );
+                })
+                .catch(() => {
+
+                    sessionStorage.removeItem(
+                        'panel_admin_sync_attempted'
+                    );
+
+                    document.documentElement.style.visibility =
+                        '';
+
+                    window.location.replace(
+                        '403.html'
+                    );
+                });
+
+            return;
+        }
+
+        window.location.replace(
+            '403.html'
+        );
+
+        return;
+    }
+
+
+    // --------------------------------------------------------
+    // UTILIZATOR FĂRĂ PAGINI
+    // --------------------------------------------------------
+
+    if (
+        !isPlatformAdmin() &&
+        !hasSelectedPages()
+    ) {
+
+        const token =
+            localStorage.getItem(
+                'discord_access_token'
+            );
+
+        /*
+         * Înainte să considerăm utilizatorul Guest,
+         * verificăm încă o dată rolurile Discord.
+         */
+        if (
+            token &&
+            !sessionStorage.getItem(
+                'panel_permission_sync_attempted'
+            )
+        ) {
+
+            sessionStorage.setItem(
+                'panel_permission_sync_attempted',
+                '1'
+            );
+
+            document.documentElement.style.visibility =
+                'hidden';
+
+            refreshLegacyPlatformAdmin(true)
+                .then(() => {
+
+                    sessionStorage.removeItem(
+                        'panel_permission_sync_attempted'
+                    );
+
+                    window.location.reload();
+                })
+                .catch(() => {
+
+                    sessionStorage.removeItem(
+                        'panel_permission_sync_attempted'
+                    );
+
+                    document.documentElement.style.visibility =
+                        '';
+
+                    window.location.replace(
+                        'guest.html'
+                    );
+                });
+
+            return;
+        }
+
+        window.location.replace(
+            'guest.html'
+        );
+
+        return;
+    }
+
+
+    // --------------------------------------------------------
+    // VERIFICARE PAGINĂ CURENTĂ
+    // --------------------------------------------------------
+
+    if (!canAccessPage(currentPage)) {
+
+        window.location.replace(
+            '403.html'
+        );
+
+        return;
+    }
+
+
+    // --------------------------------------------------------
+    // VIZIBILITATE MENIU
+    // --------------------------------------------------------
+
+    document.addEventListener(
+        'DOMContentLoaded',
+        () => {
+            applyRoleBasedVisibility();
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // RESINCRONIZARE PERIODICĂ
+    // --------------------------------------------------------
+
+    if (!window.__panelRoleWatcher) {
+
+        window.__panelRoleWatcher =
+            window.setInterval(
+                async () => {
+
+                    if (
+                        document.visibilityState === 'hidden' ||
+                        !localStorage.getItem(
+                            'discord_access_token'
+                        ) ||
+                        window.location.pathname.endsWith(
+                            'organizatii.html'
+                        )
+                    ) {
+                        return;
+                    }
+
+                    const before =
+                        localStorage.getItem(
+                            STORAGE_KEY
+                        ) || '';
+
+                    await refreshLegacyPlatformAdmin(
+                        true
+                    );
+
+                    const after =
+                        localStorage.getItem(
+                            STORAGE_KEY
+                        ) || '';
+
+                    /*
+                     * Dacă rolurile sau paginile permise
+                     * s-au schimbat, reconstruim pagina.
+                     */
+                    if (
+                        before &&
+                        after &&
+                        before !== after
+                    ) {
+                        window.location.reload();
+                    }
+
+                },
+                1800000
+            );
+    }
+
+})();
+
+
+// ============================================================
+// VIZIBILITATE ELEMENTE / MENIU
+// ============================================================
+
+function applyRoleBasedVisibility() {
+
+    /*
+     * Linkurile către pagini sunt afișate numai dacă
+     * utilizatorul poate accesa pagina respectivă.
+     */
+    document.querySelectorAll('a[href]').forEach(element => {
+
+        const rawHref =
+            element.getAttribute('href') || '';
+
+        /*
+         * Ignorăm linkurile externe, ancorele și JS.
+         */
+        if (
+            !rawHref ||
+            rawHref.startsWith('#') ||
+            rawHref.startsWith('http://') ||
+            rawHref.startsWith('https://') ||
+            rawHref.startsWith('mailto:') ||
+            rawHref.startsWith('tel:') ||
+            rawHref.startsWith('javascript:')
+        ) {
+            return;
+        }
+
+        const href =
+            rawHref
+                .split('?')[0]
+                .split('#')[0]
+                .split('/')
+                .pop();
+
+        if (!href || !href.endsWith('.html')) {
+            return;
+        }
+
+        /*
+         * Nu ascundem logout/login sau alte pagini publice.
+         */
+        if (
+            href === 'login.html' ||
+            href === '403.html' ||
+            href === 'guest.html'
+        ) {
+            return;
+        }
+
+        element.style.display =
+            canAccessPage(href)
+                ? ''
+                : 'none';
+    });
+
+
+    /*
+     * Compatibilitate temporară.
+     *
+     * Unele pagini vechi pot avea încă data-role.
+     * Nu mai interpretăm valoarea numerică.
+     *
+     * Dacă elementul este un link către o pagină,
+     * accesul este decis de allowed_pages.
+     */
+    document
+        .querySelectorAll('[data-role]')
+        .forEach(element => {
+
+            const rawHref =
+                element.getAttribute('href') || '';
+
+            if (!rawHref) {
+                /*
+                 * Nu ascundem automat elementele fără href.
+                 * Acestea vor fi curățate ulterior din
+                 * paginile vechi.
+                 */
+                return;
+            }
+
+            const href =
+                rawHref
+                    .split('?')[0]
+                    .split('#')[0]
+                    .split('/')
+                    .pop();
+
+            if (
+                href &&
+                href.endsWith('.html')
+            ) {
+                element.style.display =
+                    canAccessPage(href)
+                        ? ''
+                        : 'none';
+            }
+        });
+}

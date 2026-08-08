@@ -1,0 +1,623 @@
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requirePanelSession } from '../_shared/panel-session.ts';
+
+const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
+const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers});
+const audit=async(db:any,session:any,action:string,targetId:string,details:unknown={})=>{await db.from('admin_audit_log').insert({organization_id:targetId,actor_discord_id:session.discord_id,action,target_type:'organization',target_id:targetId,details});};
+const slugify=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60);
+const webhookChannels=new Set([
+  'organization',
+  'departments',
+  'pontaj',
+  'requests',
+  'requests_organization',
+  'requests_departments',
+  'contracts',
+  'marketplace',
+  'illegal_marketplace'
+]);
+
+Deno.serve(async request=>{
+  if(request.method==='OPTIONS')return new Response('ok',{headers});
+  if(request.method!=='POST')return reply({error:'Metodă invalidă.'},405);
+  let transientCreatedOrganizationId='',cleanupDb:any=null;
+  try{
+    const key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS')??'{}').default;
+    if(!key)throw new Error('Cheia secretă Supabase lipsește.');
+    const db=createClient(Deno.env.get('SUPABASE_URL')!,key);cleanupDb=db;
+    const session=await requirePanelSession(db,request,7,true);
+    const owners=String(Deno.env.get('PLATFORM_OWNER_DISCORD_IDS')||'').split(',').map(x=>x.trim()).filter(Boolean);
+    if(!owners.includes(session.discord_id) && Number(session.permission_level || session.level || 0) < 99)return reply({error:'Doar administratorul platformei poate administra organizațiile.'},403);
+    const body=await request.json();
+
+    if(body.action==='test_webhook'){
+      const webhookUrl=String(body.url||'').trim();
+      const organizationId=String(body.organization_id||'').trim();
+      if(!organizationId)return reply({error:'Organizația selectată lipsește.'},400);
+      let parsedWebhook:URL;
+      try{parsedWebhook=new URL(webhookUrl);}catch{return reply({error:'Adresa webhookului este invalidă.'},400);}
+      if(parsedWebhook.protocol!=='https:'||!['discord.com','discordapp.com'].includes(parsedWebhook.hostname)||!parsedWebhook.pathname.startsWith('/api/webhooks/'))return reply({error:'Adresa trebuie să fie un webhook Discord valid.'},400);
+      const response=await fetch(webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:'✅ Test webhook Panel — conexiunea funcționează.',allowed_mentions:{parse:[]}})});
+      if(!response.ok)return reply({error:`Discord a răspuns cu HTTP ${response.status}.`},400);
+      return reply({ok:true,message:'Webhookul a răspuns cu succes.'});
+    }
+
+    if(body.action === 'list'){
+      const { data, error } = await db
+        .from('organizations')
+        .select(`
+          *,
+          organization_guilds(*),
+          organization_settings(*),
+          organization_role_mappings(*)
+        `)
+        .order('name');
+
+      if(error) throw error;
+
+      const ids = (data || []).map((item:any) => item.id);
+
+      const { data: settings, error: settingsError } = ids.length
+        ? await db
+            .from('app_settings')
+            .select('organization_id,key,value')
+            .in('organization_id', ids)
+            .in('key', [
+              'organization_access',
+              'contract_template',
+              'page_permissions',
+              'action_permissions',
+              'announcement_permissions'
+            ])
+        : {
+            data: [],
+            error: null
+          };
+
+      if(settingsError) throw settingsError;
+
+      return reply({
+        organizations: (data || []).map((item:any) => ({
+          ...item,
+
+          platform_settings: (settings || [])
+            .filter(
+              (setting:any) =>
+                setting.organization_id === item.id
+            )
+            .reduce(
+              (map:any, setting:any) => {
+                map[setting.key] = setting.value;
+                return map;
+              },
+              {}
+            )
+        }))
+      });
+    }
+    if(body.action==='list_audit'){
+      const organizationId=String(body.organization_id||'').trim();
+      const query=db.from('admin_audit_log').select('id,organization_id,actor_discord_id,action,target_type,target_id,details,created_at').eq('target_type','organization').order('created_at',{ascending:false}).limit(200);
+      const {data,error}=organizationId?await query.eq('organization_id',organizationId):await query;
+      if(error)throw error;
+      return reply({ok:true,events:data||[]});
+    }
+    if(body.action==='save_draft'){
+      const draft=body.organization||{},name=String(draft.name||'').trim();
+      if(name.length<2)return reply({error:'Introdu cel puțin numele organizației pentru draft.'},400);
+      const draftId=String(draft.id||'').trim(),baseSlug=slugify(String(draft.slug||name));
+      if(!baseSlug)return reply({error:'Numele organizației nu poate genera un slug valid.'},400);
+      const draftRow={slug:baseSlug,name,code:String(draft.code||'').trim()||null,address:String(draft.address||'').trim()||null,logo_url:String(draft.logo_url||'').trim()||null,banner_url:String(draft.banner_url||'').trim()||null,lifecycle_status:'draft',active:false,updated_at:new Date().toISOString()};
+      if(draftId){const {data,error}=await db.from('organizations').update(draftRow).eq('id',draftId).select('id').maybeSingle();if(error)throw error;if(!data)return reply({error:'Organizația nu mai există.'},404);return reply({ok:true,organization_id:draftId,lifecycle_status:'draft'});}
+      const {data,error}=await db.from('organizations').insert(draftRow).select('id').single();if(error)throw error;
+      await db.from('organization_lifecycle_events').insert({organization_id:data.id,event_type:'draft_created',actor_discord_id:session.discord_id,details:{name}});
+      return reply({ok:true,organization_id:data.id,lifecycle_status:'draft'});
+    }
+    if(body.action==='publish'){
+      const organizationId=String(body.organization_id||'').trim();if(!organizationId)return reply({error:'Organizația lipsește.'},400);
+      const [{data:guilds},{data:settings},{data:roles}]=await Promise.all([db.from('organization_guilds').select('guild_id').eq('organization_id',organizationId),db.from('organization_settings').select('discord_client_id,panel_public_url').eq('organization_id',organizationId).maybeSingle(),db.from('organization_role_mappings').select('discord_role_id').eq('organization_id',organizationId)]);
+      if(!guilds?.length)return reply({error:'Draftul nu are încă un server Discord configurat.'},400);
+      if(!settings?.discord_client_id||!settings?.panel_public_url)return reply({error:'Draftul nu are configurarea Discord și URL-ul public completate.'},400);
+      if(!roles?.length)return reply({error:'Draftul nu are încă roluri Discord configurate.'},400);
+      const {data,error}=await db.from('organizations').update({active:true,lifecycle_status:'active',updated_at:new Date().toISOString()}).eq('id',organizationId).select('id').maybeSingle();if(error)throw error;if(!data)return reply({error:'Organizația nu există.'},404);
+      await db.from('organization_lifecycle_events').insert({organization_id:organizationId,event_type:'published',actor_discord_id:session.discord_id,details:{}});
+      await audit(db,session,'organization_published',organizationId,{});
+      return reply({ok:true,organization_id:organizationId,lifecycle_status:'active'});
+    }
+    if(body.action==='discover'){
+      const guildId=String(body.guild_id||'').trim();if(!/^\d{15,22}$/.test(guildId))return reply({error:'Guild ID invalid.'},400);
+      const bot=String(Deno.env.get('DISCORD_BOT_TOKEN')||'').trim();if(!bot)throw new Error('DISCORD_BOT_TOKEN lipsește.');
+      const [guildResponse,rolesResponse]=await Promise.all([
+        fetch(`https://discord.com/api/v10/guilds/${guildId}`,{headers:{Authorization:`Bot ${bot}`}}),
+        fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`,{headers:{Authorization:`Bot ${bot}`}})
+      ]);
+      if(!guildResponse.ok||!rolesResponse.ok)return reply({error:`Botul nu poate accesa serverul (HTTP ${!guildResponse.ok?guildResponse.status:rolesResponse.status}). Invită botul pe server.`},400);
+      const guild=await guildResponse.json(),roles=await rolesResponse.json();
+      return reply({guild:{id:guild.id,name:guild.name,icon:guild.icon},roles:(roles||[]).filter((r:any)=>!r.managed&&String(r.id)!==guildId).map((r:any)=>({id:String(r.id),name:String(r.name),position:Number(r.position)})).sort((a:any,b:any)=>b.position-a.position)});
+    }
+    if(body.action==='save'){
+      const org=body.organization||{},name=String(org.name||'').trim();if(name.length<2)throw new Error('Numele organizației este obligatoriu.');
+      let slug=slugify(String(org.slug||name));if(!slug)throw new Error('Slug invalid.');
+      const requestedOrganizationId=String(org.id||'').trim();
+      if(requestedOrganizationId){const {data:existingOrganization,error:existingError}=await db.from('organizations').select('slug').eq('id',requestedOrganizationId).maybeSingle();if(existingError)throw existingError;if(existingOrganization?.slug)slug=String(existingOrganization.slug);}
+      const row={slug,name,code:String(org.code||'').trim()||null,address:String(org.address||'').trim()||null,description:String(org.description||'').trim()||null,logo_url:String(org.logo_url||'').trim()||null,banner_url:String(org.banner_url||'').trim()||null,active:org.active!==false,updated_at:new Date().toISOString()};
+      let organizationId=String(org.id||'').trim();
+      if(organizationId){const {data,error}=await db.from('organizations').update(row).eq('id',organizationId).select('id').maybeSingle();if(error)throw error;if(!data)throw new Error('Organizația nu mai există. Reîncarcă lista.');}
+      else{const {data,error}=await db.from('organizations').insert(row).select('id').single();if(error)throw error;organizationId=data.id;transientCreatedOrganizationId=organizationId;}
+      const guilds=Array.isArray(body.guilds)?body.guilds:[];if(!guilds.length)throw new Error('Configurează cel puțin un server Discord.');
+      if(organizationId){const {error}=await db.from('organization_guilds').delete().eq('organization_id',organizationId);if(error)throw error;}
+      for(const guild of guilds){const guildId=String(guild.guild_id||'').trim();if(!/^\d{15,22}$/.test(guildId))throw new Error(`Guild ID invalid: ${guildId}`);const {error}=await db.from('organization_guilds').upsert({organization_id:organizationId,guild_id:guildId,guild_name:String(guild.guild_name||'').trim()||null,kind:guild.kind==='secondary'?'secondary':'primary',enabled:guild.enabled!==false},{onConflict:'guild_id'});if(error)throw error;}
+      const settings=body.settings||{};let clientId=String(settings.discord_client_id||'').trim();let publicUrl=String(settings.panel_public_url||'').replace(/\/$/,'');
+      if(!clientId||!publicUrl){const platformOwners=String(Deno.env.get('PLATFORM_OWNER_DISCORD_IDS')||'').split(',').map(value=>value.trim()).filter(Boolean);const {data:ownerSession,error:ownerSessionError}=platformOwners.length?await db.from('panel_sessions').select('organization_id').in('discord_id',platformOwners).order('created_at',{ascending:false}).limit(1).maybeSingle():{data:null,error:null};if(ownerSessionError)throw ownerSessionError;const {data:platformSettings,error:platformSettingsError}=ownerSession?.organization_id?await db.from('organization_settings').select('discord_client_id,panel_public_url').eq('organization_id',ownerSession.organization_id).maybeSingle():{data:null,error:null};if(platformSettingsError)throw platformSettingsError;clientId=clientId||String(platformSettings?.discord_client_id||'').trim();publicUrl=publicUrl||String(platformSettings?.panel_public_url||'').replace(/\/$/,'');}
+      if(!/^\d{15,22}$/.test(clientId))throw new Error('Configurarea platformei nu are un Discord Client ID valid.');try{new URL(publicUrl)}catch{throw new Error('Configurarea platformei nu are un URL public valid.');}
+const rawRoutes =
+  settings.webhook_routes &&
+  typeof settings.webhook_routes === 'object'
+    ? settings.webhook_routes
+    : {};
+
+const validWebhook = (value:any) => {
+  try {
+    const url = new URL(String(value || ''));
+
+    return (
+      url.protocol === 'https:' &&
+      ['discord.com', 'discordapp.com'].includes(url.hostname) &&
+      url.pathname.startsWith('/api/webhooks/')
+    );
+  } catch {
+    return false;
+  }
+};
+
+const { data: currentOrganizationSettings, error: currentOrganizationSettingsError } =
+  await db
+    .from('organization_settings')
+    .select('webhook_routes')
+    .eq('organization_id', organizationId)
+    .maybeSingle();
+
+if (currentOrganizationSettingsError) {
+  throw currentOrganizationSettingsError;
+}
+
+const existingWebhookRoutes =
+  currentOrganizationSettings?.webhook_routes &&
+  typeof currentOrganizationSettings.webhook_routes === 'object'
+    ? currentOrganizationSettings.webhook_routes
+    : {};
+
+const submittedWebhookRoutes = Object.fromEntries(
+  Object.entries(rawRoutes)
+    .filter(([channel, route]: any) => {
+      if (!webhookChannels.has(channel)) return false;
+      if (!route || typeof route !== 'object') return false;
+
+      return true;
+    })
+    .map(([channel, route]: any) => {
+
+      const existingRoute =
+        existingWebhookRoutes[channel] &&
+        typeof existingWebhookRoutes[channel] === 'object'
+          ? existingWebhookRoutes[channel]
+          : {};
+
+      const buildTarget = (
+        target: 'primary' | 'secondary'
+      ) => {
+
+        const submitted = route?.[target];
+        const existing = existingRoute?.[target];
+
+        /*
+         * Dacă formularul trimite explicit acest target,
+         * folosim valoarea nouă.
+         */
+        if (submitted && typeof submitted === 'object') {
+
+          const enabled = submitted.enabled === true;
+          const url = String(submitted.url || '').trim();
+
+          /*
+           * Debifat sau URL gol = ștergere explicită.
+           */
+          if (!enabled || !url) {
+            return null;
+          }
+
+          if (!validWebhook(url)) {
+            throw new Error(
+              `Webhook Discord invalid pentru ${channel}/${target}.`
+            );
+          }
+
+          return {
+            enabled: true,
+            url
+          };
+        }
+
+        /*
+         * Dacă formularul NU a trimis targetul,
+         * păstrăm configurația existentă.
+         */
+        if (
+          existing &&
+          typeof existing === 'object' &&
+          existing.url
+        ) {
+          return existing;
+        }
+
+        return null;
+      };
+
+      return [
+        channel,
+        {
+          primary: buildTarget('primary'),
+          secondary: buildTarget('secondary')
+        }
+      ];
+    })
+);
+
+/*
+ * Păstrăm și eventualele rute existente care nu au fost
+ * trimise deloc de formular.
+ */
+const webhook_routes = {
+  ...existingWebhookRoutes,
+  ...submittedWebhookRoutes
+};
+
+const { error: settingsError } =
+  await db
+    .from('organization_settings')
+    .upsert({
+      organization_id: organizationId,
+      discord_client_id: clientId,
+      panel_public_url: publicUrl,
+      webhook_routes,
+      updated_by_discord_id: session.discord_id,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'organization_id'
+    });
+
+if (settingsError) {
+  throw settingsError;
+}
+      await db.from('app_settings').upsert({organization_id:organizationId,key:'pontaj_config',value:{maxHours:12,dayEndTime:'19:59',nightEndTime:'23:00',excludeBreaks:false}},{onConflict:'organization_id,key'});
+      if(body.access){const expiresAt=String(body.access.expires_at||'').trim();if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))throw new Error('Data expirării este invalidă.');const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_access',value:{expires_at:expiresAt||null},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;if(!expiresAt||Date.parse(expiresAt)>Date.now())await db.from('organizations').update({active:true,updated_at:new Date().toISOString()}).eq('id',organizationId);}
+      if(body.contract_template){const title=String(body.contract_template.title||'').trim(),template=String(body.contract_template.template||'').trim();if(title.length<2)throw new Error('Numele contractului este obligatoriu.');if(template.length<20)throw new Error('Textul contractului este prea scurt.');const allowed=['{{COMPANY}}','{{ADDRESS}}','{{MANAGER}}','{{EMPLOYEE_NAME}}','{{CNP}}','{{PHONE}}','{{POSITION}}','{{SALARY}}','{{PROGRAM}}','{{START_DATE}}','{{CONTRACT_NUMBER}}'];const unknown=[...template.matchAll(/{{[A-Z0-9_]+}}/g)].map(match=>match[0]).filter(value=>!allowed.includes(value));if(unknown.length)throw new Error(`Câmpuri necunoscute în contract: ${[...new Set(unknown)].join(', ')}`);const defaults=body.contract_template.defaults&&typeof body.contract_template.defaults==='object'?body.contract_template.defaults:{};const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'contract_template',value:{title,template,defaults:{salary:String(defaults.salary||'').trim()||null}},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;}
+      if(body.page_permissions && typeof body.page_permissions === 'object'){
+  const allowedPages = new Set([
+    'index.html',
+    'anunturi.html',
+    'pontaj.html',
+    'cereri.html',
+    'bucatarie.html',
+    'contracte.html',
+    'calculatorilegal.html',
+    'craftmecanics.html',
+    'locatiiilegale.html',
+    'marketplace.html',
+    'marketplace-ilegal.html',
+    'rapoarte.html',
+    'asistent.html'
+  ]);
+
+
+
+  const rules = Object.fromEntries(
+    Object.entries(body.page_permissions)
+      .filter(([page]) => allowedPages.has(page))
+      .map(([page, ids]: any) => [
+        page,
+        [...new Set(
+          (Array.isArray(ids) ? ids : [])
+            .map(String)
+            .filter(id => /^\d{15,22}$/.test(id))
+        )]
+      ])
+  );
+
+  const value = rules;
+
+  const { error } = await db
+    .from('app_settings')
+    .upsert({
+      organization_id: organizationId,
+      key: 'page_permissions',
+      value,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'organization_id,key'
+    });
+
+  if(error) throw error;
+}
+if(
+  body.action_permissions &&
+  typeof body.action_permissions === 'object'
+){
+  /*
+   * Permisiuni pentru acțiuni din interiorul paginilor.
+   *
+   * Momentan permitem:
+   * anunturi.publish = publicare / modificare / ștergere
+   * anunțuri și sondaje.
+   */
+  const allowedActions = new Set([
+    'anunturi.publish',
+    'cereri.organization',
+    'cereri.departments'
+  ]);
+
+  const actionRules = Object.fromEntries(
+    Object.entries(body.action_permissions)
+      .filter(([action]) => allowedActions.has(action))
+      .map(([action, ids]: any) => [
+        action,
+        [
+          ...new Set(
+            (Array.isArray(ids) ? ids : [])
+              .map(String)
+              .filter(id => /^\d{15,22}$/.test(id))
+          )
+        ]
+      ])
+  );
+
+  // Un rol de cereri poate avea o singură destinație. Păstrăm aceeași
+  // regulă și server-side, chiar dacă formularul din browser a fost ocolit.
+  const organizationRequestRoles = new Set(
+    actionRules['cereri.organization'] || []
+  );
+  if (Array.isArray(actionRules['cereri.departments'])) {
+    actionRules['cereri.departments'] = actionRules['cereri.departments']
+      .filter((id: string) => !organizationRequestRoles.has(id));
+  }
+
+  const { error } = await db
+    .from('app_settings')
+    .upsert({
+      organization_id: organizationId,
+      key: 'action_permissions',
+      value: actionRules,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'organization_id,key'
+    });
+
+  if(error) throw error;
+}
+if(
+  body.announcement_permissions &&
+  typeof body.announcement_permissions === 'object'
+){
+  const clean = (kind:string) => [
+    ...new Set(
+      (
+        Array.isArray(body.announcement_permissions[kind])
+          ? body.announcement_permissions[kind]
+          : []
+      )
+        .map(Number)
+        .filter(
+          (level:number) =>
+            Number.isInteger(level) &&
+            level >= 1 &&
+            level <= 99
+        )
+    )
+  ];
+
+  const announcementPermissions = {
+    read: clean('read'),
+    write: clean('write')
+  };
+
+  const { error } = await db
+    .from('app_settings')
+    .upsert({
+      organization_id: organizationId,
+      key: 'announcement_permissions',
+      value: announcementPermissions,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'organization_id,key'
+    });
+
+  if(error) throw error;
+}
+if (Array.isArray(body.roles)) {
+
+  /*
+   * Ștergem mapările vechi ale organizației.
+   * Rolurile sunt reconstruite din configurația trimisă
+   * de organizatii.html.
+   */
+  const { error: deleteRolesError } = await db
+    .from('organization_role_mappings')
+    .delete()
+    .eq('organization_id', organizationId);
+
+  if (deleteRolesError) {
+    throw deleteRolesError;
+  }
+
+  /*
+   * Validăm rolurile primite.
+   */
+  const cleanRoles = body.roles.map(
+    (role: any, index: number) => {
+
+      const guildId =
+        String(role.guild_id || '').trim();
+
+      const discordRoleId =
+        String(role.discord_role_id || '').trim();
+
+      const discordRoleName =
+        String(role.discord_role_name || '').trim();
+
+      const panelRole =
+        String(
+          role.panel_role ||
+          role.discord_role_name ||
+          `Rol ${index + 1}`
+        ).trim();
+
+      if (!/^\d{15,22}$/.test(guildId)) {
+        throw new Error(
+          `Guild ID invalid pentru rolul ${index + 1}.`
+        );
+      }
+
+      if (!/^\d{15,22}$/.test(discordRoleId)) {
+        throw new Error(
+          `Discord Role ID invalid pentru rolul ${index + 1}.`
+        );
+      }
+
+      if (!panelRole) {
+        throw new Error(
+          `Numele rolului ${index + 1} lipsește.`
+        );
+      }
+
+      return {
+        guild_id: guildId,
+        discord_role_id: discordRoleId,
+        discord_role_name:
+          discordRoleName || panelRole,
+        panel_role: panelRole
+      };
+    }
+  );
+
+  /*
+   * Nu permitem același rol Discord de două ori
+   * în aceeași organizație.
+   */
+  const uniqueRoleKeys = new Set(
+    cleanRoles.map(
+      (role: any) =>
+        `${role.guild_id}:${role.discord_role_id}`
+    )
+  );
+
+  if (uniqueRoleKeys.size !== cleanRoles.length) {
+    throw new Error(
+      'Același rol Discord nu poate fi configurat de două ori.'
+    );
+  }
+
+  /*
+   * IMPORTANT:
+   *
+   * permission_level rămâne doar pentru compatibilitate
+   * cu structura existentă a bazei de date.
+   *
+   * Accesul real la pagini este stabilit prin
+   * page_permissions.
+   *
+   * Ordinea rolurilor Discord nu mai stabilește accesul.
+   */
+  const rows = cleanRoles.map(
+    (role: any, index: number) => ({
+      organization_id: organizationId,
+
+      guild_id:
+        role.guild_id,
+
+      discord_role_id:
+        role.discord_role_id,
+
+      discord_role_name:
+        role.discord_role_name,
+
+      panel_role:
+        role.panel_role,
+
+      permission_level: 1,
+
+      priority:
+        cleanRoles.length - index,
+
+      enabled: true
+    })
+  );
+
+  /*
+   * Salvăm noile mapări.
+   */
+  if (rows.length) {
+
+    const { error: insertRolesError } = await db
+      .from('organization_role_mappings')
+      .insert(rows);
+
+    if (insertRolesError) {
+      throw insertRolesError;
+    }
+  }
+}
+      await audit(db,session,'organization_saved',organizationId,{name,roles:Array.isArray(body.roles)?body.roles.length:0});
+      return reply({ok:true,organization_id:organizationId});
+    }
+    if(body.action==='reactivate_with_voucher'){
+      const organizationId=String(body.organization_id||'').trim(),code=String(body.voucher_code||'').trim().toUpperCase();if(!organizationId||!code)return reply({error:'Organizația și voucherul sunt obligatorii.'},400);const {data:voucher,error:voucherError}=await db.from('organization_vouchers').select('*').eq('code',code).maybeSingle();if(voucherError)throw voucherError;if(!voucher||voucher.redeemed_at)return reply({error:'Voucher invalid sau deja folosit.'},400);const expires=new Date(Date.now()+Number(voucher.duration_days||30)*86400000).toISOString();const {data:used,error:usedError}=await db.from('organization_vouchers').update({redeemed_at:new Date().toISOString(),redeemed_by_discord_id:session.discord_id,redeemed_organization_id:organizationId,organization_id:organizationId}).eq('id',voucher.id).is('redeemed_at',null).select('id').maybeSingle();if(usedError)throw usedError;if(!used)return reply({error:'Voucherul a fost folosit între timp.'},409);await db.from('organizations').update({active:true,lifecycle_status:'active',grace_until:null,updated_at:new Date().toISOString()}).eq('id',organizationId);await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_access',value:{expires_at:expires},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});return reply({ok:true,expires_at:expires});
+    }
+    if(body.action==='set_package'){
+      const organizationId=String(body.organization_id||'').trim(),code=String(body.package_code||'standard');if(!organizationId||!['standard','full'].includes(code))return reply({error:'Organizația sau pachetul este invalid.'},400);const unlimited=body.unlimited===true;const expiresAt=unlimited?null:String(body.expires_at||'').trim()||null;const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_package',value:{code,unlimited,expires_at:expiresAt},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;return reply({ok:true,package:{code,unlimited,expires_at:expiresAt}});
+    }
+    if(body.action==='list_vouchers'){
+      const {data,error}=await db.from('organization_vouchers').select('id,code,package_code,duration_days,guild_id,organization_id,redeemed_organization_id,redeemed_by_discord_id,redeemed_at,created_at').order('created_at',{ascending:false}).limit(500);if(error)throw error;return reply({ok:true,vouchers:data||[]});
+    }
+    if(body.action==='delete_voucher'){
+      const id=String(body.voucher_id||'').trim();if(!id)return reply({error:'Voucherul lipsește.'},400);const {data,error}=await db.from('organization_vouchers').delete().eq('id',id).is('redeemed_at',null).select('id,code').maybeSingle();if(error)throw error;if(!data)return reply({error:'Voucherul nu există sau a fost deja folosit.'},404);return reply({ok:true,deleted:data});
+    }
+    if(body.action==='revoke_voucher'){
+      const id=String(body.voucher_id||'').trim();const {data,error}=await db.from('organization_vouchers').delete().eq('id',id).is('redeemed_at',null).select('id,code').maybeSingle();if(error)throw error;if(!data)return reply({error:'Voucherul nu există sau a fost deja folosit.'},404);return reply({ok:true,deleted:data});
+    }
+    if(body.action==='generate_vouchers'){
+      const packageCode=String(body.package_code||'standard');const count=Math.max(1,Math.min(100,Number(body.count)||1));const duration=Math.max(1,Math.min(3650,Number(body.duration_days)||30));const guildId=String(body.guild_id||'').trim();if(!['standard','full'].includes(packageCode))return reply({error:'Pachet invalid.'},400);if(guildId&&!/^\d{15,22}$/.test(guildId))return reply({error:'Guild ID invalid.'},400);const rows:any[]=[];for(let i=0;i<count;i++){const bytes=crypto.getRandomValues(new Uint8Array(9));const code=`${packageCode.toUpperCase()}-${Array.from(bytes).map(value=>value.toString(36).padStart(2,'0')).join('').slice(0,12).toUpperCase()}`;rows.push({code,package_code:packageCode,duration_days:duration,guild_id:guildId||null,created_by_discord_id:session.discord_id});}const {data,error}=await db.from('organization_vouchers').insert(rows).select('code,package_code,duration_days,guild_id,created_at');if(error)throw error;return reply({ok:true,vouchers:data||[]});
+    }
+    if(body.action==='extend'){
+      const organizationId=String(body.organization_id||'').trim(),expiresAt=String(body.expires_at||'').trim();if(!organizationId||Number.isNaN(Date.parse(expiresAt))||Date.parse(expiresAt)<=Date.now())return reply({error:'Alege o dată viitoare pentru prelungire.'},400);
+      const {data,error}=await db.from('organizations').update({active:true,updated_at:new Date().toISOString()}).eq('id',organizationId).select('id').maybeSingle();if(error)throw error;if(!data)return reply({error:'Organizația nu există.'},404);
+      const {error:settingError}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_access',value:{expires_at:expiresAt},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(settingError)throw settingError;return reply({ok:true,expires_at:expiresAt});
+    }
+    if(body.action==='set_access'){
+      const organizationId=String(body.organization_id||'').trim(),expiresAt=String(body.expires_at||'').trim(),active=body.active!==false;
+      if(!organizationId)return reply({error:'Organizația lipsește.'},400);if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))return reply({error:'Data expirării este invalidă.'},400);
+      const effectiveActive=active&&(!expiresAt||Date.parse(expiresAt)>Date.now());const {data,error}=await db.from('organizations').update({active:effectiveActive,updated_at:new Date().toISOString()}).eq('id',organizationId).select('id').maybeSingle();if(error)throw error;if(!data)return reply({error:'Organizația nu există.'},404);
+      const {error:settingError}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_access',value:{expires_at:expiresAt||null},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(settingError)throw settingError;return reply({ok:true,active:effectiveActive,expires_at:expiresAt||null});
+    }
+    if(body.action==='delete'){
+      const organizationId=String(body.organization_id||'').trim();
+      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(organizationId))return reply({error:'ID-ul organizației este invalid.'},400);
+      const {data:organization,error:findError}=await db.from('organizations').select('id,name').eq('id',organizationId).maybeSingle();
+      if(findError)throw findError;if(!organization)return reply({error:'Organizația nu mai există.'},404);
+      if(String(body.confirm_name||'').trim()!==organization.name)return reply({error:'Confirmarea nu corespunde numelui organizației.'},400);
+      const {count,error:countError}=await db.from('organizations').select('id',{count:'exact',head:true});if(countError)throw countError;
+      if((count||0)<=1)return reply({error:'Ultima organizație nu poate fi ștearsă. Creează întâi alta.'},409);
+      const tenantTables=['panel_notification_reads','community_poll_votes','community_reactions','community_poll_options','community_posts','panel_notifications','admin_audit_log','illegal_locations','profiles','marketplace_ilegal','marketplace','app_settings','absences','shifts'];
+      for(const table of tenantTables){const {error}=await db.from(table).delete().eq('organization_id',organizationId);if(error)throw new Error(`Ștergerea datelor din ${table} a eșuat: ${error.message}`);}
+      const {error:deleteError}=await db.from('organizations').delete().eq('id',organizationId);if(deleteError)throw deleteError;
+      return reply({ok:true,deleted_organization_id:organizationId});
+    }
+    return reply({error:'Acțiune necunoscută.'},400);
+  }catch(error){
+    console.error(error);
+    if(transientCreatedOrganizationId&&cleanupDb)await cleanupDb.from('organizations').delete().eq('id',transientCreatedOrganizationId);
+    const databaseError=error as {message?:unknown;details?:unknown;hint?:unknown;code?:unknown};
+    const message=error instanceof Error?error.message:String(databaseError?.message||'Eroare internă.');
+    const details=[databaseError?.details,databaseError?.hint,databaseError?.code].filter(Boolean).map(String).join(' · ');
+    return reply({error:details?`${message} (${details})`:message},400);
+  }
+});

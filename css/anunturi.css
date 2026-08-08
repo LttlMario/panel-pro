@@ -1,0 +1,53 @@
+:root{--card:#0f172a;--border:#1e293b;--muted:#94a3b8;--accent:#10b981}*{box-sizing:border-box}.community-shell{width:min(100%,1100px);margin:auto;padding:28px}.community-hero,.community-head,.community-actions{display:flex;justify-content:space-between;gap:16px}.community-hero{align-items:flex-start;margin-bottom:24px}.community-hero h2{font-size:25px;font-weight:900}.community-hero p,.muted{color:var(--muted)}.btn{border:1px solid rgba(16,185,129,.45);border-radius:12px;background:rgba(16,185,129,.14);color:#6ee7b7;padding:10px 15px;font-weight:800;cursor:pointer}.btn.secondary{border-color:#334155;background:#1e293b;color:#e2e8f0}.tabs,.reactions,.owner-actions{display:flex;gap:8px;flex-wrap:wrap}.tabs{margin-bottom:18px}.tab,.reaction,.text-action{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#94a3b8;padding:8px 12px;cursor:pointer}.tab.active,.reaction.selected{border-color:var(--accent);color:#6ee7b7}.feed{display:grid;gap:16px}.post{border:1px solid var(--border);border-radius:18px;background:var(--card);padding:20px}.post.highlight{border-color:var(--accent)}.badges{display:flex;gap:7px}.badge{border-radius:999px;padding:4px 9px;background:#1e293b;font-size:11px;font-weight:800}.badge.family{color:#fda4af}.badge.mechanics{color:#7dd3fc}.post h3{margin-top:12px;font-size:18px;font-weight:900}.post-body{margin-top:8px;color:#cbd5e1;line-height:1.65;white-space:pre-wrap}.meta{margin-top:13px;color:#64748b;font-size:11px}.poll{display:grid;gap:8px;margin-top:16px}.poll-option{position:relative;overflow:hidden;border:1px solid #334155;border-radius:12px;background:#0b1220;color:#e2e8f0;padding:11px;text-align:left;cursor:pointer}.poll-bar{position:absolute;inset:0 auto 0 0;background:rgba(16,185,129,.15)}.poll-content{position:relative;display:flex;justify-content:space-between}.community-actions{margin-top:16px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap}.text-action{border-radius:10px}.danger{color:#fb7185}.empty{text-align:center;padding:55px;border:1px dashed #334155;border-radius:18px;color:#64748b}.modal{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:18px;background:rgba(2,6,23,.86)}.modal[hidden]{display:none}.dialog{width:min(100%,620px);max-height:92vh;overflow:auto;border:1px solid #334155;border-radius:20px;background:#0f172a;padding:22px}.dialog h3{font-size:20px;font-weight:900}.form{display:grid;gap:14px;margin-top:18px}.form label{display:grid;gap:6px;color:#cbd5e1;font-size:12px;font-weight:700}.form input,.form textarea,.form select{width:100%;border:1px solid #334155;border-radius:11px;background:#020617;color:#fff;padding:11px}.form textarea{min-height:125px}.dialog-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}.audiences{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.audience{border:1px solid #334155;border-radius:16px;background:#0b1220;color:#fff;padding:22px;cursor:pointer;font-weight:900}@media(max-width:767px){.community-shell{padding:18px 14px}.community-hero{flex-direction:column}.audiences{grid-template-columns:1fr}}
+/* Discord role settings */
+
+.role-row {
+    display: grid;
+    grid-template-columns: 50px 1fr 1fr 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+
+.role-secondary-row {
+    display: grid;
+    grid-template-columns: 50px 1fr 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+}
+
+
+.role-secondary-row input {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    background: #020617;
+    color: #f8fafc;
+    padding: 10px 12px;
+}
+
+
+.role-secondary-row .role-level.secondary {
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #34d399;
+    font-weight: 900;
+    background: transparent;
+}
+
+
+.role-row input {
+    width:100%;
+    min-height:42px;
+    border:1px solid #334155;
+    border-radius:10px;
+    background:#020617;
+    color:#f8fafc;
+    padding:10px 12px;
+}
