@@ -1769,8 +1769,17 @@
                     iconAnchor: [18, 18]
                 });
 
-                const marker = L.marker([lat, lng], { icon: customIcon });
-                marker.on('click', () => selectLocation(loc.id));
+                const marker = L.marker([lat, lng], {
+                    icon: customIcon,
+                    draggable: isDraggingPin && draggingMarkerId === loc.id
+                });
+                marker.on('click', () => {
+                    if (isDraggingPin && draggingMarkerId === loc.id) return;
+                    selectLocation(loc.id);
+                });
+                marker.on('dragend', (event) => {
+                    handleMarkerDragEnd(event, loc.id, loc.map);
+                });
                 markerLayers[loc.map].addLayer(marker);
             });
         }
@@ -1936,7 +1945,8 @@
             inchidePanouEditareStanga();
             document.getElementById('sidebar').classList.remove('open');
             if (loc.map !== state.currentMap) switchMap(loc.map);
-            showToast(`Click pe hartă pentru a muta pinul "${loc.title}"!`);
+            renderMarkers();
+            showToast(`Trage pinul "${loc.title}" pe hartă sau apasă pe hartă pentru poziționare directă.`);
         }
 
         async function copiazaPinulSelectat() {
@@ -1957,24 +1967,43 @@
             showToast('Pin copiat!');
         }
 
-        async function handleMapClickForPinMove(e, mapKey) {
-            if (!isDraggingPin || !draggingMarkerId) return;
-            const loc = DATA.find(item => item.id === draggingMarkerId);
-            if (!loc || loc.map !== mapKey) return;
-
+        async function salveazaPozitiaPin(loc, mapKey, latlng) {
             const mapCfg = CONFIG.maps[mapKey];
-            loc.y = parseFloat(((mapCfg.height - e.latlng.lat) / mapCfg.height * 100).toFixed(2));
-            loc.x = parseFloat((e.latlng.lng / mapCfg.width * 100).toFixed(2));
+            loc.y = parseFloat(((mapCfg.height - latlng.lat) / mapCfg.height * 100).toFixed(2));
+            loc.x = parseFloat((latlng.lng / mapCfg.width * 100).toFixed(2));
             loc.lastUpdated = new Date().toISOString().split('T')[0];
 
-            try { await saveLocationToDatabase(loc); } catch (error) { alert('Poziția nu a putut fi salvată în baza de date.'); return; }
+            try {
+                await saveLocationToDatabase(loc);
+            } catch (error) {
+                alert('Poziția nu a putut fi salvată în baza de date.');
+                renderMarkers();
+                return false;
+            }
+
             salveazaDateleInStorage();
             isDraggingPin = false;
             const targetId = draggingMarkerId;
             draggingMarkerId = null;
             isCreatingNewLocation = false;
+            renderMarkers();
             selectLocation(targetId);
             showToast('Poziție actualizată!');
+            return true;
+        }
+
+        async function handleMarkerDragEnd(event, locationId, mapKey) {
+            if (!isDraggingPin || draggingMarkerId !== locationId) return;
+            const loc = DATA.find(item => item.id === locationId);
+            if (!loc) return;
+            await salveazaPozitiaPin(loc, mapKey, event.target.getLatLng());
+        }
+
+        async function handleMapClickForPinMove(e, mapKey) {
+            if (!isDraggingPin || !draggingMarkerId) return;
+            const loc = DATA.find(item => item.id === draggingMarkerId);
+            if (!loc || loc.map !== mapKey) return;
+            await salveazaPozitiaPin(loc, mapKey, e.latlng);
         }
 
         async function stergeLocatieStanga() {
