@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" role="img" aria-labelledby="title">
+  <title id="title">FiveM</title>
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffb347"/><stop offset="1" stop-color="#ff6b35"/></linearGradient></defs>
+  <rect width="320" height="120" rx="24" fill="#111827"/>
+  <path d="M40 82 61 37h49L98 55H72l-5 10h27L83 82H40Z" fill="url(#g)"/>
+  <text x="118" y="78" fill="#fff" font-family="Segoe UI,Arial,sans-serif" font-size="49" font-weight="800" letter-spacing="-2">FiveM</text>
+</svg>
