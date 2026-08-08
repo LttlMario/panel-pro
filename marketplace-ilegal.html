@@ -22,92 +22,13 @@
     <div class="flex h-screen w-full overflow-hidden">
 
         <!-- Sidebar / Meniu Lateral preluat direct din layout-ul standard al proiectului -->
-        <aside class="w-72 bg-slate-900 border-r border-slate-800 flex flex-col justify-between hidden md:flex">
-            <div class="p-6 overflow-y-auto max-h-[calc(100vh-5rem)]">
-                <h1 class="text-xl font-bold text-slate-100 tracking-tight">Panel<span class="block text-xs font-normal text-slate-400 mt-0.5">by Little Mario</span></h1>
 
-                <nav class="mt-6 space-y-1.5" id="sidebar-nav">
-                    <a href="index.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>📊</span>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="pontaj.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>⏱️</span>
-                        <span>Pontaj</span>
-                    </a>
-                    <a href="cereri.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>📋</span>
-                        <span>Cereri / Absențe</span>
-                    </a>
-                    <a href="rapoarte.html" data-role="4" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>📈</span>
-                        <span>Rapoarte</span>
-                    </a>
-                    <a href="contracte.html" data-role="4" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>📜</span>
-                        <span>Contracte</span>
-                    </a>
-                    <a href="admin.html" data-role="7" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>👑</span>
-                        <span>Panou Admin</span>
-                    </a>
-                    <a href="calculatorilegal.html" data-role="3" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>🧮</span>
-                        <span>Calculator Ilegal</span>
-                    </a>
-                    <a href="craftmecanics.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>🔨</span>
-                        <span>Craft Mecanics</span>
-                    </a>
-                    <a href="locatiiilegale.html" data-role="3" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>🗺️</span>
-                        <span>Locații Ilegale</span>
-                    </a>
-                    <a href="marketplace.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>🛒</span>
-                        <span>Marketplace</span>
-                    </a>
-                    <a href="marketplace-ilegal.html" data-role="3" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>🚨</span>
-                        <span>Black Market</span>
-                    </a>
-                </nav>
-            </div>
-
-            <!-- Profil Utilizator Dinamic -->
-            <div class="p-4 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between">
-                <div class="flex items-center space-x-3 overflow-hidden">
-                    <img id="user-avatar" src="img/logo-192.png" class="w-10 h-10 rounded-full border border-slate-700 flex-shrink-0 object-cover" alt="Avatar">
-                    <div class="truncate">
-                        <p id="user-display-name" class="text-sm font-semibold text-slate-200 truncate">Se încarcă...</p>
-                        <p id="user-role" class="text-xs text-emerald-400 truncate">Mecanic</p>
-                    </div>
-                </div>
-                <button id="logout-btn" title="Ieșire din cont" class="flex items-center space-x-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl transition cursor-pointer text-xs font-medium">
-                    <span></span>
-                    <span>Logout</span>
-                </button>
-            </div>
-        </aside>
+            <div class="p-8 space-y-6 max-w-7xl mx-auto w-full">
+        
 
         <!-- Conținut Principal Black Market -->
         <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
-            <header class="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur px-8 flex items-center justify-between sticky top-0 z-20">
-                <div class="flex items-center space-x-3">
-                    <div class="bg-rose-500/10 border border-rose-500/20 p-2 rounded-xl text-rose-500 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                    </div>
-                    <h2 class="text-lg font-bold text-slate-100 tracking-wide uppercase">Black Market / Ilegal</h2>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <button onclick="incarcaAnunturi()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer flex items-center space-x-1.5">
-                        <span>🔄</span>
-                        <span>Reîmprospătare</span>
-                    </button>
-                </div>
-            </header>
-
-            <div class="p-8 space-y-6 max-w-7xl mx-auto w-full">
+            <section class="panel-action-bar"><div><button onclick="incarcaAnunturi()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer flex items-center space-x-1.5"><span>🔄</span><span>Reîmprospătare</span></button></div></section>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                     <!-- COLOANA STANGA: Adăugare Anunț Nou -->
@@ -848,6 +769,7 @@
                     const errText = await response.text();
                     console.error('Eroare Discord Webhook API:', response.status, errText);
                 }
+                return response;
 
             } catch (err) {
                 console.error('Eroare la trimiterea pe Discord:', err);
@@ -945,7 +867,11 @@
             if (error) {
                 alert('Erore la salvare: ' + error.message);
             } else {
-                await trimitePeDiscord({ ...nouAnunt, id: savedAnunt.id });
+                const discordResponse = await trimitePeDiscord({ ...nouAnunt, id: savedAnunt.id });
+                if (discordResponse?.ok) {
+                    const discordResult = await discordResponse.json();
+                    await supabaseClient.from('marketplace_ilegal').update({ discord_message_ids: discordResult.messages || [] }).eq('id', savedAnunt.id);
+                }
 
                 alert('Anunț publicat cu succes!');
                 document.getElementById('marketForm').reset();

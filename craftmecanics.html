@@ -84,96 +84,13 @@
     <div class="flex h-screen w-full overflow-hidden">
 
         <!-- Sidebar / Meniu Lateral -->
-        <aside class="w-72 bg-slate-900 border-r border-slate-800 flex flex-col justify-between hidden md:flex">
-            <div class="p-6 overflow-y-auto max-h-[calc(100vh-5rem)]">
-                <h1 class="text-xl font-bold text-slate-100 tracking-tight">Panel<span class="block text-xs font-normal text-slate-400 mt-0.5">by Little Mario</span></h1>
 
-                <nav class="mt-6 space-y-1.5" id="sidebar-nav">
-                    <a href="index.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>📊</span>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="pontaj.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>⏱️</span>
-                        <span>Pontaj</span>
-                    </a>
-                    <a href="cereri.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>📋</span>
-                        <span>Cereri / Absențe</span>
-                    </a>
-                    <a href="rapoarte.html" data-role="4" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>📈</span>
-                        <span>Rapoarte</span>
-                    </a>
-                    <a href="contracte.html" data-role="4" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>📜</span>
-                        <span>Contracte</span>
-                    </a>
-                    <a href="admin.html" data-role="7" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>👑</span>
-                        <span>Panou Admin</span>
-                    </a>
-                    <a href="logs.html" data-role="7" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>👑</span>
-                        <span>Loguri</span>
-                    </a>
-                    <a href="calculatorilegal.html" data-role="3" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>🧮</span>
-                        <span>Calculator Ilegal</span>
-                    </a>
-                    <a href="craftmecanics.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>🔨</span>
-                        <span>Craft Mecanics</span>
-                    </a>
-                    <a href="locatiiilegale.html" data-role="3" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>🗺️</span>
-                        <span>Locații Ilegale</span>
-                    </a>
-                    <a href="marketplace.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>🛒</span>
-                        <span>Marketplace</span>
-                    </a>
-                    <a href="marketplace-ilegal.html" data-role="3" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
-                        <span>🚨</span>
-                        <span>Black Market</span>
-                    </a>
-                </nav>
-            </div>
-
-            <!-- Profil Utilizator Dinamic -->
-            <div class="p-4 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between">
-                <div class="flex items-center space-x-3 overflow-hidden">
-                    <img id="user-avatar" src="img/logo-192.png" class="w-10 h-10 rounded-full border border-slate-700 flex-shrink-0 object-cover" alt="Avatar">
-                    <div class="truncate">
-                        <p id="user-display-name" class="text-sm font-semibold text-slate-200 truncate">Se încarcă...</p>
-                        <p id="user-role" class="text-xs text-emerald-400 truncate">Mecanic</p>
-                    </div>
-                </div>
-                <button id="logout-btn" title="Ieșire din cont" class="flex items-center space-x-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl transition cursor-pointer text-xs font-medium">
-                    <span></span>
-                    <span>Logout</span>
-                </button>
-            </div>
-        </aside>
+            <!-- Grila Galeriei - 52 Imagini unice -->
+        
 
         <!-- Conținutul Principal (Galerie) -->
         <main class="flex-1 overflow-y-auto p-0 flex flex-col items-center bg-slate-950">
-            <header class="panel-global-header">
-                <div class="panel-global-title">
-                    <h2>🔨 Craft Mechanics</h2>
-                    <p>Galerie capturi, rețete și echipamente.</p>
-                </div>
-
-                <!-- Bara de căutare, integrată în headerul global -->
-                <div class="search-container w-full max-w-2xl relative">
-                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                    </svg>
-                    <input type="search" id="searchInput" class="w-full py-3.5 pl-12 pr-4 bg-slate-900 border border-slate-800 rounded-xl text-slate-100 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition" placeholder="Caută rețetă, unealtă sau jantă..." onkeyup="filterGallery()">
-                </div>
-            </header>
-
-            <!-- Grila Galeriei - 52 Imagini unice -->
+            <section class="panel-action-bar"><div class="search-container w-full max-w-2xl relative"><input type="search" id="searchInput" class="w-full py-3.5 pl-12 pr-4 bg-slate-900 border border-slate-800 rounded-xl text-slate-100 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition" placeholder="Caută rețetă, unealtă sau jantă..." onkeyup="filterGallery()"></div></section>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-7xl px-4 md:px-8 pt-8 pb-8 mx-auto" id="galleryGrid">
 
                 <!-- 1 -->

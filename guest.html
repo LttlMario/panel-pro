@@ -22,52 +22,17 @@
     <div class="flex h-screen w-full overflow-hidden">
 
         <!-- Sidebar / Meniu Lateral -->
-        <aside class="w-72 bg-slate-900 border-r border-slate-800 flex flex-col justify-between hidden md:flex">
-            <div class="p-6 overflow-y-auto max-h-[calc(100vh-5rem)]">
-                <h1 class="text-xl font-bold text-slate-100 tracking-tight">Panel<span class="block text-xs font-normal text-slate-400 mt-0.5">by Little Mario</span></h1>
+        <div class="p-4 md:p-8 max-w-7xl mx-auto w-full">
 
-                <nav class="mt-6 space-y-1.5" id="sidebar-nav">
-                        <a href="guest.html"
-                        class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-emerald-500/10 text-emerald-400 font-medium">
-                            <span>🏠</span>
-                            <span>Bun venit</span>
-                        </a>
-                </nav>
-            </div>
-
-            <!-- Profil Utilizator Dinamic -->
-            <div class="p-4 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between">
-                <div class="flex items-center space-x-3 overflow-hidden">
-                    <img id="user-avatar" src="img/logo-192.png" class="w-10 h-10 rounded-full border border-slate-700 flex-shrink-0 object-cover" alt="Avatar">
-                    <div class="truncate">
-                        <p id="user-display-name" class="text-sm font-semibold text-slate-200 truncate">Se încarcă...</p>
-                        <p id="user-role" class="text-xs text-amber-400 truncate">Vizitator</p>
-                    </div>
-                </div>
-                <button id="logout-btn" title="Ieșire din cont" class="flex items-center space-x-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl transition cursor-pointer text-xs font-medium">
-                    <span></span>
-                    <span>Logout</span>
-                </button>
-            </div>
-        </aside>
+        
 
         <!-- Meniu mobil: conținutul este preluat automat din meniul desktop. -->
         <div id="mobile-menu-backdrop" class="hidden fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-40 md:hidden" onclick="closeMobileMenu()"></div>
-        <aside id="mobile-menu" class="fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] -translate-x-full bg-slate-900 border-r border-slate-800 shadow-2xl transition-transform duration-200 md:hidden">
-            <div class="h-16 px-5 border-b border-slate-800 flex items-center justify-between">
-                <div><p class="font-bold text-slate-100">Panel</p><p class="text-[10px] text-slate-400">Meniu navigare</p></div>
-                <button type="button" onclick="closeMobileMenu()" class="w-9 h-9 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-lg" aria-label="Închide meniul">×</button>
-            </div>
-            <nav id="mobile-sidebar-nav" class="p-4 space-y-1.5 overflow-y-auto h-[calc(100vh-4rem)]"></nav>
-        </aside>
+        
 
         <!-- Conținut Principal Dashboard -->
         <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
-            <header class="min-h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur px-4 py-3 md:px-8 flex flex-wrap items-center gap-3 sticky top-0 z-20">
-
-            </header>
-        <div class="p-4 md:p-8 max-w-7xl mx-auto w-full">
-
+            
 
                 <div class="flex items-center gap-4 mb-6">
 

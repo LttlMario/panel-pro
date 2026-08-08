@@ -14,39 +14,12 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans antialiased h-screen text-sm overflow-hidden">
     <div class="flex h-screen w-full overflow-hidden">
-        <aside class="w-72 bg-slate-900 border-r border-slate-800 flex flex-col justify-between hidden md:flex">
-            <div class="p-6 overflow-y-auto max-h-[calc(100vh-5rem)]">
-                <h1 class="text-xl font-bold text-slate-100 tracking-tight">Panel<span class="block text-xs font-normal text-slate-400 mt-0.5">by Little Mario</span></h1>
-                <nav class="mt-6 space-y-1.5" id="sidebar-nav">
-                    <a href="index.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm"><span>📊</span><span>Dashboard</span></a>
-                    <a href="pontaj.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm"><span>⏱️</span><span>Pontaj</span></a>
-                    <a href="cereri.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm"><span>📋</span><span>Cereri / Absențe</span></a>
-                    <a href="rapoarte.html" data-role="4" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm"><span>📈</span><span>Rapoarte</span></a>
-                    <a href="logs.html" data-role="7" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm"><span>🧾</span><span>Loguri</span></a>
-                    <a href="contracte.html" data-role="4" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm"><span>📜</span><span>Contracte</span></a>
-                    <a href="admin.html" data-role="7" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm"><span>👑</span><span>Panou Admin</span></a>
-                    <a href="calculatorilegal.html" data-role="3" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm"><span>🧮</span><span>Calculator Ilegal</span></a>
-                    <a href="craftmecanics.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm"><span>🔨</span><span>Craft Mecanics</span></a>
-                    <a href="locatiiilegale.html" data-role="3" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm"><span>🗺️</span><span>Locații Ilegale</span></a>
-                    <a href="marketplace.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm"><span>🛒</span><span>Marketplace</span></a>
-                    <a href="marketplace-ilegal.html" data-role="3" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm"><span>🚨</span><span>Black Market</span></a>
-                </nav>
-            </div>
-            <div class="p-4 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between gap-2">
-                <div class="flex items-center space-x-3 overflow-hidden min-w-0">
-                    <img id="user-avatar" src="img/logo-192.png" class="w-10 h-10 rounded-full border border-slate-700 flex-shrink-0 object-cover" alt="Avatar">
-                    <div class="truncate"><p id="user-display-name" class="text-sm font-semibold text-slate-200 truncate">Se încarcă...</p><p id="user-role" class="text-xs text-emerald-400 truncate">Mecanic</p></div>
-                </div>
-                <button onclick="logout()" class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-medium">Logout</button>
-            </div>
-        </aside>
-
-        <main class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-            <header class="min-h-16 border-b border-slate-800 bg-slate-900/60 backdrop-blur px-4 md:px-8 py-3 flex items-center gap-3 shrink-0">
-                <div><h2 class="text-lg font-bold text-slate-100">Asistent Intern</h2><p class="text-[11px] text-slate-500">Răspunsuri locale, fără API AI și fără cost lunar</p></div>
-            </header>
 
             <div class="flex-1 min-h-0 p-3 sm:p-5 md:p-8">
+        
+
+        <main class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+            
                 <section class="h-full max-w-5xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-xl flex flex-col overflow-hidden">
                     <div class="px-4 sm:px-5 py-3 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div><p class="text-sm font-semibold text-slate-200">Întreabă despre panel</p><p id="assistant-index-status" class="text-[10px] text-slate-500">Se pregătesc informațiile locale…</p></div>

@@ -392,6 +392,14 @@ const webhookDefinitions={
     illegal_marketplace:{
         label:'Marketplace ilegal',
         help:'Anunțurile publicate în marketplace-ul ilegal.'
+    },
+    fines_organization:{
+        label:'Amenzi organizație',
+        help:'Amenzile publicate pentru membrii organizației.'
+    },
+    fines_departments:{
+        label:'Amenzi Birouri / Angajați',
+        help:'Amenzile publicate pentru Birouri / Angajați.'
     }
 };
 const fields=Object.keys(webhookDefinitions);
@@ -1472,18 +1480,6 @@ function renderActionPermissions() {
      */
 
     const permissionGroups = [
-
-        {
-            key: 'anunturi.publish',
-
-            title: 'Anunțuri și sondaje',
-
-            description:
-                'Rolurile bifate pot publica, modifica și șterge anunțuri sau sondaje.',
-
-            color: 'slate'
-        },
-
 
         {
             key: 'cereri.organization',

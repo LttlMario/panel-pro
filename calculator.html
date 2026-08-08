@@ -381,17 +381,9 @@
 
         <!-- Conținutul principal din dreapta -->
         <main class="main-content">
-            <header class="panel-global-header">
-                <div class="panel-global-title">
-                <h2>🛠️ Calculator Crafting & Croitorie</h2>
-                <p>Calculează materialele necesare pentru crafting și croitorie.</p>
-                </div>
-                <div class="search-container w-full max-w-2xl relative">
-                    <input type="search" id="calculator-search" class="w-full py-3 pl-4 pr-4 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition" placeholder="Caută obiect, material sau rețetă..." oninput="filterCalculatorRecipes(this.value)">
-                </div>
-            </header>
 
             <div class="calculator-container">
+            <section class="panel-action-bar"><div class="search-container w-full max-w-2xl relative"><input type="search" id="calculator-search" class="w-full py-3 pl-4 pr-4 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition" placeholder="Caută obiect, material sau rețetă..." oninput="filterCalculatorRecipes(this.value)"></div></section>
                 <!-- Panou Stânga: Input-uri -->
                 <div class="panel" id="calculator-input-panel">
                     <div style="font-size: 1.0rem; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
