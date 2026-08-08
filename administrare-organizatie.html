@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Administrare organizație · Panel</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/global-footer.css">
+  <script src="js/supabase-config.js"></script>
+  <script src="js/permissions.js"></script>
+  <script src="js/panel-layout.js"></script>
+  <script src="js/global-footer.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100">
+  <main class="mx-auto max-w-3xl p-6">
+    <section class="rounded-2xl border border-slate-700 bg-slate-900 p-6">
+      <h1 class="text-2xl font-black">Administrare organizație</h1>
+      <p class="mt-2 text-sm text-slate-400">Statusul și perioada organizației active.</p>
+      <div id="info" class="mt-5 grid gap-3 md:grid-cols-2"></div>
+      <div class="mt-6 border-t border-slate-700 pt-5">
+        <h2 class="font-bold">Reactivează cu voucher</h2>
+        <div class="mt-3 flex gap-2">
+          <input id="voucher" class="w-full rounded-xl border border-slate-700 bg-slate-950 p-3" placeholder="Cod voucher">
+          <button id="reactivate" class="rounded-xl bg-emerald-700 px-4 font-bold">Reactivează</button>
+        </div>
+      </div>
+      <p id="status" class="mt-4 text-sm text-slate-400"></p>
+    </section>
+  </main>
+  <script>
+    const org = JSON.parse(localStorage.getItem('panel_active_organization') || 'null');
+    const info = document.getElementById('info');
+    info.innerHTML = `<div class="rounded-xl bg-slate-950 p-4"><small class="text-slate-400">Organizație</small><b class="block mt-1">${org?.name || 'Necunoscută'}</b></div><div class="rounded-xl bg-slate-950 p-4"><small class="text-slate-400">Status</small><b class="block mt-1">${org?.active === false ? 'Suspendată' : 'Activă'}</b></div>`;
+    document.getElementById('reactivate').onclick = async () => {
+      const config = window.PANEL_SUPABASE_CONFIG;
+      const token = localStorage.getItem('panel_session_token');
+      const response = await fetch(`${config.url}/functions/v1/manage-organizations`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': token || '' }, body: JSON.stringify({ action: 'reactivate_with_voucher', organization_id: org?.id, voucher_code: document.getElementById('voucher').value.trim() }) });
+      const data = await response.json();
+      document.getElementById('status').textContent = response.ok ? 'Organizația a fost reactivată.' : data.error || 'Eroare.';
+    };
+  </script>
+</body>
+</html>

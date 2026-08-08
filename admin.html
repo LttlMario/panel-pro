@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panou Admin - Workforce Management</title>
+    <!-- Tailwind CSS CDN -->
+    <link rel="stylesheet" href="css/tailwind.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/permissions.js"></script>
+    <script src="js/panel-layout.js"></script>
+    <link rel="stylesheet" href="css/global-footer.css">
+    <script src="js/project-version.js"></script>
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm">
+
+    <!-- Containerul Principal -->
+    <div class="flex h-screen w-full overflow-hidden">
+
+        <!-- Sidebar / Meniu Lateral -->
+        <aside class="w-72 bg-slate-900 border-r border-slate-800 flex flex-col justify-between hidden md:flex">
+            <div class="p-6 overflow-y-auto max-h-[calc(100vh-5rem)]">
+                <h1 class="text-xl font-bold text-slate-100 tracking-tight">Panel<span class="block text-xs font-normal text-slate-400 mt-0.5">by Little Mario</span></h1>
+
+                <nav class="mt-6 space-y-1.5" id="sidebar-nav">
+                    <a href="index.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
+                        <span>📊</span>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="pontaj.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
+                        <span>⏱️</span>
+                        <span>Pontaj</span>
+                    </a>
+                    <a href="cereri.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
+                        <span>📋</span>
+                        <span>Cereri / Absențe</span>
+                    </a>
+                    <a href="rapoarte.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
+                        <span>📈</span>
+                        <span>Rapoarte</span>
+                    </a>
+                    <a href="logs.html" data-role="99" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
+                        <span>🧾</span>
+                        <span>Loguri</span>
+                    </a>
+                    <a href="contracte.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
+                        <span>📜</span>
+                        <span>Contracte</span>
+                    </a>
+                    <a href="admin.html" data-role="99" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
+                        <span>👑</span>
+                        <span>Panou Admin</span>
+                    </a>
+                    <a href="calculatorilegal.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
+                        <span>🧮</span>
+                        <span>Calculator Ilegal</span>
+                    </a>
+                    <a href="craftmecanics.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
+                        <span>🔨</span>
+                        <span>Craft Mecanics</span>
+                    </a>
+                    <a href="locatiiilegale.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
+                        <span>🗺️</span>
+                        <span>Locații Ilegale</span>
+                    </a>
+                    <a href="marketplace.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
+                        <span>🛒</span>
+                        <span>Marketplace</span>
+                    </a>
+                    <a href="marketplace-ilegal.html" data-role="1" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition text-sm">
+                        <span>🚨</span>
+                        <span>Black Market</span>
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Profil Utilizator Dinamic -->
+            <div class="p-4 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between">
+                <div class="flex items-center space-x-3 overflow-hidden">
+                    <img id="user-avatar" src="img/logo-192.png" class="w-10 h-10 rounded-full border border-slate-700 flex-shrink-0 object-cover" alt="Avatar">
+                    <div class="truncate">
+                        <p id="user-display-name" class="text-sm font-semibold text-slate-200 truncate">Se încarcă...</p>
+                        <p id="user-role" class="text-xs text-emerald-400 truncate">Mecanic</p>
+                    </div>
+                </div>
+                <button id="logout-btn" title="Ieșire din cont" class="flex items-center space-x-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl transition cursor-pointer text-xs font-medium">
+                    <span></span>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conținut Principal -->
+        <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            <header class="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur px-8 flex items-center justify-between sticky top-0 z-20">
+                <h2 class="text-lg font-bold text-slate-100 flex items-center space-x-2">
+                    <span>👑</span>
+                    <span>Panou de Administrare & Setări Globale</span>
+                </h2>
+                <div>
+                    <button onclick="saveAllAdminSettings()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-xl text-xs font-semibold transition shadow-md cursor-pointer flex items-center space-x-2">
+                        <span>💾</span>
+                        <span>Salvează Toate Setările</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="p-8 space-y-8 max-w-7xl mx-auto w-full">
+
+                <div class="bg-gradient-to-br from-indigo-500/15 via-slate-900 to-emerald-500/10 border border-indigo-400/30 rounded-2xl p-6 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-5">
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-indigo-300">Relocare rapidă</p>
+                        <h3 class="text-lg font-black text-slate-100 mt-1">Configurare server Discord</h3>
+                        <p class="text-xs text-slate-400 mt-1 max-w-2xl">Schimbă aplicația, serverul, cele șapte roluri, webhook-urile și adresa panelului dintr-un singur formular securizat.</p>
+                    </div>
+                    <a href="discord-configurare.html" class="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500/15 px-5 py-3 text-xs font-black text-indigo-200 hover:bg-indigo-500/25 transition">⚙️ Deschide configuratorul</a>
+                </div>
+
+                <!-- Secțiunea 1: Gestionare Utilizatori, Roluri, Kick & Acțiuni Admin -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-lg overflow-hidden flex flex-col">
+                    <div class="p-6 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-100">Gestionare Roluri Echipă & Administrare Utilizatori</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Setează rolul dorit sau aplică sancțiuni de tip Kick pentru utilizatori.</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span id="users-count-badge" class="text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700">0 utilizatori</span>
+                            <button onclick="fetchUsers()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition border border-slate-700 cursor-pointer flex items-center space-x-1.5">
+                                <span>🔄</span>
+                                <span>Reîmprospătează</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bara de Căutare și Filtrare Multiplă Avansată -->
+                    <div class="p-4 bg-slate-950/40 border-b border-slate-800 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                        <div>
+                            <input type="text" id="search-name" oninput="renderUsersTable()" placeholder="🔍 Caută după Nume..." class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <input type="text" id="search-id" oninput="renderUsersTable()" placeholder="🆔 Caută după Discord ID..." class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <input id="filter-role" type="number" min="1" max="99" step="1" placeholder="Grad numeric" class="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-1.5 w-32">
+                        </div>
+                        <div>
+                            <button onclick="resetFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2 px-3 rounded-xl border border-slate-700 transition cursor-pointer">
+                                Resetează Filtrele
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabel Scrollabil -->
+                    <div class="overflow-x-auto max-h-[420px] overflow-y-auto relative">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead class="sticky top-0 z-10 bg-slate-950 shadow-sm">
+                                <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
+                                    <th class="p-4 bg-slate-950">Discord ID</th>
+                                    <th class="p-4 bg-slate-950">Nume / Utilizator</th>
+                                    <th class="p-4 bg-slate-950">Rol Curent</th>
+                                    <th class="p-4 bg-slate-950">Setează Rol Nou</th>
+                                    <th class="p-4 bg-slate-950 text-right">Acțiuni Administrative (Kick / Salvare)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-table-body" class="divide-y divide-slate-800 text-slate-300">
+                                <tr>
+                                    <td colspan="5" class="p-6 text-center text-slate-500">Se încarcă utilizatorii...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Secțiunea 2: Setări Dedicate pentru Fiecare Pagină în Parte -->
+                <div id="legacy-page-settings" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-6">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-100">Configurare Pagini Web</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Activează sau dezactivează funcționalități specifice pentru fiecare pagină a aplicației.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Dashboard -->
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="font-semibold text-slate-200 text-sm">📊 Dashboard</span>
+                                <input type="checkbox" id="page-setting-dashboard" class="w-4 h-4 accent-emerald-600 rounded cursor-pointer" checked>
+                            </div>
+                            <p class="text-[11px] text-slate-400">Afișează widget-urile de statistici generale și starea rapidă a turelor.</p>
+                        </div>
+
+                        <!-- Pontaj -->
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="font-semibold text-slate-200 text-sm">⏱️ Pontaj</span>
+                                <input type="checkbox" id="page-setting-pontaj" class="w-4 h-4 accent-emerald-600 rounded cursor-pointer" checked>
+                            </div>
+                            <p class="text-[11px] text-slate-400">Permite utilizatorilor să pornească/oprească cronometrul de tură.</p>
+                        </div>
+
+                        <!-- Cereri / Absențe -->
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="font-semibold text-slate-200 text-sm">📋 Cereri / Absențe</span>
+                                <input type="checkbox" id="page-setting-cereri" class="w-4 h-4 accent-emerald-600 rounded cursor-pointer" checked>
+                            </div>
+                            <p class="text-[11px] text-slate-400">Permite trimiterea și gestionarea cererilor de învoire/demisie.</p>
+                        </div>
+
+                        <!-- Rapoarte -->
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="font-semibold text-slate-200 text-sm">📈 Rapoarte & CSV</span>
+                                <input type="checkbox" id="page-setting-rapoarte" class="w-4 h-4 accent-emerald-600 rounded cursor-pointer" checked>
+                            </div>
+                            <p class="text-[11px] text-slate-400">Activează centralizatorul de ture, filtrele rapide și exportul CSV.</p>
+                        </div>
+
+                        <!-- Contracte -->
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="font-semibold text-slate-200 text-sm">📜 Contracte</span>
+                                <input type="checkbox" id="page-setting-contracte" class="w-4 h-4 accent-emerald-600 rounded cursor-pointer" checked>
+                            </div>
+                            <p class="text-[11px] text-slate-400">Activează generatorul de contracte pentru clienți și istoric.</p>
+                        </div>
+
+                        <!-- Marketplace -->
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="font-semibold text-slate-200 text-sm">🛒 Marketplace</span>
+                                <input type="checkbox" id="page-setting-marketplace" class="w-4 h-4 accent-emerald-600 rounded cursor-pointer" checked>
+                            </div>
+                            <p class="text-[11px] text-slate-400">Activează secțiunea de comerț și anunțuri publice.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secțiunea 3: Setări Foarte Bine Structurate pentru Pontaje -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-6">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-100">Setări Avansate Pontaje</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Reguli operaționale aplicate sistemului de pontaj.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4"><p class="text-[10px] uppercase text-slate-500">Ture active</p><p id="admin-active-shifts" class="text-2xl font-black text-emerald-400 mt-1">—</p></div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4"><p class="text-[10px] uppercase text-slate-500">Ture în pauză</p><p id="admin-paused-shifts" class="text-2xl font-black text-amber-400 mt-1">—</p></div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4"><p class="text-[10px] uppercase text-slate-500">Învoiri active</p><p id="admin-active-absences" class="text-2xl font-black text-indigo-400 mt-1">—</p></div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col justify-between gap-2"><p class="text-[10px] uppercase text-slate-500">Control rapid</p><button onclick="refreshAdminOperations()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg py-2 cursor-pointer">↻ Actualizează</button></div>
+                    </div>
+
+                    <div class="bg-rose-500/5 border border-rose-500/20 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div><p class="text-sm font-semibold text-rose-300">Oprire de urgență pontaje</p><p class="text-[11px] text-slate-400 mt-1">Închide toate turele active și în pauză, cu motiv administrativ.</p></div>
+                        <button onclick="stopAllActiveShifts()" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer">Oprește toate turele</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-xs font-medium text-slate-300">Durata Maximă Admisă per Tură (Ore)</label>
+                            <input type="number" id="pontaj-max-hours" value="12" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
+                            <p class="text-[10px] text-slate-500">Turele care depășesc această durată pot fi flagged automat.</p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-xs font-medium text-slate-300">Închidere automată – Tură de zi</label>
+                            <input type="time" id="pontaj-day-end-time" value="19:59" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
+                            <p class="text-[10px] text-slate-500">Ora României la care toate turele de zi sunt închise automat.</p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-xs font-medium text-slate-300">Închidere automată – Tură de noapte</label>
+                            <input type="time" id="pontaj-night-end-time" value="23:00" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
+                            <p class="text-[10px] text-slate-500">Ora României la care toate turele de noapte sunt închise automat.</p>
+                        </div>
+
+                        <label class="flex items-center gap-3 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 cursor-pointer">
+                            <input type="checkbox" id="pontaj-exclude-breaks" checked class="w-4 h-4 accent-emerald-600">
+                            Pauzele nu se contorizează în timpul lucrat
+                        </label>
+
+                        <div class="space-y-2">
+                            <label class="text-xs font-medium text-slate-300">Mod Funcționare Pontaj</label>
+                            <select id="pontaj-mode" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
+                                <option value="normal">Standard (Permit oricând pont nou)</option>
+                                <option value="strict">Strict (O singură tură activă simultan pe utilizator)</option>
+                            </select>
+                            <p class="text-[10px] text-slate-500">Controlează dacă un utilizator poate deschide mai multe ture în paralel.</p>
+                        </div>
+
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="text-xs font-medium text-slate-300">Mesaj Global / Notificare în Widget-ul de Pontaj</label>
+                            <input type="text" id="pontaj-global-notice" placeholder="Ex: Program normal de lucru activ." class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Scriptul Logicii & Setări Pagină -->
+    <script>
+        const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
+        const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
+        const supabaseClient = window.createPanelSupabaseClient();
+
+        let allUsersData = [];
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Evidențiere link activ în sidebar
+            const currentPage = window.location.pathname.split("/").pop() || "index.html";
+            document.querySelectorAll('.nav-link').forEach(link => {
+                const linkHref = link.getAttribute('href');
+                if (linkHref === currentPage) {
+                    link.classList.remove('text-slate-300', 'hover:bg-slate-800');
+                    link.classList.add('bg-emerald-500/10', 'text-emerald-400', 'font-medium');
+                }
+            });
+
+            const cachedUser = localStorage.getItem('discord_user');
+            if (!cachedUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const localData = JSON.parse(cachedUser);
+                if (!localData || !localData.discord_id) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                let { data: dbUser } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('discord_id', localData.discord_id)
+                    .maybeSingle();
+
+                let activeUser = dbUser || localData;
+
+                const PLATFORM_ADMIN_DISCORD_ID = '247012210021236738';
+
+                if (String(activeUser.discord_id) !== PLATFORM_ADMIN_DISCORD_ID) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                activeUser.permission_level = 99;
+
+                const displayName = activeUser.display_name || activeUser.username || 'Mecanic';
+                const role = '99';
+                const userAvatar = activeUser.avatar || 'img/logo-192.png';
+
+                document.getElementById('user-display-name').textContent = displayName;
+                document.getElementById('user-role').textContent = role;
+                document.getElementById('user-avatar').src = userAvatar;
+
+                // Afișare tab loguri pentru roluri privilegiate
+                const roleLower = role.toLowerCase();
+                const isPrivileged = roleLower.includes('sef') || roleLower.includes('șef') || roleLower.includes('manager') || roleLower.includes('admin') || roleLower.includes('owner');
+                if (isPrivileged) {
+                    const navLogs = document.getElementById('nav-logs');
+                    if (navLogs) navLogs.classList.remove('hidden');
+                }
+
+                localStorage.setItem('discord_user', JSON.stringify(activeUser));
+            } catch (err) {
+                console.error('Erore sesiune:', err);
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    localStorage.clear();
+                    window.location.href = 'login.html';
+                });
+            }
+
+            fetchUsers();
+            loadSavedSettings();
+            refreshAdminOperations();
+        });
+
+        async function fetchUsers() {
+            try {
+                const result = await window.panelAdminInvoke('members');
+                let data = result.members, error = null;
+
+                if (error || !data || data.length === 0) {
+                    allUsersData = [
+                        {
+                            discord_id: '247012210021236738',
+                            display_name: 'Little Mario',
+                            role: '99',
+                            permission_level: 99
+                        }
+                    ];
+                } else {
+                    allUsersData = data;
+                }
+
+                renderUsersTable();
+            } catch (err) {
+                console.error('Erore preluare utilizatori:', err);
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById('search-name').value = '';
+            document.getElementById('search-id').value = '';
+            document.getElementById('filter-role').value = '';
+            renderUsersTable();
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('admin-users-table-body');
+
+            const searchName = document.getElementById('search-name').value.toLowerCase().trim();
+            const searchId = document.getElementById('search-id').value.toLowerCase().trim();
+            const filterRole = document.getElementById('filter-role').value.toLowerCase().trim();
+
+            const filteredUsers = allUsersData.filter(u => {
+                const name = (u.display_name || u.username || '').toLowerCase();
+                const id = String(u.discord_id || u.id || '').toLowerCase();
+                const role = String(Number(u.permission_level ?? u.role ?? 0));
+
+                const matchesName = name.includes(searchName);
+                const matchesId = id.includes(searchId);
+                const matchesRole = filterRole === '' || role === filterRole;
+
+                return matchesName && matchesId && matchesRole;
+            });
+
+            document.getElementById('users-count-badge').textContent = `${filteredUsers.length} / ${allUsersData.length} utilizatori`;
+
+            if (filteredUsers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">Nu a fost găsit niciun utilizator conform filtrelor aplicate.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            filteredUsers.forEach((u) => {
+                const currentRole = String(Number(u.permission_level ?? u.role ?? 0));
+                const uId = u.discord_id || u.id;
+
+                html += `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-4 font-mono text-slate-400">${uId || 'N/A'}</td>
+                        <td class="p-4 font-semibold text-slate-200">${u.display_name || u.username || 'Utilizator'}</td>
+                        <td class="p-4">
+                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border bg-slate-800 text-slate-300 border-slate-700">
+                                ${currentRole}
+                            </span>
+                        </td>
+                        <td class="p-4">
+                            <input id="role-select-${uId}" type="number" min="1" max="99" step="1" value="${Number(u.permission_level)||1}" class="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-1.5 w-24 focus:outline-none focus:border-emerald-500">
+                        </td>
+                        <td class="p-4 text-right space-x-2">
+                            <button onclick="updateUserRole('${uId}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow">
+                                Salvează Rol
+                            </button>
+                            <button onclick="kickUser('${uId}', '${u.display_name || u.username || 'Utilizator'}')" class="bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow">
+                                🚪 Kick / Forțează Logout
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        async function updateUserRole(discordId) {
+            const PLATFORM_ADMIN_DISCORD_ID = '247012210021236738';
+
+            const selectEl = document.getElementById(`role-select-${discordId}`);
+            if (!selectEl) return;
+
+            let permissionLevel = Number(selectEl.value) || 1;
+
+            if (String(discordId) === PLATFORM_ADMIN_DISCORD_ID) {
+                permissionLevel = 99;
+            } else if (permissionLevel >= 99) {
+                permissionLevel = 98;
+            }
+
+            permissionLevel = Math.max(1, Math.min(99, permissionLevel));
+
+            const newRole = String(permissionLevel);
+            selectEl.value = newRole;
+
+            const userObj = allUsersData.find(
+                u => String(u.discord_id || u.id) === String(discordId)
+            );
+
+            if (userObj) {
+                userObj.role = newRole;
+                userObj.permission_level = permissionLevel;
+            }
+
+            try {
+                await window.panelAdminInvoke('member_role', {
+                    discord_id: discordId,
+                    role: newRole,
+                    permission_level: permissionLevel
+                });
+
+                alert(`Rolul utilizatorului a fost actualizat cu succes la: ${newRole}`);
+                renderUsersTable();
+            } catch (err) {
+                console.error('Erore actualizare rol:', err);
+                alert('Erore la actualizarea rolului.');
+            }
+        }
+
+        async function kickUser(discordId, userName) {
+            if (!confirm(`Ești sigur că vrei să dai KICK utilizatorului "${userName}" (ID: ${discordId})? Acesta va fi delogat instantaneu din aplicație.`)) {
+                return;
+            }
+
+            try {
+                await window.panelAdminInvoke('member_kick', { discord_id:discordId });
+                let error = null;
+
+                if (error) {
+                    console.log('Notă: Ștergerea din Supabase a fost ignorată sau indisponibilă, se aplică ștergerea locală.');
+                }
+
+                allUsersData = allUsersData.filter(u => String(u.discord_id || u.id) !== String(discordId));
+                renderUsersTable();
+
+                await window.panelAudit?.('user_kick', 'user', discordId, { userName });
+
+                alert(`Utilizatorul ${userName} a primit Kick cu succes din panel!`);
+            } catch (err) {
+                console.error('Erore la acțiunea de kick:', err);
+                alert('A apărut o eroare la executarea comenzii de kick.');
+            }
+        }
+
+        async function refreshAdminOperations() {
+            try {
+                const [shiftsResult, absencesResult] = await Promise.all([
+                    supabaseClient.from('shifts').select('id, status').in('status', ['active', 'paused']),
+                    supabaseClient.from('absences').select('id, end_at').gte('end_at', new Date().toISOString())
+                ]);
+                if (shiftsResult.error) throw shiftsResult.error;
+                const shifts = shiftsResult.data || [];
+                document.getElementById('admin-active-shifts').textContent = shifts.filter(shift => shift.status === 'active').length;
+                document.getElementById('admin-paused-shifts').textContent = shifts.filter(shift => shift.status === 'paused').length;
+                document.getElementById('admin-active-absences').textContent = absencesResult.data?.length ?? 0;
+            } catch (error) { console.error('Eroare încărcare control operațional:', error); }
+        }
+
+        async function stopAllActiveShifts() {
+            if (!confirm('Confirmi oprirea tuturor turelor active și în pauză? Acțiunea nu poate fi anulată.')) return;
+            try {
+                const { data: shifts, error } = await supabaseClient.from('shifts').select('*').in('status', ['active', 'paused']);
+                if (error) throw error;
+                const now = new Date();
+                await Promise.all((shifts || []).map(async shift => {
+                    let paused = Number(shift.paused_seconds) || 0;
+                    if (shift.status === 'paused' && shift.paused_at) paused += Math.max(0, Math.floor((now - new Date(shift.paused_at)) / 1000));
+                    const seconds = Math.max(0, Math.floor((now - new Date(shift.started_at)) / 1000) - paused);
+                    const duration = `${Math.floor(seconds / 3600).toString().padStart(2, '0')}:${Math.floor((seconds % 3600) / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
+                    const endTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(now);
+                    return supabaseClient.from('shifts').update({ status: 'completed', ended_at: now.toISOString(), end_time: endTime, duration, duration_ms: seconds * 1000, stop_reason: 'Încheiere de urgență – acțiune administrator' }).eq('id', shift.id).in('status', ['active', 'paused']);
+                }));
+                alert(`${shifts?.length || 0} ture au fost închise.`);
+                await window.panelAudit?.('shifts_emergency_stop', 'shifts', null, { count: shifts?.length || 0 });
+                refreshAdminOperations();
+            } catch (error) { console.error('Eroare oprire de urgență:', error); alert('Nu s-au putut opri toate turele.'); }
+        }
+
+        async function saveAllAdminSettings() {
+            const maxHoursValue = Number(document.getElementById('pontaj-max-hours').value);
+            const dayEndValue = document.getElementById('pontaj-day-end-time').value;
+            const nightEndValue = document.getElementById('pontaj-night-end-time').value;
+            if (!Number.isFinite(maxHoursValue) || maxHoursValue < 1 || maxHoursValue > 24 || !/^\d{2}:\d{2}$/.test(dayEndValue) || !/^\d{2}:\d{2}$/.test(nightEndValue)) {
+                alert('Program invalid: durata trebuie să fie între 1 și 24 de ore, iar orele de închidere trebuie completate.');
+                return;
+            }
+            const settings = {
+                pages: {
+                    dashboard: document.getElementById('page-setting-dashboard').checked,
+                    pontaj: document.getElementById('page-setting-pontaj').checked,
+                    cereri: document.getElementById('page-setting-cereri').checked,
+                    rapoarte: document.getElementById('page-setting-rapoarte').checked,
+                    contracte: document.getElementById('page-setting-contracte').checked,
+                    marketplace: document.getElementById('page-setting-marketplace').checked,
+                },
+                pontajConfig: {
+                    maxHours: maxHoursValue,
+                    mode: document.getElementById('pontaj-mode').value,
+                    globalNotice: document.getElementById('pontaj-global-notice').value,
+                    dayEndTime: dayEndValue,
+                    nightEndTime: nightEndValue,
+                    excludeBreaks: document.getElementById('pontaj-exclude-breaks').checked
+                }
+            };
+
+            localStorage.setItem('workforce_admin_settings', JSON.stringify(settings));
+            try {
+                const { error } = await supabaseClient.from('app_settings').upsert({ organization_id:window.getActiveOrganizationId(), key:'pontaj_config', value:settings.pontajConfig, updated_at:new Date().toISOString() }, { onConflict:'organization_id,key' });
+                if (error) throw error;
+                await window.panelAudit?.('pontaj_config_update', 'app_settings', 'pontaj_config', settings.pontajConfig);
+                alert('Setările globale de pontaj au fost publicate pentru toți utilizatorii.');
+            } catch (error) {
+                console.warn('Tabelul app_settings nu este configurat încă:', error);
+                alert('Setările au fost salvate local. Creează tabelul app_settings pentru aplicare globală.');
+            }
+        }
+
+        function loadSavedSettings() {
+            const saved = JSON.parse(localStorage.getItem('workforce_admin_settings'));
+            if (!saved) return;
+
+            if (saved.pages) {
+                document.getElementById('page-setting-dashboard').checked = saved.pages.dashboard ?? true;
+                document.getElementById('page-setting-pontaj').checked = saved.pages.pontaj ?? true;
+                document.getElementById('page-setting-cereri').checked = saved.pages.cereri ?? true;
+                document.getElementById('page-setting-rapoarte').checked = saved.pages.rapoarte ?? true;
+                document.getElementById('page-setting-contracte').checked = saved.pages.contracte ?? true;
+                const mkElem = document.getElementById('page-setting-marketplace');
+                if (mkElem) mkElem.checked = saved.pages.marketplace ?? true;
+            }
+
+            if (saved.pontajConfig) {
+                document.getElementById('pontaj-max-hours').value = saved.pontajConfig.maxHours || 12;
+                document.getElementById('pontaj-mode').value = saved.pontajConfig.mode || 'normal';
+                document.getElementById('pontaj-global-notice').value = saved.pontajConfig.globalNotice || '';
+                document.getElementById('pontaj-day-end-time').value = saved.pontajConfig.dayEndTime || '19:59';
+                document.getElementById('pontaj-night-end-time').value = saved.pontajConfig.nightEndTime || '23:00';
+                document.getElementById('pontaj-exclude-breaks').checked = saved.pontajConfig.excludeBreaks ?? true;
+            }
+        }
+    </script>
+    <script src="js/global-footer.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html><html lang="ro" class="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Anunțuri & Sondaje</title><link rel="stylesheet" href="css/tailwind.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/permissions.js"></script><script src="js/panel-layout.js"></script><link rel="stylesheet" href="css/anunturi.css"><link rel="stylesheet" href="css/global-footer.css"><script src="js/project-version.js"></script>    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex text-sm">
+<main class="flex-1 flex flex-col min-w-0 min-h-screen">
+    <section class="community-shell flex-1">
+        <div class="community-hero">
+            <div>
+                <h2>📣 Anunțuri & Sondaje</h2>
+                <p>Comunicare pentru Organizație și Birouri / Angajați.</p>
+            </div>
+
+            <button id="create-button" class="btn" hidden>
+                + Creează postare
+            </button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" data-filter="all">Toate</button>
+            <button class="tab" data-filter="organization">Organizație</button>
+            <button class="tab" data-filter="departments">Birouri / Angajați</button>
+            <button class="tab" data-filter="poll">Sondaje</button>
+        </div>
+
+        <div id="feed" class="feed">
+            <div class="empty">Se încarcă…</div>
+        </div>
+    </section>
+
+    <div data-panel-footer-host class="w-full mt-auto"></div>
+</main>
+<div id="post-modal" class="modal" hidden><section class="dialog"><h3 id="form-heading">Creează postare</h3><form id="post-form" class="form"><label>Tip<select id="post-type"><option value="announcement">Anunț</option><option value="question">Întrebare</option><option value="poll">Sondaj</option></select></label><label>Titlu<input id="post-title" maxlength="140" required></label><label>Conținut<textarea id="post-content" maxlength="4000" required></textarea></label><div id="poll-wrap" hidden><label>Opțiuni sondaj</label><div id="poll-options"></div><button type="button" id="add-option" class="btn secondary">+ Opțiune</button></div><div class="dialog-actions"><button type="button" data-close class="btn secondary">Renunță</button><button class="btn">Continuă</button></div></form></section></div>
+<div id="audience-modal" class="modal" hidden><section class="dialog"><h3>Unde publici?</h3><p class="muted">Alegerea este obligatorie.</p><div class="audiences">
+    <button data-audience="organization" class="audience">👥<br>Organizație</button>
+<button data-audience="departments" class="audience">🔧<br>Birouri / Angajați</button></div><div class="dialog-actions"><button data-back class="btn secondary">Înapoi</button></div></section></div><script src="js/anunturi.js"></script><script src="js/global-footer.js"></script></body></html>
