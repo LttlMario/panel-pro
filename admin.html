@@ -11,15 +11,16 @@
     <script src="js/supabase-config.js"></script>
     <script src="js/permissions.js"></script>
     <script src="js/panel-layout.js"></script>
+    <script src="js/panel-operations.js"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <script src="js/project-version.js"></script>
     <link rel="icon" href="img/favicon.ico">
     <link rel="apple-touch-icon" href="img/logo-180.png">
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm">
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm overflow-y-auto">
 
     <!-- Containerul Principal -->
-    <div class="flex h-screen w-full overflow-hidden">
+    <div class="flex min-h-screen w-full overflow-visible">
 
         <!-- Sidebar / Meniu Lateral -->
 
@@ -27,7 +28,7 @@
         
 
         <!-- Conținut Principal -->
-        <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <main class="flex-1 flex flex-col min-w-0 overflow-visible">
             <section class="panel-action-bar"><div><button onclick="saveAllAdminSettings()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-xl text-xs font-semibold transition shadow-md cursor-pointer flex items-center space-x-2"><span>💾</span><span>Salvează Toate Setările</span></button></div></section>
 
                 <div class="bg-gradient-to-br from-indigo-500/15 via-slate-900 to-emerald-500/10 border border-indigo-400/30 rounded-2xl p-6 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -89,6 +90,29 @@
                                 <tr>
                                     <td colspan="5" class="p-6 text-center text-slate-500">Se încarcă utilizatorii...</td>
                                 </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-emerald-800/50 rounded-2xl shadow-lg overflow-hidden flex flex-col">
+                    <div class="p-6 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-100">Utilizatori online în panel</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Utilizatori cu sesiune activă și neexpirată în organizația curentă.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span id="online-users-count" class="text-xs bg-emerald-950/40 text-emerald-300 px-3 py-1.5 rounded-xl border border-emerald-700/50">0 online</span>
+                            <button type="button" onclick="loadOnlineUsers()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition border border-slate-700">🔄 Reîmprospătează</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead class="bg-slate-950 text-slate-400 uppercase tracking-wider font-semibold">
+                                <tr class="border-b border-slate-800"><th class="p-4">Utilizator</th><th class="p-4">Rol</th><th class="p-4">Ultima activitate</th></tr>
+                            </thead>
+                            <tbody id="online-users-table-body" class="divide-y divide-slate-800 text-slate-300">
+                                <tr><td colspan="3" class="p-6 text-center text-slate-500">Se încarcă utilizatorii online...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -187,13 +211,13 @@
                         <div class="space-y-2">
                             <label class="text-xs font-medium text-slate-300">Închidere automată – Tură de zi</label>
                             <input type="time" id="pontaj-day-end-time" value="19:59" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
-                            <p class="text-[10px] text-slate-500">Ora României la care toate turele de zi sunt închise automat.</p>
+                            <p class="text-[10px] text-slate-500">Ora Rom�niei la care toate turele de zi sunt închise automat.</p>
                         </div>
 
                         <div class="space-y-2">
                             <label class="text-xs font-medium text-slate-300">Închidere automată – Tură de noapte</label>
                             <input type="time" id="pontaj-night-end-time" value="23:00" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
-                            <p class="text-[10px] text-slate-500">Ora României la care toate turele de noapte sunt închise automat.</p>
+                            <p class="text-[10px] text-slate-500">Ora Rom�niei la care toate turele de noapte sunt închise automat.</p>
                         </div>
 
                         <label class="flex items-center gap-3 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 cursor-pointer">
@@ -204,7 +228,7 @@
                         <div class="space-y-2">
                             <label class="text-xs font-medium text-slate-300">Mod Funcționare Pontaj</label>
                             <select id="pontaj-mode" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
-                                <option value="normal">Standard (Permit oricând pont nou)</option>
+                                <option value="normal">Standard (Permit oric�nd pont nou)</option>
                                 <option value="strict">Strict (O singură tură activă simultan pe utilizator)</option>
                             </select>
                             <p class="text-[10px] text-slate-500">Controlează dacă un utilizator poate deschide mai multe ture în paralel.</p>
@@ -228,6 +252,7 @@
         const supabaseClient = window.createPanelSupabaseClient();
 
         let allUsersData = [];
+        let adminRoleOptions = [];
         document.addEventListener('DOMContentLoaded', async () => {
             // Evidențiere link activ în sidebar
             const currentPage = window.location.pathname.split("/").pop() || "index.html";
@@ -301,12 +326,18 @@
             }
 
             fetchUsers();
+            loadOnlineUsers();
+            window.setInterval(loadOnlineUsers, 30000);
             loadSavedSettings();
             refreshAdminOperations();
         });
 
         async function fetchUsers() {
+            const tbody = document.getElementById('admin-users-table-body');
             try {
+                if (typeof window.panelAdminInvoke !== 'function') {
+                    throw new Error('Modulul de administrare nu s-a încărcat. Reîncarcă pagina.');
+                }
                 const result = await window.panelAdminInvoke('members');
                 let data = result.members, error = null;
 
@@ -323,10 +354,52 @@
                     allUsersData = data;
                 }
 
+                await loadAdminRoleOptions();
                 renderUsersTable();
             } catch (err) {
                 console.error('Erore preluare utilizatori:', err);
+                try {
+                    const organizationId = window.getActiveOrganizationId?.();
+                    const [usersResult, membersResult] = await Promise.all([
+                        supabaseClient.from('users').select('discord_id,username,display_name,avatar,avatar_url,role,default_role').order('display_name'),
+                        organizationId
+                            ? supabaseClient.from('organization_members').select('discord_id,panel_role,permission_level,active').eq('organization_id', organizationId).eq('active', true)
+                            : Promise.resolve({ data: [], error: null })
+                    ]);
+                    if (usersResult.error) throw usersResult.error;
+                    if (membersResult.error) throw membersResult.error;
+                    const memberships = new Map((membersResult.data || []).map(member => [String(member.discord_id), member]));
+                    allUsersData = (usersResult.data || []).map(user => ({
+                        ...user,
+                        ...(memberships.get(String(user.discord_id)) || {}),
+                        role: memberships.get(String(user.discord_id))?.panel_role || user.role || user.default_role || 'Mecanic',
+                        permission_level: memberships.get(String(user.discord_id))?.permission_level ?? 1
+                    }));
+                    await loadAdminRoleOptions();
+                    renderUsersTable();
+                } catch (fallbackError) {
+                    console.error('Erore fallback utilizatori:', fallbackError);
+                    if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-rose-300">Utilizatorii nu au putut fi încărcați: ${String(fallbackError?.message || err?.message || 'eroare necunoscută').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]))}</td></tr>`;
+                }
             }
+        }
+
+        async function loadAdminRoleOptions() {
+            const organizationId = window.getActiveOrganizationId?.();
+            if (!organizationId) return;
+            const { data, error } = await supabaseClient
+                .from('organization_role_mappings')
+                .select('permission_level,panel_role,discord_role_name,discord_role_id')
+                .eq('organization_id', organizationId)
+                .eq('enabled', true)
+                .order('permission_level', { ascending: true });
+            if (error) throw error;
+            adminRoleOptions = (data || [])
+                .filter(row => Number(row.permission_level) >= 1 && Number(row.permission_level) <= 98)
+                .map(row => ({
+                    level: Number(row.permission_level),
+                    name: String(row.panel_role || row.discord_role_name || `Grad ${row.permission_level}`).trim()
+                }));
         }
 
         function resetFilters() {
@@ -364,8 +437,12 @@
 
             let html = '';
             filteredUsers.forEach((u) => {
-                const currentRole = String(Number(u.permission_level ?? u.role ?? 0));
+                const currentRole = String(u.panel_role || u.role || u.default_role || 'Rol neconfigurat');
                 const uId = u.discord_id || u.id;
+                const selectedLevel = Number(u.permission_level) || 1;
+                const roleOptions = adminRoleOptions.length
+                    ? [...adminRoleOptions, { level: 99, name: 'Administrator global' }]
+                    : [{ level: selectedLevel, name: currentRole }];
 
                 html += `
                     <tr class="hover:bg-slate-800/40 transition">
@@ -377,7 +454,9 @@
                             </span>
                         </td>
                         <td class="p-4">
-                            <input id="role-select-${uId}" type="number" min="1" max="99" step="1" value="${Number(u.permission_level)||1}" class="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-1.5 w-24 focus:outline-none focus:border-emerald-500">
+                            <select id="role-select-${uId}" class="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-1.5 min-w-32 focus:outline-none focus:border-emerald-500">
+                                ${roleOptions.map(option => `<option value="${option.level}" data-role-name="${String(option.name).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}" ${option.level === selectedLevel ? 'selected' : ''}>${option.name}</option>`).join('')}
+                            </select>
                         </td>
                         <td class="p-4 text-right space-x-2">
                             <button onclick="updateUserRole('${uId}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow">
@@ -385,6 +464,9 @@
                             </button>
                             <button onclick="kickUser('${uId}', '${u.display_name || u.username || 'Utilizator'}')" class="bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow">
                                 🚪 Kick / Forțează Logout
+                            </button>
+                            <button onclick="deleteWebUser('${uId}', '${u.display_name || u.username || 'Utilizator'}')" class="bg-red-700/20 hover:bg-red-700 text-red-300 hover:text-white border border-red-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow">
+                                🗑️ Șterge din web
                             </button>
                         </td>
                     </tr>
@@ -410,8 +492,8 @@
 
             permissionLevel = Math.max(1, Math.min(99, permissionLevel));
 
-            const newRole = String(permissionLevel);
-            selectEl.value = newRole;
+            const newRole = String(selectEl.selectedOptions?.[0]?.dataset.roleName || selectEl.selectedOptions?.[0]?.textContent || `Grad ${permissionLevel}`).trim();
+            selectEl.value = String(permissionLevel);
 
             const userObj = allUsersData.find(
                 u => String(u.discord_id || u.id) === String(discordId)
@@ -459,6 +541,36 @@
             } catch (err) {
                 console.error('Erore la acțiunea de kick:', err);
                 alert('A apărut o eroare la executarea comenzii de kick.');
+            }
+        }
+
+        async function deleteWebUser(discordId, userName) {
+            if (!confirm(`Ștergi definitiv contul web al utilizatorului "${userName}" (ID: ${discordId})? Această acțiune elimină accesul din organizație și nu poate fi anulată.`)) return;
+            try {
+                await window.panelAdminInvoke('member_delete', { discord_id: discordId });
+                allUsersData = allUsersData.filter(user => String(user.discord_id || user.id) !== String(discordId));
+                renderUsersTable();
+                alert('Contul utilizatorului a fost șters din web.');
+            } catch (err) {
+                console.error('Eroare la ștergerea utilizatorului:', err);
+                alert(`Contul nu a putut fi șters: ${err?.message || 'eroare necunoscută'}`);
+            }
+        }
+
+        async function loadOnlineUsers() {
+            const tbody = document.getElementById('online-users-table-body');
+            const badge = document.getElementById('online-users-count');
+            if (!tbody || typeof window.panelAdminInvoke !== 'function') return;
+            try {
+                const result = await window.panelAdminInvoke('online_members');
+                const users = result.online_members || [];
+                if (badge) badge.textContent = `${users.length} online`;
+                tbody.innerHTML = users.length
+                    ? users.map(user => `<tr><td class="p-4 font-semibold text-slate-200">${user.display_name || user.username || user.discord_id}</td><td class="p-4 text-emerald-300">${user.panel_role || user.role || 'Rol neconfigurat'}</td><td class="p-4 text-slate-400">${user.last_seen_at ? new Date(user.last_seen_at).toLocaleString('ro-RO') : 'Activ acum'}</td></tr>`).join('')
+                    : '<tr><td colspan="3" class="p-6 text-center text-slate-500">Nu există utilizatori online momentan.</td></tr>';
+            } catch (error) {
+                if (badge) badge.textContent = 'Indisponibil';
+                tbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-rose-300">Lista online nu a putut fi încărcată: ${String(error?.message || 'eroare necunoscută')}</td></tr>`;
             }
         }
 

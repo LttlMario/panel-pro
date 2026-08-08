@@ -63,11 +63,17 @@ function isPlatformAdmin() {
     /*
      * platform_admin este sistemul nou.
      *
-     * permission_level >= 99 rămâne momentan doar ca
+     * permission_level >= 99 răm�ne momentan doar ca
      * fallback pentru sesiunile vechi / compatibilitate.
      */
+    const platformAdminFlag =
+        user.platform_admin ??
+        user.is_platform_admin ??
+        user.isPlatformAdmin;
+
     return (
-        user.platform_admin === true ||
+        platformAdminFlag === true ||
+        String(platformAdminFlag).toLowerCase() === 'true' ||
         Number(user.permission_level) >= 99
     );
 }
@@ -205,6 +211,10 @@ async function refreshLegacyPlatformAdmin(force = false) {
         const result = await response.json();
 
         if (!response.ok) {
+            if (response.status === 403 && ['NO_ORGANIZATION', 'NO_ROLE', 'ROLE_NOT_CONFIGURED'].includes(String(result.code || ''))) {
+                logout();
+                return false;
+            }
             throw new Error(
                 result.error ||
                 'Resincronizarea a eșuat.'
@@ -212,6 +222,19 @@ async function refreshLegacyPlatformAdmin(force = false) {
         }
 
         if (result.user) {
+            const previousUser = getUser();
+            const platformAdminFlag =
+                result.user.platform_admin ??
+                result.user.is_platform_admin ??
+                result.platform_admin ??
+                result.is_platform_admin ??
+                previousUser?.platform_admin ??
+                previousUser?.is_platform_admin;
+            if (platformAdminFlag !== undefined) {
+                result.user.platform_admin =
+                    platformAdminFlag === true ||
+                    String(platformAdminFlag).toLowerCase() === 'true';
+            }
             localStorage.setItem(
                 STORAGE_KEY,
                 JSON.stringify(result.user)
@@ -263,6 +286,8 @@ async function refreshLegacyPlatformAdmin(force = false) {
             'panel_role_synced_at',
             String(Date.now())
         );
+
+        window.dispatchEvent(new CustomEvent('panel-user-updated'));
 
         return isPlatformAdmin();
 
@@ -355,7 +380,7 @@ function getDefaultAllowedPage() {
 
         /*
          * Adminul sau utilizatorul care are cel puțin
-         * o pagină configurată nu trebuie să rămână
+         * o pagină configurată nu trebuie să răm�nă
          * în pagina Guest.
          */
         if (
@@ -705,3 +730,38 @@ function applyRoleBasedVisibility() {
             }
         });
 }
+
+// Menține sesiunea activă pentru lista utilizatorilor online din Panoul Admin.
+function startPanelSessionHeartbeat() {
+    if (window.__panelSessionHeartbeat) return;
+    window.__panelSessionHeartbeat = true;
+
+    const sendHeartbeat = async () => {
+        if (document.visibilityState === 'hidden') return;
+
+        const token = localStorage.getItem('panel_session_token');
+        const config = window.PANEL_SUPABASE_CONFIG;
+        if (!token || !config?.url || !config?.publishableKey) return;
+
+        try {
+            await fetch(`${config.url}/functions/v1/touch-panel-session`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    apikey: config.publishableKey,
+                    Authorization: `Bearer ${config.publishableKey}`,
+                    'x-panel-session': token
+                },
+                body: '{}',
+                keepalive: true
+            });
+        } catch (_) {
+            // Lipsa temporară a rețelei nu închide sesiunea locală.
+        }
+    };
+
+    window.setTimeout(sendHeartbeat, 1000);
+    window.setInterval(sendHeartbeat, 30000);
+}
+
+startPanelSessionHeartbeat();
