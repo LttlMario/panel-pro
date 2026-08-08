@@ -517,7 +517,27 @@
             toggleTipActiune();
             toggleCategorie();
             incarcaAnunturi();
+            aboneazaLaMarketplaceRealtime();
         });
+
+        let marketplaceRealtimeChannel = null;
+
+        function aboneazaLaMarketplaceRealtime() {
+            if (marketplaceRealtimeChannel) return;
+
+            marketplaceRealtimeChannel = supabaseClient
+                .channel('marketplace-ilegal-global')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'marketplace_ilegal'
+                    },
+                    () => incarcaAnunturi()
+                )
+                .subscribe();
+        }
 
         async function incarcaAnunturi() {
             const container = document.getElementById('listaAnunturi');
@@ -525,14 +545,8 @@
             container.innerHTML = '<p class="text-xs text-slate-500 text-center py-6 col-span-full">Se încarcă...</p>';
 
             const { data, error } = await supabaseClient
-                .from('marketplace_ilegal')
-                .select(`
-                    *,
-                organizations (
-                    id,
-                    illegal_name
-                )
-                `)
+                .from('marketplace_ilegal_feed')
+                .select('*')
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -581,7 +595,6 @@
                 let catBadge = item.categorie || '';
                 let subBadge = item.subcategorie ? ` / ${item.subcategorie}` : '';
                 let textCurat = item.produse || '';
-                let organizatieAnunt = item.organizations?.illegal_name || 'Organizație ilegală';
                 const poateSterge =
                 Number(
                     currentUser.panel_level ??
@@ -620,19 +633,10 @@
                     });
                     imaginiHtml += '</div>';
                 }
-                let organizatieText = '';
-
-                if (item.organization_id) {
-                    const { data: orgData } = await supabaseClient
-                        .from('organizations')
-                        .select('illegal_name')
-                        .eq('id', item.organization_id)
-                        .maybeSingle();
-
-                    if (orgData) {
-                        organizatieText = orgData.illegal_name;
-                    }
-                }
+                const organizatieText =
+                    item.organization_illegal_name ||
+                    item.organization_name ||
+                    'Organizație ilegală';
                 container.innerHTML += `
                     <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between space-y-4">
                         <div class="space-y-2">
@@ -647,9 +651,6 @@
                                         🏴 ${escapeHtml(organizatieText)}
                                         </div>
                                         ` : ''}
-                                        <div class="text-xs text-rose-400 mt-1">
-                                            ${escapeHtml(organizatieAnunt)}
-                                        </div>
                                     <div class="text-xs text-slate-400 mt-0.5">Tel: ${escapeHtml(item.telefon || '')}</div>
                                 </div>
                             </div>
