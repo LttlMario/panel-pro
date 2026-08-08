@@ -367,7 +367,11 @@
 
                 let catBadge = item.categorie || '';
                 if (tipBadge === 'Servicii') catBadge = 'SERVICII';
-                const poateSterge = getRole() === 7 || String(item.created_by_discord_id || '') === String(currentUser.discord_id || '');
+                const user = typeof getUser === 'function' ? getUser() : null;
+                const esteAdministrator = typeof isPlatformAdmin === 'function' && isPlatformAdmin()
+                    || Number(user?.permission_level) === 7
+                    || ['admin', 'administrator', 'owner'].includes(String(user?.role || user?.default_role || '').trim().toLowerCase());
+                const poateSterge = esteAdministrator || String(item.created_by_discord_id || '') === String(currentUser.discord_id || '');
 
                 let continutAfisat = item.produse || '';
                 if (tipBadge === 'Servicii') {
