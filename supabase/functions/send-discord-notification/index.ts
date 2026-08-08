@@ -296,9 +296,12 @@ if (request.method === 'OPTIONS') {
      */
 
 
-    const {
-      data: config,
-      error: configError
+    let config: any = null;
+
+    if (finalChannel !== 'illegal_marketplace') {
+      const {
+        data: organizationConfig,
+        error: configError
 
     } =
       await db
@@ -312,17 +315,20 @@ if (request.method === 'OPTIONS') {
 
 
 
-    if (configError)
-      throw configError;
+      if (configError)
+        throw configError;
 
 
 
-    if (!config) {
+      if (!organizationConfig) {
 
       throw new Error(
         'ConfiguraÈ›ia organizaÈ›iei active nu a fost gÄƒsitÄƒ.'
       );
 
+      }
+
+      config = organizationConfig;
     }
 
 
@@ -526,11 +532,45 @@ if (finalChannel === 'requests_departments') {
  * Restul canalelor rÄƒmÃ¢n exact cum erau
  */
 
-route =
+let webhooks: string[];
+
+if (finalChannel === 'illegal_marketplace') {
+  const { data: activeOrganizations, error: organizationsError } = await db
+    .from('organizations')
+    .select('id')
+    .eq('active', true);
+
+  if (organizationsError) throw organizationsError;
+
+  const organizationIds = (activeOrganizations || []).map((organization: any) => organization.id);
+  if (!organizationIds.length) {
+    throw new Error('Nu există organizații active pentru Marketplace ilegal.');
+  }
+
+  const { data: settingsRows, error: settingsError } = await db
+    .from('organization_settings')
+    .select('organization_id, webhook_routes, illegal_marketplace_webhook_url, illegal_marketplace_secondary_webhook_url')
+    .in('organization_id', organizationIds);
+
+  if (settingsError) throw settingsError;
+
+  webhooks = [...new Set(
+    (settingsRows || []).flatMap((settings: any) => [
+      settings.webhook_routes?.illegal_marketplace?.primary?.url,
+      settings.webhook_routes?.illegal_marketplace?.secondary?.url,
+      settings.illegal_marketplace_webhook_url,
+      settings.illegal_marketplace_secondary_webhook_url
+    ]).filter(Boolean).map(String)
+  )];
+
+  if (!webhooks.length) {
+    throw new Error('Nu există niciun webhook configurat pentru Marketplace ilegal.');
+  }
+} else {
+  route =
       config.webhook_routes?.[finalChannel];
 
-
-const webhooks =
+  webhooks =
       [
         route?.primary?.url,
         route?.secondary?.url
@@ -540,13 +580,14 @@ const webhooks =
 
 
 
-    if (!webhooks.length) {
+  if (!webhooks.length) {
 
       throw new Error(
         `Webhook-ul ${finalChannel} nu este configurat pentru organizaÈ›ia activÄƒ.`
       );
 
-    }
+  }
+}
 
 
 
