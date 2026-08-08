@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const expectedState = sessionStorage.getItem('discord_oauth_state');
 
         if(accessToken){
-            if (returnedState === 'panel_android') {
+            if (returnedState === 'panel_android' || returnedState?.startsWith('panel_android:')) {
                 window.location.replace(`discord-1531023771211792384:/authorize/callback#${params.toString()}`);
                 return;
             }
