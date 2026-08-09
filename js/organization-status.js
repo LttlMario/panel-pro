@@ -2,6 +2,7 @@
   if (!location.pathname.endsWith('administrare-organizatie.html')) return;
   const config = () => window.PANEL_SUPABASE_CONFIG;
   const load = async () => {
+    if (!document.getElementById('info')) return;
     const c = config(), token = localStorage.getItem('panel_session_token');
     const response = await fetch(`${c.url}/functions/v1/get-organization-status`, { headers: { apikey: c.publishableKey, Authorization: `Bearer ${c.publishableKey}`, 'x-panel-session': token } });
     const result = await response.json(); if (!response.ok) throw Error(result.error || 'Status indisponibil.');
