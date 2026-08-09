@@ -68,9 +68,20 @@
   <script src="js/global-footer.js"></script>
   <script>
     const onboardingParams = new URLSearchParams(location.search);
-    if (onboardingParams.get('voucher')) document.getElementById('voucher').value = onboardingParams.get('voucher');
-    if (onboardingParams.get('guild')) document.getElementById('guild').value = onboardingParams.get('guild');
-    if (!onboardingParams.get('guild')) document.getElementById('guild').focus();
+    const verifiedVoucher = sessionStorage.getItem('panel_onboarding_voucher') || onboardingParams.get('voucher') || '';
+    const voucherInput = document.getElementById('voucher');
+    const guildInput = document.getElementById('guild');
+    if (verifiedVoucher) {
+      voucherInput.value = verifiedVoucher;
+      voucherInput.readOnly = true;
+      voucherInput.classList.add('border-emerald-500/60', 'text-emerald-300');
+    }
+    if (onboardingParams.get('guild')) guildInput.value = onboardingParams.get('guild');
+    if (guildInput) {
+      guildInput.type = 'hidden';
+      guildInput.closest('label')?.setAttribute('hidden', '');
+      guildInput.closest('label')?.previousElementSibling?.remove();
+    }
   </script>
 </body>
 </html>
