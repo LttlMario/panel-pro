@@ -10,6 +10,9 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     if (window.location.pathname.endsWith('admin.html')) { const script=document.createElement('script');script.src='js/admin-organization-center.js';document.head.appendChild(script); }
     if (window.location.pathname.endsWith('anunturi.html')) { const script=document.createElement('script');script.src='js/anunturi-permissions.js';document.head.appendChild(script); }
     const COLLAPSE_KEY = 'panel_sidebar_collapsed';
+    const isAndroidApp = window.Capacitor?.getPlatform?.() === 'android'
+        || /\bAndroid\b.*\bwv\b|\bVersion\/4\.0\b.*\bChrome\b/i.test(navigator.userAgent);
+    if (isAndroidApp) document.documentElement.classList.add('panel-android-device');
 
     function addStyles() {
         if (document.getElementById('panel-layout-styles')) return;
@@ -129,6 +132,14 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             #panel-mobile-menu .panel-mobile-top { height:64px; padding:0 18px; border-bottom:1px solid #1e293b; display:flex; align-items:center; justify-content:space-between; }
             #panel-mobile-menu .panel-mobile-nav { padding:16px; }
             .panel-mobile-toggle { display:none; position:relative; z-index:40; width:40px; height:40px; flex:none; align-items:center; justify-content:center; border:1px solid #334155; border-radius:12px; background:#020617; color:#e2e8f0; font-size:18px; cursor:pointer; }
+            html.panel-android-device body.panel-shared-sidebar-page { padding-left:0 !important; }
+            html.panel-android-device #panel-shared-sidebar { display:none !important; }
+            html.panel-android-device .panel-responsive-sidebar,
+            html.panel-android-device .panel-sidebar-toggle { display:none !important; }
+            html.panel-android-device #global-header-mobile-btn { display:inline-flex !important; align-items:center; justify-content:center; }
+            html.panel-android-device .panel-global-header { min-height:76px !important; padding:12px 14px !important; }
+            html.panel-android-device .panel-global-header > div:not(.panel-header-tools) { flex:1; min-width:calc(100% - 58px); }
+            html.panel-android-device .panel-mobile-toggle { display:none !important; }
             .panel-action-bar { display:flex; align-items:center; justify-content:flex-end; gap:12px; flex-wrap:wrap; padding:12px max(16px, calc((100vw - 1280px) / 2)); border-bottom:1px solid #1e293b; background:rgba(15,23,42,.72); }
             .panel-action-bar > div { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
             .panel-bottom-save-bar { position:sticky; bottom:0; z-index:30; display:flex; justify-content:flex-end; padding:14px 16px; border-top:1px solid #1e293b; background:rgba(15,23,42,.96); backdrop-filter:blur(10px); }
