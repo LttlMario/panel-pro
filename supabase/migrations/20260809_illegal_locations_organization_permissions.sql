@@ -22,6 +22,14 @@ CREATE OR REPLACE FUNCTION public.current_panel_is_platform_admin() RETURNS bool
 ALTER FUNCTION public.current_panel_is_platform_admin() OWNER TO postgres;
 GRANT EXECUTE ON FUNCTION public.current_panel_is_platform_admin() TO anon, authenticated;
 
+DROP POLICY IF EXISTS locations_delete_platform_admin ON public.illegal_locations;
+DROP POLICY IF EXISTS locations_global_admin_delete ON public.illegal_locations;
+DROP POLICY IF EXISTS locations_global_admin_insert ON public.illegal_locations;
+DROP POLICY IF EXISTS locations_global_admin_update ON public.illegal_locations;
+DROP POLICY IF EXISTS locations_global_read ON public.illegal_locations;
+DROP POLICY IF EXISTS locations_insert_platform_admin ON public.illegal_locations;
+DROP POLICY IF EXISTS locations_update_platform_admin ON public.illegal_locations;
+
 DROP POLICY IF EXISTS locations_admin ON public.illegal_locations;
 CREATE POLICY locations_admin ON public.illegal_locations
     TO authenticated, anon
