@@ -100,12 +100,26 @@
 
         .calculator-container {
             display: grid;
-            grid-template-columns: 400px 1fr;
+            grid-template-columns: minmax(300px, 400px) minmax(0, 1fr);
+            align-items: start;
             gap: 24px;
             width: 100%;
             max-width: 1200px;
             margin: 1rem auto 0;
             padding: 0 2rem 2rem;
+        }
+
+        .panel-action-bar {
+            grid-column: 1 / -1;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: -4px;
+        }
+
+        .panel-action-bar .search-container {
+            width: min(100%, 720px);
+            max-width: none;
         }
 
 
@@ -121,7 +135,13 @@
         }
 
         @media (max-width: 767px) {
-            .calculator-container { gap: 14px; margin-top: 1rem; padding: 0 12px 18px; }
+            .calculator-container {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 14px;
+                margin-top: 1rem;
+                padding: 0 12px 18px;
+            }
+            .panel-action-bar { grid-column: 1; margin-bottom: 0; }
             .calculator-container > .panel { padding: 14px; }
             .mobile-results-button,
             .mobile-edit-selection {
@@ -384,7 +404,7 @@
 
             <div class="calculator-container">
             <section class="panel-action-bar"><div class="search-container w-full max-w-2xl relative"><input type="search" id="calculator-search" class="w-full py-3 pl-4 pr-4 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition" placeholder="Caută obiect, material sau rețetă..." oninput="filterCalculatorRecipes(this.value)"></div></section>
-                <!-- Panou St�nga: Input-uri -->
+                <!-- Panou Stânga: Input-uri -->
                 <div class="panel" id="calculator-input-panel">
                     <div style="font-size: 1.0rem; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
                         Selecție Rețete (Live)
@@ -415,11 +435,11 @@
                                     <option value="cauciuc_1">Cauciuc x1</option>
                                     <option value="cauciuc_2">Cauciuc x2</option>
                                     <option value="cauciuc_3">Cauciuc x3</option>
-                                    <option value="tarnacop_cupru">T�rnacop de cupru</option>
-                                    <option value="tarnacop_fier">T�rnacop de fier</option>
-                                    <option value="tarnacop_otel">T�rnacop de oțel</option>
-                                    <option value="tarnacop_aur">T�rnacop de aur</option>
-                                    <option value="tarnacop_diamant">T�rnacop diamant</option>
+                                    <option value="tarnacop_cupru">Târnacop de cupru</option>
+                                    <option value="tarnacop_fier">Târnacop de fier</option>
+                                    <option value="tarnacop_otel">Târnacop de oțel</option>
+                                    <option value="tarnacop_aur">Târnacop de aur</option>
+                                    <option value="tarnacop_diamant">Târnacop diamant</option>
                                     <option value="topor_cupru">Topor de cupru</option>
                                     <option value="topor_fier">Topor de fier</option>
                                     <option value="topor_otel">Topor de oțel</option>
@@ -515,7 +535,7 @@
                             <div class="result-card"><div class="item-title">Aur</div><div class="item-value" id="res_aur">0</div></div>
                             <div class="result-card"><div class="item-title">Diamant</div><div class="item-value" id="res_diamant">0</div></div>
                             <div class="result-card">
-                                <div class="item-title">T�rnacop Aluminiu</div>
+                                <div class="item-title">Târnacop Aluminiu</div>
                                 <div class="item-value" id="res_tarnacop_aluminiu">0</div>
                             </div>
 
@@ -597,29 +617,29 @@ const upgradeChains = {
     "tarnacop": [
         {
             id: "tarnacop_cupru",
-            name: "T�rnacop de cupru",
+            name: "Târnacop de cupru",
             cost: {
-                "T�rnacop Aluminiu": 1,
+                "Târnacop Aluminiu": 1,
                 "Cupru": 5
             }
         },
         {
             id: "tarnacop_fier",
-            name: "T�rnacop de fier",
+            name: "Târnacop de fier",
             cost: {
                 "Fier": 5
             }
         },
         {
             id: "tarnacop_otel",
-            name: "T�rnacop de oțel",
+            name: "Târnacop de oțel",
             cost: {
                 "Oțel": 5
             }
         },
         {
             id: "tarnacop_aur",
-            name: "T�rnacop de aur",
+            name: "Târnacop de aur",
             cost: {
                 "Aur": 2,
                 "Oțel": 3
@@ -627,7 +647,7 @@ const upgradeChains = {
         },
         {
             id: "tarnacop_diamant",
-            name: "T�rnacop diamant",
+            name: "Târnacop diamant",
             cost: {
                 "Diamant": 1,
                 "Aur": 2
@@ -815,42 +835,42 @@ const upgradeChains = {
             },
 
             "tarnacop_cupru": {
-                name: "T�rnacop de cupru",
+                name: "Târnacop de cupru",
                 base: {
-                    "T�rnacop aluminiu": 1,
+                    "Târnacop aluminiu": 1,
                     "Cupru": 5
                 }
             },
 
             "tarnacop_fier": {
-                name: "T�rnacop de fier",
+                name: "Târnacop de fier",
                 base: {
-                    "T�rnacop cupru": 1,
+                    "Târnacop cupru": 1,
                     "Fier": 5
                 }
             },
 
             "tarnacop_otel": {
-                name: "T�rnacop de oțel",
+                name: "Târnacop de oțel",
                 base: {
-                    "T�rnacop fier": 1,
+                    "Târnacop fier": 1,
                     "Oțel": 5
                 }
             },
 
             "tarnacop_aur": {
-                name: "T�rnacop de aur",
+                name: "Târnacop de aur",
                 base: {
-                    "T�rnacop fier": 1,
+                    "Târnacop fier": 1,
                     "Aur": 2,
                     "Oțel": 3
                 }
             },
 
             "tarnacop_diamant": {
-                name: "T�rnacop diamant",
+                name: "Târnacop diamant",
                 base: {
-                    "T�rnacop aur": 1,
+                    "Târnacop aur": 1,
                     "Diamant": 1,
                     "Aur": 2
                 }
