@@ -1,1 +1,39 @@
-import {createClient} from 'jsr:@supabase/supabase-js@2';const h={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type','Content-Type':'application/json'};const r=(x:unknown,s=200)=>new Response(JSON.stringify(x),{status:s,headers:h});Deno.serve(async q=>{if(q.method==='OPTIONS')return new Response('ok',{headers:h});try{const key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS')||'{}').default,db=createClient(Deno.env.get('SUPABASE_URL')!,key),b=await q.json(),token=String(b.access_token||''),code=String(b.voucher_code||'').trim().toUpperCase(),guild=String(b.guild_id||'').trim(),bot=String(Deno.env.get('DISCORD_BOT_TOKEN')||'').trim();if(!token||!code||!/^[0-9]{15,22}$/.test(guild)||!bot)return r({error:'Datele de verificare sunt incomplete.'},400);const me=await fetch('https://discord.com/api/v10/users/@me',{headers:{Authorization:`Bearer ${token}`}});if(!me.ok)return r({error:'Sesiunea Discord a expirat.'},401);const user=await me.json(),{data:v}=await db.from('organization_vouchers').select('redeemed_by_discord_id,redeemed_organization_id,guild_id').eq('code',code).maybeSingle();if(!v||String(v.redeemed_by_discord_id)!==String(user.id)||String(v.guild_id||guild)!==guild)return r({error:'Voucherul sau Guild ID-ul nu corespunde.'},403);const {data:o}=await db.from('organizations').select('id,lifecycle_status').eq('id',v.redeemed_organization_id).maybeSingle();if(!o||o.lifecycle_status!=='draft')return r({error:'Organizația nu este Draft.'},400);const response=await fetch(`https://discord.com/api/v10/guilds/${guild}/roles`,{headers:{Authorization:`Bot ${bot}`}});if(!response.ok)return r({error:'Botul nu poate citi rolurile de pe server.'},400);const roles=await response.json();return r({organization_id:o.id,roles:(roles||[]).filter((x:any)=>!x.managed&&String(x.id)!==guild).map((x:any)=>({id:String(x.id),name:String(x.name),position:Number(x.position)||0})).sort((a:any,b:any)=>b.position-a.position)});}catch(e){return r({error:e instanceof Error?e.message:'Eroare'},500)}});
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Max-Age': '86400', 'Content-Type': 'application/json' };
+const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
+
+Deno.serve(async (request) => {
+  if (request.method === 'OPTIONS') return new Response('ok', { headers });
+  try {
+    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    const body = await request.json();
+    const token = String(body.access_token || '').trim();
+    const code = String(body.voucher_code || '').trim().toUpperCase();
+    const guildId = String(body.guild_id || '').trim();
+    const kind = body.kind === 'secondary' ? 'secondary' : 'primary';
+    if (!token || !code || !/^\d{15,22}$/.test(guildId)) return reply({ error: 'Datele de verificare sunt incomplete.' }, 400);
+
+    const meResponse = await fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bearer ${token}` } });
+    if (!meResponse.ok) return reply({ error: 'Sesiunea Discord a expirat.' }, 401);
+    const user = await meResponse.json();
+    const { data: voucher } = await db.from('organization_vouchers').select('redeemed_by_discord_id,redeemed_organization_id,guild_id').eq('code', code).maybeSingle();
+    if (!voucher || String(voucher.redeemed_by_discord_id) !== String(user.id)) return reply({ error: 'Voucherul nu aparține contului autentificat.' }, 403);
+    if (kind === 'primary' && voucher.guild_id && String(voucher.guild_id) !== guildId) return reply({ error: 'Guild ID-ul nu corespunde voucherului.' }, 403);
+
+    const bot = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
+    if (!bot) return reply({ error: 'Botul Discord nu este configurat în Supabase.' }, 500);
+    const botHeaders = { Authorization: `Bot ${bot}` };
+    const [guildResponse, rolesResponse] = await Promise.all([
+      fetch(`https://discord.com/api/v10/guilds/${guildId}`, { headers: botHeaders }),
+      fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, { headers: botHeaders })
+    ]);
+    if (!guildResponse.ok || !rolesResponse.ok) return reply({ error: 'Botul nu poate citi serverul sau rolurile Discord.' }, 400);
+    const guild = await guildResponse.json();
+    const roles = await rolesResponse.json();
+    return reply({ organization_id: voucher.redeemed_organization_id, guild: { id: String(guild.id), name: String(guild.name || guildId) }, roles: (roles || []).filter((role: any) => !role.managed && String(role.id) !== guildId).map((role: any) => ({ id: String(role.id), name: String(role.name), position: Number(role.position) || 0 })).sort((a: any, b: any) => b.position - a.position) });
+  } catch (error) {
+    return reply({ error: error instanceof Error ? error.message : 'Eroare internă.' }, 500);
+  }
+});

@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requirePanelSession } from '../_shared/panel-session.ts';
+import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json'};
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
 const roleLevel=(value:unknown)=>{const text=String(value||'').toLowerCase();const number=Number(value);if(Number.isFinite(number))return number;if(text.includes('admin')||text.includes('owner'))return 7;if(text.includes('manager'))return 4;return 1};
@@ -15,7 +16,7 @@ Deno.serve(async request=>{
     const {data:user}=await db.from('users').select('display_name,username').eq('discord_id',discordUser.id).maybeSingle();
     if(!user)return reply({error:'Utilizatorul nu este înregistrat în panel.'},403);
     const level=session.permission_level, organizationId=session.organization_id,actorName=user.display_name||user.username||discordUser.id;
-    const adminByLevel=Number(level)>=99;
+    if(!isPlatformAdminDiscordId(discordUser.id))return reply({error:'Această funcție este rezervată administratorului platformei.'},403);
     if(body.action==='notifications'){
       const {data:notes,error}=await db.from('panel_notifications').select('*').eq('organization_id',organizationId).or(`recipient_discord_id.is.null,recipient_discord_id.eq.${discordUser.id}`).order('created_at',{ascending:false}).limit(40);if(error)throw error;
       const {data:reads}=await db.from('panel_notification_reads').select('notification_id').eq('organization_id',organizationId).eq('discord_id',discordUser.id);
@@ -24,8 +25,6 @@ Deno.serve(async request=>{
     if(body.action==='mark_read'){
       const ids=(Array.isArray(body.ids)?body.ids:[]).slice(0,100);if(ids.length)await db.from('panel_notification_reads').upsert(ids.map((id:unknown)=>({organization_id:organizationId,notification_id:id,discord_id:discordUser.id})),{onConflict:'notification_id,discord_id'});return reply({ok:true});
     }
-    const platformOwners=String(Deno.env.get('PLATFORM_OWNER_DISCORD_IDS')||'').split(',').map(value=>value.trim()).filter(Boolean);if(!adminByLevel&&!platformOwners.includes(String(discordUser.id)))return reply({error:'Această funcție este rezervată administratorului platformei.'},403);
-    if(level<7)return reply({error:'Acțiunea necesită rol de administrator.'},403);
     if(body.action==='members'){
       const {data:members,error}=await db.from('organization_members').select('*').eq('organization_id',organizationId).eq('active',true).order('permission_level',{ascending:false});if(error)throw error;
       const ids=(members||[]).map((m:any)=>m.discord_id),{data:users}=ids.length?await db.from('users').select('discord_id,username,display_name,avatar,avatar_url').in('discord_id',ids):{data:[]};

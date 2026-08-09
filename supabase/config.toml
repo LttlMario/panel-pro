@@ -18,3 +18,6 @@ verify_jwt = false
 
 [functions.manage-organizations]
 verify_jwt = false
+
+[functions.manage-owned-organization]
+verify_jwt = false

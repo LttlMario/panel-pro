@@ -1,9 +1,9 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type', 'Content-Type': 'application/json' };
+const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Max-Age': '86400', 'Content-Type': 'application/json' };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const validGuild = (value: string) => /^\d{15,22}$/.test(value);
-const webhookChannels = new Set(['organization', 'departments', 'pontaj', 'requests', 'contracts', 'marketplace', 'illegal_marketplace']);
+const webhookChannels = new Set(['organization', 'departments', 'pontaj', 'requests', 'requests_organization', 'requests_departments', 'contracts', 'marketplace', 'illegal_marketplace', 'fines_organization', 'fines_departments', 'status_live']);
 const validWebhook = (value: unknown) => {
   try {
     const url = new URL(String(value || ''));
@@ -42,10 +42,12 @@ Deno.serve(async (req) => {
     const { data: voucher } = await db.from('organization_vouchers').select('redeemed_by_discord_id,redeemed_organization_id,guild_id').eq('redeemed_organization_id', id).maybeSingle();
     if (!voucher || String(voucher.redeemed_by_discord_id) !== discordId) return reply({ error: 'Nu ești creatorul acestei organizații Draft.' }, 403);
 
-    if (action === 'attach_guild') {
+    if (action === 'attach_guild' || action === 'attach_secondary_guild') {
       const guildId = String(body.guild_id || '').trim();
       if (!validGuild(guildId)) return reply({ error: 'Guild ID invalid.' }, 400);
-      if (voucher.guild_id && String(voucher.guild_id) !== guildId) return reply({ error: 'Guild ID-ul nu corespunde voucherului.' }, 400);
+      const kind = action === 'attach_secondary_guild' ? 'secondary' : 'primary';
+      if (kind === 'primary' && voucher.guild_id && String(voucher.guild_id) !== guildId) return reply({ error: 'Guild ID-ul nu corespunde voucherului.' }, 400);
+      if (kind === 'secondary' && voucher.guild_id && String(voucher.guild_id) === guildId) return reply({ error: 'Serverul secundar trebuie să fie diferit de cel principal.' }, 400);
       const botToken = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
       if (!botToken) throw new Error('Botul aplicației nu este configurat în Supabase.');
       const botHeaders = { Authorization: `Bot ${botToken}` };
@@ -56,9 +58,9 @@ Deno.serve(async (req) => {
       if (!guildResponse.ok) return reply({ error: 'Botul nu este pe serverul indicat.' }, 400);
       if (!memberResponse.ok) return reply({ error: 'Utilizatorul nu este membru pe serverul indicat.' }, 403);
       const guild = await guildResponse.json();
-      const { error } = await db.from('organization_guilds').upsert({ organization_id: id, guild_id: guildId, guild_name: String(guild.name || ''), kind: 'primary', enabled: true }, { onConflict: 'organization_id,kind' });
+      const { error } = await db.from('organization_guilds').upsert({ organization_id: id, guild_id: guildId, guild_name: String(guild.name || ''), kind, enabled: true }, { onConflict: 'organization_id,kind' });
       if (error) throw error;
-      await db.from('organization_lifecycle_events').insert({ organization_id: id, event_type: 'draft_guild_attached', actor_discord_id: discordId, details: { guild_id: guildId } });
+      await db.from('organization_lifecycle_events').insert({ organization_id: id, event_type: kind === 'primary' ? 'draft_guild_attached' : 'draft_secondary_guild_attached', actor_discord_id: discordId, details: { guild_id: guildId, kind } });
       return reply({ ok: true, organization_id: id, guild_id: guildId, guild_name: guild.name });
     }
 
@@ -75,6 +77,26 @@ Deno.serve(async (req) => {
     }
     if (body.page_permissions) {
       const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'page_permissions', value: body.page_permissions, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+      if (error) throw error;
+    }
+    if (body.assistant_page_permissions && typeof body.assistant_page_permissions === 'object') {
+      const allowedPages = new Set(['index.html', 'anunturi.html', 'pontaj.html', 'cereri.html', 'bucatarie.html', 'contracte.html', 'calculatorilegal.html', 'craftmecanics.html', 'locatiiilegale.html', 'marketplace.html', 'marketplace-ilegal.html', 'rapoarte.html', 'asistent.html']);
+      const value = Object.fromEntries(Object.entries(body.assistant_page_permissions).filter(([page]) => allowedPages.has(page)).map(([page, ids]: any) => [page, [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((id) => /^\d{15,22}$/.test(id)))] ]));
+      const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'assistant_page_permissions', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+      if (error) throw error;
+    }
+    if (body.action_permissions && typeof body.action_permissions === 'object') {
+      const allowedActions = new Set(['anunturi.publish', 'cereri.organization', 'cereri.departments']);
+      const value = Object.fromEntries(Object.entries(body.action_permissions).filter(([action]) => allowedActions.has(action)).map(([action, ids]: any) => [action, [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((id) => /^\d{15,22}$/.test(id)))] ]));
+      const organizationRoles = new Set(value['cereri.organization'] || []);
+      if (Array.isArray(value['cereri.departments'])) value['cereri.departments'] = value['cereri.departments'].filter((id: string) => !organizationRoles.has(id));
+      const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'action_permissions', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+      if (error) throw error;
+    }
+    if (body.communication_permissions && typeof body.communication_permissions === 'object') {
+      const clean = (audience: string, kind: string) => [...new Set((Array.isArray(body.communication_permissions[audience]?.[kind]) ? body.communication_permissions[audience][kind] : []).map(String).filter((id) => /^\d{15,22}$/.test(id)))];
+      const value = { organization: { read: clean('organization', 'read'), write: clean('organization', 'write') }, departments: { read: clean('departments', 'read'), write: clean('departments', 'write') } };
+      const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'communication_permissions', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
       if (error) throw error;
     }
     if (body.contract_template) {
