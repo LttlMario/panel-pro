@@ -170,14 +170,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 footer { padding-left:12px !important; padding-right:12px !important; padding-bottom:max(18px,env(safe-area-inset-bottom)) !important; }
                 #panel-save-reminder { right:10px; bottom:82px; max-width:calc(100vw - 20px); }
             }
-            /* Păstrăm meniul standard pe toate dimensiunile; meniul mobil nu mai schimbă layout-ul. */
-            @media (max-width:767px) {
-                body.panel-global-shell { min-width:1024px !important; overflow-x:auto !important; }
-                body.panel-shared-sidebar-page { padding-left:245px !important; }
-                body.panel-shared-sidebar-page > #panel-shared-sidebar { display:flex !important; position:fixed !important; inset:0 auto 0 0 !important; width:245px !important; z-index:60 !important; }
-                #panel-mobile-menu, #panel-mobile-backdrop, .panel-mobile-toggle, #global-header-mobile-btn, #mobile-menu-toggle { display:none !important; }
-                body.panel-global-shell main { max-width:none !important; }
-            }
             /* Sidebar-ul este același și pe paginile calculatorului, care au stiluri proprii. */
             #panel-shared-sidebar .nav-link,
             #panel-shared-sidebar .nav-link:link,
@@ -309,7 +301,9 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         });
 
         // Dashboard are deja propriul meniu mobil, păstrat pentru compatibilitate.
-        if (document.getElementById('mobile-menu')) return;
+        document.getElementById('mobile-menu')?.remove();
+        document.getElementById('mobile-menu-backdrop')?.remove();
+        document.getElementById('mobile-menu-toggle')?.remove();
 
         const backdrop = document.createElement('div');
         backdrop.id = 'panel-mobile-backdrop';
@@ -322,6 +316,12 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         mobileNav.innerHTML = navigation.innerHTML;
         if (typeof applyRoleBasedVisibility === 'function' && typeof getRole === 'function') applyRoleBasedVisibility(getRole());
 
+        const setMobileToggleState = (isOpen) => {
+            document.querySelectorAll('#global-header-mobile-btn, .panel-mobile-toggle').forEach((button) => {
+                button.setAttribute('aria-expanded', String(isOpen));
+            });
+        };
+
         const closeMobileMenu = () => {
             mobileMenu.classList.remove('is-open');
             backdrop.style.display = 'none';
@@ -331,6 +331,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             legacyBackdrop?.classList.add('hidden');
             document.body.classList.remove('panel-mobile-menu-open');
             document.body.style.overflow = '';
+            setMobileToggleState(false);
         };
         const openMobileMenu = () => {
             document.dispatchEvent(new CustomEvent('panel:mobile-menu-open'));
@@ -338,6 +339,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             backdrop.style.display = 'block';
             document.body.classList.add('panel-mobile-menu-open');
             document.body.style.overflow = 'hidden';
+            setMobileToggleState(true);
         };
         const toggleMobileMenu = () => {
             if (mobileMenu.classList.contains('is-open')) closeMobileMenu();
@@ -360,9 +362,12 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             mobileToggle.className = 'panel-mobile-toggle';
             mobileToggle.textContent = '☰';
             mobileToggle.setAttribute('aria-label', 'Deschide meniul');
-            mobileToggle.addEventListener('click', openMobileMenu);
+            mobileToggle.setAttribute('aria-expanded', 'false');
+            mobileToggle.addEventListener('click', toggleMobileMenu);
             header.insertBefore(mobileToggle, header.firstChild);
         }
+
+        closeMobileMenu();
     }
 
     function ensureGlobalHeader() {
