@@ -49,7 +49,9 @@
         name: user?.organization_name
       };
 
-      const main = document.querySelector('main');
+       const main = document.querySelector('main');
+       if (!main) return;
+       main.className = 'min-h-screen w-full flex-1 flex items-center justify-center p-6';
       main.className = 'min-h-screen flex-1 flex items-center justify-center p-6';
       const formatDate = (value) => value
         ? new Date(value).toLocaleString('ro-RO')
@@ -71,7 +73,7 @@
           <p id="status" class="mt-4 text-sm text-slate-400"></p>
         </section>\`;
 
-      const info = document.getElementById('voucher-info');
+      let info = document.getElementById('voucher-info');
       const status = document.getElementById('status');
       const button = document.getElementById('reactivate');
       const voucherInput = document.getElementById('voucher');
@@ -162,17 +164,19 @@
       loadStatus();
     })();
   */</script>
-+  <script>
+  <script>
     (() => {
       const config = window.PANEL_SUPABASE_CONFIG;
       const user = JSON.parse(localStorage.getItem('discord_user') || 'null');
       const storedOrg = JSON.parse(localStorage.getItem('panel_active_organization') || 'null');
       const activeOrg = window.getActiveOrganization?.() || storedOrg || { id: user?.organization_id, name: user?.organization_name };
       const main = document.querySelector('main');
+      if (!main) return;
+      main.className = 'min-h-screen w-full flex-1';
       const formatDate = value => value ? new Date(value).toLocaleString('ro-RO') : 'Nespecificat';
 
       main.innerHTML = [
-        '<section class="w-full max-w-3xl rounded-2xl border border-slate-700 bg-slate-900 p-6">',
+        '<section class="mx-auto mt-6 w-full max-w-3xl rounded-2xl border border-slate-700 bg-slate-900 p-6">',
         '<h1 class="text-2xl font-black">Administrare organizatie</h1>',
         '<p class="mt-2 text-sm text-slate-400">Foloseste un voucher pentru activare sau prelungire.</p>',
         '<div id="voucher-info" class="mt-5 grid gap-3 md:grid-cols-3"></div>',
@@ -185,7 +189,7 @@
         '</div></div><p id="status" class="mt-4 text-sm text-slate-400"></p></section>'
       ].join('');
 
-      const info = document.getElementById('voucher-info');
+      let info = document.getElementById('voucher-info');
       const status = document.getElementById('status');
       const button = document.getElementById('reactivate');
       const voucherInput = document.getElementById('voucher');
@@ -193,6 +197,11 @@
       let accessExpiresAt = null;
 
       const render = () => {
+        info = document.getElementById('voucher-info') || info;
+        if (!info || !document.body.contains(info)) {
+          status.textContent = 'Interfața organizației nu a fost încărcată corect. Reîncarcă pagina.';
+          return;
+        }
         info.replaceChildren();
         [
           ['Organizatie activa', organization?.name || 'Nu a fost identificata'],
