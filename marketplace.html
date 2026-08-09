@@ -1,621 +1,715 @@
-<!DOCTYPE html>
-<html lang="ro" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marketplace Intern - Panel</title>
-    <!-- Tailwind CSS CDN -->
-    <link rel="stylesheet" href="css/tailwind.css">
-    <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-config.js"></script>
-    <script src="js/permissions.js"></script>
-    <script src="js/panel-layout.js"></script>
-    <link rel="stylesheet" href="css/global-footer.css">
-    <script src="js/project-version.js"></script>
-    <link rel="icon" href="img/favicon.ico">
-    <link rel="apple-touch-icon" href="img/logo-180.png">
-</head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm">
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requirePanelSession } from '../_shared/panel-session.ts';
 
-    <!-- Containerul Principal -->
-    <div class="flex h-screen w-full overflow-hidden">
+const cors = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
+  'Content-Type': 'application/json'
+};
 
-        <!-- Sidebar / Meniu Lateral preluat direct din scriptul de pontaj -->
+const reply = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: cors
+  });
 
-            <div class="p-8 space-y-6 max-w-7xl mx-auto w-full">
-        
+const levels: Record<string, number> = {
+  organization: 1,
+  pontaj: 1,
 
-        <!-- Conținut Principal Marketplace -->
-        <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
-            <section class="panel-action-bar"><div><button onclick="incarcaAnunturi()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer flex items-center space-x-1.5"><span>🔄</span><span>Reîmprospătare</span></button></div></section>
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  requests_organization: 1,
+  requests_departments: 1,
 
-                    <!-- COLOANA STANGA: Adăugare Anunț Nou -->
-                    <div class="lg:col-span-1 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-4">
-                        <h3 class="text-base font-bold text-slate-100 pb-2 border-b border-slate-800">Adaugă Anunț Nou</h3>
+  // compatibilitate versiuni vechi
+  requests: 1,
 
-                        <form id="marketForm" class="space-y-4">
-                            <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Nume:</label>
-                                <input type="text" id="nume" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" required>
-                            </div>
+  contracts: 1,
+  marketplace: 1,
+  illegal_marketplace: 1,
+  live_status: 1
+};
 
-                            <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Nr. tel.:</label>
-                                <input type="text" id="telefon" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" required>
-                            </div>
+const channels = new Set(Object.keys(levels));
 
-                            <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Tip Acțiune:</label>
-                                <select id="tipAcțiune" onchange="toggleTipActiune()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500">
-                                    <option value="Vânzare">Vânzare</option>
-                                    <option value="Cumpărare">Cumpărare</option>
-                                    <option value="Servicii">Servicii</option>
-                                </select>
-                            </div>
 
-                            <!-- C�mpul de Categorie (ascuns dacă selectează Servicii) -->
-                            <div id="categorie-wrapper">
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Categorie:</label>
-                                <select id="categorie" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500">
-                                    <option value="CASE">CASE</option>
-                                    <option value="VEHICULE">VEHICULE</option>
-                                    <option value="BUNURI">BUNURI</option>
-                                </select>
-                            </div>
+Deno.serve(async (request) => {
 
-                            <!-- C�mpul de Produse (ascuns dacă selectează Servicii) -->
-                            <div id="produse-wrapper">
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Produse (folosește Enter):</label>
-                                <textarea id="produse" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="- Produs 1&#10;- Produs 2" required></textarea>
-                            </div>
+if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: cors
+    });
+}
 
-                            <!-- C�mpul specific pentru Servicii (afișat doar dacă se selectează Servicii) -->
-                            <div id="servicii-box-wrapper" class="hidden">
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Ce servicii ceri sau prestezi:</label>
-                                <textarea id="detalii_servicii" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="Descrie serviciul pe care îl oferi sau îl soliciți..."></textarea>
-                            </div>
 
-                            <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Preț (Obligatoriu):</label>
-                                <input type="text" id="pret" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="Ex: 1500 sau 10000 sau Negociabil" required>
-                            </div>
+  if (request.method !== 'POST') {
+    return reply(
+      {
+        error: 'Metodă invalidă.'
+      },
+      405
+    );
+  }
 
-                            <!-- C�mp suplimentar explicit pentru Link Imagine Directă (opțional) -->
-                            <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Link Direct Imagine (Opțional):</label>
-                                <input type="url" id="imagine_url_direct" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="https://imgur.com/... sau link direct imagine">
-                            </div>
 
-                            <!-- Secțiune pentru Upload Imagini Multiple prin Click + Paste (Ctrl + V) -->
-                            <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Imagini Anunț (Maxim 5, Opțional):</label>
-                                <div id="paste-zone" tabindex="0" class="w-full bg-slate-950 border border-dashed border-slate-700 hover:border-blue-500 rounded-xl p-3 text-center cursor-pointer transition focus:outline-none focus:border-blue-500">
-                                    <p class="text-xs text-slate-400" id="paste-instruction">📋 Apasă aici, iar după apasă <strong class="text-slate-200">Ctrl + V</strong> pentru a atașa imaginile</p>
-                                    <div id="paste-preview-container" class="hidden mt-2 grid grid-cols-5 gap-2">
-                                        <!-- Aici se vor adăuga dinamic previzualizările imaginilor -->
-                                    </div>
-                                </div>
-                                <input type="hidden" id="imagini_json" value="[]">
-                            </div>
+  try {
 
-                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl transition text-xs shadow-md cursor-pointer">Publică Anunțul</button>
-                        </form>
-                    </div>
+    const contentType =
+      request.headers.get('content-type') || '';
 
-                    <!-- COLOANA DREAPTA: Filtrare și Anunțuri Active -->
-                    <div class="lg:col-span-2 space-y-6">
-                        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
-                            <h3 class="text-base font-bold text-slate-100 mb-3 pb-2 border-b border-slate-800">Filtrează Anunțurile</h3>
-                            <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Selectează Categoria / Tipul:</label>
-                                <select id="filtruCategorie" onchange="incarcaAnunturi()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500">
-                                    <option value="TOATE">Toate Categoriile & Serviciile</option>
-                                    <option value="CASE">CASE</option>
-                                    <option value="VEHICULE">VEHICULE</option>
-                                    <option value="BUNURI">BUNURI</option>
-                                    <option value="SERVICII">SERVICII</option>
-                                </select>
-                            </div>
-                        </div>
 
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-base font-bold text-slate-100">Anunțuri Active</h3>
-                            <span id="itemCount" class="text-xs text-slate-400">0 produse</span>
-                        </div>
+    let channel = '';
+    let finalChannel = '';
 
-                        <div id="listaAnunturi" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <p class="text-xs text-slate-500 text-center py-6 col-span-full">Se încarcă anunțurile...</p>
-                        </div>
-                    </div>
+    let payload: any = null;
 
-                </div>
-            </div>
-        </main>
-    </div>
+    let requestedOrganizationId = '';
 
-    <!-- Modal pentru mărirea imaginilor (LightBox) -->
-    <div id="imageModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="inchideModalImagine()">
-        <div class="relative max-w-4xl max-h-[90vh]" onclick="event.stopPropagation()">
-            <button onclick="inchideModalImagine()" class="absolute -top-4 -right-4 bg-slate-800 hover:bg-rose-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-lg transition cursor-pointer">×</button>
-            <img id="modalImg" src="" alt="Imagine mărită" class="max-w-full max-h-[85vh] rounded-2xl border border-slate-700 shadow-2xl object-contain">
-        </div>
-    </div>
+    let forwardBody: BodyInit;
+    let forwardHeaders: Record<string,string> = {};
 
-    <!-- Script de integrare Supabase și interfață -->
-    <script>
-        const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
-        const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
-        const supabaseClient = window.createPanelSupabaseClient();
 
-        let currentUser = {
-            discord_id: '',
-            display_name: 'Mecanic',
-            role: 'Mecanic'
-        };
+    /*
+     * ============================================================
+     * CITIRE REQUEST
+     * ============================================================
+     */
 
-        // Gestionare Imagini Multiple prin Paste (Maxim 5)
-        let imaginiCurente = [];
-        const pasteZone = document.getElementById('paste-zone');
-        const pasteInstruction = document.getElementById('paste-instruction');
-        const pastePreviewContainer = document.getElementById('paste-preview-container');
-        const imaginiJsonInput = document.getElementById('imagini_json');
 
-        pasteZone.addEventListener('paste', async (e) => {
-            e.preventDefault();
-            if (imaginiCurente.length >= 5) {
-                alert('Poți adăuga maximum 5 imagini per anunț!');
-                return;
-            }
+    if (contentType.includes('multipart/form-data')) {
 
-            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-            for (let item of items) {
-                if (item.type.indexOf('image') === 0) {
-                    if (imaginiCurente.length >= 5) break;
-                    const blob = item.getAsFile();
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        const base64Data = event.target.result;
-                        imaginiCurente.push(base64Data);
-                        actualizeazaPrevizualizariImagini();
-                    };
-                    reader.readAsDataURL(blob);
-                }
-            }
-        });
 
-        function actualizeazaPrevizualizariImagini() {
-            imaginiJsonInput.value = JSON.stringify(imaginiCurente);
-            pastePreviewContainer.innerHTML = '';
+      const form =
+        await request.formData();
 
-            if (imaginiCurente.length > 0) {
-                pasteInstruction.classList.add('hidden');
-                pastePreviewContainer.classList.remove('hidden');
 
-                imaginiCurente.forEach((imgSrc, index) => {
-                    pastePreviewContainer.innerHTML += `
-                        <div class="relative inline-block">
-                            <img src="${imgSrc}" alt="Previzualizare ${index + 1}" class="h-16 w-full rounded-lg border border-slate-700 object-cover">
-                            <button type="button" onclick="stergeImagineIndex(event, ${index})" class="absolute -top-1.5 -right-1.5 bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-rose-500 shadow">×</button>
-                        </div>
-                    `;
-                });
-            } else {
-                pastePreviewContainer.classList.add('hidden');
-                pasteInstruction.classList.remove('hidden');
-            }
+      channel =
+        String(
+          form.get('_panel_channel') || ''
+        );
+
+
+      requestedOrganizationId =
+        String(
+          form.get('_panel_organization_id') || ''
+        );
+
+
+      form.delete('_panel_channel');
+      form.delete('_panel_access_token');
+      form.delete('_panel_organization_id');
+
+
+      forwardBody = form;
+
+
+    } else {
+
+
+      const body =
+        await request.json();
+
+
+      channel =
+        String(
+          body.channel || ''
+        );
+
+
+      requestedOrganizationId =
+        String(
+          body.organization_id || ''
+        );
+
+
+      payload =
+        body.payload;
+
+
+      forwardBody =
+        JSON.stringify(payload);
+
+
+      forwardHeaders['Content-Type'] =
+        'application/json';
+
+    }
+
+
+
+    /*
+     * ============================================================
+     * COMPATIBILITATE CERERI
+     * ============================================================
+     */
+
+
+    finalChannel = channel;
+
+
+    if (channel === 'requests') {
+
+
+      if (
+        payload &&
+        typeof payload === 'object' &&
+        payload.request_type
+      ) {
+
+
+        finalChannel =
+          payload.request_type === 'organization'
+            ? 'requests_organization'
+            : 'requests_departments';
+
+
+      } else {
+
+
+        /*
+         * Pentru paginile vechi
+         * folosim departamente
+         */
+        finalChannel =
+          'requests_departments';
+
+      }
+
+    }
+
+
+
+    /*
+     * ============================================================
+     * VALIDARE CANAL
+     * ============================================================
+     */
+
+
+    if (!channels.has(finalChannel)) {
+
+      return reply(
+        {
+          error:'Canal Discord invalid.'
+        },
+        400
+      );
+
+    }
+
+
+
+    /*
+     * ============================================================
+     * SUPABASE
+     * ============================================================
+     */
+
+
+    const keys =
+      JSON.parse(
+        Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}'
+      );
+
+
+    const serviceKey =
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ||
+      keys.default;
+
+
+    if (!serviceKey) {
+      throw new Error(
+        'Cheia service role lipseÈ™te.'
+      );
+    }
+
+
+    const supabaseUrl =
+      Deno.env.get('SUPABASE_URL');
+
+
+    if (!supabaseUrl) {
+      throw new Error(
+        'SUPABASE_URL lipseÈ™te.'
+      );
+    }
+
+
+    const db =
+      createClient(
+        supabaseUrl,
+        serviceKey
+      );
+
+
+
+    /*
+     * ============================================================
+     * SESIUNE PANEL
+     * ============================================================
+     */
+
+
+    const session =
+      await requirePanelSession(
+        db,
+        request,
+        levels[finalChannel]
+      );
+
+
+    if (!session?.organization_id) {
+
+      throw new Error(
+        'OrganizaÈ›ia activă nu a fost identificată.'
+      );
+
+    }
+
+
+
+    const sessionOrganizationId =
+      String(
+        session.organization_id
+      );
+
+
+
+    if (
+      requestedOrganizationId &&
+      requestedOrganizationId !== sessionOrganizationId
+    ) {
+
+      throw new Error(
+        'OrganizaÈ›ia solicitată nu corespunde organizaÈ›iei active.'
+      );
+
+    }
+
+
+
+    /*
+     * ============================================================
+     * CONFIG ORGANIZAÈšIE
+     * ============================================================
+     */
+
+
+    let config: any = null;
+
+    if (finalChannel !== 'illegal_marketplace') {
+      const {
+        data: organizationConfig,
+        error: configError
+
+    } =
+      await db
+        .from('organization_settings')
+        .select('webhook_routes, marketplace_webhook_url, marketplace_secondary_webhook_url')
+        .eq(
+          'organization_id',
+          sessionOrganizationId
+        )
+        .maybeSingle();
+
+
+
+      if (configError)
+        throw configError;
+
+
+
+      if (!organizationConfig) {
+
+      throw new Error(
+        'ConfiguraÈ›ia organizaÈ›iei active nu a fost găsită.'
+      );
+
+      }
+
+      config = organizationConfig;
+    }
+
+
+
+    /*
+     * ============================================================
+     * WEBHOOK SELECTAT
+     * ============================================================
+     */
+
+
+let route = null;
+
+
+/*
+ * ============================================================
+ * ROUTARE CERERI
+ * ============================================================
+ *
+ * requests:
+ *  - primary = cereri organizaÈ›ie
+ *  - secondary = cereri departamente
+ *
+ * Canalele noi:
+ *  - requests_organization
+ *  - requests_departments
+ *
+ */
+
+if (finalChannel === 'requests_organization') {
+
+  route =
+    config.webhook_routes?.requests_organization || {
+      primary: config.webhook_routes?.requests?.primary
+    };
+
+  const webhooks = [
+    route?.primary?.url
+  ]
+  .filter(Boolean)
+  .map(String);
+
+
+  if (!webhooks.length) {
+
+    throw new Error(
+      'Webhook-ul requests.primary nu este configurat pentru cereri organizaÈ›ie.'
+    );
+
+  }
+
+
+  forwardHeaders['X-Panel-Route'] =
+    'requests.primary';
+
+
+  // trimitem direct
+  for (const webhook of webhooks) {
+
+    const parsed = new URL(webhook);
+
+    if (
+      parsed.protocol !== 'https:' ||
+      parsed.hostname !== 'discord.com'
+    ) {
+
+      throw new Error(
+        'Webhook Discord invalid.'
+      );
+
+    }
+
+
+    const sent =
+      await fetch(
+        webhook,
+        {
+          method:'POST',
+          headers:forwardHeaders,
+          body:forwardBody
         }
+      );
 
-        function stergeImagineIndex(e, index) {
-            e.stopPropagation();
-            imaginiCurente.splice(index, 1);
-            actualizeazaPrevizualizariImagini();
-            pasteZone.focus();
+
+    if (!sent.ok) {
+
+      throw new Error(
+        `Discord a răspuns cu HTTP ${sent.status}.`
+      );
+
+    }
+
+  }
+
+
+  return reply({
+
+    ok:true,
+
+    channel:
+      finalChannel,
+
+    organization_id:
+      sessionOrganizationId,
+
+    routes:
+      webhooks.length
+
+  });
+
+}
+
+
+
+if (finalChannel === 'requests_departments') {
+
+  route =
+    config.webhook_routes?.requests_departments || {
+      primary: config.webhook_routes?.requests?.secondary
+    };
+
+  const webhooks = [
+    route?.secondary?.url ||
+    route?.primary?.url
+  ]
+  .filter(Boolean)
+  .map(String);
+
+
+  if (!webhooks.length) {
+
+    throw new Error(
+      'Webhook-ul requests.secondary nu este configurat pentru cereri departamente.'
+    );
+
+  }
+
+
+  forwardHeaders['X-Panel-Route'] =
+    'requests.secondary';
+
+
+  for (const webhook of webhooks) {
+
+    const parsed = new URL(webhook);
+
+
+    if (
+      parsed.protocol !== 'https:' ||
+      parsed.hostname !== 'discord.com'
+    ) {
+
+      throw new Error(
+        'Webhook Discord invalid.'
+      );
+
+    }
+
+
+    const sent =
+      await fetch(
+        webhook,
+        {
+          method:'POST',
+          headers:forwardHeaders,
+          body:forwardBody
         }
+      );
 
-        function deschideModalImagine(url) {
-            const modal = document.getElementById('imageModal');
-            const modalImg = document.getElementById('modalImg');
-            modalImg.src = url;
-            modal.classList.remove('hidden');
-        }
-
-        function inchideModalImagine() {
-            const modal = document.getElementById('imageModal');
-            modal.classList.add('hidden');
-        }
-
-        function toggleTipActiune() {
-            const tip = document.getElementById('tipAcțiune').value;
-            const categorieWrapper = document.getElementById('categorie-wrapper');
-            const produseWrapper = document.getElementById('produse-wrapper');
-            const serviciiWrapper = document.getElementById('servicii-box-wrapper');
-            const produseInput = document.getElementById('produse');
-
-            if (tip === 'Servicii') {
-                categorieWrapper.classList.add('hidden');
-                produseWrapper.classList.add('hidden');
-                serviciiWrapper.classList.remove('hidden');
-                produseInput.required = false;
-            } else {
-                categorieWrapper.classList.remove('hidden');
-                produseWrapper.classList.remove('hidden');
-                serviciiWrapper.classList.add('hidden');
-                produseInput.required = true;
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            const currentPage = window.location.pathname.split("/").pop() || "index.html";
-            document.querySelectorAll('.nav-link').forEach(link => {
-                const linkHref = link.getAttribute('href');
-                if (linkHref === currentPage) {
-                    link.classList.remove('text-slate-300', 'hover:bg-slate-800');
-                    link.classList.add('bg-emerald-500/10', 'text-emerald-400', 'font-medium');
-                }
-            });
-
-            const cachedUser = localStorage.getItem('discord_user');
-            if (!cachedUser) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            try {
-                const localData = JSON.parse(cachedUser);
-                if (!localData || !localData.discord_id) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-
-                let { data: dbUser, error } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('discord_id', localData.discord_id)
-                    .maybeSingle();
-
-                let activeUser = dbUser || localData;
-
-                currentUser.discord_id = activeUser.discord_id;
-                currentUser.display_name = activeUser.display_name || activeUser.username || 'Mecanic';
-                currentUser.role = activeUser.role || activeUser.default_role || 'Mecanic';
-
-                const userAvatar = activeUser.avatar || 'img/logo-192.png';
-
-                document.getElementById('user-display-name').textContent = currentUser.display_name;
-                document.getElementById('user-role').textContent = currentUser.role;
-                document.getElementById('user-avatar').src = userAvatar;
-
-                document.getElementById('nume').value = currentUser.display_name;
-
-                const roleLower = currentUser.role.toLowerCase();
-                const isPrivileged = roleLower.includes('sef') || roleLower.includes('șef') || roleLower.includes('manager') || roleLower.includes('admin') || roleLower.includes('owner');
-
-                if (isPrivileged) {
-                    const navLogs = document.getElementById('nav-logs');
-                    if (navLogs) navLogs.classList.remove('hidden');
-                }
-
-                localStorage.setItem('discord_user', JSON.stringify(activeUser));
-
-            } catch (err) {
-                console.error('Erore sesiune:', err);
-                window.location.href = 'login.html';
-                return;
-            }
-
-            const logoutBtn = document.getElementById('logout-btn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', () => {
-                    localStorage.clear();
-                    window.location.href = 'login.html';
-                });
-            }
-
-            incarcaAnunturi();
-        });
-
-        async function incarcaAnunturi() {
-            const container = document.getElementById('listaAnunturi');
-            const filtru = document.getElementById('filtruCategorie').value;
-            container.innerHTML = '<p class="text-xs text-slate-500 text-center py-6 col-span-full">Se încarcă...</p>';
-
-            const { data, error } = await supabaseClient
-                .from('marketplace')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                container.innerHTML = '<p class="text-xs text-rose-400 text-center py-6 col-span-full">Erore la încărcarea datelor: ' + escapeHtml(error.message) + '</p>';
-                return;
-            }
-
-            if (!data || data.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-500 text-center py-6 col-span-full">Nu există anunțuri momentan.</p>';
-                document.getElementById('itemCount').innerText = '0 produse';
-                return;
-            }
-
-            const anunturiFiltrate = data.filter(item => {
-                if (filtru === 'TOATE') return true;
-                if (filtru === 'SERVICII') return item.tip_actiune === 'Servicii' || item.categorie === 'SERVICII';
-                return item.categorie === filtru;
-            });
-
-            document.getElementById('itemCount').innerText = `${anunturiFiltrate.length} produse`;
-
-            if (anunturiFiltrate.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-6 col-span-full">Nu există anunțuri în această secțiune.</p>`;
-                return;
-            }
-
-            container.innerHTML = '';
-            anunturiFiltrate.forEach(item => {
-                let dataFormatata = '';
-                if (item.created_at) {
-                    const dataObj = new Date(item.created_at);
-                    dataFormatata = dataObj.toLocaleString('ro-RO', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                    });
-                }
-
-                let tipBadge = item.tip_actiune || 'Vânzare';
-                let badgeClass = tipBadge === 'Cumpărare' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : (tipBadge === 'Servicii' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20');
-
-                let catBadge = item.categorie || '';
-                if (tipBadge === 'Servicii') catBadge = 'SERVICII';
-                const user = typeof getUser === 'function' ? getUser() : null;
-                const esteAdministrator = typeof isPlatformAdmin === 'function' && isPlatformAdmin()
-                    || Number(user?.permission_level) === 7
-                    || ['admin', 'administrator', 'owner'].includes(String(user?.role || user?.default_role || '').trim().toLowerCase());
-                const poateSterge = esteAdministrator || String(item.created_by_discord_id || '') === String(currentUser.discord_id || '');
-
-                let continutAfisat = item.produse || '';
-                if (tipBadge === 'Servicii') {
-                    continutAfisat = `<strong>Serviciu Solicitat / Prestat:</strong>\n${item.produse}`;
-                }
-
-                continutAfisat = continutAfisat.replace(/\[(Vânzare|Cumpărare|Servicii)\]/gi, '').replace(/\[(CASE|VEHICULE|BUNURI|SERVICII)\]/gi, '').trim();
-
-                let imaginiHtml = '';
-                let listaImaginiFinala = [];
-
-                if (item.imagine_url && item.imagine_url.trim() !== '') {
-                    listaImaginiFinala.push(item.imagine_url.trim());
-                }
-
-                try {
-                    if (item.imagini_json) {
-                        const parsed = JSON.parse(item.imagini_json);
-                        if (Array.isArray(parsed)) {
-                            parsed.forEach(img => {
-                                if (!listaImaginiFinala.includes(img)) listaImaginiFinala.push(img);
-                            });
-                        }
-                    }
-                } catch(e) {}
-
-                if (listaImaginiFinala.length > 0) {
-                    imaginiHtml = '<div class="flex flex-wrap gap-2 mt-2 pt-2 border-t border-slate-800/60">';
-                    listaImaginiFinala.forEach(imgUrl => {
-                        const urlCurat = imgUrl.trim();
-                        // Dacă esteimagine base64 (din paste) sau link extern complet, o afișăm direct; altfel păstrăm calea locală img/
-                        const sourcePrefix = (urlCurat.startsWith('data:image') || urlCurat.startsWith('http://') || urlCurat.startsWith('https://')) ? '' : 'img/';
-                        imaginiHtml += `
-                            <img src="${sourcePrefix}${urlCurat}" alt="Miniatură" class="rounded-lg h-10 w-10 object-cover border border-slate-700 cursor-pointer hover:opacity-90 transition" onclick="deschideModalImagine('${sourcePrefix}${urlCurat}')" title="Click pentru mărire">
-                        `;
-                    });
-                    imaginiHtml += '</div>';
-                }
-
-                container.innerHTML += `
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between space-y-4">
-                        <div class="space-y-2">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <span class="font-bold text-slate-100 text-sm">${escapeHtml(item.nume || '')}</span>
-                                    <div class="text-xs text-slate-400 mt-0.5">Tel: ${escapeHtml(item.telefon || '')}</div>
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-2 pt-1">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${badgeClass}">${tipBadge}</span>
-                                ${catBadge ? `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">${catBadge}</span>` : ''}
-                            </div>
-                            <div class="bg-slate-950/50 border border-slate-800 p-3 rounded-xl text-xs text-slate-300 whitespace-pre-line">${escapeHtml(continutAfisat)}</div>
-                        </div>
-                        <div class="space-y-2">
-                            <div class="border-t border-slate-800 pt-3 flex items-center justify-between text-xs">
-                                <div>
-                                    ${item.pret ? `<div class="font-bold text-emerald-400 text-sm">${escapeHtml(item.pret)}</div>` : ''}
-                                </div>
-                                <div>
-                                    ${dataFormatata ? `<div class="text-[10px] text-slate-500">Publicat: ${dataFormatata}</div>` : ''}
-                                    ${poateSterge ? `<button type="button" onclick="stergeAnuntMarketplace('${item.id}')" class="mt-2 px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-[10px] font-bold">Șterge</button>` : ''}
-                                </div>
-                            </div>
-                            ${imaginiHtml}
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        async function stergeAnuntMarketplace(id) {
-            if (!confirm('Ștergi definitiv acest anunț?')) return;
-            const token = localStorage.getItem('discord_access_token');
-            const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-community-posts`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, authorization: `Bearer ${SUPABASE_KEY}` },
-                body: JSON.stringify({ action: 'marketplace_delete', table: 'marketplace', item_id: id, access_token: token })
-            });
-            const result = await response.json();
-            if (!response.ok) return alert(result.error || 'Anunțul nu a putut fi șters.');
-            await incarcaAnunturi();
-        }
-
-        function dataURItoBlob(dataURI) {
-            const byteString = atob(dataURI.split(',')[1]);
-            const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-            const ab = new ArrayBuffer(byteString.length);
-            const ia = new Uint8Array(ab);
-            for (let i = 0; i < byteString.length; i++) {
-                ia[i] = byteString.charCodeAt(i);
-            }
-            return new Blob([ab], { type: mimeString });
-        }
-
-        async function trimitePeDiscord(anunt) {
-            const fields = [
-                { name: '👤 Nume', value: anunt.nume, inline: true },
-                { name: '📞 Telefon', value: anunt.telefon, inline: true },
-                { name: '📌 Tip Acțiune', value: anunt.tip_actiune, inline: true }
-            ];
-
-            if (anunt.tip_actiune !== 'Servicii') {
-                fields.push({ name: '📁 Categorie', value: anunt.categorie, inline: false });
-                fields.push({ name: '📦 Produse / Detalii', value: anunt.produse, inline: false });
-            } else {
-                fields.push({ name: '🛠️ Servicii Solicitate / Prestate', value: anunt.produse, inline: false });
-            }
-
-            fields.push({ name: '💰 Preț', value: anunt.pret, inline: true });
-
-            const formData = new FormData();
-            let listaImaginiDiscord = [];
-
-            try {
-                let parsedImgs = JSON.parse(anunt.imagini_json || '[]');
-                if (Array.isArray(parsedImgs)) {
-                    listaImaginiDiscord = parsedImgs.filter(img => img && img.startsWith('data:image'));
-                }
-            } catch(e) {}
-
-            let filesMap = {};
-
-            listaImaginiDiscord.forEach((base64Data, index) => {
-                const blob = dataURItoBlob(base64Data);
-                const fileName = `imagine_${index + 1}.png`;
-                formData.append(`files[${index}]`, blob, fileName);
-                filesMap[index] = fileName;
-            });
-
-            const embedPrincipal = {
-                title: '📢 Anunț Nou - Marketplace Intern',
-                color: anunt.tip_actiune === 'Servicii' ? 10181046 : 38159,
-                fields: fields,
-                footer: { text: 'Publicat prin Marketplace Intern - Panel by Little Mario' },
-                timestamp: new Date().toISOString()
-            };
-
-            const payload = {
-                embeds: [embedPrincipal]
-            };
-
-            formData.append('payload_json', JSON.stringify(payload));
-
-            try {
-                const response = await sendPanelDiscord('marketplace', formData);
-
-                if (!response.ok) {
-                    const errText = await response.text();
-                    console.error('Erore Discord Webhook API:', response.status, errText);
-                }
-                return response;
-            } catch (err) {
-                console.error('Erore de rețea la trimiterea pe Discord:', err);
-            }
-        }
-
-        document.getElementById('marketForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const tipSelectat = document.getElementById('tipAcțiune').value;
-            let pretValoare = document.getElementById('pret').value.trim();
-
-            if (pretValoare === '') {
-                alert('Trebuie să completezi prețul sau să scrii "negociabil" pentru a putea publica anunțul!');
-                return;
-            }
-
-            if (/^\d+$/.test(pretValoare)) {
-                let numar = parseInt(pretValoare, 10);
-                if (numar >= 10000) {
-                    pretValoare = numar.toLocaleString('ro-RO');
-                }
-                pretValoare += '$';
-            } else {
-                const contineLitere = /[a-zA-Za��??AA�??]/i.test(pretValoare);
-                if (!contineLitere && !pretValoare.includes('$')) {
-                    pretValoare += '$';
-                }
-            }
-
-            let textProdus = '';
-            let categorieSelectata = '';
-
-            if (tipSelectat === 'Servicii') {
-                textProdus = document.getElementById('detalii_servicii').value.trim();
-                categorieSelectata = 'SERVICII';
-                if (!textProdus) {
-                    alert('Te rog completează ce servicii ceri sau prestezi!');
-                    return;
-                }
-            } else {
-                textProdus = document.getElementById('produse').value;
-                categorieSelectata = document.getElementById('categorie').value;
-            }
-
-            const imaginiJsonValoare = document.getElementById('imagini_json').value;
-            const imagineUrlDirectValoare = document.getElementById('imagine_url_direct').value.trim();
-
-            const nouAnunt = {
-                nume: document.getElementById('nume').value,
-                display_name: null,
-                telefon: document.getElementById('telefon').value,
-                tip_actiune: tipSelectat,
-                categorie: categorieSelectata,
-                produse: textProdus,
-                pret: pretValoare,
-                imagini_json: imaginiJsonValoare,
-                imagine_url: imagineUrlDirectValoare !== '' ? imagineUrlDirectValoare : null
-                ,created_by_discord_id: currentUser.discord_id
-            };
-
-            const { data: savedAnunt, error } = await supabaseClient
-                .from('marketplace')
-                .insert([nouAnunt])
-                .select('id')
-                .single();
-
-            if (error) {
-                alert('Erore la salvare: ' + error.message);
-            } else {
-                const discordResponse = await trimitePeDiscord({ ...nouAnunt, id: savedAnunt.id });
-                if (discordResponse?.ok) {
-                    const discordResult = await discordResponse.json();
-                    await supabaseClient.from('marketplace').update({ discord_message_ids: discordResult.messages || [] }).eq('id', savedAnunt.id);
-                }
-
-                alert('Anunț publicat cu succes!');
-                document.getElementById('marketForm').reset();
-                document.getElementById('nume').value = currentUser.display_name;
-
-                imaginiCurente = [];
-                actualizeazaPrevizualizariImagini();
-
-                toggleTipActiune();
-                incarcaAnunturi();
-            }
-        });
-
-        function escapeHtml(str) {
-            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
-    </script>
-    <script src="js/discord-notifications.js"></script>
-    <script src="js/global-footer.js"></script>
-</body>
-</html>
+
+    if (!sent.ok) {
+
+      throw new Error(
+        `Discord a răspuns cu HTTP ${sent.status}.`
+      );
+
+    }
+
+  }
+
+
+  return reply({
+
+    ok:true,
+
+    channel:
+      finalChannel,
+
+    organization_id:
+      sessionOrganizationId,
+
+    routes:
+      webhooks.length
+
+  });
+
+}
+
+
+/*
+ * Restul canalelor răm�n exact cum erau
+ */
+
+let webhooks: string[];
+
+if (finalChannel === 'illegal_marketplace') {
+  const { data: activeOrganizations, error: organizationsError } = await db
+    .from('organizations')
+    .select('id')
+    .eq('active', true);
+
+  if (organizationsError) throw organizationsError;
+
+  const organizationIds = (activeOrganizations || []).map((organization: any) => organization.id);
+  if (!organizationIds.length) {
+    throw new Error('Nu există organizații active pentru Marketplace ilegal.');
+  }
+
+  const { data: settingsRows, error: settingsError } = await db
+    .from('organization_settings')
+    .select('organization_id, webhook_routes, illegal_marketplace_webhook_url, illegal_marketplace_secondary_webhook_url')
+    .in('organization_id', organizationIds);
+
+  if (settingsError) throw settingsError;
+
+  webhooks = [...new Set(
+    (settingsRows || []).flatMap((settings: any) => [
+      settings.webhook_routes?.illegal_marketplace?.primary?.url,
+      settings.webhook_routes?.illegal_marketplace?.secondary?.url,
+      settings.illegal_marketplace_webhook_url,
+      settings.illegal_marketplace_secondary_webhook_url
+    ]).filter(Boolean).map(String)
+  )];
+
+  if (!webhooks.length) {
+    throw new Error('Nu există niciun webhook configurat pentru Marketplace ilegal.');
+  }
+} else {
+  route =
+      config.webhook_routes?.[finalChannel];
+
+  webhooks =
+      [
+        route?.primary?.url,
+        route?.secondary?.url
+      ]
+      .filter(Boolean)
+      .map(String);
+
+  // Compatibilitate cu configurarea veche, care salvează Marketplace-ul
+  // în coloanele dedicate, nu în webhook_routes.
+  if (!webhooks.length && finalChannel === 'marketplace') {
+    webhooks = [
+      config.marketplace_webhook_url,
+      config.marketplace_secondary_webhook_url
+    ]
+      .filter(Boolean)
+      .map(String);
+  }
+
+
+
+  if (!webhooks.length) {
+
+      throw new Error(
+        `Webhook-ul ${finalChannel} nu este configurat pentru organizaÈ›ia activă.`
+      );
+
+  }
+}
+
+
+
+    /*
+     * ============================================================
+     * TRIMITERE DISCORD
+     * ============================================================
+     */
+
+
+    const deliveredMessages: any[] = [];
+    for (const webhook of webhooks) {
+
+
+      let parsed: URL;
+
+
+      try {
+
+        parsed =
+          new URL(webhook);
+
+      } catch {
+
+        throw new Error(
+          'Webhook Discord invalid.'
+        );
+
+      }
+
+
+
+      if (
+        parsed.protocol !== 'https:' ||
+        parsed.hostname !== 'discord.com'
+      ) {
+
+        throw new Error(
+          'Webhook Discord invalid.'
+        );
+
+      }
+
+
+
+      const discordUrl = `${webhook}${webhook.includes('?') ? '&' : '?'}wait=true`;
+      const sent =
+        await fetch(
+          discordUrl,
+          {
+            method:'POST',
+            headers:forwardHeaders,
+            body:forwardBody
+          }
+        );
+
+
+
+      if (!sent.ok) {
+
+        throw new Error(
+          `Discord a răspuns cu HTTP ${sent.status}.`
+        );
+
+      }
+      try {
+        const message = await sent.json();
+        if (message?.id) deliveredMessages.push({ webhook, id: String(message.id) });
+      } catch (_) {}
+
+    }
+
+
+
+    return reply({
+
+      ok:true,
+
+      channel:
+        finalChannel,
+
+      organization_id:
+        sessionOrganizationId,
+
+      routes:
+        webhooks.length,
+      messages: deliveredMessages
+
+    });
+
+
+
+  } catch(error) {
+
+
+    console.error(
+      '[send-discord-notification]',
+      error
+    );
+
+
+    return reply(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Eroare necunoscută.'
+      },
+      400
+    );
+
+  }
+
+});
