@@ -16,8 +16,7 @@ const AdministrativePages = new Set([
     'discord-configurare.html',
     'organizatii.html',
     'vouchere.html',
-    'developer.html',
-    'administrare-organizatie.html'
+    'developer.html'
 ]);
 
 
@@ -120,6 +119,12 @@ function canAccessPage(page) {
      */
     if (isPlatformAdmin()) {
         return true;
+    }
+
+    // Pagina de status și reactivare cu voucher este disponibilă
+    // oricărui utilizator autentificat.
+    if (page === 'administrare-organizatie.html') {
+        return isLogged();
     }
 
     /*
