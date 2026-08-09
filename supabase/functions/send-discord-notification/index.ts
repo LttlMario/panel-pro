@@ -306,7 +306,7 @@ if (request.method === 'OPTIONS') {
     } =
       await db
         .from('organization_settings')
-        .select('webhook_routes')
+        .select('webhook_routes, marketplace_webhook_url, marketplace_secondary_webhook_url')
         .eq(
           'organization_id',
           sessionOrganizationId
@@ -529,7 +529,7 @@ if (finalChannel === 'requests_departments') {
 
 
 /*
- * Restul canalelor răm�n exact cum erau
+ * Restul canalelor rămân exact cum erau
  */
 
 let webhooks: string[];
@@ -577,6 +577,17 @@ if (finalChannel === 'illegal_marketplace') {
       ]
       .filter(Boolean)
       .map(String);
+
+  // Compatibilitate cu configurarea veche, care salvează Marketplace-ul
+  // în coloanele dedicate, nu în webhook_routes.
+  if (!webhooks.length && finalChannel === 'marketplace') {
+    webhooks = [
+      config.marketplace_webhook_url,
+      config.marketplace_secondary_webhook_url
+    ]
+      .filter(Boolean)
+      .map(String);
+  }
 
 
 

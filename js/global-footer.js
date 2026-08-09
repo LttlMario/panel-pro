@@ -32,6 +32,7 @@
 
   function findFooterHost() {
     const explicit = document.querySelector("[data-panel-footer-host]");
+    if (explicit && explicit.closest('main') && document.querySelector('#panel-shared-sidebar, #panel-header-host')) return document.body;
     if (explicit) return explicit;
 
     const main = document.querySelector("main");
@@ -133,6 +134,7 @@
     const update = () => {
       frame = 0;
       const rect = footer.getBoundingClientRect();
+      document.documentElement.style.setProperty('--panel-footer-height', `${Math.ceil(footer.offsetHeight)}px`);
       const visibleHeight = Math.max(0, Math.min(rect.height, window.innerHeight - rect.top));
       document.documentElement.style.setProperty('--panel-footer-visible-height', `${Math.ceil(visibleHeight)}px`);
       document.body.classList.toggle('panel-footer-visible', visibleHeight > 0);

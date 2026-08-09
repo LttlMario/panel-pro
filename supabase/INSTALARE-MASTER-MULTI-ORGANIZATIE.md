@@ -2,7 +2,7 @@
 
 ## Schema master
 
-`MASTER-MULTI-ORGANIZATIE.sql` este dump-ul generat din proiectul Supabase activ `web-complex`. Conține schema publică actuală: tabele, coloane, indexuri, constr�ngeri, politici RLS, trigger-e și funcții PostgreSQL disponibile în schema publică.
+`MASTER-MULTI-ORGANIZATIE.sql` este dump-ul generat din proiectul Supabase activ `web-complex`. Conține schema publică actuală: tabele, coloane, indexuri, constrângeri, politici RLS, trigger-e și funcții PostgreSQL disponibile în schema publică.
 
 Pentru o instalare nouă, creează un proiect Supabase gol și execută fișierul în SQL Editor sau prin PostgreSQL client. Fișierul poate conține obiecte Supabase gestionate automat; verifică erorile de obiecte deja existente înainte de rerulare.
 

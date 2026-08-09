@@ -38,7 +38,7 @@
         style.id = 'panel-assistant-widget-styles';
         style.textContent = `
             #panel-assistant-widget, #panel-assistant-widget * { box-sizing:border-box; }
-            #panel-assistant-widget { position:fixed; right:max(18px, env(safe-area-inset-right)); bottom:max(18px, env(safe-area-inset-bottom)); z-index:35; width:64px; height:64px; color:#e2e8f0; color-scheme:dark; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; pointer-events:none; transition:bottom .2s ease; }
+            #panel-assistant-widget { position:fixed; right:max(18px, env(safe-area-inset-right)); bottom:max(18px, env(safe-area-inset-bottom)); z-index:75; width:64px; height:64px; color:#e2e8f0; color-scheme:dark; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; pointer-events:none; transition:bottom .2s ease; }
             body.panel-footer-visible #panel-assistant-widget { bottom:calc(var(--panel-footer-visible-height, 0px) + max(18px, env(safe-area-inset-bottom))); }
             #panel-assistant-widget.paw-map-page { z-index:1200; }
             #panel-assistant-widget.paw-map-details { right:420px; }
@@ -116,7 +116,7 @@
             <div class="paw-panel" id="panel-assistant-chat" role="dialog" aria-label="Chat cu asistentul" hidden>
                 <div class="paw-header">
                     <img class="paw-header-avatar" src="css/robot-assistant.svg" alt="Avatar asistent robot">
-                    <div class="paw-header-copy"><p class="paw-title">Asistent Panel</p><p class="paw-status">Local · rol Discord: ${engine.roleName}</p></div>
+                    <div class="paw-header-copy"><p class="paw-title">Asistent Panel</p><p class="paw-status">Local · rol Discord: ${engine.roleName || 'rolul tău'}</p></div>
                     <div class="paw-header-actions">
                         <button type="button" class="paw-icon-button paw-clear" aria-label="Curăță conversația" title="Curăță conversația">⌫</button>
                         <button type="button" class="paw-icon-button paw-minimize" aria-label="Minimizează chatul" title="Minimizează">—</button>
@@ -155,7 +155,8 @@
 
     function updateStatus(count) {
         const status = document.querySelector('#panel-assistant-widget .paw-status');
-        if (status) status.textContent = `Local · ${count} informații · rol Discord: ${engine?.roleName || 'necunoscut'}`;
+        const roleLabel = String(engine?.roleName || '').trim() || 'Rol Discord indisponibil';
+        if (status) status.textContent = `Local · ${count} informații · rol Discord: ${roleLabel}`;
     }
 
     function loadHistory() {
@@ -167,9 +168,9 @@
                 .slice(-MAX_HISTORY)
                 .map((message) => ({
                     sender: message.sender,
-                    text: message.text.slice(0, 1200),
+                    text: engine.repairText(message.text).slice(0, 1200),
                     page: engine.isPageAllowed(message.page) && message.page !== 'asistent.html' ? message.page : '',
-                    title: String(message.title || '').slice(0, 120)
+                    title: engine.repairText(message.title || '').slice(0, 120)
                 }));
         } catch (_error) {
             return [];
@@ -204,14 +205,14 @@
         const bubble = document.createElement('div');
         bubble.className = 'paw-bubble';
         const text = document.createElement('span');
-        text.textContent = message.text;
+        text.textContent = engine.repairText(message.text);
         bubble.appendChild(text);
 
         if (message.page && message.page !== 'asistent.html' && engine.isPageAllowed(message.page)) {
             const link = document.createElement('a');
             link.className = 'paw-source-link';
             link.href = message.page;
-            link.textContent = `Deschide ${message.title || 'pagina'} →`;
+            link.textContent = `Deschide ${engine.repairText(message.title || 'pagina')} →`;
             bubble.appendChild(document.createElement('br'));
             bubble.appendChild(link);
         }

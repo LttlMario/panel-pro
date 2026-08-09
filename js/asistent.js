@@ -16,14 +16,14 @@
             : 'max-w-[92%] sm:max-w-[78%] rounded-2xl rounded-bl-md border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-200 shadow';
         const paragraph = document.createElement('p');
         paragraph.className = 'whitespace-pre-wrap leading-relaxed';
-        paragraph.textContent = String(text || '');
+        paragraph.textContent = engine?.repairText(text || '') || String(text || '');
         bubble.appendChild(paragraph);
 
         if (result.page && result.page !== 'asistent.html' && engine?.isPageAllowed(result.page)) {
             const link = document.createElement('a');
             link.href = result.page;
             link.className = 'mt-3 inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20';
-            link.textContent = `Deschide ${result.title || 'pagina'} →`;
+            link.textContent = `Deschide ${engine.repairText(result.title || 'pagina')} →`;
             bubble.appendChild(link);
         }
         wrapper.appendChild(bubble);

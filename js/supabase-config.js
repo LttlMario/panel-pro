@@ -47,6 +47,7 @@ window.ensurePanelSession = async function ensurePanelSession() {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || 'Sesiunea panel nu a putut fi reînnoită.');
     localStorage.setItem('discord_user', JSON.stringify(result.user));
+    localStorage.setItem('user_role', result.user?.role || result.active_organization?.panel_role || '');
     localStorage.setItem('panel_session_token', result.session_token);
     localStorage.setItem('panel_session_expires_at', result.expires_at);
     localStorage.setItem('panel_active_organization', JSON.stringify(result.active_organization));

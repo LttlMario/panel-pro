@@ -4,7 +4,7 @@
     'use strict';
     if (window.PanelAssistantCore) return;
 
-    const CACHE_VERSION = '3';
+    const CACHE_VERSION = '7';
     const CACHE_TTL_MS = 30 * 60 * 1000;
     const STOP_WORDS = new Set(['a', 'ai', 'al', 'ale', 'am', 'ar', 'are', 'as', 'asta', 'ca', 'care', 'ce', 'cea', 'cel', 'cu', 'cum', 'de', 'din', 'doar', 'este', 'eu', 'fi', 'in', 'la', 'mai', 'ma', 'mi', 'o', 'pe', 'pentru', 'pot', 'sa', 'se', 'si', 'sunt', 'un', 'una', 'unde', 'vreau']);
     const SYNONYMS = {
@@ -12,10 +12,44 @@
         absenta: 'invoire', concediu: 'invoire', cerere: 'invoire', indisponibil: 'invoire',
         reteta: 'craft', fabricare: 'craft', confectionare: 'craft', roata: 'roti', anvelopa: 'roti',
         piata: 'marketplace', anunturi: 'anunt', vanzari: 'vanzare',
-        harta: 'locatii', locatie: 'locatii', ilegal: 'ilegal',
+        harta: 'locatii', locatie: 'locatii', ilegal: 'ilegal', tec9: 'tec',
         sef: 'manager', coordonator: 'manager', administrare: 'admin',
         jurnal: 'loguri', activitate: 'loguri', istoric: 'rapoarte'
     };
+
+    const WINDOWS1252_BYTES = Object.freeze({
+        '€': 0x80, '‚': 0x82, 'ƒ': 0x83, '„': 0x84, '…': 0x85, '†': 0x86, '‡': 0x87,
+        'ˆ': 0x88, '‰': 0x89, 'Š': 0x8a, '‹': 0x8b, 'Œ': 0x8c, 'Ž': 0x8e,
+        '‘': 0x91, '’': 0x92, '“': 0x93, '”': 0x94, '•': 0x95, '–': 0x96, '—': 0x97,
+        '˜': 0x98, '™': 0x99, 'š': 0x9a, '›': 0x9b, 'œ': 0x9c, 'ž': 0x9e, 'Ÿ': 0x9f
+    });
+
+    function repairText(value) {
+        let result = String(value ?? '');
+        for (let pass = 0; pass < 2; pass += 1) {
+            if (!/(?:Ã.|Â.|Ä[ƒ¤]|Å.|È[™›]|â[€†‡‚„…–—œž]|ð.)/.test(result)) break;
+            const bytes = [];
+            let canDecode = true;
+            for (const character of result) {
+                const code = character.charCodeAt(0);
+                if (code <= 255) bytes.push(code);
+                else if (WINDOWS1252_BYTES[character] !== undefined) bytes.push(WINDOWS1252_BYTES[character]);
+                else { canDecode = false; break; }
+            }
+            if (!canDecode) break;
+            const decoded = new TextDecoder('utf-8').decode(new Uint8Array(bytes));
+            if (decoded === result || /\uFFFD/.test(decoded)) break;
+            result = decoded;
+        }
+        return result
+            .replace(/r\uFFFDspund/gi, 'răspund')
+            .replace(/c\uFFFDnd/gi, 'când')
+            .replace(/g\uFFFDse/gi, 'găse')
+            .replace(/informa\uFFFDii/gi, 'informații')
+            .replace(/rolul t\uFFFDu/gi, 'rolul tău')
+            .replace(/\uFFFDn/gi, 'în')
+            .replace(/\uFFFDi/gi, 'și');
+    }
 
     function normalize(value) {
         return String(value || '')
@@ -77,9 +111,33 @@
 
     function currentRole() {
         try {
-            return typeof getRole === 'function' ? Number(getRole()) || 0 : 0;
+            if (typeof isPlatformAdmin === 'function' && isPlatformAdmin()) return 99;
+            if (typeof getRole === 'function') {
+                const legacyRole = Number(getRole());
+                if (Number.isFinite(legacyRole) && legacyRole > 0) return legacyRole;
+            }
+            const user = currentUser();
+            const allowed = new Set([
+                ...(Array.isArray(user?.allowed_pages) ? user.allowed_pages : []),
+                ...(Array.isArray(user?.assistant_allowed_pages) ? user.assistant_allowed_pages : [])
+            ].map((page) => String(page || '').split('?')[0].split('#')[0].split('/').pop()));
+            const pageLevels = {
+                'calculatorilegal.html': 3,
+                'locatiiilegale.html': 3,
+                'marketplace-ilegal.html': 3,
+                'rapoarte.html': 4,
+                'contracte.html': 4,
+                'admin.html': 7,
+                'logs.html': 7,
+                'diagnostic.html': 7,
+                'discord-configurare.html': 7,
+                'organizatii.html': 7,
+                'vouchere.html': 7,
+                'developer.html': 7
+            };
+            return Math.max(1, ...[...allowed].map((page) => pageLevels[page] || 1));
         } catch (_error) {
-            return 0;
+            return 1;
         }
     }
 
@@ -106,7 +164,7 @@
     function create(options = {}) {
         const role = currentRole();
         const user = currentUser();
-        if (!user || (role < 1 && selectedPages().length === 0)) return null;
+        if (!user) return null;
 
         const permissions = pagePermissions();
         const entries = [];
@@ -115,19 +173,29 @@
         const cacheKey = `panel_assistant_index_v${CACHE_VERSION}_role_${role}`;
 
         function roleName() {
+            if (typeof getEffectiveRoleLabel === 'function') {
+                const effectiveLabel = getEffectiveRoleLabel(user);
+                if (effectiveLabel) return effectiveLabel;
+            }
             const active = typeof getActiveOrganization === 'function' ? getActiveOrganization() : null;
             const candidates = [
                 user.discord_role_name,
                 user.discord_role,
                 user.role_name,
                 user.panel_role,
+                user.role_label,
+                user.organization_role,
+                user.organization?.panel_role,
+                user.organization?.role,
+                user.active_organization?.panel_role,
+                user.active_organization?.role,
                 active?.discord_role_name,
                 active?.panel_role,
                 user.role,
                 user.default_role
             ];
             return candidates.map(value => String(value || '').trim())
-                .find(value => value && !/^\d+$/.test(value) && !/^(?:level|nivel)\b/i.test(value)) || 'Rol Discord';
+                .find(value => value && /[\p{L}]/u.test(value) && !/^\d+$/.test(value) && !/^(?:level|nivel|rolul tău|rol discord|necunoscut|rol)$/i.test(value)) || 'Rol Discord indisponibil';
         }
 
         function requiredRoleForPage(page) {
@@ -142,6 +210,7 @@
         function isPageAllowed(page) {
             if (!page || /^\s*(?:javascript:|data:|https?:|\/\/)/i.test(String(page))) return false;
             const file = String(page).split('?')[0].split('#')[0].split('/').pop();
+            if (isPlatformAdmin()) return true;
             return assistantPages().includes(file) && (selectedPages().includes(file) || isPlatformAdmin());
         }
 
@@ -178,11 +247,18 @@
         }
 
         function addEntry(entry, source = 'curated') {
-            if (!entry?.title || !entry?.answer || Number(entry.role || 1) > role) return false;
-            if (entry.page && !isPageAllowed(entry.page)) return false;
-            const signature = `${normalize(entry.title)}|${entry.page || ''}`;
+            const cleanEntry = entry ? {
+                ...entry,
+                title: repairText(entry.title),
+                category: repairText(entry.category),
+                answer: repairText(entry.answer),
+                keywords: (entry.keywords || []).map(repairText)
+            } : null;
+            if (!cleanEntry?.title || !cleanEntry?.answer || Number(cleanEntry.role || 1) > role) return false;
+            if (cleanEntry.page && !isPageAllowed(cleanEntry.page)) return false;
+            const signature = `${normalize(cleanEntry.title)}|${cleanEntry.page || ''}`;
             if (entries.some((item) => item.signature === signature)) return false;
-            entries.push({ ...entry, source, signature, role: Number(entry.role || 1) });
+            entries.push({ ...cleanEntry, source, signature, role: Number(cleanEntry.role || 1) });
             return true;
         }
 
@@ -292,11 +368,14 @@
         function specialResponse(question) {
             const query = normalize(question);
             const restrictedTopics = [
-                { role: 7, pattern: /\b(panou admin|admin|schimb rol|modific rol|rol utilizator|utilizator din panou|schimb ora|configurez ora|oprire toate turele|opresc toate turele|sterge utilizator|loguri|jurnal activitate)\b/ },
-                { role: 4, pattern: /\b(rapoarte|mecanici activi|cine este pontaj|cine e pontaj|opresc tura cuiva|opresc tura altuia|editez pontaj|modific pontajul altuia|sterg pontaj|contracte|generez contract)\b/ },
-                { role: 3, pattern: /\b(calculator ilegal|locatii ilegale|black market|piata neagra|cocaina|marijuana|jointuri|acetona|cayo)\b/ }
+                { page: 'admin.html', pattern: /\b(panou admin|admin|schimb rol|modific rol|rol utilizator|utilizator din panou|schimb ora|configurez ora|oprire toate turele|opresc toate turele|sterge utilizator|loguri|jurnal activitate)\b/ },
+                { page: 'rapoarte.html', pattern: /\b(rapoarte|mecanici activi|cine este pontaj|cine e pontaj|opresc tura cuiva|opresc tura altuia|editez pontaj|modific pontajul altuia|sterg pontaj)\b/ },
+                { page: 'contracte.html', pattern: /\b(contracte|generez contract)\b/ },
+                { page: 'calculatorilegal.html', pattern: /\b(calculator ilegal|arme|arma|arm[ăa] de foc|muni[țt]ii|gloan[țt]e)\b/ },
+                { page: 'marketplace-ilegal.html', pattern: /\b(black market|piata neagra|cocaina|marijuana|jointuri|acetona|cayo|tec|tec9|tec 9|tec-9)\b/ },
+                { page: 'locatiiilegale.html', pattern: /\b(locatii ilegale|loca[țt]ii ilegale|zone ilegale|loca[țt]ie ilegal[ăa])\b/ }
             ];
-            const blockedTopic = restrictedTopics.find((topic) => role < topic.role && topic.pattern.test(query));
+            const blockedTopic = restrictedTopics.find((topic) => topic.pattern.test(query) && !isPageAllowed(topic.page));
             if (blockedTopic) return { answer: 'Nu ai permisiunea necesară pentru această secțiune. Asistentul îți poate arăta doar informațiile disponibile rolului tău.' };
             if (/^(salut|buna|buna ziua|buna seara|neata|hey|hello)\b/.test(query)) return { answer: `Salut! Sunt asistentul intern al panelului. Ai acces de tip „${roleName()}”. Cu ce informație din proiect te pot ajuta?` };
             if (/\b(multumesc|mersi|ms|super|perfect)\b/.test(query)) return { answer: 'Cu plăcere! Poți continua cu orice întrebare despre paginile și funcțiile panelului.' };
@@ -343,6 +422,7 @@
             answer,
             indexLocalPages,
             isPageAllowed,
+            repairText,
             getEntryCount: () => entries.length
         };
     }

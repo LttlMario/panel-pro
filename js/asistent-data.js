@@ -7,6 +7,12 @@ window.PANEL_ASSISTANT_KNOWLEDGE = [
         answer: 'Sunt asistentul local al panelului. Caut exclusiv în informațiile proiectului și îți arăt pagina potrivită. Nu caut pe internet și nu trimit conversația către un API AI.'
     },
     {
+        title: 'Căutarea în Panel',
+        category: 'navigare', role: 1, page: '',
+        keywords: ['cautare', 'search', 'searchbar', 'bara cautare', 'gasesc ceva', 'unde gasesc', 'cauta pagina'],
+        answer: 'Folosește bara de căutare din header. Căutarea verifică paginile și conținutul permis rolului tău și te poate trimite direct către modulul potrivit.'
+    },
+    {
         title: 'Dashboard',
         category: 'navigare', role: 1, page: 'index.html',
         keywords: ['dashboard', 'acasa', 'pagina principala', 'rezumat', 'tura curenta'],
@@ -79,6 +85,36 @@ window.PANEL_ASSISTANT_KNOWLEDGE = [
         answer: 'Calculatorul ilegal calculează componentele și materialele necesare pentru arme, muniții, plicuri de cocaină, marijuana și ciuperci. Introdu cantitățile dorite în pagina Calculator Ilegal.'
     },
     {
+        title: 'Navy Pistol',
+        category: 'ilegal', role: 3, page: 'calculatorilegal.html',
+        keywords: ['navy', 'navy pistol', 'cum fac navy', 'cum fac un navy', 'craft navy pistol', 'arma navy'],
+        answer: 'Pentru 1 Navy Pistol în Calculator Ilegal ai nevoie de 1 Blueprint, 6 piese de armă, 1 Țeavă Rifle și 1 Corp Pistol. Echivalentul materialelor brute este 5 Arc, 5 Oțel, 5 Plastic și 10 Scrap. Deschide Calculator Ilegal și introdu cantitatea la Navy Pistol pentru calcul automat.'
+    },
+    {
+        title: 'Combat MG',
+        category: 'ilegal', role: 3, page: 'calculatorilegal.html',
+        keywords: ['combat mg', 'cum fac combat mg', 'arma combat mg'],
+        answer: 'Pentru 1 Combat MG ai nevoie de 1 Blueprint, 4 piese de armă, 1 Țeavă Rifle, 1 Corp Rifle și 1 Butstock. Echivalentul materialelor brute este 6 Arc, 6 Oțel, 6 Plastic și 12 Scrap.'
+    },
+    {
+        title: 'Assault SMG',
+        category: 'ilegal', role: 3, page: 'calculatorilegal.html',
+        keywords: ['assault smg', 'cum fac assault smg', 'arma smg'],
+        answer: 'Pentru 1 Assault SMG ai nevoie de 1 Blueprint, 4 piese de armă, 1 Țeavă SMG, 1 Corp Rifle și 1 Butstock. Echivalentul materialelor brute este 6 Arc, 6 Oțel, 6 Plastic și 12 Scrap.'
+    },
+    {
+        title: 'Gadget Pistol',
+        category: 'ilegal', role: 3, page: 'calculatorilegal.html',
+        keywords: ['gadget pistol', 'cum fac gadget pistol'],
+        answer: 'Pentru 1 Gadget Pistol ai nevoie de 1 Blueprint, 20 piese de armă, 1 Țeavă Rifle, 1 Corp Pistol, 10 Aur, 2 Diamante, 2 Rubine și 2 Smaralde. Echivalentul materialelor brute este 12 Arc, 12 Oțel, 12 Plastic și 24 Scrap.'
+    },
+    {
+        title: 'Shotgun',
+        category: 'ilegal', role: 3, page: 'calculatorilegal.html',
+        keywords: ['shotgun', 'cum fac shotgun'],
+        answer: 'Pentru 1 Shotgun ai nevoie de 4 piese de armă, 1 Țeavă SMG și 1 Corp Pistol. Echivalentul materialelor brute este 4 Arc, 4 Oțel, 4 Plastic și 8 Scrap.'
+    },
+    {
         title: 'Raport materiale piesă brută',
         category: 'ilegal', role: 3, page: 'calculatorilegal.html',
         keywords: ['piesa bruta', 'arc', 'otel', 'plastic', 'scrap', 'raport materiale arma'],
@@ -107,6 +143,12 @@ window.PANEL_ASSISTANT_KNOWLEDGE = [
         category: 'ilegal', role: 3, page: 'marketplace-ilegal.html',
         keywords: ['black market', 'piata neagra', 'anunt ilegal', 'arme', 'munitie', 'jointuri', 'piese arma'],
         answer: 'Black Market este marketplace-ul pentru rolurile Familia și superioare. Include anunțuri pentru Arme, Muniție, Plicuri, Jointuri, Piese de armă și Servicii. Prețul este obligatoriu și sunt permise maximum 5 imagini.'
+    },
+    {
+        title: 'TEC-9 / TEC',
+        category: 'ilegal', role: 3, page: 'marketplace-ilegal.html',
+        keywords: ['tec', 'tec9', 'tec 9', 'tec-9', 'arma tec', 'pistol tec', 'vand tec', 'cumpar tec', 'black market tec'],
+        answer: 'Pentru TEC sau TEC-9 mergi în Black Market. Acolo poți căuta anunțuri de vânzare, cumpărare sau servicii pentru această armă. Folosește căutarea din pagină cu „TEC” sau „TEC-9”.'
     },
     {
         title: 'Rapoarte și pontaje active',

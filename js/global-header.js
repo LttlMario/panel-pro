@@ -37,25 +37,164 @@
         host.insertAdjacentHTML('beforeend', headerHTML);
 
         const mobileBtn = host.querySelector('#global-header-mobile-btn');
-        if (mobileBtn && typeof window.toggleMobileMenu === 'function') {
-            mobileBtn.addEventListener('click', window.toggleMobileMenu);
+        if (mobileBtn) {
+            mobileBtn.addEventListener('click', () => {
+                if (typeof window.__panelMobileToggle === 'function') {
+                    window.__panelMobileToggle();
+                    return;
+                }
+                if (typeof window.toggleMobileMenu === 'function') window.toggleMobileMenu();
+            });
         }
 
         const searchInput = host.querySelector('#global-search');
+        const roleLabel = getActiveRoleLabel();
+        if (searchInput) {
+            searchInput.placeholder = roleLabel
+                ? `Caută în paginile disponibile pentru ${roleLabel}...`
+                : 'Caută module sau informații...';
+            searchInput.title = roleLabel
+                ? `Căutare filtrată după accesul rolului: ${roleLabel}`
+                : 'Căutare filtrată după paginile disponibile';
+        }
         if (searchInput && typeof window.renderGlobalSearch === 'function') {
             searchInput.addEventListener('input', window.renderGlobalSearch);
             searchInput.addEventListener('focus', window.renderGlobalSearch);
         }
     }
 
-    window.renderGlobalSearch = window.renderGlobalSearch || function renderGlobalSearch(event) {
-        const query = String(event?.target?.value || '').trim().toLocaleLowerCase('ro');
-        const content = [...document.querySelectorAll('main article, main section, main .card, main .panel, main li')]
-            .filter((element) => !element.closest('#panel-header-host, #panel-global-footer, #panel-sidebar-host'));
-        content.forEach((element) => {
-            if (!query || element.textContent.toLocaleLowerCase('ro').includes(query)) element.style.removeProperty('display');
-            else if (!element.matches('#calculator-input-panel, #calculator-results')) element.style.display = 'none';
+    function normalizeSearchValue(value) {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLocaleLowerCase('ro-RO')
+            .trim();
+    }
+
+    function getActiveRoleLabel() {
+        const user = typeof window.getUser === 'function' ? window.getUser() : null;
+        if (typeof window.getEffectiveRoleLabel === 'function') return window.getEffectiveRoleLabel(user);
+        const organization = typeof window.getActiveOrganization === 'function'
+            ? window.getActiveOrganization()
+            : null;
+        const candidates = [
+            user?.discord_role_name,
+            user?.discord_role,
+            user?.role_name,
+            user?.panel_role,
+            user?.role_label,
+            user?.organization_role,
+            user?.organization?.panel_role,
+            user?.organization?.role,
+            user?.active_organization?.panel_role,
+            user?.active_organization?.role,
+            organization?.panel_role,
+            user?.role,
+            user?.default_role
+        ];
+        return candidates
+            .map(value => String(value || '').trim())
+            .find(value => value && /[\p{L}]/u.test(value) && !/^\d+$/.test(value)) || '';
+    }
+
+    function getAccessibleNavigation() {
+        const links = [...document.querySelectorAll('#panel-shared-sidebar nav a[href], #sidebar-nav a[href]')];
+        const seen = new Set();
+        return links.map(link => {
+            const href = link.getAttribute('href') || '';
+            const page = href.split('?')[0].split('#')[0].split('/').pop();
+            const accessible = typeof window.canAccessPage === 'function'
+                ? window.canAccessPage(page)
+                : getComputedStyle(link).display !== 'none';
+            if (!page || seen.has(page) || !accessible) return null;
+            seen.add(page);
+            const section = link.closest('[data-nav-section]')?.querySelector('.panel-nav-section-label')?.textContent?.trim() || 'Panel';
+            return {
+                href,
+                label: link.querySelector('span:last-child')?.textContent?.trim() || link.textContent.trim(),
+                icon: link.querySelector('span:first-child')?.textContent?.trim() || '•',
+                section
+            };
+        }).filter(Boolean);
+    }
+
+    function getSearchablePageItems() {
+        const main = document.querySelector('main');
+        if (!main) return [];
+        const selectors = [
+            '.gallery-card',
+            'tbody tr',
+            '.community-post, .announcement-card, .post',
+            '.marketplace-card, .listing-card',
+            '[data-searchable]'
+        ];
+        const items = [];
+        const seen = new Set();
+        selectors.forEach(selector => {
+            main.querySelectorAll(selector).forEach(item => {
+                if (seen.has(item) || item.closest('#panel-header-host, #panel-global-footer, #panel-sidebar-host, header, footer, [role="dialog"]')) return;
+                seen.add(item);
+                items.push(item);
+            });
         });
+        return items;
+    }
+
+    function filterCurrentPage(query) {
+        const items = getSearchablePageItems();
+        items.forEach(item => {
+            const visible = !query || normalizeSearchValue(item.textContent).includes(query);
+            item.style.display = visible ? '' : 'none';
+        });
+        return items.filter(item => !query || normalizeSearchValue(item.textContent).includes(query)).length;
+    }
+
+    function filterPageSpecificContent(query) {
+        const page = (window.location.pathname.split('/').pop() || '').toLowerCase();
+        if ((page === 'calculator.html' || page === 'calculatorilegal.html') && typeof window.filterCalculatorRecipes === 'function') {
+            window.filterCalculatorRecipes(query);
+        }
+        if ((page === 'craftmecanics.html' || page === 'bucatarie.html') && typeof window.filterGallery === 'function') {
+            window.filterGallery(query);
+        }
+    }
+
+    function renderSearchResults(input, query, pageMatchCount) {
+        const resultsBox = document.getElementById('global-search-results');
+        if (!resultsBox) return;
+        if (!query) {
+            resultsBox.classList.add('hidden');
+            resultsBox.innerHTML = '';
+            return;
+        }
+
+        const navigationMatches = getAccessibleNavigation()
+            .filter(item => normalizeSearchValue(`${item.label} ${item.section} ${item.href}`).includes(query))
+            .slice(0, 8);
+        const roleLabel = getActiveRoleLabel();
+        const roleContext = roleLabel
+            ? `<div class="px-4 py-2 text-[10px] uppercase tracking-wider text-emerald-300 border-b border-slate-800">Rol activ: ${escapeHtml(roleLabel)}</div>`
+            : '';
+        const navHtml = navigationMatches.map(item => `
+            <a href="${escapeHtml(item.href)}" class="flex items-center justify-between gap-3 px-4 py-3 text-xs text-slate-200 hover:bg-slate-800 border-b border-slate-800/70">
+                <span class="flex items-center gap-3"><span class="text-base">${escapeHtml(item.icon)}</span><span>${escapeHtml(item.label)}</span></span>
+                <small class="text-[10px] text-slate-500">${escapeHtml(item.section)}</small>
+            </a>
+        `).join('');
+        const contentHtml = pageMatchCount
+            ? `<div class="px-4 py-2 text-[10px] uppercase tracking-wider text-slate-500">${pageMatchCount} rezultat(e) în pagina curentă</div>`
+            : '';
+        resultsBox.innerHTML = `${roleContext}${navHtml}${contentHtml || (!navigationMatches.length ? '<div class="px-4 py-3 text-xs text-slate-400">Nu am găsit nimic în paginile disponibile pentru rolul tău.</div>' : '')}`;
+        resultsBox.classList.remove('hidden');
+        input?.setAttribute('aria-expanded', 'true');
+    }
+
+    window.renderGlobalSearch = window.renderGlobalSearch || function renderGlobalSearch(event) {
+        const input = event?.target || document.getElementById('global-search');
+        const query = normalizeSearchValue(input?.value);
+        filterPageSpecificContent(query);
+        const pageMatchCount = filterCurrentPage(query);
+        renderSearchResults(input, query, pageMatchCount);
     };
 
     if (document.readyState === 'loading') {

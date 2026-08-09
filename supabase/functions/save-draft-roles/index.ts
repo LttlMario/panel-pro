@@ -1,1 +1,48 @@
-import {createClient} from 'jsr:@supabase/supabase-js@2';const h={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type','Content-Type':'application/json'};const r=(x:unknown,s=200)=>new Response(JSON.stringify(x),{status:s,headers:h});Deno.serve(async q=>{if(q.method==='OPTIONS')return new Response('ok',{headers:h});try{const key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS')||'{}').default,db=createClient(Deno.env.get('SUPABASE_URL')!,key),b=await q.json(),token=String(b.access_token||''),code=String(b.voucher_code||'').trim().toUpperCase(),guild=String(b.guild_id||'').trim(),id=String(b.organization_id||''),roles=Array.isArray(b.roles)?b.roles:[];if(!token||!code||!id||!/^[0-9]{15,22}$/.test(guild)||!roles.length)return r({error:'Datele rolurilor sunt incomplete.'},400);const me=await fetch('https://discord.com/api/v10/users/@me',{headers:{Authorization:`Bearer ${token}`}});if(!me.ok)return r({error:'Sesiunea Discord a expirat.'},401);const user=await me.json(),{data:v}=await db.from('organization_vouchers').select('redeemed_by_discord_id,redeemed_organization_id,guild_id').eq('code',code).maybeSingle();if(!v||String(v.redeemed_by_discord_id)!==String(user.id)||String(v.redeemed_organization_id)!==id||String(v.guild_id||guild)!==guild)return r({error:'Voucherul, organizația sau Guild ID-ul nu corespunde.'},403);const {data:o}=await db.from('organizations').select('lifecycle_status').eq('id',id).maybeSingle();if(!o||o.lifecycle_status!=='draft')return r({error:'Organizația nu este Draft.'},400);const bot=String(Deno.env.get('DISCORD_BOT_TOKEN')||'');const rr=await fetch(`https://discord.com/api/v10/guilds/${guild}/roles`,{headers:{Authorization:`Bot ${bot}`}});if(!rr.ok)return r({error:'Botul nu poate verifica rolurile.'},400);const available=new Set((await rr.json()).map((x:any)=>String(x.id)));if(roles.some((x:any)=>!available.has(String(x.id))))return r({error:'Un rol selectat nu există pe server.'},400);const {data:p}=await db.from('app_settings').select('value').eq('organization_id',id).eq('key','organization_package').maybeSingle();if(p?.value?.code!=='full'&&roles.length>6)return r({error:'Standard permite maximum 6 roluri.'},400);await db.from('organization_role_mappings').delete().eq('organization_id',id);const {error}=await db.from('organization_role_mappings').insert(roles.map((x:any)=>({organization_id:id,guild_id:guild,discord_role_id:String(x.id),discord_role_name:String(x.name),panel_role:String(x.panel_role||x.name),permission_level:Number(x.level)||1,priority:Number(x.level||1)*10,enabled:true})));if(error)throw error;return r({ok:true,count:roles.length});}catch(e){return r({error:e instanceof Error?e.message:'Eroare'},500)}});
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Max-Age': '86400', 'Content-Type': 'application/json' };
+const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
+
+Deno.serve(async (request) => {
+  if (request.method === 'OPTIONS') return new Response('ok', { headers });
+  try {
+    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    const body = await request.json();
+    const token = String(body.access_token || '').trim();
+    const code = String(body.voucher_code || '').trim().toUpperCase();
+    const primaryGuildId = String(body.guild_id || '').trim();
+    const organizationId = String(body.organization_id || '').trim();
+    const roles = Array.isArray(body.roles) ? body.roles : [];
+    if (!token || !code || !organizationId || !/^\d{15,22}$/.test(primaryGuildId) || !roles.length) return reply({ error: 'Datele rolurilor sunt incomplete.' }, 400);
+
+    const meResponse = await fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bearer ${token}` } });
+    if (!meResponse.ok) return reply({ error: 'Sesiunea Discord a expirat.' }, 401);
+    const user = await meResponse.json();
+    const { data: voucher } = await db.from('organization_vouchers').select('redeemed_by_discord_id,redeemed_organization_id,guild_id').eq('code', code).maybeSingle();
+    if (!voucher || String(voucher.redeemed_by_discord_id) !== String(user.id) || String(voucher.redeemed_organization_id) !== organizationId) return reply({ error: 'Voucherul sau organizația nu corespunde.' }, 403);
+    if (voucher.guild_id && String(voucher.guild_id) !== primaryGuildId) return reply({ error: 'Guild ID-ul nu corespunde voucherului.' }, 403);
+    const { data: guildRows } = await db.from('organization_guilds').select('guild_id').eq('organization_id', organizationId).eq('enabled', true);
+    const allowedGuilds = new Set((guildRows || []).map((row: any) => String(row.guild_id)));
+    allowedGuilds.add(primaryGuildId);
+    if (roles.some((role: any) => !/^\d{15,22}$/.test(String(role.guild_id || primaryGuildId)) || !allowedGuilds.has(String(role.guild_id || primaryGuildId)))) return reply({ error: 'Un rol selectat nu aparține unui server configurat.' }, 400);
+    const guildIds = [...new Set(roles.map((role: any) => String(role.guild_id || primaryGuildId)))];
+    const bot = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
+    if (!bot) return reply({ error: 'Botul Discord nu este configurat în Supabase.' }, 500);
+    const availableRoles = new Set<string>();
+    for (const guildId of guildIds) {
+      const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, { headers: { Authorization: `Bot ${bot}` } });
+      if (!response.ok) return reply({ error: 'Botul nu poate verifica rolurile de pe server.' }, 400);
+      for (const role of await response.json()) if (!role.managed) availableRoles.add(`${guildId}:${String(role.id)}`);
+    }
+    if (roles.some((role: any) => !availableRoles.has(`${String(role.guild_id || primaryGuildId)}:${String(role.id)}`))) return reply({ error: 'Un rol selectat nu există pe server.' }, 400);
+    const { data: packageSetting } = await db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_package').maybeSingle();
+    if (packageSetting?.value?.code !== 'full' && roles.length > 6) return reply({ error: 'Pachetul Standard permite maximum 6 roluri.' }, 400);
+    await db.from('organization_role_mappings').delete().eq('organization_id', organizationId);
+    const { error } = await db.from('organization_role_mappings').insert(roles.map((role: any) => ({ organization_id: organizationId, guild_id: String(role.guild_id || primaryGuildId), discord_role_id: String(role.id), discord_role_name: String(role.name || ''), panel_role: String(role.panel_role || role.name || ''), permission_level: Number(role.level || role.panel_level) || 1, priority: Number(role.level || role.panel_level || 1) * 10, enabled: true })));
+    if (error) throw error;
+    return reply({ ok: true, count: roles.length });
+  } catch (error) {
+    return reply({ error: error instanceof Error ? error.message : 'Eroare internă.' }, 500);
+  }
+});

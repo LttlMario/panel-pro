@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requirePanelSession } from '../_shared/panel-session.ts';
+import { isPlatformAdminDiscordId, PLATFORM_ADMIN_DISCORD_ID } from '../_shared/platform-admin.ts';
 
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers});
@@ -27,10 +28,9 @@ Deno.serve(async request=>{
     const key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS')??'{}').default;
     if(!key)throw new Error('Cheia secretă Supabase lipsește.');
     const db=createClient(Deno.env.get('SUPABASE_URL')!,key);cleanupDb=db;
-    const session=await requirePanelSession(db,request,7,true);
-    const owners=String(Deno.env.get('PLATFORM_OWNER_DISCORD_IDS')||'').split(',').map(x=>x.trim()).filter(Boolean);
-    if(!owners.includes(session.discord_id) && Number(session.permission_level || session.level || 0) < 99)return reply({error:'Doar administratorul platformei poate administra organizațiile.'},403);
     const body=await request.json();
+    const session=await requirePanelSession(db,request,0,true);
+    if(!isPlatformAdminDiscordId(session.discord_id))return reply({error:'Doar administratorul platformei poate administra organizațiile.'},403);
 
     if(body.action==='test_webhook'){
       const webhookUrl=String(body.url||'').trim();
@@ -151,7 +151,7 @@ Deno.serve(async request=>{
       if(organizationId){const {error}=await db.from('organization_guilds').delete().eq('organization_id',organizationId);if(error)throw error;}
       for(const guild of guilds){const guildId=String(guild.guild_id||'').trim();if(!/^\d{15,22}$/.test(guildId))throw new Error(`Guild ID invalid: ${guildId}`);const {error}=await db.from('organization_guilds').upsert({organization_id:organizationId,guild_id:guildId,guild_name:String(guild.guild_name||'').trim()||null,kind:guild.kind==='secondary'?'secondary':'primary',enabled:guild.enabled!==false},{onConflict:'guild_id'});if(error)throw error;}
       const settings=body.settings||{};let clientId=String(settings.discord_client_id||'').trim();let publicUrl=String(settings.panel_public_url||'').replace(/\/$/,'');
-      if(!clientId||!publicUrl){const platformOwners=String(Deno.env.get('PLATFORM_OWNER_DISCORD_IDS')||'').split(',').map(value=>value.trim()).filter(Boolean);const {data:ownerSession,error:ownerSessionError}=platformOwners.length?await db.from('panel_sessions').select('organization_id').in('discord_id',platformOwners).order('created_at',{ascending:false}).limit(1).maybeSingle():{data:null,error:null};if(ownerSessionError)throw ownerSessionError;const {data:platformSettings,error:platformSettingsError}=ownerSession?.organization_id?await db.from('organization_settings').select('discord_client_id,panel_public_url').eq('organization_id',ownerSession.organization_id).maybeSingle():{data:null,error:null};if(platformSettingsError)throw platformSettingsError;clientId=clientId||String(platformSettings?.discord_client_id||'').trim();publicUrl=publicUrl||String(platformSettings?.panel_public_url||'').replace(/\/$/,'');}
+      if(!clientId||!publicUrl){const {data:ownerSession,error:ownerSessionError}=await db.from('panel_sessions').select('organization_id').eq('discord_id',PLATFORM_ADMIN_DISCORD_ID).order('created_at',{ascending:false}).limit(1).maybeSingle();if(ownerSessionError)throw ownerSessionError;const {data:platformSettings,error:platformSettingsError}=ownerSession?.organization_id?await db.from('organization_settings').select('discord_client_id,panel_public_url').eq('organization_id',ownerSession.organization_id).maybeSingle():{data:null,error:null};if(platformSettingsError)throw platformSettingsError;clientId=clientId||String(platformSettings?.discord_client_id||'').trim();publicUrl=publicUrl||String(platformSettings?.panel_public_url||'').replace(/\/$/,'');}
       if(!/^\d{15,22}$/.test(clientId))throw new Error('Configurarea platformei nu are un Discord Client ID valid.');try{new URL(publicUrl)}catch{throw new Error('Configurarea platformei nu are un URL public valid.');}
 const rawRoutes =
   settings.webhook_routes &&
@@ -572,7 +572,7 @@ if (Array.isArray(body.roles)) {
   /*
    * IMPORTANT:
    *
-   * permission_level răm�ne doar pentru compatibilitate
+   * permission_level rămâne doar pentru compatibilitate
    * cu structura existentă a bazei de date.
    *
    * Accesul real la pagini este stabilit prin
@@ -622,7 +622,93 @@ if (Array.isArray(body.roles)) {
       await audit(db,session,'organization_saved',organizationId,{name,roles:Array.isArray(body.roles)?body.roles.length:0});
       return reply({ok:true,organization_id:organizationId});
     }
-    if(body.action==='reactivate_with_voucher'){
+    if (body.action === 'reactivate_with_voucher') {
+      const organizationId = String(body.organization_id || '').trim();
+      const code = String(body.voucher_code || '').trim().toUpperCase();
+      if (!organizationId || !code) return reply({ error: 'Organizatia si voucherul sunt obligatorii.' }, 400);
+      if (organizationId !== String(session.organization_id)) return reply({ error: 'Voucherul poate fi folosit doar pentru organizatia activa.' }, 403);
+
+      const { data: voucher, error: voucherError } = await db
+        .from('organization_vouchers')
+        .select('*')
+        .eq('code', code)
+        .maybeSingle();
+      if (voucherError) throw voucherError;
+      if (!voucher || voucher.redeemed_at) return reply({ error: 'Voucher invalid sau deja folosit.' }, 400);
+
+      const durationDays = Number(voucher.duration_days);
+      if (!Number.isFinite(durationDays) || durationDays <= 0) return reply({ error: 'Durata voucherului este invalida.' }, 400);
+
+      const { data: existingAccess, error: accessError } = await db
+        .from('app_settings')
+        .select('value')
+        .eq('organization_id', organizationId)
+        .eq('key', 'organization_access')
+        .maybeSingle();
+      if (accessError) throw accessError;
+
+      const existingExpiry = String(existingAccess?.value?.expires_at || '').trim();
+      const existingExpiryMs = existingExpiry ? Date.parse(existingExpiry) : NaN;
+      const baseMs = Number.isFinite(existingExpiryMs) && existingExpiryMs > Date.now()
+        ? existingExpiryMs
+        : Date.now();
+      const expires = new Date(baseMs + durationDays * 86400000).toISOString();
+
+      const { data: organization, error: organizationError } = await db
+        .from('organizations')
+        .select('id,lifecycle_status,active')
+        .eq('id', organizationId)
+        .maybeSingle();
+      if (organizationError) throw organizationError;
+      if (!organization) return reply({ error: 'Organizatia nu exista.' }, 404);
+
+      const { data: used, error: usedError } = await db
+        .from('organization_vouchers')
+        .update({
+          redeemed_at: new Date().toISOString(),
+          redeemed_by_discord_id: session.discord_id,
+          redeemed_organization_id: organizationId,
+          organization_id: organizationId
+        })
+        .eq('id', voucher.id)
+        .is('redeemed_at', null)
+        .select('id')
+        .maybeSingle();
+      if (usedError) throw usedError;
+      if (!used) return reply({ error: 'Voucherul a fost folosit intre timp.' }, 409);
+
+      const { error: updateError } = await db
+        .from('organizations')
+        .update({
+          active: true,
+          lifecycle_status: 'active',
+          grace_until: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', organizationId);
+      if (updateError) throw updateError;
+
+      const { error: settingError } = await db
+        .from('app_settings')
+        .upsert({
+          organization_id: organizationId,
+          key: 'organization_access',
+          value: { expires_at: expires },
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'organization_id,key' });
+      if (settingError) throw settingError;
+
+      await audit(db, session, 'organization_voucher_redeemed', organizationId, {
+        voucher_id: voucher.id,
+        duration_days: durationDays,
+        previous_expires_at: existingExpiry || null,
+        expires_at: expires
+      });
+      return reply({ ok: true, expires_at: expires, added_days: durationDays });
+    }
+     if(false && body.action==='reactivate_with_voucher'){
+       if(String(body.organization_id||'').trim()!==String(session.organization_id))return reply({error:'Voucherul poate fi folosit doar pentru organizatia activa.'},403);
+       if(String(body.organization_id||'').trim()!==String(session.organization_id))return reply({error:'Voucherul poate fi folosit doar pentru organizaÈ›ia activÄƒ.'},403);
       const organizationId=String(body.organization_id||'').trim(),code=String(body.voucher_code||'').trim().toUpperCase();if(!organizationId||!code)return reply({error:'Organizația și voucherul sunt obligatorii.'},400);const {data:voucher,error:voucherError}=await db.from('organization_vouchers').select('*').eq('code',code).maybeSingle();if(voucherError)throw voucherError;if(!voucher||voucher.redeemed_at)return reply({error:'Voucher invalid sau deja folosit.'},400);const expires=new Date(Date.now()+Number(voucher.duration_days||30)*86400000).toISOString();const {data:used,error:usedError}=await db.from('organization_vouchers').update({redeemed_at:new Date().toISOString(),redeemed_by_discord_id:session.discord_id,redeemed_organization_id:organizationId,organization_id:organizationId}).eq('id',voucher.id).is('redeemed_at',null).select('id').maybeSingle();if(usedError)throw usedError;if(!used)return reply({error:'Voucherul a fost folosit între timp.'},409);await db.from('organizations').update({active:true,lifecycle_status:'active',grace_until:null,updated_at:new Date().toISOString()}).eq('id',organizationId);await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_access',value:{expires_at:expires},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});return reply({ok:true,expires_at:expires});
     }
     if(body.action==='set_package'){
@@ -658,7 +744,7 @@ if (Array.isArray(body.roles)) {
       if(findError)throw findError;if(!organization)return reply({error:'Organizația nu mai există.'},404);
       if(String(body.confirm_name||'').trim()!==organization.name)return reply({error:'Confirmarea nu corespunde numelui organizației.'},400);
       const {count,error:countError}=await db.from('organizations').select('id',{count:'exact',head:true});if(countError)throw countError;
-      if((count||0)<=1)return reply({error:'Ultima organizație nu poate fi ștearsă. Creează înt�i alta.'},409);
+      if((count||0)<=1)return reply({error:'Ultima organizație nu poate fi ștearsă. Creează întâi alta.'},409);
       const tenantTables=['panel_notification_reads','community_poll_votes','community_reactions','community_poll_options','community_posts','panel_notifications','admin_audit_log','illegal_locations','profiles','marketplace_ilegal','marketplace','app_settings','absences','shifts'];
       for(const table of tenantTables){const {error}=await db.from(table).delete().eq('organization_id',organizationId);if(error)throw new Error(`Ștergerea datelor din ${table} a eșuat: ${error.message}`);}
       const {error:deleteError}=await db.from('organizations').delete().eq('id',organizationId);if(deleteError)throw deleteError;

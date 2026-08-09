@@ -7,6 +7,16 @@
   --panel-footer-accent: #34d399;
 }
 
+body:has(#panel-global-footer) {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body:has(#panel-global-footer) > [data-panel-footer-host] {
+  margin-top: auto !important;
+}
+
 #panel-global-footer {
   width: 100%;
   flex: 0 0 auto;

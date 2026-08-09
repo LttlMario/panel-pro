@@ -150,7 +150,7 @@
           body.communication_permissions = communicationPermissions;
           options.body = JSON.stringify(body);
         }
-      } catch (_) { /* Cererile care nu sunt JSON răm�n nemodificate. */ }
+      } catch (_) { /* Cererile care nu sunt JSON rămân nemodificate. */ }
     }
     return originalFetch(url, options);
   };

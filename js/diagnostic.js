@@ -57,7 +57,7 @@
   $('#run-diagnostics').addEventListener('click', async () => {
     const button = $('#run-diagnostics');
     button.disabled = true; button.textContent = 'Se verifică…';
-    $('#diagnostic-status').textContent = 'Verificarea poate dura c�teva secunde. Nu închide pagina.';
+    $('#diagnostic-status').textContent = 'Verificarea poate dura câteva secunde. Nu închide pagina.';
     try { render(await invokeDiagnostics()); }
     catch (error) { $('#diagnostic-status').textContent = `Eroare: ${error.message}`; }
     finally { button.disabled = false; button.textContent = 'Rulează din nou'; }

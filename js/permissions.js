@@ -61,7 +61,58 @@ function isPlatformAdmin() {
     }
 
     // Administratorul platformei este un cont fix, nu un rol Discord.
-    return String(user.discord_id ?? user.id ?? user.user_id ?? '') === PLATFORM_ADMIN_DISCORD_ID;
+    return String(user.discord_id ?? user.id ?? user.user_id ?? '').trim() === PLATFORM_ADMIN_DISCORD_ID;
+}
+
+function getStoredActiveOrganization() {
+    try {
+        if (typeof getActiveOrganization === 'function') return getActiveOrganization();
+        return JSON.parse(localStorage.getItem('panel_active_organization') || 'null');
+    } catch (_) {
+        return null;
+    }
+}
+
+function getEffectiveRoleLabel(user = getUser()) {
+    const active = getStoredActiveOrganization();
+    let storedRole = '';
+    let organizations = [];
+    try {
+        storedRole = localStorage.getItem('user_role') || '';
+        organizations = JSON.parse(localStorage.getItem('panel_organizations') || '[]');
+        if (!Array.isArray(organizations)) organizations = [];
+    } catch (_) {}
+    const selectedOrganization = organizations.find((organization) =>
+        String(organization?.id || organization?.organization_id || '') === String(active?.id || user?.organization_id || '')
+    ) || organizations[0];
+    const discordRoleNames = [
+        ...(Array.isArray(user?.discord_roles) ? user.discord_roles : []),
+        ...(Array.isArray(user?.roles) ? user.roles : [])
+    ].map((role) => role?.name || role?.label || role?.panel_role || role?.role || role);
+    const candidates = [
+        user?.discord_role_name,
+        user?.discord_role,
+        user?.role_name,
+        user?.panel_role,
+        user?.role_label,
+        user?.organization_role,
+        user?.role,
+        user?.default_role,
+        user?.organization?.panel_role,
+        user?.organization?.role,
+        user?.active_organization?.panel_role,
+        user?.active_organization?.role,
+        active?.panel_role,
+        active?.discord_role_name,
+        active?.role,
+        selectedOrganization?.panel_role,
+        selectedOrganization?.discord_role_name,
+        storedRole,
+        ...discordRoleNames
+    ];
+    return candidates
+        .map(value => String(value || '').trim())
+        .find(value => value && /[\p{L}]/u.test(value) && !/^\d+$/.test(value) && !/^(?:level|nivel|rolul tău|rol discord|necunoscut|rol)$/i.test(value)) || '';
 }
 
 
@@ -372,7 +423,7 @@ function getDefaultAllowedPage() {
 
         /*
          * Adminul sau utilizatorul care are cel puțin
-         * o pagină configurată nu trebuie să răm�nă
+         * o pagină configurată nu trebuie să rămână
          * în pagina Guest.
          */
         if (
@@ -725,6 +776,12 @@ function applyRoleBasedVisibility() {
                         : 'none';
             }
         });
+
+    document.querySelectorAll('[data-nav-section]').forEach(section => {
+        const hasVisibleLink = [...section.querySelectorAll('a[href]')]
+            .some(link => getComputedStyle(link).display !== 'none');
+        section.classList.toggle('is-empty', !hasVisibleLink);
+    });
 }
 
 // Menține sesiunea activă pentru lista utilizatorilor online din Panoul Admin.

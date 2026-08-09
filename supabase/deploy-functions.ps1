@@ -26,7 +26,8 @@ $functions = @(
     'send-discord-notification',
     'close-expired-shifts',
     'manage-admin-center',
-    'manage-organizations'
+    'manage-organizations',
+    'manage-owned-organization'
 )
 
 foreach ($functionName in $functions) {
