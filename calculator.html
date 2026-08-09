@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="ro" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,17 +9,17 @@
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    <script src="js/permissions.js"></script>
-    <script src="js/panel-layout.js"></script>
+    <script src="js/permissions.js?v=4.5.0"></script>
+    <script src="js/panel-layout.js?v=4.9.0"></script>
     <style>
         :root {
-            --bg-main: #020617;
-            --bg-panel: #0f172a;
-            --bg-input: #020617;
-            --border-color: #1e293b;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --accent: #38bdf8;
+            --bg-main: #030712;
+            --bg-panel: #080f1d;
+            --bg-input: #030712;
+            --border-color: #223047;
+            --text-main: #e5edf8;
+            --text-muted: #91a0b6;
+            --accent: #5ce1e6;
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #dc2626;
@@ -60,12 +60,6 @@
             align-items: center;
             max-width: none;
         }
-        .main-content #panel-global-footer {
-            width: 100%;
-            margin-left: 0;
-            margin-right: 0;
-        }
-
         header {
             text-align: center;
             margin-bottom: 25px;
@@ -403,7 +397,6 @@
         <main class="main-content">
 
             <div class="calculator-container">
-            <section class="panel-action-bar"><div class="search-container w-full max-w-2xl relative"><input type="search" id="calculator-search" class="w-full py-3 pl-4 pr-4 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition" placeholder="Caută obiect, material sau rețetă..." oninput="filterCalculatorRecipes(this.value)"></div></section>
                 <!-- Panou Stânga: Input-uri -->
                 <div class="panel" id="calculator-input-panel">
                     <div style="font-size: 1.0rem; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
@@ -560,7 +553,6 @@
                     </div>
                 </div>
             </div>
-            <div id="panel-global-footer"></div>
         </main>
     </div>
 

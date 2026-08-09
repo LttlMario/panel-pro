@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="css/global-footer.css">
   <script src="js/project-version.js"></script>
   <script src="js/supabase-config.js"></script>
-  <script src="js/permissions.js"></script>
-  <script src="js/panel-layout.js"></script>
+  <script src="js/permissions.js?v=4.5.0"></script>
+  <script src="js/panel-layout.js?v=4.9.0"></script>
   <style>
     *{box-sizing:border-box} body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:#020617;color:#f8fafc;font-family:Inter,Segoe UI,Arial,sans-serif}
     main{width:min(100% - 28px,940px);margin:0 auto;padding:32px 0 50px;flex:1}
@@ -114,7 +114,9 @@
       } catch (_) {}
 
       const role = roleNumber(user?.role ?? user?.default_role ?? user?.role_level);
-      const allowed = user?.platform_admin === true;
+      const allowed = typeof isPlatformAdmin === "function"
+        ? isPlatformAdmin()
+        : String(user?.discord_id || user?.id || user?.user_id || "") === "247012210021236738";
 
       document.getElementById(allowed ? "admin-content" : "access-denied").style.display = "block";
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autentificare - Workforce Management</title>
+    <title>Autentificare - Panel</title>
     <!-- Tailwind CSS CDN -->
     <link rel="stylesheet" href="css/tailwind.css">
     <style>
@@ -88,7 +88,7 @@
         </h1>
 
         <p class="text-sm uppercase tracking-[0.35em] text-slate-500">
-            Multi-Discord Management
+            Autentificare multi-organizație
         </p>
 
         <p class="text-slate-400 leading-relaxed max-w-sm mx-auto">
@@ -247,7 +247,7 @@
                 // O valoare veche dintr-o migrare nu poate suprascrie aplicatia activa.
                 void data;
             } catch (_) {
-                // Configurația locală răm�ne fallback pentru prima instalare.
+                // Configurația locală rămâne fallback pentru prima instalare.
             }
             const oauthState = crypto.randomUUID();
             sessionStorage.setItem('discord_oauth_state', oauthState);

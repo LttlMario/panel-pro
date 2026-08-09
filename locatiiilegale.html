@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hărți & Locații Ilegale - Panel Management</title>
+    <title>Hărți & Locații Ilegale - Panel</title>
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Leaflet CSS for Pan & Zoom map engine -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    <script src="js/permissions.js"></script>
-    <script src="js/panel-layout.js"></script>
-    <script src="js/global-header.js"></script>
+    <script src="js/permissions.js?v=4.5.0"></script>
+    <script src="js/panel-layout.js?v=4.9.0"></script>
+    <script src="js/global-header.js?v=4.4.0"></script>
     <style>
         /* ==========================================
            CSS CONFIGURATION & THEME VARIABLES
@@ -1186,18 +1186,8 @@
                     console.error('Eroare la preluarea datelor din users:', error.message);
                 }
 
-                const activeUser = dbUser || localData;
-                const displayName = activeUser.display_name || activeUser.username || 'Mecanic';
+                const activeUser = dbUser ? { ...localData, ...dbUser } : localData;
                 const role = activeUser.role || activeUser.default_role || 'Mecanic';
-                const userAvatar = activeUser.avatar || 'img/logo-192.png';
-
-                const nameEl = document.getElementById('user-display-name');
-                const roleEl = document.getElementById('user-role');
-                const avatarEl = document.getElementById('user-avatar');
-
-                if (nameEl) nameEl.textContent = displayName;
-                if (roleEl) roleEl.textContent = role;
-                if (avatarEl) avatarEl.src = userAvatar;
 
 
             } catch (err) {
@@ -1422,7 +1412,7 @@
                 id: "vanzare-seminte",
                 map: "ls",
                 category: "suppliers",
-                title: "V�nzare Semințe Coca & Canabis",
+                title: "Vânzare Semințe Coca & Canabis",
                 description: "Punct de achiziție semințe pentru cultură situat în zona de nord / Procopio Beach.",
                 images: ["image_6e5081.jpg"],
                 x: 57.8, y: 16,
@@ -1793,7 +1783,7 @@
                 const div = document.createElement('label');
                 div.className = 'filter-item';
                 div.innerHTML = `
-                    <input type="checkbox" class="filter-checkbox" value="${key}" ${isChecked ? 'checked' : ''}>
+                    <input id="location-filter-${key}" name="location_category" type="checkbox" class="filter-checkbox" value="${key}" ${isChecked ? 'checked' : ''}>
                     <span style="color: ${cat.color}">${cat.icon}</span>
                     <span>${cat.name}</span>
                 `;

@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marketplace Intern - Panel</title>
+    <title>Marketplace - Panel</title>
     <!-- Tailwind CSS CDN -->
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    <script src="js/permissions.js"></script>
-    <script src="js/panel-layout.js"></script>
+    <script src="js/permissions.js?v=4.5.0"></script>
+    <script src="js/panel-layout.js?v=4.9.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <script src="js/project-version.js"></script>
     <link rel="icon" href="img/favicon.ico">
@@ -23,11 +23,9 @@
 
         <!-- Sidebar / Meniu Lateral preluat direct din scriptul de pontaj -->
 
-            <div class="p-8 space-y-6 max-w-7xl mx-auto w-full">
-        
-
         <!-- Conținut Principal Marketplace -->
         <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            <div class="p-8 space-y-6 max-w-7xl mx-auto w-full">
             <section class="panel-action-bar"><div><button onclick="incarcaAnunturi()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer flex items-center space-x-1.5"><span>🔄</span><span>Reîmprospătare</span></button></div></section>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -55,7 +53,7 @@
                                 </select>
                             </div>
 
-                            <!-- C�mpul de Categorie (ascuns dacă selectează Servicii) -->
+                            <!-- Câmpul de Categorie (ascuns dacă selectează Servicii) -->
                             <div id="categorie-wrapper">
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Categorie:</label>
                                 <select id="categorie" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500">
@@ -65,13 +63,13 @@
                                 </select>
                             </div>
 
-                            <!-- C�mpul de Produse (ascuns dacă selectează Servicii) -->
+                            <!-- Câmpul de Produse (ascuns dacă selectează Servicii) -->
                             <div id="produse-wrapper">
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Produse (folosește Enter):</label>
                                 <textarea id="produse" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="- Produs 1&#10;- Produs 2" required></textarea>
                             </div>
 
-                            <!-- C�mpul specific pentru Servicii (afișat doar dacă se selectează Servicii) -->
+                            <!-- Câmpul specific pentru Servicii (afișat doar dacă se selectează Servicii) -->
                             <div id="servicii-box-wrapper" class="hidden">
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Ce servicii ceri sau prestezi:</label>
                                 <textarea id="detalii_servicii" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="Descrie serviciul pe care îl oferi sau îl soliciți..."></textarea>
@@ -82,7 +80,7 @@
                                 <input type="text" id="pret" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="Ex: 1500 sau 10000 sau Negociabil" required>
                             </div>
 
-                            <!-- C�mp suplimentar explicit pentru Link Imagine Directă (opțional) -->
+                            <!-- Câmp suplimentar explicit pentru Link Imagine Directă (opțional) -->
                             <div>
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Link Direct Imagine (Opțional):</label>
                                 <input type="url" id="imagine_url_direct" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="https://imgur.com/... sau link direct imagine">
@@ -277,7 +275,7 @@
                     .eq('discord_id', localData.discord_id)
                     .maybeSingle();
 
-                let activeUser = dbUser || localData;
+                let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
 
                 currentUser.discord_id = activeUser.discord_id;
                 currentUser.display_name = activeUser.display_name || activeUser.username || 'Mecanic';
@@ -302,12 +300,6 @@
                         currentUser.organization_name = organizationData.name || '';
                     }
                 }
-
-                const userAvatar = activeUser.avatar || 'img/logo-192.png';
-
-                document.getElementById('user-display-name').textContent = currentUser.display_name;
-                document.getElementById('user-role').textContent = currentUser.role;
-                document.getElementById('user-avatar').src = userAvatar;
 
                 document.getElementById('nume').value = currentUser.display_name;
 
@@ -603,7 +595,7 @@
                 }
                 pretValoare += '$';
             } else {
-                const contineLitere = /[a-zA-Za��??AA�??]/i.test(pretValoare);
+                const contineLitere = /[a-zA-ZăâîșțĂÂÎȘȚ]/i.test(pretValoare);
                 if (!contineLitere && !pretValoare.includes('$')) {
                     pretValoare += '$';
                 }

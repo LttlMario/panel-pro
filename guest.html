@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bun venit - Panel Management</title>
+    <title>Bun venit - Panel</title>
     <!-- Tailwind CSS CDN -->
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    <script src="js/permissions.js"></script>
-    <script src="js/panel-layout.js"></script>
+    <script src="js/permissions.js?v=4.5.0"></script>
+    <script src="js/panel-layout.js?v=4.9.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <script src="js/project-version.js"></script>
     <link rel="icon" href="img/favicon.ico">
@@ -42,7 +42,7 @@
 
                     <div>
                         <h1 class="text-3xl font-bold text-slate-100">
-                            Bun venit în Panel Management
+                            Bun venit în Panel
                         </h1>
 
                         <p class="text-slate-400 mt-2">
@@ -66,7 +66,7 @@
                 <div class="mt-6 bg-slate-900 border border-slate-800 rounded-2xl p-8">
 
                     <h2 class="text-2xl font-bold text-slate-100 mb-6">
-                        📦 Ce conține Panel Management?
+                        📦 Ce conține Panelul?
                     </h2>
 
                     <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -185,15 +185,25 @@
         const supabaseClient = window.createPanelSupabaseClient();
 
         function toggleMobileMenu() {
+            if (typeof window.__panelMobileToggle === 'function') {
+                window.__panelMobileToggle();
+                return;
+            }
             const menu = document.getElementById('mobile-menu');
             const backdrop = document.getElementById('mobile-menu-backdrop');
+            if (!menu || !backdrop) return;
             menu.classList.remove('-translate-x-full');
             backdrop.classList.remove('hidden');
         }
 
         function closeMobileMenu() {
+            if (typeof window.__panelMobileClose === 'function') {
+                window.__panelMobileClose();
+                return;
+            }
             const menu = document.getElementById('mobile-menu');
             const backdrop = document.getElementById('mobile-menu-backdrop');
+            if (!menu || !backdrop) return;
             menu.classList.add('-translate-x-full');
             backdrop.classList.add('hidden');
         }
@@ -235,15 +245,9 @@
                     .eq('discord_id', localData.discord_id)
                     .maybeSingle();
 
-                let activeUser = dbUser || localData;
+                let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
 
-                const displayName = activeUser.display_name || activeUser.username || 'Vizitator';
                 const role = activeUser.role || activeUser.default_role || 'Vizitator';
-                const userAvatar = activeUser.avatar || 'img/logo-192.png';
-
-                document.getElementById('user-display-name').textContent = displayName;
-                document.getElementById('user-role').textContent = role;
-                document.getElementById('user-avatar').src = userAvatar;
 
                 const roleLower = role.toLowerCase();
                 const isPrivileged = roleLower.includes('sef') || roleLower.includes('șef') || roleLower.includes('manager') || roleLower.includes('admin') || roleLower.includes('owner');

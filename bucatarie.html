@@ -9,16 +9,11 @@
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    <script src="js/permissions.js"></script>
-    <script src="js/panel-layout.js"></script>
+    <script src="js/permissions.js?v=4.5.0"></script>
+    <script src="js/panel-layout.js?v=4.9.0"></script>
     <style>
         main {
             padding-bottom: 0 !important;
-        }
-        main #panel-global-footer {
-            width: 100%;
-            margin-left: 0;
-            margin-right: 0;
         }
         .zoom-btn {
             position: absolute;
@@ -83,7 +78,6 @@
 
         <!-- Conținutul Principal (Galerie Bucătărie) -->
         <main class="flex-1 overflow-y-auto p-0 flex flex-col items-center bg-slate-950">
-            <section class="panel-action-bar"><div class="search-container w-full max-w-2xl relative"><input type="search" id="searchInput" class="w-full py-3 pl-12 pr-4 bg-slate-900 border border-slate-800 rounded-xl text-slate-100 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition" placeholder="Caută elemente în bucătărie..." onkeyup="filterGallery()"></div></section>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-7xl px-4 md:px-8 pt-8 pb-8 mx-auto" id="galleryGrid">
             </div>
         </main>
@@ -107,8 +101,8 @@
         const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG?.publishableKey || '';
         const supabaseClient = window.createPanelSupabaseClient ? window.createPanelSupabaseClient() : null;
 
-        function filterGallery() {
-            const input = document.getElementById('searchInput').value.toLowerCase();
+        function filterGallery(value) {
+            const input = String(value ?? document.getElementById('searchInput')?.value ?? '').toLowerCase();
             const cards = document.getElementsByClassName('gallery-card');
 
             for (let i = 0; i < cards.length; i++) {
@@ -154,16 +148,8 @@
                         .select('*')
                         .eq('discord_id', localData.discord_id)
                         .maybeSingle();
-                    if (dbUser) activeUser = dbUser;
+                    if (dbUser) activeUser = { ...localData, ...dbUser };
                 }
-
-                const displayName = activeUser.display_name || activeUser.username || 'Mecanic';
-                const role = activeUser.role || activeUser.default_role || 'Mecanic';
-                const userAvatar = activeUser.avatar || 'img/logo-192.png';
-
-                document.getElementById('user-display-name').textContent = displayName;
-                document.getElementById('user-role').textContent = role;
-                document.getElementById('user-avatar').src = userAvatar;
 
                 localStorage.setItem('discord_user', JSON.stringify(activeUser));
             } catch (err) {

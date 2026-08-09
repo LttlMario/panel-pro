@@ -8,7 +8,7 @@
 <section id="organizations-editor" class="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-5"><form id="form" class="space-y-5"><input id="id" type="hidden"><div><h2 id="form-title" class="text-lg font-black">Organizație nouă</h2><p class="mt-1 text-xs text-slate-400">Datele de mai jos sunt separate pentru această organizație.</p></div><div class="grid md:grid-cols-2 gap-3"><label>Numele organizației<input id="name" required class="field" placeholder="Scrie numele organizației, ex: Familia Test"></label><label>Numele organizației ilegale (opțional)
 <input id="illegal-name" class="field" placeholder="Ex: Los Santos Cartel / Royal Family">
 </label>
-<label>Codul organizației (opțional)<input id="code" class="field" placeholder="Ex: TEST"></label><label>Adresa organizației (opțional)<input id="address" class="field" placeholder="Sediu sau punct de lucru"></label><label>Discord Application / Client ID<input id="client" required class="field" placeholder="ID-ul aplicației Discord comune"></label><label>Adresa publică a panelului<input id="url" required class="field" placeholder="https://panel-management.netlify.app/"></label><label>Logo organizație (link PNG/JPG/WebP)<input id="logo" type="url" class="field" placeholder="Lipește cu Ctrl+V linkul imaginii"></label><label>Banner organizație (link PNG/JPG/WebP)<input id="banner" type="url" class="field" placeholder="Lipește cu Ctrl+V linkul imaginii"></label></div>
+<label>Codul organizației (opțional)<input id="code" class="field" placeholder="Ex: TEST"></label><label>Adresa organizației (opțional)<input id="address" class="field" placeholder="Sediu sau punct de lucru"></label><label>Discord Application / Client ID<input id="client" required class="field" placeholder="ID-ul aplicației Discord comune"></label><label>Adresa publică a panelului<input id="url" required class="field" placeholder="https://panel.example/"></label><label>Logo organizație (link PNG/JPG/WebP)<input id="logo" type="url" class="field" placeholder="Lipește cu Ctrl+V linkul imaginii"></label><label>Banner organizație (link PNG/JPG/WebP)<input id="banner" type="url" class="field" placeholder="Lipește cu Ctrl+V linkul imaginii"></label></div>
 <div class="rounded-xl border border-slate-700 p-4"><h2 class="font-bold">Serverul Discord al organizației</h2><p class="mt-1 text-xs text-slate-400">Membrii sunt repartizați automat în această organizație după acest server și rolurile lor.</p><div class="flex gap-2 mt-2"><input id="guild" required class="field" placeholder="Scrie ID-ul serverului Discord (Guild ID)"><button id="discover" type="button" class="rounded-xl bg-indigo-700 px-4 font-bold">Verifică serverul și citește rolurile</button></div><p id="guild-status" class="text-xs text-slate-400 mt-2"></p></div>
 <div class="rounded-xl border border-indigo-700/60 bg-indigo-950/20 p-4"><h2 class="font-bold">Al doilea server Discord (opțional)</h2><p class="mt-1 text-xs text-slate-400">Poți adăuga serverul tău privat pentru acces administrativ de rezervă. Botul comun trebuie invitat și pe acest server.</p><div class="flex gap-2 mt-2"><input id="guild-secondary" class="field" placeholder="Guild ID secundar — lasă gol dacă nu folosești"><button id="discover-secondary" type="button" class="rounded-xl bg-indigo-700 px-4 font-bold">Verifică serverul secundar</button></div><p id="guild-secondary-status" class="text-xs text-slate-400 mt-2"></p></div>
 <div><div class="flex items-center justify-between gap-3"><div><h2 class="font-bold mb-1">Rolurile Discord ale organizației</h2>
@@ -897,6 +897,8 @@ const header = `
 
 
                     <select
+                        id="role-discord-${index}"
+                        name="role_discord_${index}"
                         class="role-discord w-full min-w-0
                                rounded-lg border border-slate-700
                                bg-slate-900 px-2 py-2
@@ -913,6 +915,8 @@ const header = `
 
 
                     <input
+                        id="role-level-${index}"
+                        name="role_level_${index}"
                         type="number"
                         min="0"
                         max="99"
@@ -933,6 +937,8 @@ const header = `
 
 
                     <input
+                        id="role-name-${index}"
+                        name="role_name_${index}"
                         type="text"
                         class="role-name w-full min-w-0
                                rounded-lg border border-slate-800
@@ -1219,6 +1225,8 @@ function renderPagePermissions() {
 
             <label class="flex items-center gap-2 text-xs text-emerald-300">
                 <input
+                    id="select-all-pages"
+                    name="select_all_pages"
                     type="checkbox"
                     data-select-all-pages
                 >
@@ -1293,6 +1301,8 @@ function renderPagePermissions() {
                                            font-bold text-emerald-300"
                                 >
                                     <input
+                                        id="select-page-${page}"
+                                        name="select_page_${page}"
                                         type="checkbox"
                                         data-select-page="${page}"
 
@@ -1326,6 +1336,8 @@ function renderPagePermissions() {
                                         >
 
                                             <input
+                                                id="page-${page}-role-${role.id}"
+                                                name="page_${page}_role_${role.id}"
                                                 type="checkbox"
 
                                                 data-page="${page}"
@@ -1470,7 +1482,7 @@ function renderAssistantPermissions() {
       ${assistantPageGroups.map(group => `
         <section class="rounded-xl border border-slate-800 bg-slate-950 p-3">
           <div class="mb-2 flex flex-wrap items-center justify-between gap-2"><div><h3 class="text-sm font-bold text-slate-100">${esc(group.label)}</h3><p class="text-[11px] text-slate-500">Rolurile bifate pot citi informațiile din categorie.</p></div><button type="button" class="rounded-lg border border-violet-700 px-3 py-1.5 text-xs font-bold text-violet-200" data-assistant-select-group="${esc(group.key)}">Toate rolurile</button></div>
-          <div class="space-y-1.5">${group.pages.map(([page,label]) => { const selected=(assistantPagePermissions[page]||[]).map(String); return `<div class="rounded-lg border border-slate-800 bg-slate-900 p-2.5"><div class="mb-2 flex items-center justify-between gap-2"><span class="text-xs font-bold text-slate-200">${esc(label)}</span><span class="text-[11px] text-slate-500">${selected.length} roluri</span></div><div class="flex flex-wrap gap-2">${roles.map(role => `<label class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-950 px-2.5 py-1.5 text-[11px] text-slate-300"><input type="checkbox" data-assistant-page="${esc(page)}" data-assistant-role="${esc(role.id)}" ${selected.includes(role.id)?'checked':''}><span>Discord: ${esc(role.discord)} · Panel: ${esc(role.panel)}</span></label>`).join('')}</div></div>`; }).join('')}</div>
+          <div class="space-y-1.5">${group.pages.map(([page,label]) => { const selected=(assistantPagePermissions[page]||[]).map(String); return `<div class="rounded-lg border border-slate-800 bg-slate-900 p-2.5"><div class="mb-2 flex items-center justify-between gap-2"><span class="text-xs font-bold text-slate-200">${esc(label)}</span><span class="text-[11px] text-slate-500">${selected.length} roluri</span></div><div class="flex flex-wrap gap-2">${roles.map(role => `<label class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-950 px-2.5 py-1.5 text-[11px] text-slate-300"><input id="assistant-${esc(page)}-${esc(role.id)}" name="assistant_${esc(page)}_${esc(role.id)}" type="checkbox" data-assistant-page="${esc(page)}" data-assistant-role="${esc(role.id)}" ${selected.includes(role.id)?'checked':''}><span>Discord: ${esc(role.discord)} · Panel: ${esc(role.panel)}</span></label>`).join('')}</div></div>`; }).join('')}</div>
         </section>`).join('')}
     `;
     host.querySelectorAll('[data-assistant-page]').forEach(box => { box.onchange=()=>{ const page=box.dataset.assistantPage; const current=new Set((assistantPagePermissions[page]||[]).map(String)); box.checked?current.add(String(box.dataset.assistantRole)):current.delete(String(box.dataset.assistantRole)); assistantPagePermissions[page]=[...current]; renderAssistantPermissions(); }; });
@@ -1579,6 +1591,8 @@ function renderActionPermissions() {
                         >
 
                             <input
+                                id="action-${group.key}-${role.id}"
+                                name="action_${group.key}_${role.id}"
                                 type="checkbox"
 
                                 data-action-permission="${group.key}"

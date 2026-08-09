@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rapoarte & Pontaj Activ - Workforce Management</title>
+    <title>Rapoarte & Pontaj Activ - Panel</title>
     <!-- Tailwind CSS CDN -->
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    <script src="js/permissions.js"></script>
-    <script src="js/panel-layout.js"></script>
+    <script src="js/permissions.js?v=4.5.0"></script>
+    <script src="js/panel-layout.js?v=4.9.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <script src="js/project-version.js"></script>
     <link rel="icon" href="img/favicon.ico">
@@ -250,7 +250,7 @@
         <form id="admin-absence-form" class="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-6 space-y-4 shadow-2xl">
             <div><h3 class="text-base font-bold text-slate-100">Editează înștiințarea</h3><p class="text-xs text-slate-400 mt-1">Actualizează intervalul și detaliile.</p></div><input id="admin-absence-id" type="hidden">
             <label class="block text-xs text-slate-300">Tip<select id="admin-absence-type" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"><option value="Învoire">Învoire</option><option value="Concediu">Concediu</option><option value="Absență medicală">Absență medicală</option></select></label>
-            <div class="grid grid-cols-2 gap-3"><label class="text-xs text-slate-300">Început<input id="admin-absence-start" type="datetime-local" required class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"></label><label class="text-xs text-slate-300">Sf�rșit<input id="admin-absence-end" type="datetime-local" required class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"></label></div>
+            <div class="grid grid-cols-2 gap-3"><label class="text-xs text-slate-300">Data începerii<input id="admin-absence-start" type="date" required class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"></label><label class="text-xs text-slate-300">Data sfârșitului<input id="admin-absence-end" type="date" required class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"></label></div>
             <label class="block text-xs text-slate-300">Motiv<textarea id="admin-absence-reason" required rows="3" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"></textarea></label>
             <div class="flex justify-end gap-2 pt-2"><button type="button" onclick="closeAdminAbsenceModal()" class="px-4 py-2 rounded-xl text-xs bg-slate-800 text-slate-300">Anulează</button><button class="px-4 py-2 rounded-xl text-xs bg-emerald-600 text-white">Salvează</button></div>
         </form>
@@ -304,6 +304,10 @@
         let activeShiftsData = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
+            ['admin-absence-start', 'admin-absence-end'].forEach(id => {
+                const input = document.getElementById(id);
+                if (input) input.type = 'date';
+            });
             const currentPage = window.location.pathname.split("/").pop() || "index.html";
             document.querySelectorAll('.nav-link').forEach(link => {
                 const linkHref = link.getAttribute('href');
@@ -333,7 +337,7 @@
                     .eq('discord_id', queryId)
                     .maybeSingle();
 
-                let activeUser = dbUser || localData;
+                let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
 
                 currentUser.discord_id = activeUser.discord_id || activeUser.id || '';
                 currentUser.display_name =
@@ -347,10 +351,20 @@
                     activeUser.default_role ||
                     '';
 
+                const activeOrganizationId = typeof getActiveOrganizationId === 'function'
+                    ? getActiveOrganizationId()
+                    : (typeof getActiveOrganization === 'function' ? getActiveOrganization()?.id : '');
                 currentUser.organization_id =
+                    activeOrganizationId ||
+                    activeUser.active_organization?.id ||
+                    activeUser.organization?.id ||
+                    localData.active_organization?.id ||
                     activeUser.organization_id ||
                     localData.organization_id ||
                     '';
+                if (currentUser.organization_id && !activeUser.organization_id) {
+                    activeUser.organization_id = currentUser.organization_id;
+                }
 
                 currentUser.permission_level = Number(
                     activeUser.permission_level ??
@@ -366,15 +380,16 @@
                     currentUser.display_name || String(currentUser.discord_id).trim();
 
                 
-                canManagePontaj =
+                canManagePontaj = Boolean(currentUser.organization_id) && (
                     isPlatformAdmin() ||
-                    canAccessPage('rapoarte.html');
+                    canAccessPage('rapoarte.html')
+                );
 
                 localStorage.setItem('discord_user', JSON.stringify(activeUser));
 
                 await fetchUsersData();
                 fetchAllShifts();
-                if (canManagePontaj) {
+                if (canManagePontaj && currentUser.organization_id) {
                     document.getElementById('admin-pontaj-panel').classList.remove('hidden');
                     fetchActiveShifts();
                     fetchAdminAbsences();
@@ -648,7 +663,7 @@
         }
 
         async function fetchActiveShifts() {
-            if (!canManagePontaj) return;
+            if (!canManagePontaj || !currentUser.organization_id) return;
             const container = document.getElementById('active-shifts-container');
             try {
                 // Numele se poate schimba la o autentificare Discord, deci directorul
@@ -794,7 +809,7 @@ async function forceStopActiveShift(shiftId) {
 }
 
         async function fetchAdminAbsences() {
-            if (!canManagePontaj) return;
+            if (!canManagePontaj || !currentUser.organization_id) return;
             const tbody = document.getElementById('admin-absences-body');
             try {
                 const { data, error } = await supabaseClient
@@ -805,16 +820,17 @@ async function forceStopActiveShift(shiftId) {
                 if (error) throw error;
                 adminAbsences = data || [];
                 if (!adminAbsences.length) { tbody.innerHTML = '<tr><td colspan="4" class="p-5 text-center text-slate-500">Nu există înștiințări.</td></tr>'; return; }
-                tbody.innerHTML = adminAbsences.map(item => `<tr class="hover:bg-slate-800/40"><td class="p-3 font-medium text-slate-200">${escapeHtml(item.colleague_name || usersMap[item.discord_id] || item.discord_id)}</td><td class="p-3 text-slate-300">${escapeHtml(item.notice_type || 'Înștiințare')}<br><span class="text-[10px] text-slate-500">${item.start_at ? new Date(item.start_at).toLocaleString('ro-RO') : escapeHtml(item.start_date || '')}</span></td><td class="p-3 text-slate-400 max-w-xs truncate">${escapeHtml(item.reason || item.notes || '')}</td><td class="p-3 text-right whitespace-nowrap"><button onclick="openAdminAbsenceModal('${item.id}')" class="text-amber-400 hover:text-amber-300 mr-3">Editează</button><button onclick="deleteAdminAbsence('${item.id}')" class="text-rose-400 hover:text-rose-300">Șterge</button></td></tr>`).join('');
+                tbody.innerHTML = adminAbsences.map(item => `<tr class="hover:bg-slate-800/40"><td class="p-3 font-medium text-slate-200">${escapeHtml(item.colleague_name || usersMap[item.discord_id] || item.discord_id)}</td><td class="p-3 text-slate-300">${escapeHtml(item.notice_type || 'Înștiințare')}<br><span class="text-[10px] text-slate-500">${item.start_at ? new Date(item.start_at).toLocaleDateString('ro-RO') : escapeHtml(item.start_date || '')}</span></td><td class="p-3 text-slate-400 max-w-xs truncate">${escapeHtml(item.reason || item.notes || '')}</td><td class="p-3 text-right whitespace-nowrap"><button onclick="openAdminAbsenceModal('${item.id}')" class="text-amber-400 hover:text-amber-300 mr-3">Editează</button><button onclick="deleteAdminAbsence('${item.id}')" class="text-rose-400 hover:text-rose-300">Șterge</button></td></tr>`).join('');
             } catch (err) { console.error('Eroare la preluarea învoirilor:', err); tbody.innerHTML = '<tr><td colspan="4" class="p-5 text-center text-rose-400">Nu s-au putut încărca înștiințările.</td></tr>'; }
         }
 
-        function toDateTimeLocal(value) { if (!value) return ''; const date = new Date(value); date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); return date.toISOString().slice(0, 16); }
+        function toDateInput(value) { if (!value) return ''; const date = new Date(value); date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); return date.toISOString().slice(0, 10); }
+        function getAbsenceDateTime(value, endOfDay = false) { return new Date(`${value}T${endOfDay ? '23:59:59' : '00:00:00'}`); }
         function openAdminAbsenceModal(id) {
             if (!requirePontajManagement()) return;
             const item = adminAbsences.find(absence => String(absence.id) === String(id)); if (!item) return;
             document.getElementById('admin-absence-id').value = item.id; document.getElementById('admin-absence-type').value = item.notice_type || 'Învoire';
-            document.getElementById('admin-absence-start').value = toDateTimeLocal(item.start_at || `${item.start_date}T00:00:00`); document.getElementById('admin-absence-end').value = toDateTimeLocal(item.end_at || `${item.start_date}T23:59:00`); document.getElementById('admin-absence-reason').value = item.reason || item.notes || '';
+            document.getElementById('admin-absence-start').value = toDateInput(item.start_at || `${item.start_date}T00:00:00`); document.getElementById('admin-absence-end').value = toDateInput(item.end_at || `${item.start_date}T23:59:00`); document.getElementById('admin-absence-reason').value = item.reason || item.notes || '';
             document.getElementById('admin-absence-modal').classList.remove('hidden');
         }
         function closeAdminAbsenceModal() { document.getElementById('admin-absence-modal').classList.add('hidden'); }
@@ -904,9 +920,9 @@ async function forceStopActiveShift(shiftId) {
             const id = document.getElementById('admin-absence-id').value;
             const startAt = document.getElementById('admin-absence-start').value;
             const endAt = document.getElementById('admin-absence-end').value;
-            if (new Date(endAt) <= new Date(startAt)) { alert('Sf�rșitul trebuie să fie după început.'); return; }
+            if (!startAt || !endAt || endAt < startAt) { alert('Data sfârșitului trebuie să fie în aceeași zi sau după data începerii.'); return; }
             const reason = document.getElementById('admin-absence-reason').value;
-            const updatedData = { notice_type: document.getElementById('admin-absence-type').value, reason, notes: reason, start_date: startAt.slice(0, 10), days: Math.max(1, Math.ceil((new Date(endAt) - new Date(startAt)) / 86400000)), start_at: new Date(startAt).toISOString(), end_at: new Date(endAt).toISOString() };
+            const updatedData = { notice_type: document.getElementById('admin-absence-type').value, reason, notes: reason, start_date: startAt, days: Math.max(1, Math.floor((getAbsenceDateTime(endAt) - getAbsenceDateTime(startAt)) / 86400000) + 1), start_at: getAbsenceDateTime(startAt).toISOString(), end_at: getAbsenceDateTime(endAt, true).toISOString() };
             try {
                 const { error } = await supabaseClient
                 .from('absences')

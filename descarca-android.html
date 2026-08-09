@@ -9,6 +9,7 @@
     <link rel="icon" href="img/favicon.ico">
     <link rel="apple-touch-icon" href="img/logo-180.png">
     <link rel="stylesheet" href="css/global-footer.css">
+    <script src="js/text-normalizer.js?v=1.0.0"></script>
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
     <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
@@ -75,7 +76,7 @@
                 button.href = asset.browser_download_url;
                 version.textContent = `Versiunea ${release.tag_name.replace(/^v/, '')}`;
             } catch (_) {
-                // Linkul versiunii stabile din pagină răm�ne disponibil ca rezervă.
+                // Linkul versiunii stabile din pagină rămâne disponibil ca rezervă.
             }
         })();
     </script>

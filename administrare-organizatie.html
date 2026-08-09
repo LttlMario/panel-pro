@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/global-footer.css">
   <script src="js/supabase-config.js"></script>
-  <script src="js/permissions.js"></script>
-  <script src="js/panel-layout.js"></script>
+  <script src="js/permissions.js?v=4.5.0"></script>
+  <script src="js/panel-layout.js?v=4.9.0"></script>
   <script src="js/global-footer.js"></script>
   <style>
     #organization-owner-main { width: 100%; min-height: calc(100vh - 96px); padding: 24px; }
@@ -85,7 +85,7 @@
       $('owner-username').textContent = user?.username ? '@' + user.username : 'Sesiune Discord';
       $('owner-avatar').src = user?.avatar || user?.avatar_url || 'img/logo-192.png';
       $('owner-logout').onclick = () => { localStorage.clear(); sessionStorage.clear(); location.replace('login.html'); };
-      $('owner-webhooks').innerHTML = webhookDefinitions.map(([key, label]) => `<fieldset class="rounded-xl border border-slate-700 p-3"><legend class="px-1 text-xs font-bold text-slate-200">${label}</legend><label class="mt-1 flex items-center gap-2 text-xs"><input type="checkbox" data-owner-webhook-enabled="${key}" data-target="primary"> Discord principal</label><input data-owner-webhook="${key}" data-target="primary" type="url" class="owner-field" placeholder="Webhook Discord principal"><label class="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" data-owner-webhook-enabled="${key}" data-target="secondary"> Discord secundar</label><input data-owner-webhook="${key}" data-target="secondary" type="url" class="owner-field" placeholder="Webhook Discord secundar"></fieldset>`).join('');
+      $('owner-webhooks').innerHTML = webhookDefinitions.map(([key, label]) => `<fieldset class="rounded-xl border border-slate-700 p-3"><legend class="px-1 text-xs font-bold text-slate-200">${label}</legend><label class="mt-1 flex items-center gap-2 text-xs"><input id="webhook-${key}-primary-enabled" name="webhook_${key}_primary_enabled" type="checkbox" data-owner-webhook-enabled="${key}" data-target="primary"> Discord principal</label><input id="webhook-${key}-primary" name="webhook_${key}_primary" data-owner-webhook="${key}" data-target="primary" type="url" class="owner-field" placeholder="Webhook Discord principal"><label class="mt-2 flex items-center gap-2 text-xs"><input id="webhook-${key}-secondary-enabled" name="webhook_${key}_secondary_enabled" type="checkbox" data-owner-webhook-enabled="${key}" data-target="secondary"> Discord secundar</label><input id="webhook-${key}-secondary" name="webhook_${key}_secondary" data-owner-webhook="${key}" data-target="secondary" type="url" class="owner-field" placeholder="Webhook Discord secundar"></fieldset>`).join('');
 
       let organizationId = '';
       const call = (body) => fetch(`${config.url}/functions/v1/manage-owned-organization`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}` }, body: JSON.stringify({ ...body, access_token: localStorage.getItem('discord_access_token') || '', organization_id: body.organization_id || organizationId || JSON.parse(localStorage.getItem('panel_active_organization') || 'null')?.id || '' }) });

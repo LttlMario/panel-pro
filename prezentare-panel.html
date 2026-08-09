@@ -9,6 +9,7 @@
   <link rel="icon" href="img/favicon.ico">
   <link rel="apple-touch-icon" href="img/logo-180.png">
   <link rel="stylesheet" href="css/panel-prezentare.css">
+  <script src="js/text-normalizer.js?v=1.0.0"></script>
 </head>
 <body>
   <div class="page-shell">
@@ -21,6 +22,7 @@
         <a href="#cum-functioneaza">Cum funcționează</a>
         <a href="#pachete">Pachete</a>
         <a href="#module">Module</a>
+        <a class="demo-nav-link" href="demo.html">Vezi demo <span aria-hidden="true">↗</span></a>
         <a class="nav-cta" href="#activare">Discută activarea <span aria-hidden="true">↗</span></a>
       </nav>
     </header>
@@ -117,6 +119,18 @@
         <div class="security-list"><div><span>01</span><p><b>Activare controlată</b> prin voucher și asociere cu ID-ul serverului Discord.</p></div><div><span>02</span><p><b>Permisiuni separate</b> pentru fiecare rol și modul al panelului.</p></div><div><span>03</span><p><b>Statusuri clare</b>: Draft, Activă, Grație și Pauză, cu reactivare simplă.</p></div><div><span>04</span><p><b>Date păstrate</b> chiar și după expirare, pentru continuitatea organizației.</p></div></div>
       </section>
 
+      <section class="demo-invite section-wrap" aria-labelledby="demo-invite-title">
+        <div class="demo-invite-card">
+          <div class="demo-invite-mark">DEMO</div>
+          <div class="demo-invite-copy">
+            <p class="eyebrow"><span class="eyebrow-dot"></span> Explorează fără risc</p>
+            <h2 id="demo-invite-title">Apasă, navighează,<br><em>vezi cum funcționează.</em></h2>
+            <p>Intră într-un spațiu demonstrativ cu date fictive și explicații pentru fiecare funcție. Este o simulare: nu se salvează nimic și nu se postează pe Discord.</p>
+          </div>
+          <a class="button button-primary" href="demo.html">Deschide demo-ul interactiv <span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+
       <section class="activation section-wrap" id="activare">
         <div class="activation-card"><div><p class="eyebrow"><span class="eyebrow-dot"></span> Următorul pas</p><h2>Gata să vezi cum arată<br><em>organizația ta în panel?</em></h2><p>Activarea începe cu configurarea organizației, alegerea pachetului potrivit și asocierea serverului sau serverelor Discord.</p></div><div class="activation-actions"><a class="button button-primary" href="https://discord.com/users/247012210021236738" target="_blank" rel="noopener noreferrer">Discută activarea pe Discord <span aria-hidden="true">↗</span></a><a class="button button-ghost" href="login.html">Intră în panel</a></div></div>
       </section>
@@ -124,5 +138,10 @@
 
     <footer class="presentation-footer"><div class="footer-brand"><img src="img/logo-32.png" alt=""><span>Panel <b>Pro</b><small>Panel by Little Mario</small></span></div><p>Administrare mai clară. Organizații mai bine conectate.</p><span class="footer-note">Prezentare privată · 2026</span></footer>
   </div>
+    <section class="demo-end section-wrap" aria-label="Demo interactiv">
+      <div class="demo-end-copy"><span class="demo-pill">DEMO · FĂRĂ ACCES REAL</span><strong>Vrei să vezi panelul în acțiune?</strong><span>Testează toate modulele cu date simulate și instrucțiuni clare.</span></div>
+      <a class="button button-primary" href="demo.html">Vezi demo-ul interactiv <span aria-hidden="true">↗</span></a>
+    </section>
+
 </body>
 </html>

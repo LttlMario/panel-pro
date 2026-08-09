@@ -9,8 +9,8 @@
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    <script src="js/permissions.js"></script>
-    <script src="js/panel-layout.js"></script>
+    <script src="js/permissions.js?v=4.5.0"></script>
+    <script src="js/panel-layout.js?v=4.9.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <script src="js/project-version.js"></script>
     <link rel="icon" href="img/favicon.ico">
@@ -34,15 +34,21 @@
             </div>
                 <section class="px-4 pb-6 md:px-8 md:pb-8 max-w-7xl mx-auto w-full space-y-6">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <article class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col">
+                        <article data-pontaj-only class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col">
                             <p class="text-[10px] uppercase tracking-wider text-slate-500">Stare pontaj</p>
                             <p id="dashboard-shift-state" class="text-xl font-black mt-3">Se verifică...</p>
                             <p id="dashboard-shift-detail" class="text-xs text-slate-500 mt-2">—</p>
                             <a id="dashboard-pontaj-button" href="pontaj.html" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-xs font-semibold text-slate-100 transition hover:bg-slate-700">⏱️ Mergi la pontaj</a>
                         </article>
                         <article class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5"><p class="text-[10px] uppercase tracking-wider text-slate-500">Următoarea învoire</p><p id="next-absence" class="text-base font-bold text-indigo-400 mt-3">Niciuna</p><p id="next-absence-detail" class="text-xs text-slate-500 mt-2">Nu ai învoiri active.</p></article>
+                        <article id="dashboard-no-pontaj" class="hidden bg-slate-900 border border-emerald-500/20 rounded-2xl p-4 sm:p-5 sm:col-span-2">
+                            <p class="text-[10px] uppercase tracking-wider text-emerald-400">Resurse pentru rolul tău</p>
+                            <h3 class="text-base font-bold text-slate-100 mt-2">Ce poți folosi în Panel</h3>
+                            <p class="text-xs text-slate-400 mt-2">Pontajul nu este activ pentru rolul tău. Ai aici acces rapid la secțiunile utile organizației tale.</p>
+                            <div id="dashboard-resource-links" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-4"></div>
+                        </article>
                     </div>
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6">
+                    <div data-pontaj-only class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                             <div>
                                 <p class="text-[10px] uppercase tracking-wider text-slate-500">Statisticile mele</p>
@@ -93,11 +99,17 @@
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <article class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6"><div class="flex items-center justify-between gap-3"><div><p class="text-xs uppercase tracking-wider text-slate-500">Tura curentă</p><h3 id="active-shift-title" class="text-lg font-bold mt-1">Nicio tură activă</h3></div><span id="active-shift-badge" class="px-3 py-1 rounded-lg border text-[10px] font-bold bg-slate-800 text-slate-400 border-slate-700">OPRIT</span></div><div class="mt-7 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5"><div><p id="active-shift-timer" class="text-4xl font-black font-mono text-emerald-400">00:00:00</p><p id="active-shift-note" class="text-xs text-slate-500 mt-2">Pornește o tură c�nd ești pregătit.</p></div><a href="pontaj.html" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold transition text-center">Gestionează pontajul →</a></div></article>
+                        <article data-pontaj-only class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6"><div class="flex items-center justify-between gap-3"><div><p class="text-xs uppercase tracking-wider text-slate-500">Tura curentă</p><h3 id="active-shift-title" class="text-lg font-bold mt-1">Nicio tură activă</h3></div><span id="active-shift-badge" class="px-3 py-1 rounded-lg border text-[10px] font-bold bg-slate-800 text-slate-400 border-slate-700">OPRIT</span></div><div class="mt-7 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5"><div><p id="active-shift-timer" class="text-4xl font-black font-mono text-emerald-400">00:00:00</p><p id="active-shift-note" class="text-xs text-slate-500 mt-2">Pornește o tură c�nd ești pregătit.</p></div><a href="pontaj.html" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold transition text-center">Gestionează pontajul →</a></div></article>
                         <article class="bg-slate-900 border border-slate-800 rounded-2xl p-6"><p class="text-xs uppercase tracking-wider text-slate-500">Acces rapid</p><div class="mt-4 grid gap-2"><a href="cereri.html" class="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold transition">📋 Trimite o învoire</a><a href="craftmecanics.html" class="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold transition">🔨 Craft Mecanics</a><a href="marketplace.html" class="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold transition">🛒 Vezi marketplace-ul</a></div></article>
                     </div>
 
                 </section>
+                <div class="flex justify-center px-4 pb-8 md:px-8">
+                    <a href="fivem://connect/" aria-label="Deschide FiveM" class="flex w-full max-w-sm items-center justify-center gap-3 rounded-2xl border border-slate-700 bg-slate-900 px-5 py-4 text-sm font-bold text-slate-100 shadow-lg transition hover:border-emerald-400/50 hover:bg-slate-800">
+                        <img src="img/fivem-launcher.svg" alt="" class="h-10 w-10 rounded-xl object-cover">
+                        <span>Deschide FiveM</span>
+                    </a>
+                </div>
         </main>
     </div>
 
@@ -112,6 +124,35 @@
         let dashboardRealtimeChannel = null;
         let dashboardDiscordId = null;
         let dashboardRefreshTimeout = null;
+        let dashboardHasPontajAccess = true;
+
+        function configureDashboardAccess() {
+            const allowedPages = typeof getAllowedPages === 'function' ? getAllowedPages() : null;
+            dashboardHasPontajAccess = typeof canAccessPage === 'function'
+                ? canAccessPage('pontaj.html')
+                : Array.isArray(allowedPages) && allowedPages.includes('pontaj.html');
+            document.querySelectorAll('[data-pontaj-only]').forEach(element => {
+                element.classList.toggle('hidden', !dashboardHasPontajAccess);
+            });
+
+            const resourceCard = document.getElementById('dashboard-no-pontaj');
+            if (!resourceCard) return;
+            resourceCard.classList.toggle('hidden', dashboardHasPontajAccess);
+            if (dashboardHasPontajAccess) return;
+
+            const resources = [
+                ['cereri.html', '📋 Cereri / Învoiri'],
+                ['craftmecanics.html', '🔨 Craft Mecanics'],
+                ['marketplace.html', '🛒 Marketplace'],
+                ['anunturi.html', '📣 Anunțuri'],
+                ['asistent.html', '✦ Asistent Panel']
+            ].filter(([page]) => typeof canAccessPage !== 'function' || canAccessPage(page));
+            const links = document.getElementById('dashboard-resource-links');
+            if (!links) return;
+            links.innerHTML = resources.length
+                ? resources.map(([page, label]) => `<a href="${page}" class="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold transition">${label}</a>`).join('')
+                : '<span class="text-xs text-slate-500">Nu există alte secțiuni disponibile momentan.</span>';
+        }
 
 
 
@@ -137,11 +178,14 @@
                     .eq('discord_id', localData.discord_id)
                     .maybeSingle();
 
-                let activeUser = dbUser || localData;
+                // Păstrăm sesiunea sincronizată cu Discord; rândul vechi din users
+                // nu trebuie să înlocuiască rolul și organizația activă.
+                let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
 
 
 
                 localStorage.setItem('discord_user', JSON.stringify(activeUser));
+                configureDashboardAccess();
                 function scheduleDashboardRefresh() {
                     if (!dashboardDiscordId) return;
 
@@ -197,7 +241,7 @@
                 }                
                 await loadMechanicDashboard(activeUser.discord_id);
 
-                startDashboardRealtime(activeUser.discord_id);
+                if (dashboardHasPontajAccess) startDashboardRealtime(activeUser.discord_id);
 
  
 
@@ -323,6 +367,7 @@
 
         async function loadMechanicDashboard(discordId) {
             try {
+                if (!dashboardHasPontajAccess) return;
                 const [shiftsResult, absenceResult, historyResult] = await Promise.all([
                     supabaseClient.from('shifts').select('*').eq('discord_id', discordId).eq('date', romanianToday()).order('created_at', { ascending: false }),
                     supabaseClient.from('absences').select('*').eq('discord_id', discordId).gte('end_at', new Date().toISOString()).order('start_at', { ascending: true }).limit(1),

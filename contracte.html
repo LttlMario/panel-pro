@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contracte - Workforce Management</title>
+    <title>Contracte - Panel</title>
     <!-- Tailwind CSS CDN -->
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    <script src="js/permissions.js"></script>
-    <script src="js/panel-layout.js"></script>
+    <script src="js/permissions.js?v=4.5.0"></script>
+    <script src="js/panel-layout.js?v=4.9.0"></script>
     <style>
         .paste-zone {
             position: relative;
@@ -96,7 +96,7 @@
             <section class="panel-action-bar"><div><span class="inline-flex items-center px-2.5 py-1 rounded-full text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>Sistem Activ • Realtime</span></div></section>
             <div class="p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto w-full">
 
-                <!-- Panou St�nga: Formular (5 coloane) -->
+                <!-- Panou Stânga: Formular (5 coloane) -->
                 <div class="lg:col-span-5 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-6">
                     <div class="flex items-center justify-between pb-4 border-b border-slate-800">
                         <span id="contractFormTitle" class="text-sm font-bold text-slate-100 uppercase tracking-wide">Date Contract</span>
@@ -104,7 +104,6 @@
                     </div>
 
                     <form id="contractForm" onsubmit="return false;" class="space-y-4">
-                        <p class="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs leading-5 text-indigo-200">Organizația, compania, managerul și setările implicite se citesc automat din configurația organizației. Completează de regulă doar numele angajatului, CNP-ul și telefonul. Variabile acceptate: {{COMPANY}}, {{MANAGER}}, {{EMPLOYEE_NAME}}, {{CNP}}, {{PHONE}}, {{POSITION}}, {{SALARY}}, {{PROGRAM}}, {{START_DATE}}, {{CONTRACT_NUMBER}}.</p>
                         <div class="space-y-1.5">
                             <label class="text-xs font-medium text-slate-400">Companie</label>
                             <input type="text" id="company" value="S.C. Familia Es Todo S.R.L." class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
@@ -257,7 +256,7 @@ Programul normal de lucru este de 3 ore/zi, între ora {{PROGRAM}}, conform prog
 Art. 5 – Salarizarea
 
 Salariul de bază net: {{SALARY}}.
-Plata salariului se efectuează săptăm�nal in fiecare Duminica.
+Plata salariului se efectuează săptămânal în fiecare duminică.
 Angajatul poate beneficia de bonusuri sau prime de performanță, conform politicii societății.
 Orele suplimentare se efectuează numai cu aprobarea angajatorului și nu sunt remunerate prin salariul de bază. Compensarea acestora se realizează exclusiv din sumele încasate cu titlu de bacșiș („ciubuc”) sau din veniturile obținute în urma lucrărilor efectuate în intervalul respectiv, conform înțelegerii dintre părți.
 
@@ -289,7 +288,7 @@ Angajatul poate demisiona prin notificare scrisă, cu respectarea termenului de 
 
 Angajatorul poate dispune încetarea contractului numai în condițiile și pentru motivele prevăzute de legislația muncii, cu respectarea procedurilor legale.
 
-La încetarea raporturilor de muncă, angajatul va preda toate bunurile, echipamentele, documentele și materialele aparțin�nd societății.
+La încetarea raporturilor de muncă, angajatul va preda toate bunurile, echipamentele, documentele și materialele aparținând societății.
 
 Art. 9 – Fișa postului
 
@@ -304,11 +303,11 @@ respectarea normelor de protecția muncii și PSI.
 
 Art. 10 – Dispoziții finale
 
-Prezentul contract produce efecte încep�nd cu data de {{START_DATE}}.
+Prezentul contract produce efecte începând cu data de {{START_DATE}}.
 
 Orice modificare se face numai prin act adițional, semnat de ambele părți.
 
-Contractul este întocmit în două exemplare originale, c�te unul pentru fiecare parte.
+Contractul este întocmit în două exemplare originale, câte unul pentru fiecare parte.
 
 ANGAJATOR
 
@@ -354,25 +353,14 @@ Semnătură:`;
                 }
             });
 
-            const displayNameToRender = currentUser.display_name || currentUser.username || currentUser.name || 'Admin';
             const activeRole = currentUser.role || currentUser.default_role || 'admin';
-
-            document.getElementById('user-display-name').textContent = displayNameToRender;
-            document.getElementById('user-role').textContent = activeRole;
-
-            if (currentUser.avatar) {
-                const avatarUrl = currentUser.avatar.startsWith('http')
-                    ? currentUser.avatar
-                    : `https://cdn.discordapp.com/avatars/${currentUser.discord_id}/${currentUser.avatar}.png`;
-                document.getElementById('user-avatar').src = avatarUrl;
-            }
 
             const navLogs = document.getElementById('nav-logs');
             if (navLogs) navLogs.classList.remove('hidden');
 
             const managerInput = document.getElementById('manager');
             if (managerInput && !managerInput.value) {
-                managerInput.value = displayNameToRender;
+                managerInput.value = currentUser.display_name || currentUser.username || currentUser.name || 'Admin';
             }
 
             const logoutBtn = document.getElementById('logout-btn');
@@ -452,7 +440,7 @@ Semnătură:`;
 
             const values={COMPANY:company,ADDRESS:address,MANAGER:manager,EMPLOYEE_NAME:employeeName,CNP:cnp,PHONE:phone,POSITION:position,SALARY:salary,PROGRAM:schedule,START_DATE:startDate,CONTRACT_NUMBER:currentContractNumber};
             const labels={COMPANY:'Companie',ADDRESS:'Adresă',MANAGER:'Manager',EMPLOYEE_NAME:'Nume angajat',CNP:'CNP',PHONE:'Telefon',POSITION:'Funcție',SALARY:'Salariu',PROGRAM:'Program',START_DATE:'Data începerii',CONTRACT_NUMBER:'Număr contract'};
-            const missing=Object.entries(values).filter(([key,value])=>contractTemplate.includes(`{{${key}}}`)&&!String(value).trim()).map(([key])=>labels[key]);if(missing.length){alert(`Completează c�mpurile folosite de acest contract: ${missing.join(', ')}.`);return}
+            const missing=Object.entries(values).filter(([key,value])=>contractTemplate.includes(`{{${key}}}`)&&!String(value).trim()).map(([key])=>labels[key]);if(missing.length){alert(`Completează câmpurile folosite de acest contract: ${missing.join(', ')}.`);return}
 
             let finalContract = contractTemplate
                 .replaceAll('{{CONTRACT_NUMBER}}', currentContractNumber)
@@ -479,7 +467,7 @@ Semnătură:`;
         function copyContract() {
             const previewText = document.getElementById('contractPreview').innerText;
             if (!previewText || previewText.startsWith('Completați formularul')) {
-                alert('Mai înt�i generați un contract pentru a-l putea copia!');
+                alert('Mai întâi generați un contract pentru a-l putea copia!');
                 return;
             }
 

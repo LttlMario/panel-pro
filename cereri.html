@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cereri / Absențe - Workforce Management</title>
+    <title>Cereri / Absențe - Panel</title>
     <!-- Tailwind CSS CDN -->
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    <script src="js/permissions.js"></script>
-    <script src="js/panel-layout.js"></script>
+    <script src="js/permissions.js?v=4.5.0"></script>
+    <script src="js/panel-layout.js?v=4.9.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <script src="js/project-version.js"></script>
     <link rel="icon" href="img/favicon.ico">
@@ -42,15 +42,15 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-slate-300 mb-1">Început interval</label>
-                                <input type="datetime-local" id="notice-start-at" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Data începerii</label>
+                                <input type="date" id="notice-start-at" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-medium text-slate-300 mb-1">Sf�rșit interval</label>
-                                <input type="datetime-local" id="notice-end-at" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Data sfârșitului</label>
+                                <input type="date" id="notice-end-at" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-slate-300 mb-1">Dovadă / document (opțional)</label>
@@ -121,12 +121,12 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Început interval</label>
-                        <input type="datetime-local" id="edit-notice-start-at" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Data începerii</label>
+                        <input type="date" id="edit-notice-start-at" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Sf�rșit interval</label>
-                        <input type="datetime-local" id="edit-notice-end-at" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Data sfârșitului</label>
+                        <input type="date" id="edit-notice-end-at" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
                     </div>
                 </div>
                 <div>
@@ -358,15 +358,24 @@ console.log(
             }
         }
 
-        function getCurrentLocalDateTime() {
+        function getCurrentLocalDate() {
             const now = new Date();
-            return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
         }
 
-        function toDateTimeLocal(value) {
+        function toDateInput(value) {
             if (!value) return '';
             const date = new Date(value);
-            return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        }
+
+        function getNoticeDateTime(value, endOfDay = false) {
+            return new Date(`${value}T${endOfDay ? '23:59:59' : '00:00:00'}`);
+        }
+
+        function formatNoticeDate(value) {
+            if (!value) return '—';
+            return new Date(value).toLocaleDateString('ro-RO');
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -408,7 +417,7 @@ console.log(
                     .eq('discord_id', localData.discord_id)
                     .maybeSingle();
 
-                let activeUser = dbUser || localData;
+                let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
 
                 currentUser = {
                     ...currentUser,
@@ -467,9 +476,9 @@ console.log(
             }
 
 
-            const localDateTime = getCurrentLocalDateTime();
-            document.getElementById('notice-start-at').value = localDateTime;
-            document.getElementById('notice-end-at').value = localDateTime;
+            const localDate = getCurrentLocalDate();
+            document.getElementById('notice-start-at').value = localDate;
+            document.getElementById('notice-end-at').value = localDate;
 
             fetchAbsences();
         });
@@ -518,13 +527,13 @@ console.log(
             const endAt = document.getElementById('notice-end-at').value;
             const proofUrl = document.getElementById('notice-proof-url').value.trim() || null;
 
-            if (new Date(endAt) <= new Date(startAt)) {
-                alert('Sf�rșitul intervalului trebuie să fie după început.');
+            if (!startAt || !endAt || endAt < startAt) {
+                alert('Data sfârșitului trebuie să fie în aceeași zi sau după data începerii.');
                 return;
             }
 
-            const startDate = startAt.slice(0, 10);
-            const days = Math.max(1, Math.ceil((new Date(endAt) - new Date(startAt)) / 86400000));
+            const startDate = startAt;
+            const days = Math.max(1, Math.floor((getNoticeDateTime(endAt) - getNoticeDateTime(startAt)) / 86400000) + 1);
 
             const activeName = currentUser.display_name || currentUser.username || 'Mecanic';
             const activeRole = currentUser.role || currentUser.default_role || 'Mecanic';
@@ -547,8 +556,8 @@ console.log(
                 start_date: startDate,
                 days: days,
                 notes: reason,
-                start_at: new Date(startAt).toISOString(),
-                end_at: new Date(endAt).toISOString(),
+                start_at: getNoticeDateTime(startAt).toISOString(),
+                end_at: getNoticeDateTime(endAt, true).toISOString(),
                 proof_url: proofUrl,
                 created_at: new Date().toISOString()
             };
@@ -603,14 +612,14 @@ if (discordSent) {
 
 document.getElementById('absence-form').reset();
 
-const currentLocalDateTime =
-    getCurrentLocalDateTime();
+const currentLocalDate =
+    getCurrentLocalDate();
 
 document.getElementById('notice-start-at').value =
-    currentLocalDateTime;
+    currentLocalDate;
 
 document.getElementById('notice-end-at').value =
-    currentLocalDateTime;
+    currentLocalDate;
 
 fetchAbsences();
         });
@@ -646,8 +655,8 @@ fetchAbsences();
 
                 absences.forEach(item => {
                     const createdAtFormatted = new Date(item.created_at).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' });
-                    const startFormatted = item.start_at ? new Date(item.start_at).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' }) : item.start_date;
-                    const endFormatted = item.end_at ? new Date(item.end_at).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' }) : `${item.days || 1} zi(le)`;
+                    const startFormatted = formatNoticeDate(item.start_at || item.start_date);
+                    const endFormatted = item.end_at ? formatNoticeDate(item.end_at) : `${item.days || 1} zi(le)`;
                     const noticeType = item.notice_type || 'Înștiințare';
                     const proofHtml = item.proof_url
                         ? `<a href="${item.proof_url}" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 underline">Deschide</a>`
@@ -662,7 +671,7 @@ fetchAbsences();
                         <tr class="hover:bg-slate-900/50 transition">
                             <td class="p-3 font-medium text-slate-200">${item.colleague_name}</td>
                             <td class="p-3"><span class="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 font-semibold">${noticeType}</span></td>
-                            <td class="p-3 text-slate-300">${startFormatted}<br><span class="text-slate-500">p�nă la ${endFormatted}</span></td>
+                            <td class="p-3 text-slate-300">${startFormatted}<br><span class="text-slate-500">până la ${endFormatted}</span></td>
                             <td class="p-3 text-slate-400 max-w-xs">${item.reason}</td>
                             <td class="p-3">${proofHtml}</td>
                             <td class="p-3 text-slate-500">${createdAtFormatted}</td>
@@ -710,8 +719,8 @@ fetchAbsences();
             document.getElementById('edit-id').value = item.id;
             document.getElementById('edit-notice-type').value = item.notice_type || 'Învoire';
             document.getElementById('edit-absence-reason').value = item.reason || item.notes || '';
-            document.getElementById('edit-notice-start-at').value = toDateTimeLocal(item.start_at || `${item.start_date}T00:00:00`);
-            document.getElementById('edit-notice-end-at').value = toDateTimeLocal(item.end_at || `${item.start_date}T23:59:00`);
+            document.getElementById('edit-notice-start-at').value = toDateInput(item.start_at || `${item.start_date}T00:00:00`);
+            document.getElementById('edit-notice-end-at').value = toDateInput(item.end_at || `${item.start_date}T23:59:00`);
             document.getElementById('edit-notice-proof-url').value = item.proof_url || '';
 
             document.getElementById('edit-modal').classList.remove('hidden');
@@ -731,13 +740,13 @@ fetchAbsences();
             const endAt = document.getElementById('edit-notice-end-at').value;
             const proofUrl = document.getElementById('edit-notice-proof-url').value.trim() || null;
 
-            if (new Date(endAt) <= new Date(startAt)) {
-                alert('Sf�rșitul intervalului trebuie să fie după început.');
+            if (!startAt || !endAt || endAt < startAt) {
+                alert('Data sfârșitului trebuie să fie în aceeași zi sau după data începerii.');
                 return;
             }
 
-            const startDate = startAt.slice(0, 10);
-            const days = Math.max(1, Math.ceil((new Date(endAt) - new Date(startAt)) / 86400000));
+            const startDate = startAt;
+            const days = Math.max(1, Math.floor((getNoticeDateTime(endAt) - getNoticeDateTime(startAt)) / 86400000) + 1);
 
             const updatedData = {
                 notice_type: noticeType,
@@ -745,8 +754,8 @@ fetchAbsences();
                 start_date: startDate,
                 days: days,
                 notes: reason,
-                start_at: new Date(startAt).toISOString(),
-                end_at: new Date(endAt).toISOString(),
+                start_at: getNoticeDateTime(startAt).toISOString(),
+                end_at: getNoticeDateTime(endAt, true).toISOString(),
                 proof_url: proofUrl
             };
 
@@ -795,7 +804,7 @@ fetchAbsences();
                         { name: "👤 Membru / Funcție", value: data.colleague_name, inline: true },
                         { name: "🛠️ Rol în Bază", value: role, inline: true },
                         { name: "📌 Tip", value: data.notice_type || 'Înștiințare', inline: true },
-                        { name: "🗓️ Interval", value: `${new Date(data.start_at).toLocaleString('ro-RO')} → ${new Date(data.end_at).toLocaleString('ro-RO')}`, inline: false },
+                        { name: "🗓️ Interval", value: `${formatNoticeDate(data.start_at)} → ${formatNoticeDate(data.end_at)}`, inline: false },
                         { name: "💬 Motiv", value: data.reason, inline: false },
                         { name: "📎 Dovadă", value: data.proof_url || 'Nu a fost atașat un link.', inline: false }
                     ],
