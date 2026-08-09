@@ -1464,20 +1464,6 @@
         }
 
         function mapLocationForDatabase(loc) {
-            const activeUser =
-                typeof getUser === 'function'
-                    ? getUser()
-                    : null;
-            const organizationId =
-                window.getActiveOrganizationId?.() ||
-                window.getActiveOrganization?.()?.id ||
-                activeUser?.organization_id ||
-                null;
-
-            if (!organizationId) {
-                throw new Error('Organizația activă lipsește. Reautentifică-te și încearcă din nou.');
-            }
-
             return {
                 id: loc.id,
                 map_key: loc.map,
@@ -1494,11 +1480,10 @@
                     loc.lastUpdated ||
                     new Date().toISOString().slice(0, 10),
 
-                // Locațiile aparțin organizației active, la fel ca restul datelor din panel.
-                organization_id: organizationId
+                // Locațiile ilegale sunt globale; accesul la pagină rămâne controlat de rolurile organizației.
+                organization_id: null
             };
         }
-
         async function loadLocationsFromDatabase() {
             const { data, error } = await supabaseClient.from('illegal_locations').select('*').order('title');
             if (error) throw error;
