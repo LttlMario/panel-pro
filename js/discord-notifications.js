@@ -6,9 +6,14 @@
 
     window.sendPanelDiscord = async (channel, payload) => {
         const accessToken = localStorage.getItem('discord_access_token');
+        const panelSessionToken = localStorage.getItem('panel_session_token');
 
         if (!accessToken) {
             throw new Error('Sesiunea Discord lipsește. Autentifică-te din nou.');
+        }
+
+        if (!panelSessionToken) {
+            throw new Error('Sesiunea securizată a panelului lipsește. Reautentifică-te.');
         }
 
         // Identificăm organizația activă a utilizatorului.
@@ -30,18 +35,11 @@
 
         let body;
 
-    const headers = {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`
-    };
-
-    const panelSession = await window.ensurePanelSession?.()
-        || localStorage.getItem('panel_session_token')
-        || '';
-    if (!panelSession) {
-        throw new Error('Sesiunea panel lipsește. Autentifică-te din nou.');
-    }
-    headers['x-panel-session'] = panelSession;
+        const headers = {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            'x-panel-session': panelSessionToken
+        };
 
         // Pentru notificările care conțin fișiere.
         if (payload instanceof FormData) {
