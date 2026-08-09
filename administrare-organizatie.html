@@ -39,5 +39,236 @@
       document.getElementById('status').textContent = response.ok ? 'Organizația a fost reactivată.' : data.error || 'Eroare.';
     };
   </script>
+  <script>/*
+    (() => {
+      const config = window.PANEL_SUPABASE_CONFIG;
+      const user = JSON.parse(localStorage.getItem('discord_user') || 'null');
+      const storedOrg = JSON.parse(localStorage.getItem('panel_active_organization') || 'null');
+      const activeOrg = window.getActiveOrganization?.() || storedOrg || {
+        id: user?.organization_id,
+        name: user?.organization_name
+      };
+
+      const main = document.querySelector('main');
+      const formatDate = (value) => value
+        ? new Date(value).toLocaleString('ro-RO')
+        : 'Nespecificat';
+
+      main.innerHTML = \`
+        <section class="rounded-2xl border border-slate-700 bg-slate-900 p-6">
+          <h1 class="text-2xl font-black">Administrare organizație</h1>
+          <p class="mt-2 text-sm text-slate-400">Folosește un voucher pentru activare sau prelungire.</p>
+          <div id="voucher-info" class="mt-5 grid gap-3 md:grid-cols-3"></div>
+          <div class="mt-6 border-t border-slate-700 pt-5">
+            <h2 class="font-bold">Voucher activare / prelungire</h2>
+            <p class="mt-2 text-sm text-slate-400">Durata voucherului se adaugă peste termenul rămas al organizației.</p>
+            <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input id="voucher" class="w-full rounded-xl border border-slate-700 bg-slate-950 p-3" placeholder="Cod voucher" autocomplete="off">
+              <button id="reactivate" type="button" class="rounded-xl bg-emerald-700 px-4 py-3 font-bold">Aplică voucherul</button>
+            </div>
+          </div>
+          <p id="status" class="mt-4 text-sm text-slate-400"></p>
+        </section>\`;
+
+      const info = document.getElementById('voucher-info');
+      const status = document.getElementById('status');
+      const button = document.getElementById('reactivate');
+      const voucherInput = document.getElementById('voucher');
+      let organization = { ...activeOrg };
+      let accessExpiresAt = null;
+
+      const render = () => {
+        info.innerHTML = '';
+        [
+          ['Organizație activă', organization?.name || 'Nu a fost identificată'],
+          ['Status', organization?.lifecycle_status || (organization?.active === false ? 'Inactivă' : 'Activă')],
+          ['Termen curent', accessExpiresAt ? formatDate(accessExpiresAt) : 'Nu este disponibil']
+        ].forEach(([label, value]) => {
+          const card = document.createElement('div');
+          card.className = 'rounded-xl bg-slate-950 p-4';
+          card.innerHTML = \`<small class="text-slate-400">\${label}</small><b class="mt-1 block">\${value}</b>\`;
+          info.appendChild(card);
+        });
+        button.disabled = !organization?.id;
+        if (!organization?.id) {
+          status.textContent = 'Nu există o organizație activă în sesiunea curentă.';
+        }
+      };
+
+      const loadStatus = async () => {
+        if (!config || !organization?.id) return;
+        try {
+          const response = await fetch(\`\${config.url}/functions/v1/get-organization-status\`, {
+            headers: {
+              apikey: config.publishableKey,
+              Authorization: \`Bearer \${config.publishableKey}\`,
+              'x-panel-session': localStorage.getItem('panel_session_token') || ''
+            }
+          });
+          const data = await response.json();
+          if (response.ok && data.organization) {
+            organization = { ...organization, ...data.organization };
+            accessExpiresAt = data.settings?.organization_access?.expires_at || null;
+            render();
+          }
+        } catch (error) {
+          console.warn('Statusul organizației nu a putut fi încărcat.', error);
+        }
+      };
+
+      button.onclick = async () => {
+        if (!organization?.id) return;
+        const code = voucherInput.value.trim();
+        if (!code) {
+          status.textContent = 'Introdu codul voucherului.';
+          return;
+        }
+
+        button.disabled = true;
+        status.textContent = 'Se verifică voucherul...';
+        try {
+          const response = await fetch(\`\${config.url}/functions/v1/manage-organizations\`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: config.publishableKey,
+              Authorization: \`Bearer \${config.publishableKey}\`,
+              'x-panel-session': localStorage.getItem('panel_session_token') || ''
+            },
+            body: JSON.stringify({
+              action: 'reactivate_with_voucher',
+              organization_id: organization.id,
+              voucher_code: code
+            })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Voucherul nu a putut fi aplicat.');
+
+          accessExpiresAt = data.expires_at;
+          organization = { ...organization, active: true, lifecycle_status: 'active', grace_until: null };
+          localStorage.setItem('panel_active_organization', JSON.stringify(organization));
+          render();
+          status.textContent = \`Voucher aplicat. Noul termen este \${formatDate(accessExpiresAt)}.\`;
+          voucherInput.value = '';
+        } catch (error) {
+          status.textContent = error.message || 'Voucherul nu a putut fi aplicat.';
+        } finally {
+          button.disabled = !organization?.id;
+        }
+      };
+
+      render();
+      loadStatus();
+    })();
+  */</script>
++  <script>
+    (() => {
+      const config = window.PANEL_SUPABASE_CONFIG;
+      const user = JSON.parse(localStorage.getItem('discord_user') || 'null');
+      const storedOrg = JSON.parse(localStorage.getItem('panel_active_organization') || 'null');
+      const activeOrg = window.getActiveOrganization?.() || storedOrg || { id: user?.organization_id, name: user?.organization_name };
+      const main = document.querySelector('main');
+      const formatDate = value => value ? new Date(value).toLocaleString('ro-RO') : 'Nespecificat';
+
+      main.innerHTML = [
+        '<section class="rounded-2xl border border-slate-700 bg-slate-900 p-6">',
+        '<h1 class="text-2xl font-black">Administrare organizatie</h1>',
+        '<p class="mt-2 text-sm text-slate-400">Foloseste un voucher pentru activare sau prelungire.</p>',
+        '<div id="voucher-info" class="mt-5 grid gap-3 md:grid-cols-3"></div>',
+        '<div class="mt-6 border-t border-slate-700 pt-5">',
+        '<h2 class="font-bold">Voucher activare / prelungire</h2>',
+        '<p class="mt-2 text-sm text-slate-400">Durata voucherului se adauga peste termenul ramas al organizatiei.</p>',
+        '<div class="mt-3 flex flex-col gap-2 sm:flex-row">',
+        '<input id="voucher" class="w-full rounded-xl border border-slate-700 bg-slate-950 p-3" placeholder="Cod voucher" autocomplete="off">',
+        '<button id="reactivate" type="button" class="rounded-xl bg-emerald-700 px-4 py-3 font-bold">Aplica voucherul</button>',
+        '</div></div><p id="status" class="mt-4 text-sm text-slate-400"></p></section>'
+      ].join('');
+
+      const info = document.getElementById('voucher-info');
+      const status = document.getElementById('status');
+      const button = document.getElementById('reactivate');
+      const voucherInput = document.getElementById('voucher');
+      let organization = { ...activeOrg };
+      let accessExpiresAt = null;
+
+      const render = () => {
+        info.replaceChildren();
+        [
+          ['Organizatie activa', organization?.name || 'Nu a fost identificata'],
+          ['Status', organization?.lifecycle_status || (organization?.active === false ? 'Inactiva' : 'Activa')],
+          ['Termen curent', accessExpiresAt ? formatDate(accessExpiresAt) : 'Nu este disponibil']
+        ].forEach(([label, value]) => {
+          const card = document.createElement('div');
+          card.className = 'rounded-xl bg-slate-950 p-4';
+          const title = document.createElement('small');
+          title.className = 'text-slate-400';
+          title.textContent = label;
+          const content = document.createElement('b');
+          content.className = 'mt-1 block';
+          content.textContent = value;
+          card.append(title, content);
+          info.appendChild(card);
+        });
+        button.disabled = !organization?.id;
+        if (!organization?.id) status.textContent = 'Nu exista o organizatie activa in sesiunea curenta.';
+      };
+
+      const loadStatus = async () => {
+        if (!config || !organization?.id) return;
+        try {
+          const response = await fetch(config.url + '/functions/v1/get-organization-status', {
+            headers: {
+              apikey: config.publishableKey,
+              Authorization: 'Bearer ' + config.publishableKey,
+              'x-panel-session': localStorage.getItem('panel_session_token') || ''
+            }
+          });
+          const data = await response.json();
+          if (response.ok && data.organization) {
+            organization = { ...organization, ...data.organization };
+            accessExpiresAt = data.settings?.organization_access?.expires_at || null;
+            render();
+          }
+        } catch (error) {
+          console.warn('Statusul organizatiei nu a putut fi incarcat.', error);
+        }
+      };
+
+      button.onclick = async () => {
+        if (!organization?.id) return;
+        const code = voucherInput.value.trim();
+        if (!code) { status.textContent = 'Introdu codul voucherului.'; return; }
+        button.disabled = true;
+        status.textContent = 'Se verifica voucherul...';
+        try {
+          const response = await fetch(config.url + '/functions/v1/manage-organizations', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: config.publishableKey,
+              Authorization: 'Bearer ' + config.publishableKey,
+              'x-panel-session': localStorage.getItem('panel_session_token') || ''
+            },
+            body: JSON.stringify({ action: 'reactivate_with_voucher', organization_id: organization.id, voucher_code: code })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Voucherul nu a putut fi aplicat.');
+          accessExpiresAt = data.expires_at;
+          organization = { ...organization, active: true, lifecycle_status: 'active', grace_until: null };
+          localStorage.setItem('panel_active_organization', JSON.stringify(organization));
+          render();
+          status.textContent = 'Voucher aplicat. Noul termen este ' + formatDate(accessExpiresAt) + '.';
+          voucherInput.value = '';
+        } catch (error) {
+          status.textContent = error.message || 'Voucherul nu a putut fi aplicat.';
+        } finally {
+          button.disabled = !organization?.id;
+        }
+      };
+
+      render();
+      loadStatus();
+    })();
+  </script>
 </body>
 </html>
