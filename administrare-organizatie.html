@@ -10,274 +10,132 @@
   <script src="js/permissions.js"></script>
   <script src="js/panel-layout.js"></script>
   <script src="js/global-footer.js"></script>
+  <style>
+    #organization-owner-main { width: 100%; min-height: calc(100vh - 96px); padding: 24px; }
+    #organization-owner-shell { width: min(100%, 1100px); margin: 0 auto; }
+    .owner-field { display: block; width: 100%; margin-top: 6px; border: 1px solid #334155; border-radius: 10px; background: #0f172a; color: #e2e8f0; padding: 10px; box-sizing: border-box; }
+    .owner-label { display: block; font-size: 12px; color: #cbd5e1; }
+    @media (max-width: 700px) { #organization-owner-main { padding: 14px; } }
+  </style>
 </head>
 <body class="bg-slate-950 text-slate-100">
-  <main class="mx-auto max-w-3xl p-6">
-    <section class="rounded-2xl border border-slate-700 bg-slate-900 p-6">
-      <h1 class="text-2xl font-black">Administrare organizație</h1>
-      <p class="mt-2 text-sm text-slate-400">Statusul și perioada organizației active.</p>
-      <div id="info" class="mt-5 grid gap-3 md:grid-cols-2"></div>
-      <div class="mt-6 border-t border-slate-700 pt-5">
-        <h2 class="font-bold">Reactivează cu voucher</h2>
-        <div class="mt-3 flex gap-2">
-          <input id="voucher" class="w-full rounded-xl border border-slate-700 bg-slate-950 p-3" placeholder="Cod voucher">
-          <button id="reactivate" class="rounded-xl bg-emerald-700 px-4 font-bold">Reactivează</button>
-        </div>
-      </div>
-      <p id="status" class="mt-4 text-sm text-slate-400"></p>
-    </section>
-  </main>
-  <script>
-    const org = JSON.parse(localStorage.getItem('panel_active_organization') || 'null');
-    const info = document.getElementById('info');
-    info.innerHTML = `<div class="rounded-xl bg-slate-950 p-4"><small class="text-slate-400">Organizație</small><b class="block mt-1">${org?.name || 'Necunoscută'}</b></div><div class="rounded-xl bg-slate-950 p-4"><small class="text-slate-400">Status</small><b class="block mt-1">${org?.active === false ? 'Suspendată' : 'Activă'}</b></div>`;
-    document.getElementById('reactivate').onclick = async () => {
-      const config = window.PANEL_SUPABASE_CONFIG;
-      const token = localStorage.getItem('panel_session_token');
-      const response = await fetch(`${config.url}/functions/v1/manage-organizations`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': token || '' }, body: JSON.stringify({ action: 'reactivate_with_voucher', organization_id: org?.id, voucher_code: document.getElementById('voucher').value.trim() }) });
-      const data = await response.json();
-      document.getElementById('status').textContent = response.ok ? 'Organizația a fost reactivată.' : data.error || 'Eroare.';
-    };
-  </script>
-  <script>/*
-    (() => {
-      const config = window.PANEL_SUPABASE_CONFIG;
-      const user = JSON.parse(localStorage.getItem('discord_user') || 'null');
-      const storedOrg = JSON.parse(localStorage.getItem('panel_active_organization') || 'null');
-      const activeOrg = window.getActiveOrganization?.() || storedOrg || {
-        id: user?.organization_id,
-        name: user?.organization_name
-      };
-
-       const main = document.querySelector('main');
-       if (!main) return;
-       main.className = 'min-h-screen w-full flex-1 flex items-center justify-center p-6';
-      main.className = 'min-h-screen flex-1 flex items-center justify-center p-6';
-      const formatDate = (value) => value
-        ? new Date(value).toLocaleString('ro-RO')
-        : 'Nespecificat';
-
-      main.innerHTML = \`
-        <section class="rounded-2xl border border-slate-700 bg-slate-900 p-6">
-          <h1 class="text-2xl font-black">Administrare organizație</h1>
-          <p class="mt-2 text-sm text-slate-400">Folosește un voucher pentru activare sau prelungire.</p>
-          <div id="voucher-info" class="mt-5 grid gap-3 md:grid-cols-3"></div>
-          <div class="mt-6 border-t border-slate-700 pt-5">
-            <h2 class="font-bold">Voucher activare / prelungire</h2>
-            <p class="mt-2 text-sm text-slate-400">Durata voucherului se adaugă peste termenul rămas al organizației.</p>
-            <div class="mt-3 flex flex-col gap-2 sm:flex-row">
-              <input id="voucher" class="w-full rounded-xl border border-slate-700 bg-slate-950 p-3" placeholder="Cod voucher" autocomplete="off">
-              <button id="reactivate" type="button" class="rounded-xl bg-emerald-700 px-4 py-3 font-bold">Aplică voucherul</button>
-            </div>
+  <main id="organization-owner-main">
+    <div id="organization-owner-shell">
+      <section class="rounded-2xl border border-slate-700 bg-slate-900 p-5 md:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <span class="text-xs font-black uppercase tracking-[0.25em] text-emerald-300">Organizația mea</span>
+            <h1 class="mt-2 text-2xl font-black">Administrare organizație</h1>
+            <p class="mt-2 text-sm text-slate-400">Poți modifica doar organizația al cărei server Discord îl deții.</p>
           </div>
-          <p id="status" class="mt-4 text-sm text-slate-400"></p>
-        </section>\`;
+          <button id="owner-logout" type="button" class="rounded-xl border border-rose-500/30 px-4 py-2 text-sm font-bold text-rose-300 hover:bg-rose-500/10">Logout</button>
+        </div>
 
-      let info = document.getElementById('voucher-info');
-      const status = document.getElementById('status');
-      const button = document.getElementById('reactivate');
-      const voucherInput = document.getElementById('voucher');
-      let organization = { ...activeOrg };
-      let accessExpiresAt = null;
+        <div id="owner-account" class="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-700 bg-slate-950/60 p-4">
+          <div class="flex min-w-0 items-center gap-3"><img id="owner-avatar" src="img/logo-192.png" alt="Avatar Discord" class="h-12 w-12 rounded-full border border-slate-700 object-cover"><div class="min-w-0"><strong id="owner-name" class="block truncate text-sm">Cont Discord</strong><span id="owner-username" class="block truncate text-xs text-slate-400">Se verifică proprietatea...</span></div></div>
+          <div class="text-left sm:text-right"><span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Permisiune</span><strong id="owner-permission" class="block text-sm text-amber-300">Se verifică...</strong><span id="owner-guild" class="block text-xs text-slate-500"></span></div>
+        </div>
 
-      const render = () => {
-        info.innerHTML = '';
-        [
-          ['Organizație activă', organization?.name || 'Nu a fost identificată'],
-          ['Status', organization?.lifecycle_status || (organization?.active === false ? 'Inactivă' : 'Activă')],
-          ['Termen curent', accessExpiresAt ? formatDate(accessExpiresAt) : 'Nu este disponibil']
-        ].forEach(([label, value]) => {
-          const card = document.createElement('div');
-          card.className = 'rounded-xl bg-slate-950 p-4';
-          card.innerHTML = \`<small class="text-slate-400">\${label}</small><b class="mt-1 block">\${value}</b>\`;
-          info.appendChild(card);
-        });
-        button.disabled = !organization?.id;
-        if (!organization?.id) {
-          status.textContent = 'Nu există o organizație activă în sesiunea curentă.';
-        }
-      };
+        <div id="owner-denied" class="mt-5 hidden rounded-2xl border border-rose-700/60 bg-rose-950/30 p-5 text-sm text-rose-200"></div>
 
-      const loadStatus = async () => {
-        if (!config || !organization?.id) return;
-        try {
-          const response = await fetch(\`\${config.url}/functions/v1/get-organization-status\`, {
-            headers: {
-              apikey: config.publishableKey,
-              Authorization: \`Bearer \${config.publishableKey}\`,
-              'x-panel-session': localStorage.getItem('panel_session_token') || ''
-            }
-          });
-          const data = await response.json();
-          if (response.ok && data.organization) {
-            organization = { ...organization, ...data.organization };
-            accessExpiresAt = data.settings?.organization_access?.expires_at || null;
-            render();
-          }
-        } catch (error) {
-          console.warn('Statusul organizației nu a putut fi încărcat.', error);
-        }
-      };
+        <form id="owner-form" class="mt-5 hidden space-y-5">
+          <div class="grid gap-3 md:grid-cols-2">
+            <label class="owner-label">Numele organizației<input id="owner-org-name" required class="owner-field" placeholder="Numele organizației"></label>
+            <label class="owner-label">Adresa organizației<input id="owner-org-address" class="owner-field" placeholder="Sediu sau punct de lucru"></label>
+            <label class="owner-label md:col-span-2">Descrierea organizației<textarea id="owner-org-description" class="owner-field min-h-24" placeholder="Descriere scurtă (opțional)"></textarea></label>
+            <label class="owner-label">Logo organizație (link)<input id="owner-org-logo" type="url" class="owner-field" placeholder="https://..."></label>
+            <label class="owner-label">Banner organizație (link)<input id="owner-org-banner" type="url" class="owner-field" placeholder="https://... (opțional)"></label>
+            <div class="rounded-xl border border-slate-700 bg-slate-950 p-3"><span class="block text-xs font-bold text-slate-400">Server Discord principal</span><strong id="owner-guild-readonly" class="mt-1 block text-sm">Se încarcă...</strong><span class="mt-1 block text-xs text-slate-500">Guild ID-ul nu poate fi schimbat de aici.</span></div>
+          </div>
 
-      button.onclick = async () => {
-        if (!organization?.id) return;
-        const code = voucherInput.value.trim();
-        if (!code) {
-          status.textContent = 'Introdu codul voucherului.';
-          return;
-        }
+          <details class="rounded-xl border border-slate-700 p-4" open>
+            <summary class="cursor-pointer font-bold">Webhookurile organizației</summary>
+            <p class="mt-2 text-xs text-slate-400">Configurează notificările Discord pentru organizația ta. Nu poți modifica webhookurile altor organizații.</p>
+            <div id="owner-webhooks" class="mt-3 grid gap-3 md:grid-cols-2"></div>
+          </details>
 
-        button.disabled = true;
-        status.textContent = 'Se verifică voucherul...';
-        try {
-          const response = await fetch(\`\${config.url}/functions/v1/manage-organizations\`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              apikey: config.publishableKey,
-              Authorization: \`Bearer \${config.publishableKey}\`,
-              'x-panel-session': localStorage.getItem('panel_session_token') || ''
-            },
-            body: JSON.stringify({
-              action: 'reactivate_with_voucher',
-              organization_id: organization.id,
-              voucher_code: code
-            })
-          });
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.error || 'Voucherul nu a putut fi aplicat.');
+          <details class="rounded-xl border border-amber-700/60 bg-amber-950/20 p-4">
+            <summary class="cursor-pointer font-bold">Contractul separat al organizației</summary>
+            <p class="mt-2 text-xs text-slate-400">Acest șablon este folosit la generarea contractelor pentru organizația ta.</p>
+            <label class="owner-label mt-3">Numele contractului<input id="owner-contract-title" class="owner-field" placeholder="Ex: Contract de colaborare"></label>
+            <label class="owner-label mt-3">Salariu implicit<input id="owner-contract-salary" class="owner-field" placeholder="Ex: 100 lei/lună"></label>
+            <label class="owner-label mt-3">Textul contractului<textarea id="owner-contract-template" class="owner-field min-h-72 font-mono text-xs" placeholder="Lipește aici contractul organizației..."></textarea></label>
+            <div class="mt-3 rounded-lg bg-slate-950 p-3 text-xs text-slate-300"><b>Câmpuri disponibile:</b><br>{{COMPANY}} companie · {{ADDRESS}} adresă · {{MANAGER}} manager · {{EMPLOYEE_NAME}} angajat · {{CNP}} CNP · {{PHONE}} telefon · {{POSITION}} funcție · {{SALARY}} salariu · {{PROGRAM}} program · {{START_DATE}} data începerii · {{CONTRACT_NUMBER}} număr contract</div>
+          </details>
 
-          accessExpiresAt = data.expires_at;
-          organization = { ...organization, active: true, lifecycle_status: 'active', grace_until: null };
-          localStorage.setItem('panel_active_organization', JSON.stringify(organization));
-          render();
-          status.textContent = \`Voucher aplicat. Noul termen este \${formatDate(accessExpiresAt)}.\`;
-          voucherInput.value = '';
-        } catch (error) {
-          status.textContent = error.message || 'Voucherul nu a putut fi aplicat.';
-        } finally {
-          button.disabled = !organization?.id;
-        }
-      };
+          <div class="flex flex-wrap items-center gap-3"><button id="owner-save" type="submit" class="rounded-xl bg-emerald-700 px-6 py-3 font-black">Salvează modificările</button><span id="owner-status" class="text-sm text-slate-400"></span></div>
+        </form>
+      </section>
+    </div>
+  </main>
 
-      render();
-      loadStatus();
-    })();
-  */</script>
   <script>
     (() => {
       const config = window.PANEL_SUPABASE_CONFIG;
       const user = JSON.parse(localStorage.getItem('discord_user') || 'null');
-      const storedOrg = JSON.parse(localStorage.getItem('panel_active_organization') || 'null');
-      const activeOrg = window.getActiveOrganization?.() || storedOrg || { id: user?.organization_id, name: user?.organization_name };
-      const main = document.querySelector('main');
-      if (!main) return;
-      main.className = 'min-h-screen w-full flex-1';
-      const formatDate = value => value ? new Date(value).toLocaleString('ro-RO') : 'Nespecificat';
+      const $ = (id) => document.getElementById(id);
+      const webhookDefinitions = [
+        ['organization', 'Anunțuri organizație'], ['departments', 'Anunțuri Birouri / Angajați'], ['pontaj', 'Pontaj și ture'],
+        ['requests_organization', 'Cereri / Învoiri · Organizație'], ['requests_departments', 'Cereri / Învoiri · Birouri / Angajați'],
+        ['contracts', 'Contracte'], ['marketplace', 'Marketplace legal'], ['illegal_marketplace', 'Marketplace ilegal'],
+        ['fines_organization', 'Amenzi organizație'], ['fines_departments', 'Amenzi Birouri / Angajați'], ['status_live', 'Status Live']
+      ];
 
-      main.innerHTML = [
-        '<section class="mx-auto mt-6 w-full max-w-3xl rounded-2xl border border-slate-700 bg-slate-900 p-6">',
-        '<h1 class="text-2xl font-black">Administrare organizatie</h1>',
-        '<p class="mt-2 text-sm text-slate-400">Foloseste un voucher pentru activare sau prelungire.</p>',
-        '<div id="voucher-info" class="mt-5 grid gap-3 md:grid-cols-3"></div>',
-        '<div class="mt-6 border-t border-slate-700 pt-5">',
-        '<h2 class="font-bold">Voucher activare / prelungire</h2>',
-        '<p class="mt-2 text-sm text-slate-400">Durata voucherului se adauga peste termenul ramas al organizatiei.</p>',
-        '<div class="mt-3 flex flex-col gap-2 sm:flex-row">',
-        '<input id="voucher" class="w-full rounded-xl border border-slate-700 bg-slate-950 p-3" placeholder="Cod voucher" autocomplete="off">',
-        '<button id="reactivate" type="button" class="rounded-xl bg-emerald-700 px-4 py-3 font-bold">Aplica voucherul</button>',
-        '</div></div><p id="status" class="mt-4 text-sm text-slate-400"></p></section>'
-      ].join('');
+      $('owner-name').textContent = user?.display_name || user?.username || 'Cont Discord';
+      $('owner-username').textContent = user?.username ? '@' + user.username : 'Sesiune Discord';
+      $('owner-avatar').src = user?.avatar || user?.avatar_url || 'img/logo-192.png';
+      $('owner-logout').onclick = () => { localStorage.clear(); sessionStorage.clear(); location.replace('login.html'); };
+      $('owner-webhooks').innerHTML = webhookDefinitions.map(([key, label]) => `<fieldset class="rounded-xl border border-slate-700 p-3"><legend class="px-1 text-xs font-bold text-slate-200">${label}</legend><label class="mt-1 flex items-center gap-2 text-xs"><input type="checkbox" data-owner-webhook-enabled="${key}" data-target="primary"> Discord principal</label><input data-owner-webhook="${key}" data-target="primary" type="url" class="owner-field" placeholder="Webhook Discord principal"><label class="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" data-owner-webhook-enabled="${key}" data-target="secondary"> Discord secundar</label><input data-owner-webhook="${key}" data-target="secondary" type="url" class="owner-field" placeholder="Webhook Discord secundar"></fieldset>`).join('');
 
-      let info = document.getElementById('voucher-info');
-      const status = document.getElementById('status');
-      const button = document.getElementById('reactivate');
-      const voucherInput = document.getElementById('voucher');
-      let organization = { ...activeOrg };
-      let accessExpiresAt = null;
-
-      const render = () => {
-        info = document.getElementById('voucher-info') || info;
-        if (!info || !document.body.contains(info)) {
-          status.textContent = 'Interfața organizației nu a fost încărcată corect. Reîncarcă pagina.';
-          return;
-        }
-        info.replaceChildren();
-        [
-          ['Organizatie activa', organization?.name || 'Nu a fost identificata'],
-          ['Status', organization?.lifecycle_status || (organization?.active === false ? 'Inactiva' : 'Activa')],
-          ['Termen curent', accessExpiresAt ? formatDate(accessExpiresAt) : 'Nu este disponibil']
-        ].forEach(([label, value]) => {
-          const card = document.createElement('div');
-          card.className = 'rounded-xl bg-slate-950 p-4';
-          const title = document.createElement('small');
-          title.className = 'text-slate-400';
-          title.textContent = label;
-          const content = document.createElement('b');
-          content.className = 'mt-1 block';
-          content.textContent = value;
-          card.append(title, content);
-          info.appendChild(card);
-        });
-        button.disabled = !organization?.id;
-        if (!organization?.id) status.textContent = 'Nu exista o organizatie activa in sesiunea curenta.';
-      };
-
-      const loadStatus = async () => {
-        if (!config || !organization?.id) return;
+      let organizationId = '';
+      const call = (body) => fetch(`${config.url}/functions/v1/manage-owned-organization`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}` }, body: JSON.stringify({ ...body, access_token: localStorage.getItem('discord_access_token') || '', organization_id: body.organization_id || organizationId || JSON.parse(localStorage.getItem('panel_active_organization') || 'null')?.id || '' }) });
+      const collectWebhooks = () => { const routes = {}; document.querySelectorAll('[data-owner-webhook]').forEach((input) => { const key = input.dataset.ownerWebhook, target = input.dataset.target, url = input.value.trim(), enabled = document.querySelector(`[data-owner-webhook-enabled="${key}"][data-target="${target}"]`)?.checked === true; routes[key] ||= {}; routes[key][target] = { enabled, url }; }); return routes; };
+      const fillWebhooks = (routes) => { document.querySelectorAll('[data-owner-webhook]').forEach((input) => { const route = routes?.[input.dataset.ownerWebhook]?.[input.dataset.target] || {}; input.value = route.url || ''; const checkbox = document.querySelector(`[data-owner-webhook-enabled="${input.dataset.ownerWebhook}"][data-target="${input.dataset.target}"]`); if (checkbox) checkbox.checked = route.enabled === true && Boolean(route.url); }); };
+      async function load() {
+        if (!config || !localStorage.getItem('discord_access_token')) { $('owner-denied').textContent = 'Sesiunea Discord lipsește. Revino la login.'; $('owner-denied').classList.remove('hidden'); return; }
+        $('owner-permission').textContent = 'Se verifică proprietatea...';
         try {
-          const response = await fetch(config.url + '/functions/v1/get-organization-status', {
-            headers: {
-              apikey: config.publishableKey,
-              Authorization: 'Bearer ' + config.publishableKey,
-              'x-panel-session': localStorage.getItem('panel_session_token') || ''
-            }
-          });
+          const response = await call({ action: 'owner_get' });
           const data = await response.json();
-          if (response.ok && data.organization) {
-            organization = { ...organization, ...data.organization };
-            accessExpiresAt = data.settings?.organization_access?.expires_at || null;
-            render();
-          }
+          if (!response.ok) throw new Error(data.error || 'Nu ai acces la administrarea acestei organizații.');
+          const org = data.organization || {};
+          organizationId = org.id || '';
+          $('owner-permission').textContent = 'Proprietar Guild';
+          $('owner-guild').textContent = data.guild?.name || data.guild?.id || '';
+          $('owner-guild-readonly').textContent = `${data.guild?.name || 'Server Discord'} · ${data.guild?.id || ''}`;
+          $('owner-org-name').value = org.name || '';
+          $('owner-org-address').value = org.address || '';
+          $('owner-org-description').value = org.description || '';
+          $('owner-org-logo').value = org.logo_url || '';
+          $('owner-org-banner').value = org.banner_url || '';
+          const contract = data.contract_template || {};
+          $('owner-contract-title').value = contract.title || '';
+          $('owner-contract-salary').value = contract.defaults?.salary || '';
+          $('owner-contract-template').value = contract.template || '';
+          fillWebhooks(data.settings?.webhook_routes || {});
+          $('owner-form').classList.remove('hidden');
         } catch (error) {
-          console.warn('Statusul organizatiei nu a putut fi incarcat.', error);
+          $('owner-permission').textContent = 'Acces refuzat';
+          $('owner-denied').textContent = error.message || 'Doar proprietarul serverului Discord poate administra organizația.';
+          $('owner-denied').classList.remove('hidden');
         }
-      };
+      }
 
-      button.onclick = async () => {
-        if (!organization?.id) return;
-        const code = voucherInput.value.trim();
-        if (!code) { status.textContent = 'Introdu codul voucherului.'; return; }
-        button.disabled = true;
-        status.textContent = 'Se verifica voucherul...';
+      $('owner-form').onsubmit = async (event) => {
+        event.preventDefault();
+        const button = $('owner-save'); button.disabled = true; $('owner-status').textContent = 'Se salvează modificările...';
         try {
-          const response = await fetch(config.url + '/functions/v1/manage-organizations', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              apikey: config.publishableKey,
-              Authorization: 'Bearer ' + config.publishableKey,
-              'x-panel-session': localStorage.getItem('panel_session_token') || ''
-            },
-            body: JSON.stringify({ action: 'reactivate_with_voucher', organization_id: organization.id, voucher_code: code })
-          });
+          const title = $('owner-contract-title').value.trim(), template = $('owner-contract-template').value.trim(), salary = $('owner-contract-salary').value.trim();
+          const contractTemplate = title || template || salary ? { title, template, defaults: { salary } } : null;
+          const response = await call({ action: 'owner_update', organization_id: organizationId, organization: { name: $('owner-org-name').value.trim(), address: $('owner-org-address').value.trim(), description: $('owner-org-description').value.trim(), logo_url: $('owner-org-logo').value.trim(), banner_url: $('owner-org-banner').value.trim() }, webhook_routes: collectWebhooks(), contract_template: contractTemplate });
           const data = await response.json();
-          if (!response.ok) throw new Error(data.error || 'Voucherul nu a putut fi aplicat.');
-          accessExpiresAt = data.expires_at;
-          organization = { ...organization, active: true, lifecycle_status: 'active', grace_until: null };
-          localStorage.setItem('panel_active_organization', JSON.stringify(organization));
-          render();
-          status.textContent = 'Voucher aplicat. Noul termen este ' + formatDate(accessExpiresAt) + '.';
-          voucherInput.value = '';
-        } catch (error) {
-          status.textContent = error.message || 'Voucherul nu a putut fi aplicat.';
-        } finally {
-          button.disabled = !organization?.id;
-        }
+          if (!response.ok) throw new Error(data.error || 'Modificările nu au putut fi salvate.');
+          $('owner-status').textContent = 'Modificările au fost salvate.';
+          localStorage.setItem('panel_active_organization', JSON.stringify(data.organization || {}));
+        } catch (error) { $('owner-status').textContent = error.message || 'Salvarea a eșuat.'; }
+        button.disabled = false;
       };
-
-      render();
-      loadStatus();
+      load();
     })();
   </script>
 </body>
