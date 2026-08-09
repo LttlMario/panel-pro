@@ -18,7 +18,7 @@
 
         // Identificăm organizația activă a utilizatorului.
         const cachedUser = localStorage.getItem('discord_user');
-        let organizationId = window.PANEL_ACTIVE_ORGANIZATION_ID || null;
+        let organizationId = window.PANEL_ACTIVE_ORGANIZATION_ID || window.getActiveOrganizationId?.() || null;
 
         if (!organizationId) {
             try {
