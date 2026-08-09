@@ -50,6 +50,7 @@
       };
 
       const main = document.querySelector('main');
+      main.className = 'min-h-screen flex-1 flex items-center justify-center p-6';
       const formatDate = (value) => value
         ? new Date(value).toLocaleString('ro-RO')
         : 'Nespecificat';
@@ -171,7 +172,7 @@
       const formatDate = value => value ? new Date(value).toLocaleString('ro-RO') : 'Nespecificat';
 
       main.innerHTML = [
-        '<section class="rounded-2xl border border-slate-700 bg-slate-900 p-6">',
+        '<section class="w-full max-w-3xl rounded-2xl border border-slate-700 bg-slate-900 p-6">',
         '<h1 class="text-2xl font-black">Administrare organizatie</h1>',
         '<p class="mt-2 text-sm text-slate-400">Foloseste un voucher pentru activare sau prelungire.</p>',
         '<div id="voucher-info" class="mt-5 grid gap-3 md:grid-cols-3"></div>',
