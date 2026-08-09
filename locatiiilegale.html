@@ -1464,6 +1464,20 @@
         }
 
         function mapLocationForDatabase(loc) {
+            const activeUser =
+                typeof getUser === 'function'
+                    ? getUser()
+                    : null;
+            const organizationId =
+                window.getActiveOrganizationId?.() ||
+                window.getActiveOrganization?.()?.id ||
+                activeUser?.organization_id ||
+                null;
+
+            if (!organizationId) {
+                throw new Error('Organizația activă lipsește. Reautentifică-te și încearcă din nou.');
+            }
+
             return {
                 id: loc.id,
                 map_key: loc.map,
@@ -1480,8 +1494,8 @@
                     loc.lastUpdated ||
                     new Date().toISOString().slice(0, 10),
 
-                // Locațiile ilegale sunt globale pentru întreaga platformă.
-                organization_id: null
+                // Locațiile aparțin organizației active, la fel ca restul datelor din panel.
+                organization_id: organizationId
             };
         }
 
