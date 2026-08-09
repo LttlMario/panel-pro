@@ -34,7 +34,7 @@ DROP POLICY IF EXISTS locations_admin ON public.illegal_locations;
 CREATE POLICY locations_admin ON public.illegal_locations
     TO authenticated, anon
     USING (
-        organization_id = public.current_panel_organization_id()
+        organization_id IS NULL
         AND public.current_panel_is_platform_admin()
     )
     WITH CHECK (
