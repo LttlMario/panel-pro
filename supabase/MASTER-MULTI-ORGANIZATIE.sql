@@ -106,6 +106,31 @@ CREATE FUNCTION public.current_panel_permission_level() RETURNS smallint
 ALTER FUNCTION public.current_panel_permission_level() OWNER TO postgres;
 
 --
+-- Name: current_panel_is_platform_admin(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.current_panel_is_platform_admin() RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+      SELECT COALESCE(is_platform_admin, false)
+      FROM public.panel_sessions
+      WHERE token_hash = encode(
+        extensions.digest(
+          COALESCE((NULLIF(current_setting('request.headers', true), '')::jsonb->>'x-panel-session'), ''),
+          'sha256'
+        ),
+        'hex'
+      )
+        AND revoked_at IS NULL
+        AND expires_at > now()
+      LIMIT 1
+    $$;
+
+
+ALTER FUNCTION public.current_panel_is_platform_admin() OWNER TO postgres;
+
+--
 -- Name: enforce_organization_package_limits(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -2443,14 +2468,14 @@ ALTER TABLE public.illegal_locations ENABLE ROW LEVEL SECURITY;
 -- Name: illegal_locations locations_admin; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY locations_admin ON public.illegal_locations TO authenticated, anon USING (((organization_id = public.current_panel_organization_id()) AND (public.current_panel_permission_level() = 7))) WITH CHECK (((organization_id = public.current_panel_organization_id()) AND (public.current_panel_permission_level() = 7)));
+CREATE POLICY locations_admin ON public.illegal_locations TO authenticated, anon USING (((organization_id = public.current_panel_organization_id()) AND public.current_panel_is_platform_admin())) WITH CHECK (((organization_id = public.current_panel_organization_id()) AND public.current_panel_is_platform_admin()));
 
 
 --
 -- Name: illegal_locations locations_read; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY locations_read ON public.illegal_locations FOR SELECT TO authenticated, anon USING (((organization_id = public.current_panel_organization_id()) AND (public.current_panel_permission_level() >= 3)));
+CREATE POLICY locations_read ON public.illegal_locations FOR SELECT TO authenticated, anon USING ((organization_id = public.current_panel_organization_id()));
 
 
 --
@@ -2741,7 +2766,18 @@ GRANT ALL ON FUNCTION public.current_panel_permission_level() TO authenticated;
 
 
 --
+-- Name: FUNCTION current_panel_is_platform_admin(); Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE ALL ON FUNCTION public.current_panel_is_platform_admin() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.current_panel_is_platform_admin() TO service_role;
+GRANT ALL ON FUNCTION public.current_panel_is_platform_admin() TO anon;
+GRANT ALL ON FUNCTION public.current_panel_is_platform_admin() TO authenticated;
+
+
+--
 -- Name: FUNCTION enforce_organization_package_limits(); Type: ACL; Schema: public; Owner: postgres
+-- Type: ACL; Schema: public; Owner: postgres
 --
 
 GRANT ALL ON FUNCTION public.enforce_organization_package_limits() TO service_role;
