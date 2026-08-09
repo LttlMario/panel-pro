@@ -38,7 +38,7 @@ CREATE POLICY locations_admin ON public.illegal_locations
         AND public.current_panel_is_platform_admin()
     )
     WITH CHECK (
-        organization_id = public.current_panel_organization_id()
+        organization_id IS NULL
         AND public.current_panel_is_platform_admin()
     );
 
@@ -46,4 +46,7 @@ DROP POLICY IF EXISTS locations_read ON public.illegal_locations;
 CREATE POLICY locations_read ON public.illegal_locations
     FOR SELECT
     TO authenticated, anon
-    USING (organization_id = public.current_panel_organization_id());
+    USING (
+        organization_id IS NULL
+        OR organization_id = public.current_panel_organization_id()
+    );
