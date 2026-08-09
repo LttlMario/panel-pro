@@ -490,6 +490,20 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (typeof isPlatformAdmin === 'function' && isPlatformAdmin() && !navigation.querySelector('a[href="vouchere.html"]')) {
             const voucher = document.createElement('a'); voucher.href='vouchere.html'; voucher.dataset.role='99'; voucher.className='nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm text-slate-300 hover:bg-slate-800'; voucher.innerHTML='<span>🎟️</span><span>Vouchere</span>'; navigation.appendChild(voucher);
         }
+        if (!navigation.querySelector('a[href="administrare-organizatie.html"]')) {
+            const organizationAdmin = document.createElement('a');
+            organizationAdmin.href = 'administrare-organizatie.html';
+            organizationAdmin.dataset.role = '1';
+            organizationAdmin.className = 'nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm ' + (
+                currentPage === 'administrare-organizatie.html'
+                    ? 'bg-emerald-500/10 text-emerald-400 font-medium'
+                    : 'text-slate-300 hover:bg-slate-800'
+            );
+            organizationAdmin.innerHTML = '<span>🏢</span><span>Administrare organizație</span>';
+            const voucher = navigation.querySelector('a[href="vouchere.html"]');
+            if (voucher) voucher.after(organizationAdmin);
+            else navigation.appendChild(organizationAdmin);
+        }
         if (typeof isPlatformAdmin === 'function' && isPlatformAdmin()) {
             navigation.querySelectorAll('a.nav-link').forEach((link) => { link.style.display = ''; });
         }
