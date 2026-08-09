@@ -2483,7 +2483,7 @@ CREATE POLICY locations_admin ON public.illegal_locations TO authenticated, anon
 -- Name: illegal_locations locations_read; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY locations_read ON public.illegal_locations FOR SELECT TO authenticated, anon USING ((organization_id = public.current_panel_organization_id()));
+CREATE POLICY locations_read ON public.illegal_locations FOR SELECT TO authenticated, anon USING (((organization_id IS NULL) OR (organization_id = public.current_panel_organization_id())));
 
 
 --
