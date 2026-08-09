@@ -2476,7 +2476,7 @@ DROP POLICY IF EXISTS locations_global_read ON public.illegal_locations;
 DROP POLICY IF EXISTS locations_insert_platform_admin ON public.illegal_locations;
 DROP POLICY IF EXISTS locations_update_platform_admin ON public.illegal_locations;
 
-CREATE POLICY locations_admin ON public.illegal_locations TO authenticated, anon USING (((organization_id = public.current_panel_organization_id()) AND public.current_panel_is_platform_admin())) WITH CHECK (((organization_id = public.current_panel_organization_id()) AND public.current_panel_is_platform_admin()));
+CREATE POLICY locations_admin ON public.illegal_locations TO authenticated, anon USING (((organization_id IS NULL) AND public.current_panel_is_platform_admin())) WITH CHECK (((organization_id IS NULL) AND public.current_panel_is_platform_admin()));
 
 
 --
