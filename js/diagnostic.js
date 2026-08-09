@@ -5,9 +5,12 @@
 
   const $ = (selector) => document.querySelector(selector);
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' })[character]);
-  $('#user-display-name').textContent = user.display_name || user.username || 'Coordonator';
-  $('#user-role').textContent = user.role || user.default_role || 'Coordonator';
-  $('#user-avatar').src = user.avatar || user.avatar_url || '';
+  const displayName = $('#user-display-name');
+  const role = $('#user-role');
+  const avatar = $('#user-avatar');
+  if (displayName) displayName.textContent = user.display_name || user.username || 'Coordonator';
+  if (role) role.textContent = user.role || user.default_role || 'Coordonator';
+  if (avatar) avatar.src = user.avatar || user.avatar_url || '';
 
   async function invokeDiagnostics() {
     const token = localStorage.getItem('discord_access_token');
