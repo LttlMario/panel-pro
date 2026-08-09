@@ -181,6 +181,9 @@
         const DISCORD_SCOPES = window.PANEL_DISCORD_CONFIG.scopes.join(' ');
         const REDIRECT_URI = window.location.origin + window.location.pathname;
         function getLoginDestination(user) {
+            if (user?.organization_access_expired === true) {
+                return 'administrare-organizatie.html';
+            }
             const permissionLevel = Number(user?.permission_level);
 
             const selectedPages = Array.isArray(user?.allowed_pages) && user.allowed_pages.length > 0;
@@ -193,6 +196,9 @@
 
         function getSafeReturnDestination(user) {
             const fallback = getLoginDestination(user);
+            if (user?.organization_access_expired === true) {
+                return 'administrare-organizatie.html';
+            }
             const savedDestination = sessionStorage.getItem('panel_return_after_login');
             sessionStorage.removeItem('panel_return_after_login');
             if (!savedDestination) return fallback;
@@ -263,7 +269,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const expectedState = sessionStorage.getItem('discord_oauth_state');
 
         if(accessToken){
-            if (returnedState === 'panel_android' || returnedState?.startsWith('panel_android:')) {
+            if (returnedState === 'panel_android') {
                 window.location.replace(`discord-1531023771211792384:/authorize/callback#${params.toString()}`);
                 return;
             }
