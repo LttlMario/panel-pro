@@ -378,7 +378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         localStorage.setItem('discord_access_token', token);
                         localStorage.setItem('discord_user', JSON.stringify({ discord_id: discordData.id, username: discordData.username, display_name: discordData.global_name || discordData.username, avatar: discordData.avatar }));
                         sessionStorage.removeItem('panel_onboarding_voucher');
-                        window.location.href = 'organizatie-noua.html';
+                        window.location.href = 'organizatie-bun-venit.html';
                         return;
                     }
                     throw new Error(syncResult.error || 'Rolul Discord nu a putut fi verificat.');
