@@ -152,7 +152,9 @@
         let currentUser = {
             discord_id: '',
             display_name: 'Mecanic',
-            role: 'Mecanic'
+            role: 'Mecanic',
+            organization_id: '',
+            organization_name: ''
         };
 
         // Gestionare Imagini Multiple prin Paste (Maxim 5)
@@ -280,6 +282,26 @@
                 currentUser.discord_id = activeUser.discord_id;
                 currentUser.display_name = activeUser.display_name || activeUser.username || 'Mecanic';
                 currentUser.role = activeUser.role || activeUser.default_role || 'Mecanic';
+                currentUser.organization_id =
+                    window.getActiveOrganizationId?.() ||
+                    activeUser.organization_id ||
+                    localData.organization_id ||
+                    '';
+                activeUser.organization_id = currentUser.organization_id;
+                window.PANEL_ACTIVE_ORGANIZATION_ID = currentUser.organization_id;
+
+                if (currentUser.organization_id) {
+                    const { data: organizationData, error: organizationError } =
+                        await supabaseClient
+                            .from('organizations')
+                            .select('id, name')
+                            .eq('id', currentUser.organization_id)
+                            .maybeSingle();
+
+                    if (!organizationError && organizationData) {
+                        currentUser.organization_name = organizationData.name || '';
+                    }
+                }
 
                 const userAvatar = activeUser.avatar || 'img/logo-192.png';
 
@@ -314,7 +336,27 @@
             }
 
             incarcaAnunturi();
+            aboneazaLaMarketplaceRealtime();
         });
+
+        let marketplaceRealtimeChannel = null;
+
+        function aboneazaLaMarketplaceRealtime() {
+            if (marketplaceRealtimeChannel) return;
+
+            marketplaceRealtimeChannel = supabaseClient
+                .channel('marketplace-legal-global')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'marketplace'
+                    },
+                    () => incarcaAnunturi()
+                )
+                .subscribe();
+        }
 
         async function incarcaAnunturi() {
             const container = document.getElementById('listaAnunturi');
@@ -322,7 +364,7 @@
             container.innerHTML = '<p class="text-xs text-slate-500 text-center py-6 col-span-full">Se încarcă...</p>';
 
             const { data, error } = await supabaseClient
-                .from('marketplace')
+                .from('marketplace_feed')
                 .select('*')
                 .order('created_at', { ascending: false });
 
@@ -371,7 +413,13 @@
                 const esteAdministrator = typeof isPlatformAdmin === 'function' && isPlatformAdmin()
                     || Number(user?.permission_level) === 7
                     || ['admin', 'administrator', 'owner'].includes(String(user?.role || user?.default_role || '').trim().toLowerCase());
-                const poateSterge = esteAdministrator || String(item.created_by_discord_id || '') === String(currentUser.discord_id || '');
+                const apartineOrganizatieiActive =
+                    String(item.organization_id || '') === String(currentUser.organization_id || '');
+                const poateSterge = esteAdministrator || (
+                    apartineOrganizatieiActive &&
+                    String(item.created_by_discord_id || '') === String(currentUser.discord_id || '')
+                );
+                const organizatieText = item.organization_name || 'Organizație legală';
 
                 let continutAfisat = item.produse || '';
                 if (tipBadge === 'Servicii') {
@@ -417,6 +465,7 @@
                             <div class="flex items-start justify-between">
                                 <div>
                                     <span class="font-bold text-slate-100 text-sm">${escapeHtml(item.nume || '')}</span>
+                                    <div class="text-[10px] text-emerald-400 mt-1">🏢 ${escapeHtml(organizatieText)}</div>
                                     <div class="text-xs text-slate-400 mt-0.5">Tel: ${escapeHtml(item.telefon || '')}</div>
                                 </div>
                             </div>
@@ -482,6 +531,11 @@
             }
 
             fields.push({ name: '💰 Preț', value: anunt.pret, inline: true });
+            fields.push({
+                name: '🏢 Organizație',
+                value: currentUser.organization_name || 'Organizație legală',
+                inline: true
+            });
 
             const formData = new FormData();
             let listaImaginiDiscord = [];
@@ -503,10 +557,10 @@
             });
 
             const embedPrincipal = {
-                title: '📢 Anunț Nou - Marketplace Intern',
+                title: '📢 Anunț Nou - Marketplace Legal',
                 color: anunt.tip_actiune === 'Servicii' ? 10181046 : 38159,
                 fields: fields,
-                footer: { text: 'Publicat prin Marketplace Intern - Panel by Little Mario' },
+                footer: { text: 'Publicat prin Marketplace Legal - Panel by Little Mario' },
                 timestamp: new Date().toISOString()
             };
 
@@ -584,6 +638,7 @@
                 imagini_json: imaginiJsonValoare,
                 imagine_url: imagineUrlDirectValoare !== '' ? imagineUrlDirectValoare : null
                 ,created_by_discord_id: currentUser.discord_id
+                ,organization_id: currentUser.organization_id
             };
 
             const { data: savedAnunt, error } = await supabaseClient
