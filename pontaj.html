@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 1.4 seconds
+Output:
 <!DOCTYPE html>
 <html lang="ro" class="dark">
 <head>
@@ -10,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/permissions.js?v=4.5.0"></script>
-    <script src="js/panel-layout.js?v=4.9.0"></script>
+     <script src="js/panel-layout.js?v=4.10.0"></script>
     <script src="js/project-version.js"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <link rel="icon" href="img/favicon.ico">
@@ -18,7 +21,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen text-sm">
 
-        <!-- Conținut Principal -->
+        <!-- ConÈ›inut Principal -->
         <main class="min-w-0">
 
             <div class="p-8 space-y-6 max-w-6xl mx-auto w-full">
@@ -30,57 +33,57 @@
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-6">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h3 class="text-base font-bold text-slate-100">Selectare Tip Tură</h3>
-                            <p class="text-xs text-slate-400 mt-0.5">Alege tura dorită respectând intervalul orar permis.</p>
+                            <h3 class="text-base font-bold text-slate-100">Selectare Tip TurÄƒ</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Alege tura doritÄƒ respectÃ¢nd intervalul orar permis.</p>
                         </div>
                         <div class="flex space-x-3">
                             <button id="btn-shift-day" onclick="selectShiftType('zi')" class="px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700">
-                                ☀️ Tură de Zi
+                                â˜€ï¸ TurÄƒ de Zi
                             </button>
                             <button id="btn-shift-night" onclick="selectShiftType('noapte')" class="px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700">
-                                🌙 Tură de Noapte
+                                ðŸŒ™ TurÄƒ de Noapte
                             </button>
                         </div>
                     </div>
 
-                    <!-- Cronometru și Butoane de Acțiune -->
+                    <!-- Cronometru È™i Butoane de AcÈ›iune -->
                     <div class="border-t border-slate-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-6">
                         <div class="text-center md:text-left">
-                            <span class="text-xs uppercase tracking-wider text-slate-400 font-medium">Timp Scurs în Tura Curentă</span>
+                            <span class="text-xs uppercase tracking-wider text-slate-400 font-medium">Timp Scurs Ã®n Tura CurentÄƒ</span>
                             <div id="timer-display" class="text-4xl font-black text-emerald-400 mt-1 font-mono">00:00:00</div>
-                            <p id="current-shift-status" class="text-xs text-slate-500 mt-1">Tură neselectată / Oprită</p>
+                            <p id="current-shift-status" class="text-xs text-slate-500 mt-1">TurÄƒ neselectatÄƒ / OpritÄƒ</p>
                         </div>
 
                         <div class="flex flex-wrap gap-3 justify-center">
                             <button id="btn-start" onclick="startShift()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-6 py-3 rounded-xl transition shadow-md flex items-center space-x-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                                <span>▶️</span>
+                                <span>â–¶ï¸</span>
                                 <span>Start Pontaj</span>
                             </button>
                             <button id="btn-pause" onclick="pauseShift()" disabled class="bg-amber-600/50 hover:bg-amber-600 text-white text-xs font-semibold px-6 py-3 rounded-xl transition shadow-md flex items-center space-x-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                                <span>⏸️</span>
-                                <span id="pause-btn-text">Pauză</span>
+                                <span>â¸ï¸</span>
+                                <span id="pause-btn-text">PauzÄƒ</span>
                             </button>
                             <button id="btn-stop" onclick="stopShift()" disabled class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-6 py-3 rounded-xl transition shadow-md flex items-center space-x-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                                <span>⏹️</span>
+                                <span>â¹ï¸</span>
                                 <span>Stop Pontaj</span>
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Secțiunea de Istoric Detaliat și Totaluri -->
+                <!-- SecÈ›iunea de Istoric Detaliat È™i Totaluri -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                     <!-- Istoric Ture -->
                     <div class="lg:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg flex flex-col">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-base font-bold text-slate-100">Istoric Detaliat Ture (Supabase)</h3>
-                            <span class="text-xs text-slate-400">Ultimele înregistrări</span>
+                            <span class="text-xs text-slate-400">Ultimele Ã®nregistrÄƒri</span>
                         </div>
 
                         <div class="max-h-72 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                             <div id="shifts-history-container" class="space-y-3">
-                                <p class="text-xs text-slate-500 text-center py-6">Se încarcă istoricul turelor...</p>
+                                <p class="text-xs text-slate-500 text-center py-6">Se Ã®ncarcÄƒ istoricul turelor...</p>
                             </div>
                         </div>
                     </div>
@@ -89,7 +92,7 @@
                     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg flex flex-col">
                         <h3 class="text-base font-bold text-slate-100 mb-4">Total Ore Lucrate pe Zile</h3>
                         <div class="max-h-72 overflow-y-auto pr-2 space-y-3" id="daily-summary-container">
-                            <div class="text-xs text-slate-500 text-center py-6">Nicio dată centralizată încă.</div>
+                            <div class="text-xs text-slate-500 text-center py-6">Nicio datÄƒ centralizatÄƒ Ã®ncÄƒ.</div>
                         </div>
                     </div>
 
@@ -100,7 +103,7 @@
 
     <!-- Scriptul logic sincronizat cu index.html -->
     <script>
-        // Creează clientul după reînnoirea sesiunii, pentru a evita folosirea unui token expirat.
+        // CreeazÄƒ clientul dupÄƒ reÃ®nnoirea sesiunii, pentru a evita folosirea unui token expirat.
         let supabaseClient = null;
 
         const ROMANIA_TIME_ZONE = 'Europe/Bucharest';
@@ -138,7 +141,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
 
-            // 2. Verificare sesiune locală robustă
+            // 2. Verificare sesiune localÄƒ robustÄƒ
             const cachedUser = localStorage.getItem('discord_user');
             if (!cachedUser) {
                 window.location.href = 'login.html';
@@ -148,7 +151,7 @@
             try {
                 await window.ensurePanelSession();
 
-                // Reînnoirea poate actualiza utilizatorul și organizația activă.
+                // ReÃ®nnoirea poate actualiza utilizatorul È™i organizaÈ›ia activÄƒ.
                 const localData = JSON.parse(localStorage.getItem('discord_user') || cachedUser);
                 if (!localData || !localData.discord_id) {
                     window.location.href = 'login.html';
@@ -163,7 +166,7 @@
                     return;
                 }
 
-                // Client nou, cu sesiunea reînnoită mai sus.
+                // Client nou, cu sesiunea reÃ®nnoitÄƒ mai sus.
                 supabaseClient = window.createPanelSupabaseClient();
 
                 // 3. Citire live din tabelul `users` din Supabase
@@ -174,19 +177,19 @@
                     .maybeSingle();
 
                 if (dbUserError) {
-                    console.warn('Profilul Supabase nu a putut fi încărcat; folosesc sesiunea locală:', dbUserError);
+                    console.warn('Profilul Supabase nu a putut fi Ã®ncÄƒrcat; folosesc sesiunea localÄƒ:', dbUserError);
                 }
 
                 let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
 
                 currentUser.discord_id = activeUser.discord_id;
                 currentUser.display_name = localData.display_name || activeUser.display_name || activeUser.username || 'Membru';
-                // Rolul sincronizat din Discord este sursa de adevăr, nu valoarea veche din tabelul users.
+                // Rolul sincronizat din Discord este sursa de adevÄƒr, nu valoarea veche din tabelul users.
                 currentUser.role = localData.role || localData.default_role || activeUser.role || activeUser.default_role || 'Membru';
-                // Organizația selectată în sesiune are prioritate față de datele vechi din users.
+                // OrganizaÈ›ia selectatÄƒ Ã®n sesiune are prioritate faÈ›Äƒ de datele vechi din users.
                 currentUser.organization_id = activeOrganizationId;
 
-                // Păstrăm sesiunea actualizată
+                // PÄƒstrÄƒm sesiunea actualizatÄƒ
                 localStorage.setItem('discord_user', JSON.stringify({
                     ...localData,
                     ...activeUser,
@@ -195,7 +198,7 @@
                     role: currentUser.role
                 }));
 
-                // Încărcare configurare și restaurare pontaj activ
+                // ÃŽncÄƒrcare configurare È™i restaurare pontaj activ
                 await loadOrganizationPontajConfig();
                 await restoreActiveShift();
 
@@ -205,14 +208,14 @@
                     return;
                 }
 
-                // Încărcare istoric pontaj
+                // ÃŽncÄƒrcare istoric pontaj
                 await fetchShiftsHistory();
 
                 });
 
         function selectShiftType(type) {
             if (activeShiftRecord) {
-                alert('Ai deja o tură activă. Oprește tura curentă înainte de a selecta una nouă.');
+                alert('Ai deja o turÄƒ activÄƒ. OpreÈ™te tura curentÄƒ Ã®nainte de a selecta una nouÄƒ.');
                 return;
             }
             document.getElementById('btn-start').disabled = false;
@@ -228,7 +231,7 @@
                 const isDayAllowed = (currentTimeNum > 2300 || currentTimeNum < 1959);
                 if (!isDayAllowed) {
                     alertBox.classList.add('bg-rose-500/10', 'border-rose-500/20', 'text-rose-400');
-                    alertBox.innerHTML = `⚠️ <strong>Restricție Tura de Zi:</strong> Nu te poți ponta pe programul de zi în acest interval!`;
+                    alertBox.innerHTML = `âš ï¸ <strong>RestricÈ›ie Tura de Zi:</strong> Nu te poÈ›i ponta pe programul de zi Ã®n acest interval!`;
                     selectedShiftType = null;
                     resetUIButtons();
                     return;
@@ -237,7 +240,7 @@
                 const isNightAllowed = (currentTimeNum >= 2000 && currentTimeNum < 2300);
                 if (!isNightAllowed) {
                     alertBox.classList.add('bg-rose-500/10', 'border-rose-500/20', 'text-rose-400');
-                    alertBox.innerHTML = `⚠️ <strong>Restricție Tura de Noapte:</strong> Nu te poți ponta pe programul de noapte în afara intervalului 20:00 - 23:00!`;
+                    alertBox.innerHTML = `âš ï¸ <strong>RestricÈ›ie Tura de Noapte:</strong> Nu te poÈ›i ponta pe programul de noapte Ã®n afara intervalului 20:00 - 23:00!`;
                     selectedShiftType = null;
                     resetUIButtons();
                     return;
@@ -246,7 +249,7 @@
 
             selectedShiftType = type;
             alertBox.classList.add('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400');
-            alertBox.innerHTML = `✅ Ai selectat cu succes <strong>Tură de ${type.toUpperCase()}</strong>. Poți porni pontajul.`;
+            alertBox.innerHTML = `âœ… Ai selectat cu succes <strong>TurÄƒ de ${type.toUpperCase()}</strong>. PoÈ›i porni pontajul.`;
 
             document.getElementById('btn-shift-day').className = type === 'zi' ? 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-emerald-600 border-emerald-500 text-white shadow-md' : 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700';
             document.getElementById('btn-shift-night').className = type === 'noapte' ? 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-indigo-600 border-indigo-500 text-white shadow-md' : 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700';
@@ -279,7 +282,7 @@
 
             try {
                 if (!currentUser.organization_id || !currentUser.discord_id) {
-                    throw new Error('Utilizatorul sau organizația activă nu au fost identificate.');
+                    throw new Error('Utilizatorul sau organizaÈ›ia activÄƒ nu au fost identificate.');
                 }
 
                 let query = supabaseClient
@@ -294,8 +297,8 @@
                 if (error) throw error;
 
                 if (!shifts || shifts.length === 0) {
-                    historyContainer.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Nu există ture înregistrate în baza de date.</p>`;
-                    summaryContainer.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Nicio dată disponibilă.</p>`;
+                    historyContainer.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Nu existÄƒ ture Ã®nregistrate Ã®n baza de date.</p>`;
+                    summaryContainer.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Nicio datÄƒ disponibilÄƒ.</p>`;
                     return;
                 }
 
@@ -310,9 +313,9 @@
                         <div class="space-y-1">
                             <div class="flex items-center space-x-2">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${typeColor}">Tura de ${shift.shift_type ? shift.shift_type.toUpperCase() : 'STANDARD'}</span>
-                                <span class="text-slate-400">${shift.date || 'Dată necunoscută'}</span>
+                                <span class="text-slate-400">${shift.date || 'DatÄƒ necunoscutÄƒ'}</span>
                             </div>
-                            <p class="text-slate-200 font-semibold">👤 ${shift.colleague_name || currentUser.display_name || 'Membru'}</p>
+                            <p class="text-slate-200 font-semibold">ðŸ‘¤ ${shift.colleague_name || currentUser.display_name || 'Membru'}</p>
                             <p class="text-slate-300">Interval: ${shift.start_time || 'N/A'} - ${shift.end_time || 'N/A'}</p>
                         </div>
                         <div class="text-right">
@@ -323,7 +326,7 @@
 
                     const ms = shift.duration_ms || 0;
 
-                    const shiftDate = shift.date || 'Necunoscută';
+                    const shiftDate = shift.date || 'NecunoscutÄƒ';
                     if (!dailyTotals[shiftDate]) {
                         dailyTotals[shiftDate] = { hours: 0, count: 0 };
                     }
@@ -340,7 +343,7 @@
                         <div class="bg-slate-950/50 border border-slate-800 p-3 rounded-xl flex items-center justify-between text-xs">
                             <div>
                                 <p class="font-semibold text-slate-200">${date}</p>
-                                <p class="text-slate-400 text-[10px]">${info.count} tură(e) efectuate</p>
+                                <p class="text-slate-400 text-[10px]">${info.count} turÄƒ(e) efectuate</p>
                             </div>
                             <span class="font-bold text-emerald-400">${info.hours.toFixed(2)}h</span>
                         </div>
@@ -350,10 +353,10 @@
 
             } catch (err) {
                 console.error('Erore la preluarea istoricului:', err);
-                historyContainer.innerHTML = `<p class="text-xs text-rose-400 text-center py-4">Erore la încărcarea datelor din Supabase.</p>`;
+                historyContainer.innerHTML = `<p class="text-xs text-rose-400 text-center py-4">Erore la Ã®ncÄƒrcarea datelor din Supabase.</p>`;
             }
         }
-        // Sursa unică de adevăr pentru pontaj: rândul activ din Supabase.
+        // Sursa unicÄƒ de adevÄƒr pentru pontaj: rÃ¢ndul activ din Supabase.
         let activeShiftRecord = null;
         let autoStopInProgress = false;
         let organizationPontajConfig = null;
@@ -361,7 +364,7 @@
         async function loadOrganizationPontajConfig() {
             try {
                 if (!currentUser.organization_id) {
-                    throw new Error('Organizația activă nu a fost identificată.');
+                    throw new Error('OrganizaÈ›ia activÄƒ nu a fost identificatÄƒ.');
                 }
 
                 const { data, error } = await supabaseClient
@@ -376,14 +379,14 @@
                 organizationPontajConfig = data?.value || null;
 
                 console.log(
-                    '[Pontaj] Configurație organizație:',
+                    '[Pontaj] ConfiguraÈ›ie organizaÈ›ie:',
                     currentUser.organization_id,
                     organizationPontajConfig
                 );
 
             } catch (error) {
                 console.error(
-                    'Configurația de pontaj a organizației nu a putut fi încărcată:',
+                    'ConfiguraÈ›ia de pontaj a organizaÈ›iei nu a putut fi Ã®ncÄƒrcatÄƒ:',
                     error
                 );
 
@@ -443,8 +446,8 @@
             document.getElementById('btn-start').disabled = true;
             document.getElementById('btn-pause').disabled = false;
             document.getElementById('btn-stop').disabled = false;
-            document.getElementById('pause-btn-text').textContent = isPaused ? 'Reluare' : 'Pauză';
-            document.getElementById('current-shift-status').textContent = isPaused ? 'Tura este în PAUZĂ' : `Tura de ${selectedShiftType.toUpperCase()} este activă...`;
+            document.getElementById('pause-btn-text').textContent = isPaused ? 'Reluare' : 'PauzÄƒ';
+            document.getElementById('current-shift-status').textContent = isPaused ? 'Tura este Ã®n PAUZÄ‚' : `Tura de ${selectedShiftType.toUpperCase()} este activÄƒ...`;
             selectRestoredShiftButton(selectedShiftType);
             updateTimerDisplay();
         }
@@ -465,7 +468,7 @@
 
         async function findActiveShift() {
             if (!currentUser.organization_id) {
-                throw new Error('Organizația activă nu a fost identificată.');
+                throw new Error('OrganizaÈ›ia activÄƒ nu a fost identificatÄƒ.');
             }
 
             const { data, error } = await supabaseClient
@@ -502,11 +505,11 @@
         }
 
         async function startShift() {
-            if (isActionProcessing || !selectedShiftType) { if (!selectedShiftType) alert('Te rog selectează mai întâi o tură validă!'); return; }
+            if (isActionProcessing || !selectedShiftType) { if (!selectedShiftType) alert('Te rog selecteazÄƒ mai Ã®ntÃ¢i o turÄƒ validÄƒ!'); return; }
             isActionProcessing = true;
             try {
                 const existing = await findActiveShift();
-                if (existing) { activeShiftRecord = existing; syncActiveShiftUI(); startTimer(); alert('Există deja o tură activă pentru acest cont.'); return; }
+                if (existing) { activeShiftRecord = existing; syncActiveShiftUI(); startTimer(); alert('ExistÄƒ deja o turÄƒ activÄƒ pentru acest cont.'); return; }
                 const now = getRomanianNowDateTime();
                 const autoStopAt = getShiftDeadline(selectedShiftType, now);
                 const newShift = {
@@ -542,10 +545,10 @@
                 if (error) throw error;
                 activeShiftRecord = data;
                 syncActiveShiftUI(); startTimer();
-                await sendGeneralDiscordWebhook('▶️ Pontaj Start', `Angajatul **${currentUser.display_name}** a pornit tura de **${selectedShiftType.toUpperCase()}**.`, 3066993);
+                await sendGeneralDiscordWebhook('â–¶ï¸ Pontaj Start', `Angajatul **${currentUser.display_name}** a pornit tura de **${selectedShiftType.toUpperCase()}**.`, 3066993);
             } catch (error) {
                 console.error('Eroare pornire pontaj:', error);
-                alert(`Pontajul nu a putut fi pornit: ${error?.message || 'eroare necunoscută'}`);
+                alert(`Pontajul nu a putut fi pornit: ${error?.message || 'eroare necunoscutÄƒ'}`);
             }
             finally { isActionProcessing = false; }
         }
@@ -577,8 +580,8 @@
                 const { data, error } = await supabaseClient.from('shifts').update(update).eq('id', activeShiftRecord.id).select('*').single();
                 if (error) throw error;
                 activeShiftRecord = data; syncActiveShiftUI();
-                await sendGeneralDiscordWebhook(activeShiftRecord.status === 'paused' ? '⏸️ Pontaj Pauză' : '▶️ Pontaj Reluat', `Angajatul **${currentUser.display_name}** a ${activeShiftRecord.status === 'paused' ? 'pus tura pe pauză' : 'reluat tura'}.`, activeShiftRecord.status === 'paused' ? 16776960 : 3066993);
-            } catch (error) { console.error('Eroare pauză pontaj:', error); alert('Starea pauzei nu a putut fi salvată.'); }
+                await sendGeneralDiscordWebhook(activeShiftRecord.status === 'paused' ? 'â¸ï¸ Pontaj PauzÄƒ' : 'â–¶ï¸ Pontaj Reluat', `Angajatul **${currentUser.display_name}** a ${activeShiftRecord.status === 'paused' ? 'pus tura pe pauzÄƒ' : 'reluat tura'}.`, activeShiftRecord.status === 'paused' ? 16776960 : 3066993);
+            } catch (error) { console.error('Eroare pauzÄƒ pontaj:', error); alert('Starea pauzei nu a putut fi salvatÄƒ.'); }
             finally { isActionProcessing = false; }
         }
 
@@ -591,13 +594,13 @@
                 const record = activeShiftRecord;
                 const now = new Date();
                 const workedSeconds = getWorkedSeconds(record, now);
-                const reason = automatic ? 'Încheiere automată – program maxim atins' : 'Încheiere manuală';
+                const reason = automatic ? 'ÃŽncheiere automatÄƒ â€“ program maxim atins' : 'ÃŽncheiere manualÄƒ';
                 const update = { status: automatic ? 'auto_completed' : 'completed', end_time: getRomanianTime(now), duration: formatTime(workedSeconds), duration_ms: workedSeconds * 1000, ended_at: now.toISOString(), stop_reason: reason };
                 const { data, error } = await supabaseClient.from('shifts').update(update).eq('id', record.id).in('status', ['active', 'paused']).select('*');
                 if (error) throw error;
                 if (!data?.length) {
-                    // Un UPDATE cu zero rânduri nu înseamnă automat că tura a fost
-                    // închisă. RLS sau o cerere concurentă pot lăsa rândul activ.
+                    // Un UPDATE cu zero rÃ¢nduri nu Ã®nseamnÄƒ automat cÄƒ tura a fost
+                    // Ã®nchisÄƒ. RLS sau o cerere concurentÄƒ pot lÄƒsa rÃ¢ndul activ.
                     const { data: remoteShift, error: verifyError } = await supabaseClient
                         .from('shifts')
                         .select('*')
@@ -608,7 +611,7 @@
                         activeShiftRecord = remoteShift;
                         syncActiveShiftUI();
                         startTimer();
-                        throw new Error('Baza de date nu a confirmat închiderea pontajului.');
+                        throw new Error('Baza de date nu a confirmat Ã®nchiderea pontajului.');
                     }
                     if (automatic && remoteShift?.status === 'auto_completed' && !remoteShift.discord_close_notified_at) {
                         await notifyAutomaticShiftDiscord(remoteShift, reason);
@@ -624,8 +627,8 @@
                 activeShiftRecord = null;
                 resetTimerState();
                 fetchShiftsHistory();
-                if (automatic) alert('Tura a fost încheiată automat: programul maxim a fost atins.');
-            } catch (error) { console.error('Eroare închidere pontaj:', error); alert('Tura nu a putut fi închisă corect.'); }
+                if (automatic) alert('Tura a fost Ã®ncheiatÄƒ automat: programul maxim a fost atins.');
+            } catch (error) { console.error('Eroare Ã®nchidere pontaj:', error); alert('Tura nu a putut fi Ã®nchisÄƒ corect.'); }
             finally { isActionProcessing = false; autoStopInProgress = false; }
         }
 
@@ -634,8 +637,8 @@
             activeShiftRecord = null;
             secondsElapsed = 0;
             isPaused = false;
-            document.getElementById('timer-display').textContent = '00:00:00'; document.getElementById('current-shift-status').textContent = 'Tură neselectată / Oprită';
-            document.getElementById('btn-start').disabled = false; document.getElementById('btn-pause').disabled = true; document.getElementById('btn-stop').disabled = true; document.getElementById('pause-btn-text').textContent = 'Pauză'; selectedShiftType = null; resetUIButtons();
+            document.getElementById('timer-display').textContent = '00:00:00'; document.getElementById('current-shift-status').textContent = 'TurÄƒ neselectatÄƒ / OpritÄƒ';
+            document.getElementById('btn-start').disabled = false; document.getElementById('btn-pause').disabled = true; document.getElementById('btn-stop').disabled = true; document.getElementById('pause-btn-text').textContent = 'PauzÄƒ'; selectedShiftType = null; resetUIButtons();
         }
 
         async function sendGeneralDiscordWebhook(title, description, color) {
@@ -645,10 +648,10 @@
         }
 
         async function sendStopShiftDiscordWebhook(data) {
-            const payload = { embeds: [{ title: `⏹️ Pontaj Încheiat - Tură de ${data.shift_type.toUpperCase()}`, color: data.shift_type === 'zi' ? 16766720 : 65535, fields: [
-                { name: '👤 Angajat', value: data.colleague_name, inline: true }, { name: '📅 Data', value: data.date, inline: true },
-                { name: '⏰ Interval', value: `${data.start_time} - ${data.end_time}`, inline: false }, { name: '⏳ Timp Total Lucrat', value: `**${data.duration}**`, inline: true },
-                { name: '📝 Motiv', value: data.reason || data.stop_reason || 'Încheiere manuală', inline: false }
+            const payload = { embeds: [{ title: `â¹ï¸ Pontaj ÃŽncheiat - TurÄƒ de ${data.shift_type.toUpperCase()}`, color: data.shift_type === 'zi' ? 16766720 : 65535, fields: [
+                { name: 'ðŸ‘¤ Angajat', value: data.colleague_name, inline: true }, { name: 'ðŸ“… Data', value: data.date, inline: true },
+                { name: 'â° Interval', value: `${data.start_time} - ${data.end_time}`, inline: false }, { name: 'â³ Timp Total Lucrat', value: `**${data.duration}**`, inline: true },
+                { name: 'ðŸ“ Motiv', value: data.reason || data.stop_reason || 'ÃŽncheiere manualÄƒ', inline: false }
             ], timestamp: new Date().toISOString() }] };
             try { await sendPanelDiscord('pontaj', payload); return true; }
             catch (error) { console.error('Eroare webhook oprire:', error); return false; }
@@ -661,7 +664,7 @@
                 discord_close_notified_at: new Date().toISOString(),
                 discord_close_notification_error: null
             }).eq('id', shift.id);
-            if (error) console.error('Confirmarea Discord a fost trimisă, dar marcarea ei a eșuat:', error);
+            if (error) console.error('Confirmarea Discord a fost trimisÄƒ, dar marcarea ei a eÈ™uat:', error);
             return !error;
         }
     </script>
@@ -686,3 +689,4 @@
     <script src="js/global-footer.js"></script>
 </body>
 </html>
+
