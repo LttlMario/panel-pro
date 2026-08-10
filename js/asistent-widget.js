@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 1.6 seconds
-Output:
 // Chat plutitor pentru toate paginile autentificate ale panelului.
 (() => {
     'use strict';
