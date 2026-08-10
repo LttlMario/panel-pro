@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 1.3 seconds
-Output:
 // Motor comun pentru pagina Asistent È™i widgetul plutitor.
 // RuleazÄƒ exclusiv Ã®n browser È™i nu trimite Ã®ntrebÄƒrile cÄƒtre servicii externe.
 (() => {
