@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 1.3 seconds
-Output:
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
 
