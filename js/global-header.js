@@ -1,4 +1,10 @@
+Exit code: 0
+Wall time: 1.3 seconds
+Output:
 (function() {
+    let advancedSearchTimer = null;
+    let advancedSearchRequest = 0;
+
     function escapeHtml(str) {
         return String(str || '').replace(/[&<>'"]/g, char => ({
             '&': '&amp;',
@@ -24,11 +30,11 @@
         const headerHTML = `
             <header class="panel-global-header min-h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur px-4 py-3 md:px-8 flex flex-wrap items-center gap-3 sticky top-0 z-20">
                 <div class="panel-global-title flex items-center gap-3 shrink-0">
-                    <button type="button" id="global-header-mobile-btn" class="md:hidden w-10 h-10 rounded-xl border border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800 text-lg" aria-label="Deschide meniul">☰</button>
+                    <button type="button" id="global-header-mobile-btn" class="md:hidden w-10 h-10 rounded-xl border border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800 text-lg" aria-label="Deschide meniul">â˜°</button>
                     <h2 class="text-lg font-bold text-slate-100">${titleText}</h2>
                 </div>
                 <div class="${searchWrapperClass}">
-                    <input id="global-search" type="search" autocomplete="off" placeholder="Caută: Runflat, pontaj, învoire..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-100 outline-none focus:border-emerald-500">
+                    <input id="global-search" type="search" autocomplete="off" placeholder="CautÄƒ: Runflat, pontaj, Ã®nvoire..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-100 outline-none focus:border-emerald-500">
                     <div id="global-search-results" class="hidden absolute right-0 mt-2 w-full max-h-80 overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 shadow-2xl z-50"></div>
                 </div>
             </header>
@@ -51,15 +57,16 @@
         const roleLabel = getActiveRoleLabel();
         if (searchInput) {
             searchInput.placeholder = roleLabel
-                ? `Caută în paginile disponibile pentru ${roleLabel}...`
-                : 'Caută module sau informații...';
+                ? `CautÄƒ Ã®n paginile disponibile pentru ${roleLabel}...`
+                : 'CautÄƒ module sau informaÈ›ii...';
             searchInput.title = roleLabel
-                ? `Căutare filtrată după accesul rolului: ${roleLabel}`
-                : 'Căutare filtrată după paginile disponibile';
+                ? `CÄƒutare filtratÄƒ dupÄƒ accesul rolului: ${roleLabel}`
+                : 'CÄƒutare filtratÄƒ dupÄƒ paginile disponibile';
         }
         if (searchInput && typeof window.renderGlobalSearch === 'function') {
             searchInput.addEventListener('input', window.renderGlobalSearch);
             searchInput.addEventListener('focus', window.renderGlobalSearch);
+            searchInput.dataset.globalSearchBound = 'true';
         }
     }
 
@@ -69,6 +76,16 @@
             .replace(/[\u0300-\u036f]/g, '')
             .toLocaleLowerCase('ro-RO')
             .trim();
+    }
+
+    function getAdvancedSearchEngine() {
+        if (window.__panelAssistantEngine?.findPageMatches) return window.__panelAssistantEngine;
+        const user = typeof window.getUser === 'function' ? window.getUser() : null;
+        if (window.PanelAssistantCore && user) {
+            window.__panelAssistantEngine = window.PanelAssistantCore.create({ onIndexUpdate: () => undefined });
+            return window.__panelAssistantEngine;
+        }
+        return null;
     }
 
     function getActiveRoleLabel() {
@@ -112,7 +129,7 @@
             return {
                 href,
                 label: link.querySelector('span:last-child')?.textContent?.trim() || link.textContent.trim(),
-                icon: link.querySelector('span:first-child')?.textContent?.trim() || '•',
+                icon: link.querySelector('span:first-child')?.textContent?.trim() || 'â€¢',
                 section
             };
         }).filter(Boolean);
@@ -182,19 +199,92 @@
             </a>
         `).join('');
         const contentHtml = pageMatchCount
-            ? `<div class="px-4 py-2 text-[10px] uppercase tracking-wider text-slate-500">${pageMatchCount} rezultat(e) în pagina curentă</div>`
+            ? `<div class="px-4 py-2 text-[10px] uppercase tracking-wider text-slate-500">${pageMatchCount} rezultat(e) Ã®n pagina curentÄƒ</div>`
             : '';
-        resultsBox.innerHTML = `${roleContext}${navHtml}${contentHtml || (!navigationMatches.length ? '<div class="px-4 py-3 text-xs text-slate-400">Nu am găsit nimic în paginile disponibile pentru rolul tău.</div>' : '')}`;
+        resultsBox.innerHTML = `${roleContext}${navHtml}${contentHtml || (!navigationMatches.length ? '<div class="px-4 py-3 text-xs text-slate-400">Nu am gÄƒsit nimic Ã®n paginile disponibile pentru rolul tÄƒu.</div>' : '')}`;
         resultsBox.classList.remove('hidden');
         input?.setAttribute('aria-expanded', 'true');
     }
 
-    window.renderGlobalSearch = window.renderGlobalSearch || function renderGlobalSearch(event) {
+    function renderAdvancedSearchResults(input, query, matches) {
+        const resultsBox = document.getElementById('global-search-results');
+        if (!resultsBox) return;
+        resultsBox.innerHTML = '';
+        if (!query) {
+            resultsBox.classList.add('hidden');
+            input?.setAttribute('aria-expanded', 'false');
+            return;
+        }
+
+        resultsBox.classList.remove('hidden');
+        const roleLabel = getActiveRoleLabel();
+        if (roleLabel) {
+            const context = document.createElement('div');
+            context.className = 'px-4 py-2 text-[10px] uppercase tracking-wider text-emerald-300 border-b border-slate-800';
+            context.textContent = `Rezultate pentru rolul: ${roleLabel}`;
+            resultsBox.appendChild(context);
+        }
+
+        if (!Array.isArray(matches) || !matches.length) {
+            const empty = document.createElement('div');
+            empty.className = 'px-4 py-3 text-xs text-slate-400';
+            empty.textContent = 'Nu am gÄƒsit informaÈ›ia Ã®n paginile permise rolului tÄƒu.';
+            resultsBox.appendChild(empty);
+            input?.setAttribute('aria-expanded', 'true');
+            return;
+        }
+
+        matches.slice(0, 8).forEach(match => {
+            const link = document.createElement('a');
+            link.href = match.page;
+            link.className = 'flex flex-col gap-1 px-4 py-3 text-xs text-slate-200 hover:bg-slate-800 border-b border-slate-800/70';
+
+            const title = document.createElement('span');
+            title.className = 'font-semibold text-emerald-300';
+            title.textContent = `Deschide ${match.title || match.page}`;
+            link.appendChild(title);
+
+            if (Array.isArray(match.matches) && match.matches.length) {
+                const locations = document.createElement('span');
+                locations.className = 'text-[10px] leading-4 text-slate-400';
+                locations.textContent = `Se aflÄƒ Ã®n: ${match.matches.join(' Â· ')}`;
+                link.appendChild(locations);
+            }
+            resultsBox.appendChild(link);
+        });
+        input?.setAttribute('aria-expanded', 'true');
+    }
+
+    window.renderGlobalSearch = function renderGlobalSearch(event) {
         const input = event?.target || document.getElementById('global-search');
         const query = normalizeSearchValue(input?.value);
         filterPageSpecificContent(query);
-        const pageMatchCount = filterCurrentPage(query);
-        renderSearchResults(input, query, pageMatchCount);
+        filterCurrentPage(query);
+
+        const request = ++advancedSearchRequest;
+        if (advancedSearchTimer) window.clearTimeout(advancedSearchTimer);
+        if (!query || query.length < 2) {
+            renderAdvancedSearchResults(input, '', []);
+            return;
+        }
+
+        advancedSearchTimer = window.setTimeout(async () => {
+            const engine = getAdvancedSearchEngine();
+            if (!engine?.findPageMatches) {
+                if (typeof window.getUser === 'function' && window.getUser() && request === advancedSearchRequest) {
+                    advancedSearchTimer = window.setTimeout(() => renderGlobalSearch({ target: input }), 420);
+                }
+                return;
+            }
+            try {
+                const matches = await engine.findPageMatches(query);
+                if (request !== advancedSearchRequest) return;
+                renderAdvancedSearchResults(input, query, matches);
+            } catch (error) {
+                console.warn('CÄƒutarea globalÄƒ nu a putut indexa paginile permise.', error);
+                if (request === advancedSearchRequest) renderAdvancedSearchResults(input, query, []);
+            }
+        }, 260);
     };
 
     if (document.readyState === 'loading') {
@@ -203,3 +293,4 @@
         initGlobalHeader();
     }
 })();
+
