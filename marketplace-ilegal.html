@@ -822,7 +822,8 @@
                 imagini_json: imaginiJsonValoare,
                 imagine_url: imagineUrlDirectValoare !== '' ? imagineUrlDirectValoare : null,
                 created_by_discord_id: currentUser.discord_id,
-                organization_id: currentUser.organization_id
+                // Anunțurile blackmarket sunt globale; accesul la pagină este controlat de rolurile organizației.
+                organization_id: null
             };
 
             if (editingMarketplaceId) {
