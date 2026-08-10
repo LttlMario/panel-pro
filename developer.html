@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 1.2 seconds
+Output:
 <!DOCTYPE html>
 <html lang="ro" class="dark">
 <head>
@@ -8,7 +11,7 @@
   <script src="js/project-version.js"></script>
   <script src="js/supabase-config.js"></script>
   <script src="js/permissions.js?v=4.5.0"></script>
-  <script src="js/panel-layout.js?v=4.9.0"></script>
+   <script src="js/panel-layout.js?v=4.10.0"></script>
   <style>
     *{box-sizing:border-box} body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:#020617;color:#f8fafc;font-family:Inter,Segoe UI,Arial,sans-serif}
     main{width:min(100% - 28px,940px);margin:0 auto;padding:32px 0 50px;flex:1}
@@ -23,71 +26,71 @@
 <body>
   <main>
     <section id="access-denied" class="card warning">
-      <p class="eyebrow">Acces restricționat</p>
+      <p class="eyebrow">Acces restricÈ›ionat</p>
       <h1>Doar pentru administratori</h1>
-        <p>Această pagină conține informații tehnice și este disponibilă numai administratorului platformei.</p>
-      <div class="actions"><a href="index.html">Înapoi la Dashboard</a></div>
+        <p>AceastÄƒ paginÄƒ conÈ›ine informaÈ›ii tehnice È™i este disponibilÄƒ numai administratorului platformei.</p>
+      <div class="actions"><a href="index.html">ÃŽnapoi la Dashboard</a></div>
     </section>
 
     <div id="admin-content">
       <header class="card warning">
-        <p class="eyebrow">Administrare internă • Admin platformă</p>
+        <p class="eyebrow">Administrare internÄƒ â€¢ Admin platformÄƒ</p>
         <h1>Administrare versiuni</h1>
-        <p>Versiunea curentă este <strong data-panel-version>v3.5.0</strong>. Informațiile de aici nu apar în changelog-ul public.</p>
-        <div class="actions"><a href="index.html">← Dashboard</a><a href="changelog.html">Vezi changelog-ul public</a></div>
+        <p>Versiunea curentÄƒ este <strong data-panel-version>v3.5.0</strong>. InformaÈ›iile de aici nu apar Ã®n changelog-ul public.</p>
+        <div class="actions"><a href="index.html">â† Dashboard</a><a href="changelog.html">Vezi changelog-ul public</a></div>
       </header>
 
       <section class="card">
         <h2>Publicarea unei versiuni noi</h2>
         <ol>
-          <li>Modifică <code>version</code> și <code>releasedAt</code> în <code>js/project-version.js</code>.</li>
-          <li>Adaugă noua versiune în partea de sus din <code>changelog.html</code>.</li>
-          <li>Scrie numai schimbări confirmate: funcții noi, îmbunătățiri și probleme rezolvate.</li>
-          <li>Verifică Dashboard, Pontaj, Cereri, Rapoarte, Contracte, Admin și versiunea mobilă.</li>
-          <li>Publică fișierele actualizate pe GitHub Pages și verifică dacă nu există fișiere vechi în cache.</li>
+          <li>ModificÄƒ <code>version</code> È™i <code>releasedAt</code> Ã®n <code>js/project-version.js</code>.</li>
+          <li>AdaugÄƒ noua versiune Ã®n partea de sus din <code>changelog.html</code>.</li>
+          <li>Scrie numai schimbÄƒri confirmate: funcÈ›ii noi, Ã®mbunÄƒtÄƒÈ›iri È™i probleme rezolvate.</li>
+          <li>VerificÄƒ Dashboard, Pontaj, Cereri, Rapoarte, Contracte, Admin È™i versiunea mobilÄƒ.</li>
+          <li>PublicÄƒ fiÈ™ierele actualizate pe GitHub Pages È™i verificÄƒ dacÄƒ nu existÄƒ fiÈ™iere vechi Ã®n cache.</li>
         </ol>
       </section>
 
       <section class="card">
         <h2>Regula versiunilor</h2>
         <ul>
-          <li><strong>Patch:</strong> reparație fără funcție nouă, de exemplu <code>2.8.0 → 2.8.1</code>.</li>
-          <li><strong>Minor:</strong> funcție nouă compatibilă, de exemplu <code>2.8.0 → 2.9.0</code>.</li>
-          <li><strong>Major:</strong> refacere amplă sau schimbare incompatibilă, de exemplu <code>2.x.x → 3.0.0</code>.</li>
+          <li><strong>Patch:</strong> reparaÈ›ie fÄƒrÄƒ funcÈ›ie nouÄƒ, de exemplu <code>2.8.0 â†’ 2.8.1</code>.</li>
+          <li><strong>Minor:</strong> funcÈ›ie nouÄƒ compatibilÄƒ, de exemplu <code>2.8.0 â†’ 2.9.0</code>.</li>
+          <li><strong>Major:</strong> refacere amplÄƒ sau schimbare incompatibilÄƒ, de exemplu <code>2.x.x â†’ 3.0.0</code>.</li>
         </ul>
       </section>
 
       <section class="card">
-        <h2>Fișiere globale</h2>
+        <h2>FiÈ™iere globale</h2>
         <ul>
-          <li><code>js/project-version.js</code> — sursa unică a versiunii.</li>
-          <li><code>js/global-footer.js</code> — footer-ul și fluxul donației.</li>
-          <li><code>css/global-footer.css</code> — stilul footer-ului și ferestrei de donație.</li>
-          <li><code>changelog.html</code> — istoricul public.</li>
-          <li><code>developer.html</code> — această pagină, numai pentru Admin.</li>
-          <li><code>thank-you.html</code> — confirmarea manuală după donație.</li>
+          <li><code>js/project-version.js</code> â€” sursa unicÄƒ a versiunii.</li>
+          <li><code>js/global-footer.js</code> â€” footer-ul È™i fluxul donaÈ›iei.</li>
+          <li><code>css/global-footer.css</code> â€” stilul footer-ului È™i ferestrei de donaÈ›ie.</li>
+          <li><code>changelog.html</code> â€” istoricul public.</li>
+          <li><code>developer.html</code> â€” aceastÄƒ paginÄƒ, numai pentru Admin.</li>
+          <li><code>thank-you.html</code> â€” confirmarea manualÄƒ dupÄƒ donaÈ›ie.</li>
         </ul>
       </section>
 
       <section class="card">
         <h2>Mutarea pe alt server Discord</h2>
-        <p>Toți pașii pentru aplicația Discord, server, roluri, webhook-uri, secrete Supabase și redeploy sunt centralizați într-un singur ghid.</p>
+        <p>ToÈ›i paÈ™ii pentru aplicaÈ›ia Discord, server, roluri, webhook-uri, secrete Supabase È™i redeploy sunt centralizaÈ›i Ã®ntr-un singur ghid.</p>
         <ul>
-          <li><code>MIGRARE-MULTI-ORGANIZATIE.md</code> — instalare, securitate și administrarea organizațiilor.</li>
-          <li><code>js/discord-config.js</code> — Client ID și scope-urile OAuth publice.</li>
-          <li><code>supabase/functions/.env.example</code> — denumirile tuturor secretelor necesare.</li>
+          <li><code>MIGRARE-MULTI-ORGANIZATIE.md</code> â€” instalare, securitate È™i administrarea organizaÈ›iilor.</li>
+          <li><code>js/discord-config.js</code> â€” Client ID È™i scope-urile OAuth publice.</li>
+          <li><code>supabase/functions/.env.example</code> â€” denumirile tuturor secretelor necesare.</li>
         </ul>
         <div class="actions"><a href="MIGRARE-MULTI-ORGANIZATIE.md">Deschide ghidul platformei</a></div>
       </section>
 
       <section class="card">
-        <h2>Verificare înainte de publicare</h2>
+        <h2>Verificare Ã®nainte de publicare</h2>
         <ul>
-          <li>Footer-ul apare o singură dată și la extremitatea de jos.</li>
-          <li>Butonul Revolut deschide pagina oficială într-un tab nou.</li>
-          <li>Confirmarea „Da, am donat” deschide pagina de mulțumire.</li>
-          <li>Utilizatorii obișnuiți nu pot vedea această pagină.</li>
-          <li>Numărul versiunii din footer corespunde changelog-ului.</li>
+          <li>Footer-ul apare o singurÄƒ datÄƒ È™i la extremitatea de jos.</li>
+          <li>Butonul Revolut deschide pagina oficialÄƒ Ã®ntr-un tab nou.</li>
+          <li>Confirmarea â€žDa, am donatâ€ deschide pagina de mulÈ›umire.</li>
+          <li>Utilizatorii obiÈ™nuiÈ›i nu pot vedea aceastÄƒ paginÄƒ.</li>
+          <li>NumÄƒrul versiunii din footer corespunde changelog-ului.</li>
         </ul>
       </section>
     </div>
@@ -104,7 +107,7 @@
         if (text.includes("colider") || text.includes("co lider") || text.includes("co-lider")) return 5;
         if (text.includes("manager")) return 4;
         if (text.includes("familia")) return 3;
-        if (text.includes("șef") || text.includes("sef")) return 2;
+        if (text.includes("È™ef") || text.includes("sef")) return 2;
         return 1;
       }
 
@@ -128,3 +131,4 @@
   <script src="js/global-footer.js"></script>
 </body>
 </html>
+

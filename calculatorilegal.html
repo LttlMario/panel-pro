@@ -1,16 +1,20 @@
+Exit code: 0
+Wall time: 1.5 seconds
+Total output lines: 1260
+Output:
 <!DOCTYPE html>
 <html lang="ro" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculator Legal - Arme & Muniție & Plicuri</title>
+    <title>Calculator Legal - Arme & MuniÈ›ie & Plicuri</title>
     <!-- Tailwind CSS CDN -->
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/permissions.js?v=4.5.0"></script>
-    <script src="js/panel-layout.js?v=4.9.0"></script>
+    <script src="js/panel-layout.js?v=4.10.0"></script>
     <style>
         :root {
             --bg-main: #030712;
@@ -45,7 +49,7 @@
 
     
 
-        /* Conținutul Principal (Dreapta) */
+        /* ConÈ›inutul Principal (Dreapta) */
         .main-content {
             flex: 1 1 0%;
             min-width: 0;
@@ -211,7 +215,7 @@
         }
 
         .category-header::after {
-            content: '▼';
+            content: 'â–¼';
             font-size: 0.75rem;
             transition: transform 0.2s;
             color: var(--text-muted);
@@ -362,32 +366,32 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm">
 
-    <!-- Aplicația Principală -->
+    <!-- AplicaÈ›ia PrincipalÄƒ -->
     <div id="app-content" style="display: flex; width: 100%; min-height: 100vh;">
 
 
-        <!-- Conținutul principal din dreapta -->
+        <!-- ConÈ›inutul principal din dreapta -->
         <main class="main-content">
 
 <div class="calculator-container">
-                <!-- Panou Stânga: Input-uri -->
+                <!-- Panou StÃ¢nga: Input-uri -->
                 <div class="panel" id="calculator-input-panel">
                     <div style="font-size: 1.0rem; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
-                        Selecție Rețete (Live)
+                        SelecÈ›ie ReÈ›ete (Live)
                     </div>
 
 <!-- Categorie 1: Arme -->
                     <div class="category-group" id="cat-weapons">
-                        <div class="category-header" onclick="toggleCategory('cat-weapons')">🔫 Arme</div>
+                        <div class="category-header" onclick="toggleCategory('cat-weapons')">ðŸ”« Arme</div>
                         <div class="category-content" id="weaponsForm"></div>
                     </div>
 
-                    <!-- Categorie 2: Piese de Armă -->
+                    <!-- Categorie 2: Piese de ArmÄƒ -->
                     <div class="category-group" id="cat-weapon-parts">
-                        <div class="category-header" onclick="toggleCategory('cat-weapon-parts')">⚙️ Piese de Armă</div>
+                        <div class="category-header" onclick="toggleCategory('cat-weapon-parts')">âš™ï¸ Piese de ArmÄƒ</div>
                         <div class="category-content" id="weaponPartsForm">
                             <div class="item-row">
-                                <span class="item-name">Teavă Pistol</span>
+                                <span class="item-name">TeavÄƒ Pistol</span>
                                 <input type="number" id="part_teava_pistol" min="0" value="0" placeholder="0" oninput="calculateAll()">
                             </div>
                             <div class="item-row">
@@ -395,7 +399,7 @@
                                 <input type="number" id="part_corp_pistol" min="0" value="0" placeholder="0" oninput="calculateAll()">
                             </div>
                             <div class="item-row">
-                                <span class="item-name">Teavă SMG</span>
+                                <span class="item-name">TeavÄƒ SMG</span>
                                 <input type="number" id="part_teava_smg" min="0" value="0" placeholder="0" oninput="calculateAll()">
                             </div>
                             <div class="item-row">
@@ -403,7 +407,7 @@
                                 <input type="number" id="part_corp_smg" min="0" value="0" placeholder="0" oninput="calculateAll()">
                             </div>
                             <div class="item-row">
-                                <span class="item-name">Teavă Rifle</span>
+                                <span class="item-name">TeavÄƒ Rifle</span>
                                 <input type="number" id="part_teava_rifle" min="0" value="0" placeholder="0" oninput="calculateAll()">
                             </div>
                             <div class="item-row">
@@ -417,25 +421,25 @@
                         </div>
                     </div>
 
-                    <!-- Categorie 3: Muniție -->
+                    <!-- Categorie 3: MuniÈ›ie -->
                     <div class="category-group" id="cat-ammo">
-                        <div class="category-header" onclick="toggleCategory('cat-ammo')">📦 Muniție (Gloanțe)</div>
+                        <div class="category-header" onclick="toggleCategory('cat-ammo')">ðŸ“¦ MuniÈ›ie (GloanÈ›e)</div>
                         <div class="category-content" id="ammoForm"></div>
                     </div>
 
                     <!-- Categorie 4: Plicuri -->
                     <div class="category-group" id="cat-plicuri">
-                        <div class="category-header" onclick="toggleCategory('cat-plicuri')">💊 Plicuri Cocaină</div>
+                        <div class="category-header" onclick="toggleCategory('cat-plicuri')">ðŸ’Š Plicuri CocainÄƒ</div>
                         <div class="category-content" id="plicuriForm">
                             <div class="item-row" style="margin-bottom: 10px;">
-                                <span class="item-name">Tip Resursă</span>
+                                <span class="item-name">Tip ResursÄƒ</span>
                                 <select id="plicuriResource" onchange="calculateAll()" style="width: 100%;">
                                     <option value="frunze">Frunze</option>
-                                    <option value="tavi">Tăvi</option>
+                                    <option value="tavi">TÄƒvi</option>
                                     <option value="ape">Ape (Sticle)</option>
                                     <option value="brichete">Brichete</option>
                                     <option value="plicuri_goale">Plicuri Goale</option>
-                                    <option value="plicuri_facute">Plicuri Făcute</option>
+                                    <option value="plicuri_facute">Plicuri FÄƒcute</option>
                                 </select>
                             </div>
                             <div class="item-row">
@@ -447,13 +451,13 @@
 
                     <!-- Categorie 5: Marijuana -->
                     <div class="category-group" id="cat-weed">
-                        <div class="category-header" onclick="toggleCategory('cat-weed')">🌿 Marijuana (Joints)</div>
+                        <div class="category-header" onclick="toggleCategory('cat-weed')">ðŸŒ¿ Marijuana (Joints)</div>
                         <div class="category-content" id="weedForm">
                             <div class="item-row" style="margin-bottom: 10px;">
-                                <span class="item-name">Tip Resursă</span>
+                                <span class="item-name">Tip ResursÄƒ</span>
                                 <select id="weedResource" onchange="calculateAll()" style="width: 100%;">
                                     <option value="frunze">Frunze</option>
-                                    <option value="foite">Foițe</option>
+                                    <option value="foite">FoiÈ›e</option>
                                     <option value="jointuri">Joint-uri</option>
                                 </select>
                             </div>
@@ -466,7 +470,7 @@
 
                     <!-- Categorie 6: Plicuri Ciuperci -->
                     <div class="category-group" id="cat-mushrooms">
-                        <div class="category-header" onclick="toggleCategory('cat-mushrooms')">🍄 Plicuri Ciuperci</div>
+                        <div class="category-header" onclick="toggleCategory('cat-mushrooms')">ðŸ„ Plicuri Ciuperci</div>
                         <div class="category-content" id="mushroomsForm">
                             <div class="item-row" style="margin-bottom: 10px;">
                                 <span class="item-name">Tip Plic Ciuperci</span>
@@ -484,389 +488,20 @@
                     </div>
 
                     <div class="btn-container">
-                        <button type="button" class="btn-danger" onclick="resetCalculator()">Resetează Totul</button>
-                        <button type="button" class="mobile-results-button" onclick="showMobileResults()">Vezi rezultatele ↓</button>
+                        <button type="button" class="btn-danger" onclick="resetCalculator()">ReseteazÄƒ Totul</button>
+                        <button type="button" class="mobile-results-button" onclick="showMobileResults()">Vezi rezultatele â†“</button>
                     </div>
                 </div>
 
                 <!-- Panou Dreapta: Rezultate Agregate -->
                 <div class="mobile-results-overlay" id="calculator-results-overlay" onclick="showMobileCalculator()"></div>
                 <div class="panel results-section" id="calculator-results" role="dialog" aria-modal="true" aria-label="Rezultatele calculului">
-                    <button type="button" class="mobile-edit-selection" onclick="showMobileCalculator()">✕ Închide rezultatele</button>
+                    <button type="button" class="mobile-edit-selection" onclick="showMobileCalculator()">âœ• ÃŽnchide rezultatele</button>
                     <!-- Box 1A: Componente din Arme -->
                     <div class="result-box" id="box_weapon_total">
-                        <h3>Total piese de armă înainte de componente armă</h3>
+                        <h3>Total piese de armÄƒ Ã®nainte de componente armÄƒ</h3>
                         <div class="grid-results" id="weaponTotalResultsGrid">
-                            <div class="result-card"><div class="item-title">Total piese de armă necesare</div><div class="item-value" id="res_w_total_piese">0</div></div>
-                        </div>
-                    </div>
-
-                    <div class="result-box" id="box_weapons">
-                        <h3>Componente Necesarare</h3>
-                        <div class="grid-results" id="weaponsResultsGrid">
-                            <div class="result-card"><div class="item-title">Necesar Piese Armă</div><div class="item-value" id="res_w_piese_arme">0</div></div>
-                            <div class="result-card"><div class="item-title">Blueprint-uri</div><div class="item-value" id="res_w_blueprint">0</div></div>
-                            <div class="result-card"><div class="item-title">Teavă Pistol</div><div class="item-value" id="res_w_teava_pistol">0</div></div>
-                            <div class="result-card"><div class="item-title">Corp Pistol</div><div class="item-value" id="res_w_corp_pistol">0</div></div>
-                            <div class="result-card"><div class="item-title">Teavă SMG</div><div class="item-value" id="res_w_teava_smg">0</div></div>
-                            <div class="result-card"><div class="item-title">Corp SMG</div><div class="item-value" id="res_w_corp_smg">0</div></div>
-                            <div class="result-card"><div class="item-title">Teavă Rifle</div><div class="item-value" id="res_w_teava_rifle">0</div></div>
-                            <div class="result-card"><div class="item-title">Corp Rifle</div><div class="item-value" id="res_w_corp_rifle">0</div></div>
-                            <div class="result-card"><div class="item-title">Butstock</div><div class="item-value" id="res_w_butstock">0</div></div>
-                            <div class="result-card"><div class="item-title">Aur</div><div class="item-value gold" id="res_w_gold">0</div></div>
-                            <div class="result-card"><div class="item-title">Diamante</div><div class="item-value" id="res_w_diamonds">0</div></div>
-                            <div class="result-card"><div class="item-title">Rubine</div><div class="item-value" id="res_w_rubies">0</div></div>
-                            <div class="result-card"><div class="item-title">Emeralde</div><div class="item-value" id="res_w_emeralds">0</div></div>
-                        </div>
-                    </div>
-
-                    <!-- Box 1B: Materiale pentru Piese de Armă -->
-                    <div class="result-box" id="box_weapon_parts">
-                        <h3>Necesar Materiale (Din Meniul Independent de Piese)</h3>
-                        <div class="grid-results" id="partsResultsGrid">
-                            <div class="result-card"><div class="item-title">Total Piese Armă</div><div class="item-value" id="res_p_total_piese">0</div></div>
-                        </div>
-                    </div>
-
-                    <!-- Box 2: Necesar Materiale Plicuri Cocaină -->
-                    <div class="result-box" id="box_plicuri">
-                        <h3>Necesar Materiale Plicuri Cocaină</h3>
-                        <div class="grid-results" id="plicuriResultsGrid">
-                            <div class="result-card"><div class="item-title">Frunze</div><div class="item-value" id="plic_res_frunze">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Tăvi</div><div class="item-value" id="plic_res_tavi">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Ape (Sticle)</div><div class="item-value" id="plic_res_ape">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Brichete</div><div class="item-value" id="plic_res_brichete">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Plicuri Goale</div><div class="item-value" id="plic_res_goale">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Plicuri Făcute</div><div class="item-value" id="plic_res_facute">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Total Greutate</div><div class="item-value" id="plic_res_kg">0.0 KG</div></div>
-                            <div class="result-card"><div class="item-title">Profit Estimat</div><div class="item-value gold" id="plic_res_profit">0 $</div></div>
-                        </div>
-                    </div>
-
-                    <!-- Box 3: Necesar Materiale Marijuana -->
-                    <div class="result-box" id="box_weed">
-                        <h3>Necesar Materiale Marijuana</h3>
-                        <div class="grid-results" id="weedResultsGrid">
-                            <div class="result-card"><div class="item-title">Frunze</div><div class="item-value" id="weed_res_frunze">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Foițe</div><div class="item-value" id="weed_res_foite">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Joint-uri</div><div class="item-value" id="weed_res_jointuri">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Total Greutate</div><div class="item-value" id="weed_res_kg">0.0 KG</div></div>
-                        </div>
-                    </div>
-
-                    <!-- Box 5: Necesar Materiale Plicuri Ciuperci -->
-                    <div class="result-box" id="box_mushrooms">
-                        <h3>Necesar Materiale Plicuri Ciuperci</h3>
-                        <div class="grid-results" id="mushroomsResultsGrid">
-                            <div class="result-card"><div class="item-title">Acetona</div><div class="item-value" id="mush_res_acetona">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Pink Light</div><div class="item-value" id="mush_res_pink_light">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Oyster Rosu</div><div class="item-value" id="mush_res_oyster_rosu">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Amanita Rosie</div><div class="item-value" id="mush_res_amanita_rosie">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Blue Light</div><div class="item-value" id="mush_res_blue_light">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Oyster Galben</div><div class="item-value" id="mush_res_oyster_galben">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Amanita Verde</div><div class="item-value" id="mush_res_amanita_verde">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Purple Light</div><div class="item-value" id="mush_res_purple_light">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Oyster Albastru</div><div class="item-value" id="mush_res_oyster_albastru">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Psilocybe</div><div class="item-value" id="mush_res_psilocybe">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Plicuri Goale</div><div class="item-value" id="mush_res_plicuri_goale">0 buc</div></div>
-                            <div class="result-card"><div class="item-title">Total Greutate</div><div class="item-value" id="mush_res_kg">0.0 KG</div></div>
-                        </div>
-                    </div>
-
-
-                    <!-- Box 4: Total Materiale Brute -->
-                    <div class="result-box" id="box_raw_materials">
-                        <h3>Total Materiale Brute Necesare (Arme, Componente & Muniții)</h3>
-                        <div class="grid-results" id="rawMaterialsResultsGrid">
-                            <div class="result-card"><div class="item-title">Arc</div><div class="item-value" id="raw_arc">0</div></div>
-                            <div class="result-card"><div class="item-title">Oțel</div><div class="item-value" id="raw_otel">0</div></div>
-                            <div class="result-card"><div class="item-title">Plumb</div><div class="item-value" id="raw_plumb">0</div></div>
-                            <div class="result-card"><div class="item-title">Aluminiu</div><div class="item-value" id="raw_aluminiu">0</div></div>
-                            <div class="result-card"><div class="item-title">Praf de Pusca</div><div class="item-value" id="raw_p_praf">0</div></div>
-                            <div class="result-card"><div class="item-title">Sulf</div><div class="item-value" id="raw_sulf">0</div></div>
-                            <div class="result-card"><div class="item-title">Cărbune</div><div class="item-value" id="raw_carbune">0</div></div>
-                            <div class="result-card"><div class="item-title">Fier</div><div class="item-value" id="raw_fier">0</div></div>
-                            <div class="result-card"><div class="item-title">Plastic</div><div class="item-value" id="raw_plastic">0</div></div>
-                            <div class="result-card"><div class="item-title">Scrap</div><div class="item-value" id="raw_scrap">0</div></div>
-                            <div class="result-card"><div class="item-title">Cupru</div><div class="item-value" id="raw_cupru">0</div></div>
-                            <div class="result-card">
-                                <div class="item-title">Casing-uri</div>
-                                <div class="item-value" id="raw_casinguri">0</div>
-                            </div>
-                            <div class="result-card">
-                                <div class="item-title">Aur</div>
-                                <div class="item-value gold" id="raw_aur">0</div>
-                            </div>
-
-                            <div class="result-card">
-                                <div class="item-title">Diamant</div>
-                                <div class="item-value" id="raw_diamant">0</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Script de integrare Supabase și interfață identic cu index.html -->
-    <script>
-        const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
-        const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
-        const supabaseClient = window.createPanelSupabaseClient();
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            const currentPage = window.location.pathname.split("/").pop() || "index.html";
-            document.querySelectorAll('.nav-link').forEach(link => {
-                const linkHref = link.getAttribute('href');
-                if (linkHref === currentPage) {
-                    link.classList.remove('text-slate-300', 'hover:bg-slate-800');
-                    link.classList.add('bg-emerald-500/10', 'text-emerald-400', 'font-medium');
-                }
-            });
-
-            const cachedUser = localStorage.getItem('discord_user');
-            if (!cachedUser) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            try {
-                const localData = JSON.parse(cachedUser);
-                if (!localData || !localData.discord_id) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-
-                let { data: dbUser } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('discord_id', localData.discord_id)
-                    .maybeSingle();
-
-                let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
-
-                const role = activeUser.role || activeUser.default_role || 'Mecanic';
-
-                const roleLower = role.toLowerCase();
-                const isPrivileged = roleLower.includes('sef') || roleLower.includes('șef') || roleLower.includes('manager') || roleLower.includes('admin') || roleLower.includes('owner');
-
-                if (isPrivileged) {
-                    const navLogs = document.getElementById('nav-logs');
-                    if (navLogs) navLogs.classList.remove('hidden');
-                }
-
-                localStorage.setItem('discord_user', JSON.stringify(activeUser));
-
-                initForms();
-            } catch (err) {
-                console.error('Erore sesiune:', err);
-                window.location.href = 'login.html';
-                return;
-            }
-
-            const logoutBtn = document.getElementById('logout-btn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', () => {
-                    localStorage.clear();
-                    window.location.href = 'login.html';
-                });
-            }
-        });
-
-        const PRICE_PER_ENVELOPE = 13600;
-
-        const componentCost = {
-            "Teava Pistol": 1,
-            "Corp Pistol": 1,
-            "Teava SMG": 2,
-            "Corp SMG": 2,
-            "Corp Rifle": 3,
-            "Teava Rifle": 3,
-            "Butstock": 2
-        };
-
-        const weapons = {
-            "Navy Pistol": { blueprint: 1, parts: 6, components: ["Teava Rifle", "Corp Pistol"] },
-            "Combat MG": { blueprint: 1, parts: 4, components: ["Teava Rifle", "Corp Rifle", "Butstock"] },
-            "Assault SMG": { blueprint: 1, parts: 4, components: ["Teava SMG", "Corp Rifle", "Butstock"] },
-            "Gadget Pistol": { blueprint: 1, parts: 20, components: ["Teava Rifle", "Corp Pistol"], gold: 10, diamonds: 2, rubies: 2, emeralds: 2 },
-            "Shotgun": { blueprint: 1, parts: 4, components: ["Teava SMG", "Corp Pistol"] },
-            "Heavy Revolver": { blueprint: 1, parts: 4, components: ["Teava Rifle", "Corp Pistol"] },
-            "MG": { parts: 3, components: ["Teava Rifle", "Corp Rifle", "Butstock"] },
-            "Assault Rifle MK2": { parts: 3, components: ["Teava Rifle", "Corp Rifle", "Butstock"] },
-            "Pistol": { components: ["Corp Pistol", "Teava Pistol"] },
-            "Tec-9": { parts: 1, components: ["Corp Pistol", "Teava SMG"] },
-            "Pistol Mk2": { parts: 1, components: ["Corp Pistol", "Teava Pistol"] },
-            "Micro SMG": { parts: 1, components: ["Corp SMG", "Teava SMG"] },
-            "Mini Ak": { parts: 1, components: ["Corp Rifle", "Teava SMG"] },
-            "Vintage Pistol": { parts: 2, components: ["Corp Pistol", "Teava Pistol"] },
-            "SMG Mk2": { parts: 1, components: ["Corp SMG", "Teava SMG"] },
-            "Tommy Gun": { parts: 1, components: ["Teava Rifle", "Corp Rifle", "Butstock"] },
-            "DB": { parts: 3, components: ["Corp Pistol", "Teava Pistol"], gold: 1 }
-        };
-
-        const ammoData = {
-
-            ".44 Marlin": {
-                id: "ammo_44_marlin",
-                batch: 30,
-                casing: {
-                    "Cupru": 2
-                },
-                fill: {
-                    "Plumb": 1,
-                    "Praf de Pusca": 2
-                }
-            },
-
-            "7.62mm": {
-                id: "ammo_762mm",
-                batch: 30,
-                casing: {
-                    "Cupru": 2
-                },
-                fill: {
-                    "Plumb": 2,
-                    "Praf de Pusca": 2
-                }
-            },
-
-            ".45 ACP": {
-                id: "ammo_45_acp",
-                batch: 30,
-                casing: {
-                    "Cupru": 1
-                },
-                fill: {
-                    "Plumb": 1,
-                    "Praf de Pusca": 1
-                }
-            },
-
-            "9mm PBM": {
-                id: "ammo_9mm_pbm",
-                batch: 30,
-                casing: {
-                    "Cupru": 1
-                },
-                fill: {
-                    "Plumb": 1,
-                    "Praf de Pusca": 1
-                }
-            },
-
-            "9mm ACP": {
-                id: "ammo_9mm_acp",
-                batch: 30,
-                casing: {
-                    "Cupru": 2
-                },
-                fill: {
-                    "Plumb": 1,
-                    "Praf de Pusca": 1
-                }
-            },
-
-            ".38 Magnum": {
-                id: "ammo_38_magnum",
-                batch: 20,
-                casing: {
-                    "Cupru": 2
-                },
-                fill: {
-                    "Plumb": 2,
-                    "Praf de Pusca": 3
-                }
-            },
-
-            "7.65mm": {
-                id: "ammo_765mm",
-                batch: 20,
-                casing: {
-                    "Cupru": 2
-                },
-                fill: {
-                    "Plumb": 2,
-                    "Praf de Pusca": 2
-                }
-            },
-
-            ".50 DAP": {
-                id: "ammo_50_dap",
-                batch: 20,
-                casing: {
-                    "Cupru": 4,
-                    "Aur": 1
-                },
-                fill: {
-                    "Plumb": 3,
-                    "Praf de Pusca": 4,
-                    "Diamant": 1
-                }
-            },
-
-            "Buckshot": {
-                id: "ammo_buckshot",
-                batch: 20,
-                casing: {
-                    "Aluminiu": 2,
-                    "Plastic": 5
-                },
-                fill: {
-                    "Plumb": 2,
-                    "Praf de Pusca": 2
-                }
-            }
-
-        };
-
-        function toggleCategory(catId) {
-            const currentElement = document.getElementById(catId);
-            const isOpen = currentElement.classList.contains('active');
-
-            const allCategories = document.querySelectorAll('.category-group');
-            allCategories.forEach(cat => cat.classList.remove('active'));
-
-            if (!isOpen) {
-                currentElement.classList.add('active');
-            }
-        }
-        function filterCalculatorRecipes(value) {
-            const query = String(value || '').trim().toLocaleLowerCase('ro');
-            document.querySelectorAll('#calculator-input-panel .category-group').forEach(category => {
-                const header = category.querySelector('.category-header');
-                const rows = Array.from(category.querySelectorAll('.item-row'));
-                const headerMatches = (header?.textContent || '').toLocaleLowerCase('ro').includes(query);
-
-                if (!query) {
-                    category.style.display = '';
-                    rows.forEach(row => row.style.display = '');
-                    category.classList.remove('active');
-                    return;
-                }
-
-                let visibleRows = 0;
-                rows.forEach(row => {
-                    const matches = headerMatches || row.textContent.toLocaleLowerCase('ro').includes(query);
-                    row.style.display = matches ? '' : 'none';
-                    if (matches) visibleRows++;
-                });
-
-                const categoryMatches = headerMatches || visibleRows > 0;
-                category.style.display = categoryMatches ? '' : 'none';
-                category.classList.toggle('active', categoryMatches);
-            });
-        }
-
-
-        function initForms() {
-            const weaponsContainer = document.getElementById('weaponsForm');
-            let wHtml = '';
-            for (let wName in weapons) {
-                let wId = wName.toLowerCase().replace(/[\s\.]+/g, '_');
-                wHtml += `
-                    <div class="item-row">
+                            <div class="result-card"><div cla…5067 tokens truncated…                  <div class="item-row">
                         <span class="item-name">${wName}</span>
                         <input type="number" id="w_${wId}" min="0" value="0" placeholder="0" oninput="calculateAll()">
                     </div>
@@ -900,7 +535,7 @@
         function showMobileResults() {
             const firstResult = document.querySelector('.result-box.active');
             if (!firstResult) {
-                alert('Introdu mai întâi o cantitate pentru calcul.');
+                alert('Introdu mai Ã®ntÃ¢i o cantitate pentru calcul.');
                 return;
             }
             const resultsPanel = document.getElementById('calculator-results');
@@ -986,7 +621,7 @@
 
             let partsRawMats = {
                 "Arc": independentPartsCrafts,
-                "Oțel": independentPartsCrafts,
+                "OÈ›el": independentPartsCrafts,
                 "Plastic": independentPartsCrafts,
                 "Scrap": independentPartsCrafts * 2
             };
@@ -998,12 +633,12 @@
             let totalCasings = 0;
             let cleanRawMats = {
                 "Arc": 0,
-                "Oțel": 0,
+                "OÈ›el": 0,
                 "Plumb": 0,
                 "Aluminiu": 0,
                 "Praf de Pusca": 0,
                 "Sulf": 0,
-                "Cărbune": 0,
+                "CÄƒrbune": 0,
                 "Fier": 0,
                 "Plastic": 0,
                 "Scrap": 0,
@@ -1016,19 +651,19 @@
             let rawPartsForWeapons = Math.ceil(totalWParts / 2);
 
             cleanRawMats["Arc"] += rawPartsForWeapons;
-            cleanRawMats["Oțel"] += rawPartsForWeapons;
+            cleanRawMats["OÈ›el"] += rawPartsForWeapons;
             cleanRawMats["Plastic"] += rawPartsForWeapons;
             cleanRawMats["Scrap"] += rawPartsForWeapons * 2;
 
             let weaponComponentsConsumedParts = Math.ceil(weaponComponentsAsParts / 2);
 
             cleanRawMats["Arc"] += weaponComponentsConsumedParts;
-            cleanRawMats["Oțel"] += weaponComponentsConsumedParts;
+            cleanRawMats["OÈ›el"] += weaponComponentsConsumedParts;
             cleanRawMats["Plastic"] += weaponComponentsConsumedParts;
             cleanRawMats["Scrap"] += weaponComponentsConsumedParts * 2;
 
             cleanRawMats["Arc"] += partsRawMats["Arc"];
-            cleanRawMats["Oțel"] += partsRawMats["Oțel"];
+            cleanRawMats["OÈ›el"] += partsRawMats["OÈ›el"];
             cleanRawMats["Plastic"] += partsRawMats["Plastic"];
             cleanRawMats["Scrap"] += partsRawMats["Scrap"];
 
@@ -1041,7 +676,7 @@
                 if (bulletsQty > 0) {
                     hasAmmo = true;
 
-                    // Numărul de crafturi necesare
+                    // NumÄƒrul de crafturi necesare
                     let crafts = Math.ceil(bulletsQty / a.batch);
 
                     // Casing-uri necesare
@@ -1236,12 +871,12 @@
             if (hasWeapons || hasAmmo || hasIndependentParts) {
                 boxRawMaterials.classList.add('active');
                 document.getElementById('raw_arc').innerText = cleanRawMats["Arc"];
-                document.getElementById('raw_otel').innerText = cleanRawMats["Oțel"];
+                document.getElementById('raw_otel').innerText = cleanRawMats["OÈ›el"];
                 document.getElementById('raw_plumb').innerText = cleanRawMats["Plumb"];
                 document.getElementById('raw_aluminiu').innerText = cleanRawMats["Aluminiu"];
                 document.getElementById('raw_p_praf').innerText = cleanRawMats["Praf de Pusca"];
                 document.getElementById('raw_sulf').innerText = cleanRawMats["Sulf"];
-                document.getElementById('raw_carbune').innerText = cleanRawMats["Cărbune"];
+                document.getElementById('raw_carbune').innerText = cleanRawMats["CÄƒrbune"];
                 document.getElementById('raw_fier').innerText = cleanRawMats["Fier"];
                 document.getElementById('raw_plastic').innerText = cleanRawMats["Plastic"];
                 document.getElementById('raw_scrap').innerText = cleanRawMats["Scrap"];
@@ -1257,3 +892,4 @@
     <script src="js/global-footer.js"></script>
 </body>
 </html>
+
