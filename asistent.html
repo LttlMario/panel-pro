@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 1.4 seconds
+Output:
 <!DOCTYPE html>
 <html lang="ro" class="dark">
 <head>
@@ -7,7 +10,7 @@
     <link rel="stylesheet" href="css/tailwind.css">
     <script src="js/supabase-config.js"></script>
     <script src="js/permissions.js?v=4.5.0"></script>
-    <script src="js/panel-layout.js?v=4.9.0"></script>
+    <script src="js/panel-layout.js?v=4.10.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <script src="js/project-version.js"></script>
     <link rel="icon" href="img/favicon.ico">
@@ -23,8 +26,8 @@
             
                 <section class="h-full max-w-5xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-xl flex flex-col overflow-hidden">
                     <div class="px-4 sm:px-5 py-3 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div><p class="text-sm font-semibold text-slate-200">Întreabă despre panel</p><p id="assistant-index-status" class="text-[10px] text-slate-500">Se pregătesc informațiile locale…</p></div>
-                        <button id="assistant-clear" type="button" class="self-start sm:self-auto rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-400 hover:text-white">Curăță conversația</button>
+                        <div><p class="text-sm font-semibold text-slate-200">ÃŽntreabÄƒ despre panel</p><p id="assistant-index-status" class="text-[10px] text-slate-500">Se pregÄƒtesc informaÈ›iile localeâ€¦</p></div>
+                        <button id="assistant-clear" type="button" class="self-start sm:self-auto rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-400 hover:text-white">CurÄƒÈ›Äƒ conversaÈ›ia</button>
                     </div>
 
                     <div id="assistant-messages" class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4" aria-live="polite"></div>
@@ -32,20 +35,21 @@
                     <div class="border-t border-slate-800 bg-slate-950/45 p-3 sm:p-4 space-y-3">
                         <div id="assistant-suggestions" class="flex gap-2 overflow-x-auto pb-1"></div>
                         <form id="assistant-form" class="flex items-end gap-2">
-                            <label class="sr-only" for="assistant-input">Scrie întrebarea</label>
+                            <label class="sr-only" for="assistant-input">Scrie Ã®ntrebarea</label>
                             <textarea id="assistant-input" rows="1" maxlength="500" required placeholder="Ex: Cum pornesc pontajul?" class="flex-1 max-h-32 resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 outline-none focus:border-emerald-500"></textarea>
                             <button type="submit" class="h-11 px-4 sm:px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow">Trimite</button>
                         </form>
-                        <p class="text-[10px] text-slate-600">Asistentul folosește numai conținutul local permis rolului tău și poate spune când nu găsește informația.</p>
+                        <p class="text-[10px] text-slate-600">Asistentul foloseÈ™te numai conÈ›inutul local permis rolului tÄƒu È™i poate spune cÃ¢nd nu gÄƒseÈ™te informaÈ›ia.</p>
                     </div>
                 </section>
             </div>
         </main>
     </div>
 
-    <script src="js/asistent-data.js?v=4.4.0"></script>
-    <script src="js/asistent-core.js?v=4.4.0"></script>
-    <script src="js/asistent.js?v=4.4.0"></script>
+    <script src="js/asistent-data.js?v=4.8.0"></script>
+    <script src="js/asistent-core.js?v=4.8.0"></script>
+    <script src="js/asistent.js?v=4.8.0"></script>
     <script src="js/global-footer.js"></script>
 </body>
 </html>
+
