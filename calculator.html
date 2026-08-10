@@ -1,3 +1,7 @@
+Exit code: 0
+Wall time: 1.3 seconds
+Total output lines: 1555
+Output:
 <!DOCTYPE html>
 <html lang="ro" class="dark">
 <head>
@@ -10,7 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/permissions.js?v=4.5.0"></script>
-    <script src="js/panel-layout.js?v=4.9.0"></script>
+    <script src="js/panel-layout.js?v=4.10.0"></script>
     <style>
         :root {
             --bg-main: #030712;
@@ -43,13 +47,13 @@
             line-height: 1.25rem;
         }
 
-        /* Layout Principal cu Sidebar Fix și Conținut */
+        /* Layout Principal cu Sidebar Fix È™i ConÈ›inut */
         #app-content {
             display: none;
             width: 100%;
             min-height: 100vh;
         }
-        /* Conținutul Principal (Dreapta) */
+        /* ConÈ›inutul Principal (Dreapta) */
         .main-content {
             flex: 1 1 0%;
             min-width: 0;
@@ -223,7 +227,7 @@
         }
 
         .category-header::after {
-            content: '▼';
+            content: 'â–¼';
             font-size: 0.75rem;
             transition: transform 0.2s;
             color: var(--text-muted);
@@ -387,62 +391,62 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm">
 
-    <!-- Aplicația Principală -->
+    <!-- AplicaÈ›ia PrincipalÄƒ -->
     <div id="app-content" style="display: flex; width: 100%; min-height: 100vh;">
         <div id="panel-sidebar-host"></div>
         <!-- Meniu Lateral (Sidebar) Sincronizat cu index.html -->
         
 
-        <!-- Conținutul principal din dreapta -->
+        <!-- ConÈ›inutul principal din dreapta -->
         <main class="main-content">
 
             <div class="calculator-container">
-                <!-- Panou Stânga: Input-uri -->
+                <!-- Panou StÃ¢nga: Input-uri -->
                 <div class="panel" id="calculator-input-panel">
                     <div style="font-size: 1.0rem; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
-                        Selecție Rețete (Live)
+                        SelecÈ›ie ReÈ›ete (Live)
                     </div>
 
-                    <!-- Categorie Masă Crafting -->
+                    <!-- Categorie MasÄƒ Crafting -->
                     <div class="category-group active" id="cat-masa">
-                        <div class="category-header" onclick="toggleCategory('cat-masa')">🛠️ Masă Crafting</div>
+                        <div class="category-header" onclick="toggleCategory('cat-masa')">ðŸ› ï¸ MasÄƒ Crafting</div>
                         <div class="category-content" id="masaForm">
                             <div class="item-row" style="margin-bottom: 8px;">
                                 <span class="item-name">Obiect</span>
                                 <select id="masaItemSelect" onchange="onItemChange()" style="width: 100%;">
                                     <option value="ziptip">Zip Tie</option>
-                                    <option value="momeala">Momeală de pește (x10)</option>
-                                    <option value="undita_plastic">Undiță de plastic</option>
-                                    <option value="undita_cupru">Undiță de cupru</option>
-                                    <option value="undita_aluminiu">Undiță de aluminiu</option>
-                                    <option value="undita_fier">Undiță de fier</option>
-                                    <option value="placa_mesteacan">Placă mesteacăn</option>
-                                    <option value="placa_stejar">Placă stejar (x2)</option>
-                                    <option value="placa_cedru">Placă de cedru (x3)</option>
-                                    <option value="teava">Țeavă de metal</option>
+                                    <option value="momeala">MomealÄƒ de peÈ™te (x10)</option>
+                                    <option value="undita_plastic">UndiÈ›Äƒ de plastic</option>
+                                    <option value="undita_cupru">UndiÈ›Äƒ de cupru</option>
+                                    <option value="undita_aluminiu">UndiÈ›Äƒ de aluminiu</option>
+                                    <option value="undita_fier">UndiÈ›Äƒ de fier</option>
+                                    <option value="placa_mesteacan">PlacÄƒ mesteacÄƒn</option>
+                                    <option value="placa_stejar">PlacÄƒ stejar (x2)</option>
+                                    <option value="placa_cedru">PlacÄƒ de cedru (x3)</option>
+                                    <option value="teava">ÈšeavÄƒ de metal</option>
                                     <option value="plicuri">Plicuri goale (x10)</option>
-                                    <option value="aprinzator">Aprinzător</option>
-                                    <option value="cleste">Clește</option>
+                                    <option value="aprinzator">AprinzÄƒtor</option>
+                                    <option value="cleste">CleÈ™te</option>
                                     <option value="flash_drive">Flash drive de hack</option>
                                     <option value="lockpick">Lockpick (x5)</option>
                                     <option value="cauciuc_1">Cauciuc x1</option>
                                     <option value="cauciuc_2">Cauciuc x2</option>
                                     <option value="cauciuc_3">Cauciuc x3</option>
-                                    <option value="tarnacop_cupru">Târnacop de cupru</option>
-                                    <option value="tarnacop_fier">Târnacop de fier</option>
-                                    <option value="tarnacop_otel">Târnacop de oțel</option>
-                                    <option value="tarnacop_aur">Târnacop de aur</option>
-                                    <option value="tarnacop_diamant">Târnacop diamant</option>
+                                    <option value="tarnacop_cupru">TÃ¢rnacop de cupru</option>
+                                    <option value="tarnacop_fier">TÃ¢rnacop de fier</option>
+                                    <option value="tarnacop_otel">TÃ¢rnacop de oÈ›el</option>
+                                    <option value="tarnacop_aur">TÃ¢rnacop de aur</option>
+                                    <option value="tarnacop_diamant">TÃ¢rnacop diamant</option>
                                     <option value="topor_cupru">Topor de cupru</option>
                                     <option value="topor_fier">Topor de fier</option>
-                                    <option value="topor_otel">Topor de oțel</option>
+                                    <option value="topor_otel">Topor de oÈ›el</option>
                                     <option value="topor_aur">Topor de aur</option>
                                     <option value="topor_diamant">Topor de diamant</option>
                                 </select>
                             </div>
 
                             <div class="sub-options-box" id="subOptionsBox">
-                                <span class="item-name" style="display:block; margin-bottom: 4px; color: var(--warning);">Deții deja un model anterior?</span>
+                                <span class="item-name" style="display:block; margin-bottom: 4px; color: var(--warning);">DeÈ›ii deja un model anterior?</span>
                                 <select id="ownedVariantSelect" onchange="calculateAll()" style="width: 100%; font-size: 0.8rem;">
                                     <option value="none">Nu, pornesc de la zero</option>
                                 </select>
@@ -457,19 +461,19 @@
 
                     <!-- Categorie Croitorie -->
                     <div class="category-group" id="cat-croitor">
-                        <div class="category-header" onclick="toggleCategory('cat-croitor')">🧵 Croitorie</div>
+                        <div class="category-header" onclick="toggleCategory('cat-croitor')">ðŸ§µ Croitorie</div>
                         <div class="category-content" id="croitorForm">
                             <div class="item-row" style="margin-bottom: 8px;">
                                 <span class="item-name">Obiect</span>
                                 <select id="croitorItemSelect" onchange="onCroitorItemChange()" style="width: 100%;">
-                                    <option value="ata_x2">Ață x 2</option>
-                                    <option value="sfoara">Sfoară</option>
-                                    <option value="fibra">Fibră</option>
+                                    <option value="ata_x2">AÈ›Äƒ x 2</option>
+                                    <option value="sfoara">SfoarÄƒ</option>
+                                    <option value="fibra">FibrÄƒ</option>
                                     <option value="bandaj_improvizat">Bandaj improvizat x 2</option>
-                                    <option value="fibra_kevlar">Fibră de Kevlar</option>
-                                    <option value="armura_kevlar">Armură kevlar</option>
-                                    <option value="sac_fibra">Sac de fibră</option>
-                                    <option value="parasuta">Parașută</option>
+                                    <option value="fibra_kevlar">FibrÄƒ de Kevlar</option>
+                                    <option value="armura_kevlar">ArmurÄƒ kevlar</option>
+                                    <option value="sac_fibra">Sac de fibrÄƒ</option>
+                                    <option value="parasuta">ParaÈ™utÄƒ</option>
                                 </select>
                             </div>
                             <div class="item-row">
@@ -485,7 +489,7 @@
                            style="text-decoration:none;color:inherit;display:block;">
                             <div class="category-header">
                                 <span style="display:flex;align-items:center;gap:8px;">
-                                    <span>🔧</span>
+                                    <span>ðŸ”§</span>
                                     Craft Mechanics
                                 </span>
                             </div>
@@ -493,7 +497,7 @@
                     </div>
 
                     <div class="btn-container">
-                        <button type="button" class="btn-danger" onclick="resetCalculator()">Resetează Totul</button>
+                        <button type="button" class="btn-danger" onclick="resetCalculator()">ReseteazÄƒ Totul</button>
                         <button type="button" class="mobile-results-button" onclick="showMobileResults()">Vezi Rezultate</button>
                     </div>
                 </div>
@@ -501,436 +505,12 @@
                 <!-- Panou Dreapta: Rezultate Agregate -->
                 <div class="mobile-results-overlay" id="calculator-results-overlay" onclick="showMobileCalculator()"></div>
                 <div class="panel results-section" id="calculator-results" role="dialog" aria-modal="true" aria-label="Rezultatele calculului">
-                    <button type="button" class="mobile-edit-selection" onclick="showMobileCalculator()">✕ Închide rezultatele</button>
+                    <button type="button" class="mobile-edit-selection" onclick="showMobileCalculator()">âœ• ÃŽnchide rezultatele</button>
                     
                     <!-- Box 1: Necesar Ingrediente Directe -->
                     <div class="result-box" id="box_direct">
                         <h3>Necesar Specific Obiect Selectat (Ingrediente Directe)</h3>
-                        <div class="grid-results" id="directResultsGrid"></div>
-                    </div>
-
-                    <!-- Box 2: Total Materiale Brute / Resurse Finale -->
-                    <div class="result-box" id="box_raw_materials">
-                        <h3>Total Necesar (Materiale Brute / Resurse Finale)</h3>
-                        <div class="grid-results" id="rawMaterialsResultsGrid">
-                            <div class="result-card"><div class="item-title">Plastic</div><div class="item-value" id="res_plastic">0</div></div>
-                            <div class="result-card">
-                                <div class="item-title">Undiță normală</div>
-                                <div class="item-value" id="res_undita_normala">0</div>
-                            </div>
-                            <div class="result-card"><div class="item-title">Cupru</div><div class="item-value" id="res_cupru">0</div></div>
-                            <div class="result-card"><div class="item-title">Aluminiu</div><div class="item-value" id="res_aluminiu">0</div></div>
-                            <div class="result-card"><div class="item-title">Fier</div><div class="item-value" id="res_fier">0</div></div>
-                            <div class="result-card"><div class="item-title">Scrap Metal</div><div class="item-value" id="res_scrap_metal">0</div></div>
-                            <div class="result-card"><div class="item-title">Țeavă</div><div class="item-value" id="res_teava">0</div></div>
-                            <div class="result-card"><div class="item-title">Butelie</div><div class="item-value" id="res_butelie">0</div></div>
-                            <div class="result-card"><div class="item-title">Oțel</div><div class="item-value" id="res_otel">0</div></div>
-                            <div class="result-card"><div class="item-title">Aur</div><div class="item-value" id="res_aur">0</div></div>
-                            <div class="result-card"><div class="item-title">Diamant</div><div class="item-value" id="res_diamant">0</div></div>
-                            <div class="result-card">
-                                <div class="item-title">Târnacop Aluminiu</div>
-                                <div class="item-value" id="res_tarnacop_aluminiu">0</div>
-                            </div>
-
-                            <div class="result-card">
-                                <div class="item-title">Topor Aluminiu</div>
-                                <div class="item-value" id="res_topor_aluminiu">0</div>
-                            </div>
-                            <div class="result-card"><div class="item-title">Copac Mesteacăn</div><div class="item-value" id="res_copac_mesteacan">0</div></div>
-                            <div class="result-card"><div class="item-title">Copac Stejar</div><div class="item-value" id="res_copac_stejar">0</div></div>
-                            <div class="result-card"><div class="item-title">Copac Cedru</div><div class="item-value" id="res_copac_cedru">0</div></div>
-                            <div class="result-card"><div class="item-title">USB</div><div class="item-value" id="res_usb">0</div></div>
-                            <div class="result-card"><div class="item-title">Keycard</div><div class="item-value" id="res_keycard">0</div></div>
-                            <div class="result-card"><div class="item-title">Cip</div><div class="item-value" id="res_cip">0</div></div>
-                            <div class="result-card"><div class="item-title">Clești</div><div class="item-value" id="res_clesti">0</div></div>
-                            <div class="result-card"><div class="item-title">Bumbac</div><div class="item-value" id="res_bumbac">0</div></div>
-                            <div class="result-card"><div class="item-title">Ață</div><div class="item-value" id="res_ata">0</div></div>
-                            <div class="result-card"><div class="item-title">Aloe Vera</div><div class="item-value" id="res_aloe_vera">0</div></div>
-                            <div class="result-card"><div class="item-title">Cauciuc</div><div class="item-value" id="res_cauciuc">0</div></div>
-                            <div class="result-card"><div class="item-title">Fibră</div><div class="item-value" id="res_fibra">0</div></div>
-                            <div class="result-card"><div class="item-title">Sfoară</div><div class="item-value" id="res_sfoara">0</div></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Script de integrare Supabase și interfață -->
-    <script>
-        const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
-        const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
-
-        document.addEventListener('DOMContentLoaded', async () => {
-        
-            await initializePanelLayout();
-        
-            onItemChange();
-            calculateAll();
-        
-        });
-
-const upgradeChains = {
-    "undita": [
-        {
-            id: "undita_plastic",
-            name: "Undiță de plastic",
-            cost: {
-                "Undiță normală": 1,
-                "Plastic": 5
-            }
-        },
-        {
-            id: "undita_cupru",
-            name: "Undiță de cupru",
-            cost: {
-                "Undiță de plastic": 1,
-                "Cupru": 3
-            }
-        },
-        {
-            id: "undita_aluminiu",
-            name: "Undiță de aluminiu",
-            cost: {
-                "Undiță de cupru": 1,
-                "Aluminiu": 3
-            }
-        },
-        {
-            id: "undita_fier",
-            name: "Undiță de fier",
-            cost: {
-                "Undiță de aluminiu": 1,
-                "Fier": 3
-            }
-        }
-    ],
-
-    "tarnacop": [
-        {
-            id: "tarnacop_cupru",
-            name: "Târnacop de cupru",
-            cost: {
-                "Târnacop Aluminiu": 1,
-                "Cupru": 5
-            }
-        },
-        {
-            id: "tarnacop_fier",
-            name: "Târnacop de fier",
-            cost: {
-                "Fier": 5
-            }
-        },
-        {
-            id: "tarnacop_otel",
-            name: "Târnacop de oțel",
-            cost: {
-                "Oțel": 5
-            }
-        },
-        {
-            id: "tarnacop_aur",
-            name: "Târnacop de aur",
-            cost: {
-                "Aur": 2,
-                "Oțel": 3
-            }
-        },
-        {
-            id: "tarnacop_diamant",
-            name: "Târnacop diamant",
-            cost: {
-                "Diamant": 1,
-                "Aur": 2
-            }
-        }
-    ],
-
-
-    "topor": [
-        {
-            id: "topor_cupru",
-            name: "Topor de cupru",
-            cost: {
-                "Topor Aluminiu": 1,
-                "Cupru": 5
-            }
-        },
-        {
-            id: "topor_fier",
-            name: "Topor de fier",
-            cost: {
-                "Fier": 5
-            }
-        },
-        {
-            id: "topor_otel",
-            name: "Topor de oțel",
-            cost: {
-                "Oțel": 5
-            }
-        },
-        {
-            id: "topor_aur",
-            name: "Topor de aur",
-            cost: {
-                "Aur": 2,
-                "Oțel": 3
-            }
-        },
-        {
-            id: "topor_diamant",
-            name: "Topor diamant",
-            cost: {
-                "Diamant": 1,
-                "Aur": 2
-            }
-        }
-    ]
-
-};
-
-        const recipesMasa = {
-
-            "ziptip": {
-                name: "Zip Tie",
-                base: {
-                    "Plastic": 10
-                }
-            },
-
-            "momeala": {
-                name: "Momeală de pește x10",
-                base: {
-                    "Plastic": 1
-                }
-            },
-
-            "undita_plastic": {
-                name: "Undiță de plastic",
-                base: {
-                    "Undiță normală": 1,
-                    "Plastic": 5
-                }
-            },
-
-            "undita_cupru": {
-                name: "Undiță de cupru",
-                base: {
-                    "Undiță de plastic": 1,
-                    "Cupru": 3
-                }
-            },
-
-            "undita_aluminiu": {
-                name: "Undiță de aluminiu",
-                base: {
-                    "Undiță de cupru": 1,
-                    "Aluminiu": 3
-                }
-            },
-
-            "undita_fier": {
-                name: "Undiță de fier",
-                base: {
-                    "Undiță de aluminiu": 1,
-                    "Fier": 3
-                }
-            },
-
-            "placa_mesteacan": {
-                name: "Placă mesteacăn",
-                base: {
-                    "Copac Mesteacăn": 1
-                }
-            },
-
-            "placa_stejar": {
-                name: "Placă stejar x2",
-                base: {
-                    "Copac Stejar": 1
-                }
-            },
-
-            "placa_cedru": {
-                name: "Placă cedru x3",
-                base: {
-                    "Copac Cedru": 1
-                }
-            },
-
-            "teava": {
-                name: "Țeavă de metal",
-                base: {
-                    "Scrap Metal": 10,
-                    "Fier": 2
-                }
-            },
-
-            "plicuri": {
-                name: "Plicuri goale x10",
-                base: {
-                    "Plastic": 1
-                }
-            },
-
-            "aprinzator": {
-                name: "Aprinzător",
-                base: {
-                    "Scrap Metal": 15,
-                    "Țeavă de metal": 1,
-                    "Butelie": 1
-                }
-            },
-
-            "cleste": {
-                name: "Clește",
-                base: {
-                    "Scrap Metal": 20,
-                    "Fier": 2,
-                    "Aluminiu": 4,
-                    "Plastic": 5
-                }
-            },
-
-            "lockpick": {
-                name: "Lockpick x5",
-                base: {
-                    "Fier": 1,
-                    "Scrap Metal": 5
-                }
-            },
-
-            "cauciuc_1": {
-                name: "Cauciuc x1",
-                produces: 1,
-                base: {
-                    "Copac Mesteacăn": 1
-                }
-            },
-
-            "cauciuc_2": {
-                name: "Cauciuc x2",
-                produces: 2,
-                base: {
-                    "Copac Stejar": 1
-                }
-            },
-
-            "cauciuc_3": {
-                name: "Cauciuc x3",
-                produces: 3,
-                base: {
-                    "Copac Cedru": 1
-                }
-            },
-
-            "tarnacop_cupru": {
-                name: "Târnacop de cupru",
-                base: {
-                    "Târnacop aluminiu": 1,
-                    "Cupru": 5
-                }
-            },
-
-            "tarnacop_fier": {
-                name: "Târnacop de fier",
-                base: {
-                    "Târnacop cupru": 1,
-                    "Fier": 5
-                }
-            },
-
-            "tarnacop_otel": {
-                name: "Târnacop de oțel",
-                base: {
-                    "Târnacop fier": 1,
-                    "Oțel": 5
-                }
-            },
-
-            "tarnacop_aur": {
-                name: "Târnacop de aur",
-                base: {
-                    "Târnacop fier": 1,
-                    "Aur": 2,
-                    "Oțel": 3
-                }
-            },
-
-            "tarnacop_diamant": {
-                name: "Târnacop diamant",
-                base: {
-                    "Târnacop aur": 1,
-                    "Diamant": 1,
-                    "Aur": 2
-                }
-            },
-
-            "topor_cupru": {
-                name: "Topor de cupru",
-                base: {
-                    "Topor aluminiu": 1,
-                    "Cupru": 5
-                }
-            },
-
-            "topor_fier": {
-                name: "Topor de fier",
-                base: {
-                    "Topor cupru": 1,
-                    "Fier": 5
-                }
-            },
-
-            "topor_otel": {
-                name: "Topor de oțel",
-                base: {
-                    "Topor fier": 1,
-                    "Oțel": 5
-                }
-            },
-
-            "topor_aur": {
-                name: "Topor de aur",
-                base: {
-                    "Topor fier": 1,
-                    "Aur": 2,
-                    "Oțel": 3
-                }
-            },
-
-            "topor_diamant": {
-                name: "Topor diamant",
-                base: {
-                    "Topor aur": 1,
-                    "Diamant": 1,
-                    "Aur": 2
-                }
-            }
-
-        };
-
-        upgradeChains["tarnacop"].forEach((item, index, arr) => {
-            let combinedCost = {};
-            for (let i = 0; i <= index; i++) {
-                for (let mat in arr[i].cost) {
-                    combinedCost[mat] = (combinedCost[mat] || 0) + arr[i].cost[mat];
-                }
-            }
-            recipesMasa[item.id] = { name: item.name, base: combinedCost };
-        });
-
-        upgradeChains["topor"].forEach((item, index, arr) => {
-            let combinedCost = {};
-            for (let i = 0; i <= index; i++) {
-                for (let mat in arr[i].cost) {
-                    combinedCost[mat] = (combinedCost[mat] || 0) + arr[i].cost[mat];
-                }
-            }
-            recipesMasa[item.id] = { name: item.name, base: combinedCost };
-        });
+                        <div cl…3614 tokens truncated…    });
         upgradeChains["undita"].forEach((item, index, arr) => {
 
             let combinedCost = {};
@@ -955,7 +535,7 @@ const upgradeChains = {
         const recipesCroitor = {
 
             "ata_x2": {
-                name: "Ață x2",
+                name: "AÈ›Äƒ x2",
                 produces: 2,
                 base: {
                     "Bumbac": 10
@@ -963,16 +543,16 @@ const upgradeChains = {
             },
 
             "sfoara": {
-                name: "Sfoară",
+                name: "SfoarÄƒ",
                 produces: 1,
                 base: {
-                    "Ață": 30,
+                    "AÈ›Äƒ": 30,
                     "Scrap Metal": 5
                 }
             },
 
             "fibra": {
-                name: "Fibră",
+                name: "FibrÄƒ",
                 produces: 1,
                 base: {
                     "Bumbac": 10
@@ -983,46 +563,46 @@ const upgradeChains = {
                 name: "Bandaj improvizat x2",
                 produces: 2,
                 base: {
-                    "Fibră": 2,
+                    "FibrÄƒ": 2,
                     "Aloe Vera": 2
                 }
             },
 
             "fibra_kevlar": {
-                name: "Fibră Kevlar",
+                name: "FibrÄƒ Kevlar",
                 produces: 1,
                 base: {
-                    "Fibră": 2,
+                    "FibrÄƒ": 2,
                     "Cauciuc": 2
                 }
             },
 
             "armura_kevlar": {
-                name: "Armură Kevlar",
+                name: "ArmurÄƒ Kevlar",
                 produces: 1,
                 base: {
-                    "Fibră Kevlar": 3,
-                    "Ață": 5,
+                    "FibrÄƒ Kevlar": 3,
+                    "AÈ›Äƒ": 5,
                     "Cupru": 1,
-                    "Oțel": 1
+                    "OÈ›el": 1
                 }
             },
 
             "sac_fibra": {
-                name: "Sac de fibră",
+                name: "Sac de fibrÄƒ",
                 produces: 1,
                 base: {
-                    "Fibră": 4,
-                    "Ață": 2
+                    "FibrÄƒ": 4,
+                    "AÈ›Äƒ": 2
                 }
             },
 
             "parasuta": {
-                name: "Parașută",
+                name: "ParaÈ™utÄƒ",
                 produces: 1,
                 base: {
-                    "Sfoară": 2,
-                    "Fibră": 20,
+                    "SfoarÄƒ": 2,
+                    "FibrÄƒ": 20,
                     "Cauciuc": 8
                 }
             }
@@ -1031,7 +611,7 @@ const upgradeChains = {
 
         const materialKeys = [
             "Plastic",
-            "Undiță normală",
+            "UndiÈ›Äƒ normalÄƒ",
             "Cupru",
             "Aluminiu",
             "Fier",
@@ -1264,7 +844,7 @@ const upgradeChains = {
                     return;
                 }
             }
-            // Tratament special pentru Ață
+            // Tratament special pentru AÈ›Äƒ
             if (getNormalizedKey(itemName) === "ata") {
 
                 const ataRecipe = recipesCroitor["ata_x2"];
@@ -1552,3 +1132,4 @@ const upgradeChains = {
     <script src="js/global-footer.js"></script>
 </body>
 </html>
+
