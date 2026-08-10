@@ -365,7 +365,14 @@ let organizations=[],
     webhookRoutes={},
     assistantPagePermissions={},
     periodOrganizationId='';
-const configurablePages=[['index.html','Dashboard'],['anunturi.html','Anunțuri și sondaje'],['pontaj.html','Pontaj'],['cereri.html','Cereri și absențe'],['bucatarie.html','Bucatarie'],['contracte.html','Contracte'],['calculatorilegal.html','Calculator ilegal'],['craftmecanics.html','Craft mecanics'],['locatiiilegale.html','Locații ilegale'],['marketplace.html','Marketplace'],['marketplace-ilegal.html','Marketplace ilegal'],['rapoarte.html','Rapoarte'],['asistent.html','Asistent']];
+const pagePermissionGroups=[
+    {key:'dashboard',label:'Dashboard',mode:'all',pages:[['index.html','Dashboard']]},
+    {key:'illegal',label:'Ilegale',description:'Calculator ilegal, locații ilegale și marketplace ilegal.',mode:'group',pages:[['calculatorilegal.html','Calculator ilegal'],['locatiiilegale.html','Locații ilegale'],['marketplace-ilegal.html','Marketplace ilegal']]},
+    {key:'resources',label:'Resurse',description:'Marketplace, calculator, bucătărie și Craft Mechanics.',mode:'group',pages:[['marketplace.html','Marketplace'],['calculator.html','Calculator'],['bucatarie.html','Bucătărie'],['craftmecanics.html','Craft Mechanics']]},
+    {key:'management',label:'Management',description:'Contracte și rapoarte.',mode:'group',pages:[['contracte.html','Contracte'],['rapoarte.html','Rapoarte']]},
+    {key:'individual',label:'Pagini individuale',mode:'individual',pages:[['anunturi.html','Anunțuri și sondaje'],['pontaj.html','Pontaj'],['cereri.html','Cereri și absențe'],['asistent.html','Asistent']]}
+];
+const configurablePages=pagePermissionGroups.flatMap(group=>group.pages);
 const assistantPageGroups=[
     {key:'general',label:'Generale',pages:[['index.html','Dashboard'],['pontaj.html','Pontaj'],['cereri.html','Cereri și absențe'],['bucatarie.html','Bucătărie'],['asistent.html','Asistent']]},
     {key:'legal',label:'Legale',pages:[['anunturi.html','Anunțuri și sondaje'],['contracte.html','Contracte'],['marketplace.html','Marketplace legal'],['rapoarte.html','Rapoarte']]},
@@ -1181,7 +1188,85 @@ const header = `
             };
         });
 }
+function renderGroupedPagePermissions() {
+    const host = $('page-permissions');
+    const roles = roleRows
+        .filter(row => row.discord_role_id)
+        .map(row => ({
+            id: String(row.discord_role_id),
+            name: discordRoles.find(role => String(role.id) === String(row.discord_role_id))?.name || row.discord_role_name || row.panel_role || row.discord_role_id
+        }));
+
+    if (!roles.length) {
+        host.innerHTML = '<p class="rounded-xl border border-dashed border-slate-700 p-4 text-sm text-slate-400">Alege mai întâi rolurile Discord de mai sus.</p>';
+        return;
+    }
+
+    pagePermissions['index.html'] = roles.map(role => role.id);
+
+    const selectedForPages = pages => roles.filter(role => pages.every(([page]) => (pagePermissions[page] || []).map(String).includes(role.id)));
+    const setRoleForPages = (pages, roleId, checked) => {
+        pages.forEach(([page]) => {
+            const current = new Set((pagePermissions[page] || []).map(String));
+            checked ? current.add(String(roleId)) : current.delete(String(roleId));
+            pagePermissions[page] = [...current];
+        });
+    };
+    const setAllRolesForPages = (pages, checked) => pages.forEach(([page]) => { pagePermissions[page] = checked ? roles.map(role => role.id) : []; });
+    const renderPageRow = (page, label) => {
+        const selected = (pagePermissions[page] || []).map(String);
+        return `<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2"><div class="min-w-0"><div class="text-sm font-bold text-slate-200">${esc(label)}</div><div class="mt-0.5 text-[11px] text-slate-500">${selected.length} ${selected.length === 1 ? 'rol selectat' : 'roluri selectate'}</div></div><details class="relative" data-page-role-menu="${page}"><summary class="cursor-pointer list-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800">Alege rolurile (${selected.length})</summary><div class="absolute right-0 z-50 mt-2 w-[300px] max-w-[80vw] rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl"><label class="mb-2 flex cursor-pointer items-center gap-2 rounded-lg border border-emerald-900/60 bg-emerald-950/30 px-3 py-2 text-xs font-bold text-emerald-300"><input id="select-page-${page}" name="select_page_${page}" type="checkbox" data-select-page="${page}" ${roles.length > 0 && roles.every(role => selected.includes(role.id)) ? 'checked' : ''}>Toate rolurile</label><div class="max-h-64 space-y-1 overflow-y-auto">${roles.map(role => `<label class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs hover:bg-slate-800"><input id="page-${page}-role-${role.id}" name="page_${page}_role_${role.id}" type="checkbox" data-page="${page}" data-page-role="${role.id}" ${selected.includes(role.id) ? 'checked' : ''}><span class="truncate">${esc(role.name)}</span></label>`).join('')}</div></div></details></div>`;
+    };
+    const renderGroupRow = group => {
+        const selectedRoles = selectedForPages(group.pages);
+        const pageLabels = group.pages.map(([, label]) => label).join(' · ');
+        return `<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-cyan-800/70 bg-cyan-950/20 px-3 py-2"><div class="min-w-0"><div class="text-sm font-bold text-slate-100">${esc(group.label)}</div><div class="mt-0.5 text-[11px] text-slate-400">${esc(group.description || pageLabels)}</div><div class="mt-1 text-[11px] text-cyan-300">${selectedRoles.length} ${selectedRoles.length === 1 ? 'rol selectat' : 'roluri selectate'} pentru toate paginile</div></div><details class="relative" data-page-group-menu="${group.key}"><summary class="cursor-pointer list-none rounded-lg border border-cyan-700/70 bg-slate-900 px-3 py-2 text-xs font-bold text-cyan-200 hover:bg-slate-800">Alege rolurile (${selectedRoles.length})</summary><div class="absolute right-0 z-50 mt-2 w-[300px] max-w-[80vw] rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl"><label class="mb-2 flex cursor-pointer items-center gap-2 rounded-lg border border-emerald-900/60 bg-emerald-950/30 px-3 py-2 text-xs font-bold text-emerald-300"><input type="checkbox" data-select-page-group="${group.key}" ${roles.length > 0 && selectedRoles.length === roles.length ? 'checked' : ''}>Toate rolurile</label><div class="max-h-64 space-y-1 overflow-y-auto">${roles.map(role => `<label class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs hover:bg-slate-800"><input type="checkbox" data-page-group="${group.key}" data-page-group-role="${role.id}" ${selectedRoles.some(selected => selected.id === role.id) ? 'checked' : ''}><span class="truncate">${esc(role.name)}</span></label>`).join('')}</div></div></details></div>`;
+    };
+
+    host.innerHTML = `<div data-select-toolbar class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-700/50 bg-emerald-950/20 px-3 py-2"><span class="text-xs font-bold text-slate-300">Acces rapid</span><label class="flex items-center gap-2 text-xs text-emerald-300"><input id="select-all-pages" name="select_all_pages" type="checkbox" data-select-all-pages>Toate rolurile pe toate paginile</label></div><div class="space-y-1.5">${pagePermissionGroups.map(group => group.mode === 'individual' ? `<div class="pt-2 text-xs font-bold uppercase tracking-wide text-slate-500">${esc(group.label)}</div>${group.pages.map(([page, label]) => renderPageRow(page, label)).join('')}` : group.mode === 'all' ? `<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-emerald-800/70 bg-emerald-950/20 px-3 py-2"><div><div class="text-sm font-bold text-slate-100">Dashboard</div><div class="mt-0.5 text-[11px] text-emerald-300">Vizibil automat tuturor rolurilor configurate.</div></div><span class="rounded-lg border border-emerald-700/60 px-3 py-2 text-xs font-bold text-emerald-300">Toate rolurile</span></div>` : `<div class="pt-2 text-xs font-bold uppercase tracking-wide text-slate-500">${esc(group.label)}</div>${renderGroupRow(group)}`).join('')}</div>`;
+
+    host.querySelectorAll('[data-page-group-role]').forEach(box => {
+        box.onchange = () => {
+            const group = pagePermissionGroups.find(item => item.key === box.dataset.pageGroup);
+            if (!group) return;
+            setRoleForPages(group.pages, box.dataset.pageGroupRole, box.checked);
+            renderPagePermissions();
+        };
+    });
+    host.querySelectorAll('[data-select-page-group]').forEach(box => {
+        box.onchange = () => {
+            const group = pagePermissionGroups.find(item => item.key === box.dataset.selectPageGroup);
+            if (!group) return;
+            setAllRolesForPages(group.pages, box.checked);
+            renderPagePermissions();
+        };
+    });
+    host.querySelectorAll('[data-page-role]').forEach(box => {
+        box.onchange = () => {
+            const page = box.dataset.page;
+            const current = new Set((pagePermissions[page] || []).map(String));
+            box.checked ? current.add(String(box.dataset.pageRole)) : current.delete(String(box.dataset.pageRole));
+            pagePermissions[page] = [...current];
+            renderPagePermissions();
+        };
+    });
+    host.querySelectorAll('[data-select-page]').forEach(box => {
+        box.onchange = () => {
+            pagePermissions[box.dataset.selectPage] = box.checked ? roles.map(role => role.id) : [];
+            renderPagePermissions();
+        };
+    });
+    const selectAll = host.querySelector('[data-select-all-pages]');
+    if (selectAll) {
+        selectAll.checked = configurablePages.length > 0 && configurablePages.every(([page]) => roles.every(role => (pagePermissions[page] || []).map(String).includes(role.id)));
+        selectAll.onchange = () => { setAllRolesForPages(configurablePages, selectAll.checked); renderPagePermissions(); };
+    }
+}
+
 function renderPagePermissions() {
+    renderGroupedPagePermissions();
+    return;
+
     const host = $('page-permissions');
 
     const roles = roleRows
