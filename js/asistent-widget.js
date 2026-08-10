@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 1.6 seconds
-Output:
 // Chat plutitor pentru toate paginile autentificate ale panelului.
 (() => {
     'use strict';
@@ -8,7 +5,6 @@ Output:
 
     const engine = window.PanelAssistantCore.create({ onIndexUpdate: updateStatus });
     if (!engine) return;
-    window.__panelAssistantEngine = engine;
     window.__panelAssistantWidgetLoaded = true;
 
     const MAX_HISTORY = 40;
@@ -28,7 +24,7 @@ Output:
     renderSuggestions();
     bindEvents();
     updateStatus(engine.getEntryCount());
-    engine.indexLocalPages().catch((error) => console.warn('Asistent: indexarea localÄƒ nu a fost finalizatÄƒ.', error));
+    engine.indexLocalPages().catch((error) => console.warn('Asistent: indexarea locală nu a fost finalizată.', error));
     watchMapSidebar();
     window.setTimeout(() => {
         state.teaserDismissed = true;
@@ -114,27 +110,27 @@ Output:
         if (document.getElementById('map-container-wrapper')) root.classList.add('paw-map-page');
         root.innerHTML = `
             <button type="button" class="paw-teaser" aria-label="Deschide asistentul">
-                <strong>Cu ce te pot ajuta astÄƒzi?</strong>
-                <span>ÃŽntreabÄƒ-mÄƒ orice despre panel.</span>
+                <strong>Cu ce te pot ajuta astăzi?</strong>
+                <span>Întreabă-mă orice despre panel.</span>
             </button>
             <div class="paw-panel" id="panel-assistant-chat" role="dialog" aria-label="Chat cu asistentul" hidden>
                 <div class="paw-header">
                     <img class="paw-header-avatar" src="css/robot-assistant.svg" alt="Avatar asistent robot">
-                    <div class="paw-header-copy"><p class="paw-title">Asistent Panel</p><p class="paw-status">Local Â· rol Discord: ${engine.roleName || 'rolul tÄƒu'}</p></div>
+                    <div class="paw-header-copy"><p class="paw-title">Asistent Panel</p><p class="paw-status">Local · rol Discord: ${engine.roleName || 'rolul tău'}</p></div>
                     <div class="paw-header-actions">
-                        <button type="button" class="paw-icon-button paw-clear" aria-label="CurÄƒÈ›Äƒ conversaÈ›ia" title="CurÄƒÈ›Äƒ conversaÈ›ia">âŒ«</button>
-                        <button type="button" class="paw-icon-button paw-minimize" aria-label="MinimizeazÄƒ chatul" title="MinimizeazÄƒ">â€”</button>
+                        <button type="button" class="paw-icon-button paw-clear" aria-label="Curăță conversația" title="Curăță conversația">⌫</button>
+                        <button type="button" class="paw-icon-button paw-minimize" aria-label="Minimizează chatul" title="Minimizează">—</button>
                     </div>
                 </div>
                 <div class="paw-messages" aria-live="polite"></div>
-                <div class="paw-suggestions" aria-label="ÃŽntrebÄƒri rapide"></div>
+                <div class="paw-suggestions" aria-label="Întrebări rapide"></div>
                 <form class="paw-form">
-                    <textarea class="paw-input" rows="1" maxlength="500" aria-label="Scrie Ã®ntrebarea" placeholder="Scrie o Ã®ntrebareâ€¦"></textarea>
-                    <button type="submit" class="paw-send" aria-label="Trimite Ã®ntrebarea" title="Trimite">
+                    <textarea class="paw-input" rows="1" maxlength="500" aria-label="Scrie întrebarea" placeholder="Scrie o întrebare…"></textarea>
+                    <button type="submit" class="paw-send" aria-label="Trimite întrebarea" title="Trimite">
                         <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path fill="currentColor" d="m3.4 20.4 17.45-7.48a1 1 0 0 0 0-1.84L3.4 3.6a.95.95 0 0 0-1.3 1.06l1.25 5.47 9.1 1.87-9.1 1.87-1.25 5.47a.95.95 0 0 0 1.3 1.06Z"/></svg>
                     </button>
                 </form>
-                <p class="paw-footnote">RÄƒspunsuri locale Â· fÄƒrÄƒ API AI È™i fÄƒrÄƒ cost lunar</p>
+                <p class="paw-footnote">Răspunsuri locale · fără API AI și fără cost lunar</p>
             </div>
             <button type="button" class="paw-launcher" aria-label="Deschide asistentul" aria-controls="panel-assistant-chat" aria-expanded="false">
                 <img src="css/robot-assistant.svg" alt="Avatar asistent robot"><span class="paw-online" aria-hidden="true"></span>
@@ -160,7 +156,7 @@ Output:
     function updateStatus(count) {
         const status = document.querySelector('#panel-assistant-widget .paw-status');
         const roleLabel = String(engine?.roleName || '').trim() || 'Rol Discord indisponibil';
-        if (status) status.textContent = `Local Â· ${count} informaÈ›ii Â· rol Discord: ${roleLabel}`;
+        if (status) status.textContent = `Local · ${count} informații · rol Discord: ${roleLabel}`;
     }
 
     function loadHistory() {
@@ -185,13 +181,13 @@ Output:
         try {
             sessionStorage.setItem(historyKey, JSON.stringify(state.messages.slice(-MAX_HISTORY)));
         } catch (_error) {
-            // Chatul rÄƒmÃ¢ne funcÈ›ional chiar dacÄƒ stocarea este blocatÄƒ.
+            // Chatul rămâne funcțional chiar dacă stocarea este blocată.
         }
     }
 
     function welcomeMessage() {
         const name = engine.user.display_name || engine.user.username || 'coleg';
-        return `Salut, ${name}! Cu ce te pot ajuta astÄƒzi? ÃŽÈ›i rÄƒspund numai din informaÈ›iile panelului disponibile rolului tÄƒu.`;
+        return `Salut, ${name}! Cu ce te pot ajuta astăzi? Îți răspund numai din informațiile panelului disponibile rolului tău.`;
     }
 
     function renderHistory() {
@@ -212,20 +208,14 @@ Output:
         text.textContent = engine.repairText(message.text);
         bubble.appendChild(text);
 
-        const links = Array.isArray(message.links) && message.links.length
-            ? message.links
-            : (message.page ? [{ page: message.page, title: message.title }] : []);
-        links
-            .filter((item) => item?.page && item.page !== 'asistent.html' && engine.isPageAllowed(item.page))
-            .slice(0, 8)
-            .forEach((item) => {
-                const link = document.createElement('a');
-                link.className = 'paw-source-link';
-                link.href = item.page;
-                link.textContent = `Deschide ${engine.repairText(item.title || 'pagina')} â†’`;
-                bubble.appendChild(document.createElement('br'));
-                bubble.appendChild(link);
-            });
+        if (message.page && message.page !== 'asistent.html' && engine.isPageAllowed(message.page)) {
+            const link = document.createElement('a');
+            link.className = 'paw-source-link';
+            link.href = message.page;
+            link.textContent = `Deschide ${engine.repairText(message.title || 'pagina')} →`;
+            bubble.appendChild(document.createElement('br'));
+            bubble.appendChild(link);
+        }
         row.appendChild(bubble);
         elements.messages.appendChild(row);
     }
@@ -233,15 +223,9 @@ Output:
     function addMessage(message, persist = true) {
         const safeMessage = {
             sender: message.sender === 'user' ? 'user' : 'assistant',
-            text: String(message.text || '').slice(0, 2400),
+            text: String(message.text || '').slice(0, 1200),
             page: engine.isPageAllowed(message.page) && message.page !== 'asistent.html' ? message.page : '',
-            title: String(message.title || '').slice(0, 120),
-            links: Array.isArray(message.links)
-                ? message.links
-                    .filter((item) => item?.page && item.page !== 'asistent.html' && engine.isPageAllowed(item.page))
-                    .slice(0, 8)
-                    .map((item) => ({ page: item.page, title: String(item.title || '').slice(0, 120) }))
-                : []
+            title: String(message.title || '').slice(0, 120)
         };
         state.messages.push(safeMessage);
         state.messages = state.messages.slice(-MAX_HISTORY);
@@ -256,7 +240,7 @@ Output:
         row.id = id;
         row.className = 'paw-message-row';
         row.dataset.sender = 'assistant';
-        row.innerHTML = '<div class="paw-bubble"><span class="paw-typing" aria-label="Asistentul cautÄƒ"><i></i><i></i><i></i></span></div>';
+        row.innerHTML = '<div class="paw-bubble"><span class="paw-typing" aria-label="Asistentul caută"><i></i><i></i><i></i></span></div>';
         elements.messages.appendChild(row);
         scrollMessages();
         return id;
@@ -287,8 +271,8 @@ Output:
         const typingId = showTyping();
         await new Promise((resolve) => setTimeout(resolve, 220));
         document.getElementById(typingId)?.remove();
-        const result = await engine.answer(question);
-        addMessage({ sender: 'assistant', text: result.answer, page: result.page, title: result.title, links: result.links });
+        const result = engine.answer(question);
+        addMessage({ sender: 'assistant', text: result.answer, page: result.page, title: result.title });
     }
 
     function queueQuestion(value) {
@@ -297,14 +281,11 @@ Output:
     }
 
     function suggestionsForRole() {
-        return [
-            ['Cum pornesc pontajul?', 'pontaj.html'],
-            ['Unde gÄƒsesc Runflat?', 'craftmecanics.html'],
-            ['Cum trimit o Ã®nvoire?', 'cereri.html'],
-            ['Unde se proceseazÄƒ cocaina?', 'locatiiilegale.html'],
-            ['Cine este pontat acum?', 'rapoarte.html'],
-            ['Cum schimb ora de Ã®nchidere?', 'admin.html']
-        ].filter(([, page]) => engine?.isPageAllowed(page)).map(([question]) => question);
+        const questions = ['Cum pornesc pontajul?', 'Unde găsesc Runflat?', 'Cum trimit o învoire?'];
+        if (engine.role >= 3) questions.push('Unde se procesează cocaina?');
+        if (engine.role >= 4) questions.push('Cine este pontat acum?');
+        if (engine.role >= 7) questions.push('Cum schimb ora de închidere?');
+        return questions;
     }
 
     function renderSuggestions() {
@@ -360,4 +341,3 @@ Output:
         new MutationObserver(sync).observe(mapSidebar, { attributes: true, attributeFilter: ['class'] });
     }
 })();
-

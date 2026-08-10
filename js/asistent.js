@@ -1,7 +1,4 @@
-Exit code: 0
-Wall time: 1.3 seconds
-Output:
-// InterfaÈ›a paginii complete Asistent. Motorul comun se aflÄƒ Ã®n asistent-core.js.
+// Interfața paginii complete Asistent. Motorul comun se află în asistent-core.js.
 (() => {
     'use strict';
     let engine = null;
@@ -22,19 +19,13 @@ Output:
         paragraph.textContent = engine?.repairText(text || '') || String(text || '');
         bubble.appendChild(paragraph);
 
-        const links = Array.isArray(result.links) && result.links.length
-            ? result.links
-            : (result.page ? [{ page: result.page, title: result.title }] : []);
-        links
-            .filter((item) => item?.page && item.page !== 'asistent.html' && engine?.isPageAllowed(item.page))
-            .slice(0, 8)
-            .forEach((item) => {
-                const link = document.createElement('a');
-                link.href = item.page;
-                link.className = 'mt-2 mr-2 inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20';
-                link.textContent = `Deschide ${engine.repairText(item.title || 'pagina')} â†’`;
-                bubble.appendChild(link);
-            });
+        if (result.page && result.page !== 'asistent.html' && engine?.isPageAllowed(result.page)) {
+            const link = document.createElement('a');
+            link.href = result.page;
+            link.className = 'mt-3 inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20';
+            link.textContent = `Deschide ${engine.repairText(result.title || 'pagina')} →`;
+            bubble.appendChild(link);
+        }
         wrapper.appendChild(bubble);
         chat.appendChild(wrapper);
         chat.scrollTop = chat.scrollHeight;
@@ -46,7 +37,7 @@ Output:
         const id = `assistant-typing-${++typingSequence}`;
         wrapper.id = id;
         wrapper.className = 'flex justify-start';
-        wrapper.innerHTML = '<div class="rounded-2xl rounded-bl-md border border-slate-800 bg-slate-900 px-4 py-3 text-xs text-slate-400">Se cautÄƒ Ã®n panelâ€¦</div>';
+        wrapper.innerHTML = '<div class="rounded-2xl rounded-bl-md border border-slate-800 bg-slate-900 px-4 py-3 text-xs text-slate-400">Se caută în panel…</div>';
         chat?.appendChild(wrapper);
         if (chat) chat.scrollTop = chat.scrollHeight;
         return id;
@@ -59,7 +50,7 @@ Output:
         const typingId = showTyping();
         await new Promise((resolve) => setTimeout(resolve, 220));
         document.getElementById(typingId)?.remove();
-        const result = await engine.answer(question);
+        const result = engine.answer(question);
         createMessage(result.answer, 'assistant', result);
     }
 
@@ -69,14 +60,11 @@ Output:
     }
 
     function quickQuestions() {
-        return [
-            ['Cum pornesc pontajul?', 'pontaj.html'],
-            ['Unde gÄƒsesc Runflat?', 'craftmecanics.html'],
-            ['Cum trimit o Ã®nvoire?', 'cereri.html'],
-            ['Ce gÄƒsesc la locaÈ›ii ilegale?', 'locatiiilegale.html'],
-            ['Cum vÄƒd pontajele active?', 'rapoarte.html'],
-            ['Cum schimb ora de Ã®nchidere?', 'admin.html']
-        ].filter(([, page]) => engine?.isPageAllowed(page)).map(([question]) => question);
+        const questions = ['Cum pornesc pontajul?', 'Unde găsesc Runflat?', 'Cum trimit o învoire?'];
+        if (engine.role >= 3) questions.push('Ce găsesc la locații ilegale?');
+        if (engine.role >= 4) questions.push('Cum văd pontajele active?');
+        if (engine.role >= 7) questions.push('Cum schimb ora de închidere?');
+        return questions;
     }
 
     function initialize() {
@@ -85,14 +73,13 @@ Output:
         const status = document.getElementById('assistant-index-status');
         engine = window.PanelAssistantCore.create({
             onIndexUpdate: (count) => {
-                if (status) status.textContent = `${count} informaÈ›ii locale disponibile Â· acces dupÄƒ paginile selectate`;
+                if (status) status.textContent = `${count} informații locale disponibile · acces nivel ${engine?.role || 0}`;
             }
         });
         if (!engine) return;
-        window.__panelAssistantEngine = engine;
 
-        if (status) status.textContent = `${engine.getEntryCount()} informaÈ›ii locale disponibile Â· acces dupÄƒ paginile selectate`;
-        engine.indexLocalPages().catch((error) => console.warn('Asistent: indexarea localÄƒ nu a fost finalizatÄƒ.', error));
+        if (status) status.textContent = `${engine.getEntryCount()} informații locale disponibile · acces nivel ${engine.role}`;
+        engine.indexLocalPages().catch((error) => console.warn('Asistent: indexarea locală nu a fost finalizată.', error));
 
         const user = engine.user;
         const displayName = user.display_name || user.username || 'coleg';
@@ -102,7 +89,7 @@ Output:
         if (displayNameElement) displayNameElement.textContent = displayName;
         if (roleElement) roleElement.textContent = engine.roleName;
         if (avatarElement && user.avatar) avatarElement.src = user.avatar;
-        createMessage(`Salut, ${displayName}! Sunt asistentul intern. ÃŽÈ›i rÄƒspund doar din informaÈ›iile panelului È™i nu trimit Ã®ntrebÄƒrile cÄƒtre un API AI.`, 'assistant');
+        createMessage(`Salut, ${displayName}! Sunt asistentul intern. Îți răspund doar din informațiile panelului și nu trimit întrebările către un API AI.`, 'assistant');
 
         const suggestions = document.getElementById('assistant-suggestions');
         quickQuestions().forEach((question) => {
@@ -125,11 +112,10 @@ Output:
         document.getElementById('assistant-clear')?.addEventListener('click', () => {
             const messages = document.getElementById('assistant-messages');
             if (messages) messages.innerHTML = '';
-            createMessage('ConversaÈ›ia a fost curÄƒÈ›atÄƒ. Cu ce te pot ajuta?', 'assistant');
+            createMessage('Conversația a fost curățată. Cu ce te pot ajuta?', 'assistant');
         });
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize);
     else initialize();
 })();
-
