@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 1.3 seconds
-Output:
 // InterfaÈ›a paginii complete Asistent. Motorul comun se aflÄƒ Ã®n asistent-core.js.
 (() => {
     'use strict';
