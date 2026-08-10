@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 1.3 seconds
+Output:
 <!DOCTYPE html>
 <html lang="ro" class="dark">
 <head>
@@ -10,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/permissions.js?v=4.5.0"></script>
-    <script src="js/panel-layout.js?v=4.9.0"></script>
+     <script src="js/panel-layout.js?v=4.10.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <script src="js/project-version.js"></script>
     <link rel="icon" href="img/favicon.ico">
@@ -23,15 +26,15 @@
 
         <!-- Sidebar / Meniu Lateral preluat direct din scriptul de pontaj -->
 
-        <!-- Conținut Principal Marketplace -->
+        <!-- ConÈ›inut Principal Marketplace -->
         <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
             <div class="p-8 space-y-6 max-w-7xl mx-auto w-full">
-            <section class="panel-action-bar"><div><button onclick="incarcaAnunturi()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer flex items-center space-x-1.5"><span>🔄</span><span>Reîmprospătare</span></button></div></section>
+            <section class="panel-action-bar"><div><button onclick="incarcaAnunturi()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer flex items-center space-x-1.5"><span>ðŸ”„</span><span>ReÃ®mprospÄƒtare</span></button></div></section>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                    <!-- COLOANA STANGA: Adăugare Anunț Nou -->
+                    <!-- COLOANA STANGA: AdÄƒugare AnunÈ› Nou -->
                     <div class="lg:col-span-1 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-4">
-                        <h3 class="text-base font-bold text-slate-100 pb-2 border-b border-slate-800">Adaugă Anunț Nou</h3>
+                        <h3 class="text-base font-bold text-slate-100 pb-2 border-b border-slate-800">AdaugÄƒ AnunÈ› Nou</h3>
 
                         <form id="marketForm" class="space-y-4">
                             <div>
@@ -45,15 +48,15 @@
                             </div>
 
                             <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Tip Acțiune:</label>
-                                <select id="tipAcțiune" onchange="toggleTipActiune()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500">
-                                    <option value="Vânzare">Vânzare</option>
-                                    <option value="Cumpărare">Cumpărare</option>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Tip AcÈ›iune:</label>
+                                <select id="tipAcÈ›iune" onchange="toggleTipActiune()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500">
+                                    <option value="VÃ¢nzare">VÃ¢nzare</option>
+                                    <option value="CumpÄƒrare">CumpÄƒrare</option>
                                     <option value="Servicii">Servicii</option>
                                 </select>
                             </div>
 
-                            <!-- Câmpul de Categorie (ascuns dacă selectează Servicii) -->
+                            <!-- CÃ¢mpul de Categorie (ascuns dacÄƒ selecteazÄƒ Servicii) -->
                             <div id="categorie-wrapper">
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Categorie:</label>
                                 <select id="categorie" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500">
@@ -63,51 +66,51 @@
                                 </select>
                             </div>
 
-                            <!-- Câmpul de Produse (ascuns dacă selectează Servicii) -->
+                            <!-- CÃ¢mpul de Produse (ascuns dacÄƒ selecteazÄƒ Servicii) -->
                             <div id="produse-wrapper">
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Produse (folosește Enter):</label>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Produse (foloseÈ™te Enter):</label>
                                 <textarea id="produse" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="- Produs 1&#10;- Produs 2" required></textarea>
                             </div>
 
-                            <!-- Câmpul specific pentru Servicii (afișat doar dacă se selectează Servicii) -->
+                            <!-- CÃ¢mpul specific pentru Servicii (afiÈ™at doar dacÄƒ se selecteazÄƒ Servicii) -->
                             <div id="servicii-box-wrapper" class="hidden">
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Ce servicii ceri sau prestezi:</label>
-                                <textarea id="detalii_servicii" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="Descrie serviciul pe care îl oferi sau îl soliciți..."></textarea>
+                                <textarea id="detalii_servicii" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="Descrie serviciul pe care Ã®l oferi sau Ã®l soliciÈ›i..."></textarea>
                             </div>
 
                             <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Preț (Obligatoriu):</label>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">PreÈ› (Obligatoriu):</label>
                                 <input type="text" id="pret" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="Ex: 1500 sau 10000 sau Negociabil" required>
                             </div>
 
-                            <!-- Câmp suplimentar explicit pentru Link Imagine Directă (opțional) -->
+                            <!-- CÃ¢mp suplimentar explicit pentru Link Imagine DirectÄƒ (opÈ›ional) -->
                             <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Link Direct Imagine (Opțional):</label>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Link Direct Imagine (OpÈ›ional):</label>
                                 <input type="url" id="imagine_url_direct" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500" placeholder="https://imgur.com/... sau link direct imagine">
                             </div>
 
-                            <!-- Secțiune pentru Upload Imagini Multiple prin Click + Paste (Ctrl + V) -->
+                            <!-- SecÈ›iune pentru Upload Imagini Multiple prin Click + Paste (Ctrl + V) -->
                             <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Imagini Anunț (Maxim 5, Opțional):</label>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Imagini AnunÈ› (Maxim 5, OpÈ›ional):</label>
                                 <div id="paste-zone" tabindex="0" class="w-full bg-slate-950 border border-dashed border-slate-700 hover:border-blue-500 rounded-xl p-3 text-center cursor-pointer transition focus:outline-none focus:border-blue-500">
-                                    <p class="text-xs text-slate-400" id="paste-instruction">📋 Apasă aici, iar după apasă <strong class="text-slate-200">Ctrl + V</strong> pentru a atașa imaginile</p>
+                                    <p class="text-xs text-slate-400" id="paste-instruction">ðŸ“‹ ApasÄƒ aici, iar dupÄƒ apasÄƒ <strong class="text-slate-200">Ctrl + V</strong> pentru a ataÈ™a imaginile</p>
                                     <div id="paste-preview-container" class="hidden mt-2 grid grid-cols-5 gap-2">
-                                        <!-- Aici se vor adăuga dinamic previzualizările imaginilor -->
+                                        <!-- Aici se vor adÄƒuga dinamic previzualizÄƒrile imaginilor -->
                                     </div>
                                 </div>
                                 <input type="hidden" id="imagini_json" value="[]">
                             </div>
 
-                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl transition text-xs shadow-md cursor-pointer">Publică Anunțul</button>
+                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl transition text-xs shadow-md cursor-pointer">PublicÄƒ AnunÈ›ul</button>
                         </form>
                     </div>
 
-                    <!-- COLOANA DREAPTA: Filtrare și Anunțuri Active -->
+                    <!-- COLOANA DREAPTA: Filtrare È™i AnunÈ›uri Active -->
                     <div class="lg:col-span-2 space-y-6">
                         <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
-                            <h3 class="text-base font-bold text-slate-100 mb-3 pb-2 border-b border-slate-800">Filtrează Anunțurile</h3>
+                            <h3 class="text-base font-bold text-slate-100 mb-3 pb-2 border-b border-slate-800">FiltreazÄƒ AnunÈ›urile</h3>
                             <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1">Selectează Categoria / Tipul:</label>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">SelecteazÄƒ Categoria / Tipul:</label>
                                 <select id="filtruCategorie" onchange="incarcaAnunturi()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-blue-500">
                                     <option value="TOATE">Toate Categoriile & Serviciile</option>
                                     <option value="CASE">CASE</option>
@@ -119,12 +122,12 @@
                         </div>
 
                         <div class="flex items-center justify-between">
-                            <h3 class="text-base font-bold text-slate-100">Anunțuri Active</h3>
+                            <h3 class="text-base font-bold text-slate-100">AnunÈ›uri Active</h3>
                             <span id="itemCount" class="text-xs text-slate-400">0 produse</span>
                         </div>
 
                         <div id="listaAnunturi" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <p class="text-xs text-slate-500 text-center py-6 col-span-full">Se încarcă anunțurile...</p>
+                            <p class="text-xs text-slate-500 text-center py-6 col-span-full">Se Ã®ncarcÄƒ anunÈ›urile...</p>
                         </div>
                     </div>
 
@@ -133,15 +136,15 @@
         </main>
     </div>
 
-    <!-- Modal pentru mărirea imaginilor (LightBox) -->
+    <!-- Modal pentru mÄƒrirea imaginilor (LightBox) -->
     <div id="imageModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="inchideModalImagine()">
         <div class="relative max-w-4xl max-h-[90vh]" onclick="event.stopPropagation()">
-            <button onclick="inchideModalImagine()" class="absolute -top-4 -right-4 bg-slate-800 hover:bg-rose-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-lg transition cursor-pointer">×</button>
-            <img id="modalImg" src="" alt="Imagine mărită" class="max-w-full max-h-[85vh] rounded-2xl border border-slate-700 shadow-2xl object-contain">
+            <button onclick="inchideModalImagine()" class="absolute -top-4 -right-4 bg-slate-800 hover:bg-rose-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-lg transition cursor-pointer">Ã—</button>
+            <img id="modalImg" src="" alt="Imagine mÄƒritÄƒ" class="max-w-full max-h-[85vh] rounded-2xl border border-slate-700 shadow-2xl object-contain">
         </div>
     </div>
 
-    <!-- Script de integrare Supabase și interfață -->
+    <!-- Script de integrare Supabase È™i interfaÈ›Äƒ -->
     <script>
         const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
         const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
@@ -157,6 +160,7 @@
 
         // Gestionare Imagini Multiple prin Paste (Maxim 5)
         let imaginiCurente = [];
+        let marketplaceFocusHandled = false;
         const pasteZone = document.getElementById('paste-zone');
         const pasteInstruction = document.getElementById('paste-instruction');
         const pastePreviewContainer = document.getElementById('paste-preview-container');
@@ -165,7 +169,7 @@
         pasteZone.addEventListener('paste', async (e) => {
             e.preventDefault();
             if (imaginiCurente.length >= 5) {
-                alert('Poți adăuga maximum 5 imagini per anunț!');
+                alert('PoÈ›i adÄƒuga maximum 5 imagini per anunÈ›!');
                 return;
             }
 
@@ -197,7 +201,7 @@
                     pastePreviewContainer.innerHTML += `
                         <div class="relative inline-block">
                             <img src="${imgSrc}" alt="Previzualizare ${index + 1}" class="h-16 w-full rounded-lg border border-slate-700 object-cover">
-                            <button type="button" onclick="stergeImagineIndex(event, ${index})" class="absolute -top-1.5 -right-1.5 bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-rose-500 shadow">×</button>
+                            <button type="button" onclick="stergeImagineIndex(event, ${index})" class="absolute -top-1.5 -right-1.5 bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-rose-500 shadow">Ã—</button>
                         </div>
                     `;
                 });
@@ -227,7 +231,7 @@
         }
 
         function toggleTipActiune() {
-            const tip = document.getElementById('tipAcțiune').value;
+            const tip = document.getElementById('tipAcÈ›iune').value;
             const categorieWrapper = document.getElementById('categorie-wrapper');
             const produseWrapper = document.getElementById('produse-wrapper');
             const serviciiWrapper = document.getElementById('servicii-box-wrapper');
@@ -304,7 +308,7 @@
                 document.getElementById('nume').value = currentUser.display_name;
 
                 const roleLower = currentUser.role.toLowerCase();
-                const isPrivileged = roleLower.includes('sef') || roleLower.includes('șef') || roleLower.includes('manager') || roleLower.includes('admin') || roleLower.includes('owner');
+                const isPrivileged = roleLower.includes('sef') || roleLower.includes('È™ef') || roleLower.includes('manager') || roleLower.includes('admin') || roleLower.includes('owner');
 
                 if (isPrivileged) {
                     const navLogs = document.getElementById('nav-logs');
@@ -353,7 +357,7 @@
         async function incarcaAnunturi() {
             const container = document.getElementById('listaAnunturi');
             const filtru = document.getElementById('filtruCategorie').value;
-            container.innerHTML = '<p class="text-xs text-slate-500 text-center py-6 col-span-full">Se încarcă...</p>';
+            container.innerHTML = '<p class="text-xs text-slate-500 text-center py-6 col-span-full">Se Ã®ncarcÄƒ...</p>';
 
             const { data, error } = await supabaseClient
                 .from('marketplace_feed')
@@ -361,12 +365,12 @@
                 .order('created_at', { ascending: false });
 
             if (error) {
-                container.innerHTML = '<p class="text-xs text-rose-400 text-center py-6 col-span-full">Erore la încărcarea datelor: ' + escapeHtml(error.message) + '</p>';
+                container.innerHTML = '<p class="text-xs text-rose-400 text-center py-6 col-span-full">Erore la Ã®ncÄƒrcarea datelor: ' + escapeHtml(error.message) + '</p>';
                 return;
             }
 
             if (!data || data.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-500 text-center py-6 col-span-full">Nu există anunțuri momentan.</p>';
+                container.innerHTML = '<p class="text-xs text-slate-500 text-center py-6 col-span-full">Nu existÄƒ anunÈ›uri momentan.</p>';
                 document.getElementById('itemCount').innerText = '0 produse';
                 return;
             }
@@ -380,7 +384,7 @@
             document.getElementById('itemCount').innerText = `${anunturiFiltrate.length} produse`;
 
             if (anunturiFiltrate.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-6 col-span-full">Nu există anunțuri în această secțiune.</p>`;
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-6 col-span-full">Nu existÄƒ anunÈ›uri Ã®n aceastÄƒ secÈ›iune.</p>`;
                 return;
             }
 
@@ -396,8 +400,8 @@
                     });
                 }
 
-                let tipBadge = item.tip_actiune || 'Vânzare';
-                let badgeClass = tipBadge === 'Cumpărare' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : (tipBadge === 'Servicii' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20');
+                let tipBadge = item.tip_actiune || 'VÃ¢nzare';
+                let badgeClass = tipBadge === 'CumpÄƒrare' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : (tipBadge === 'Servicii' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20');
 
                 let catBadge = item.categorie || '';
                 if (tipBadge === 'Servicii') catBadge = 'SERVICII';
@@ -411,14 +415,14 @@
                     apartineOrganizatieiActive &&
                     String(item.created_by_discord_id || '') === String(currentUser.discord_id || '')
                 );
-                const organizatieText = item.organization_name || 'Organizație legală';
+                const organizatieText = item.organization_name || 'OrganizaÈ›ie legalÄƒ';
 
                 let continutAfisat = item.produse || '';
                 if (tipBadge === 'Servicii') {
                     continutAfisat = `<strong>Serviciu Solicitat / Prestat:</strong>\n${item.produse}`;
                 }
 
-                continutAfisat = continutAfisat.replace(/\[(Vânzare|Cumpărare|Servicii)\]/gi, '').replace(/\[(CASE|VEHICULE|BUNURI|SERVICII)\]/gi, '').trim();
+                continutAfisat = continutAfisat.replace(/\[(VÃ¢nzare|CumpÄƒrare|Servicii)\]/gi, '').replace(/\[(CASE|VEHICULE|BUNURI|SERVICII)\]/gi, '').trim();
 
                 let imaginiHtml = '';
                 let listaImaginiFinala = [];
@@ -442,22 +446,22 @@
                     imaginiHtml = '<div class="flex flex-wrap gap-2 mt-2 pt-2 border-t border-slate-800/60">';
                     listaImaginiFinala.forEach(imgUrl => {
                         const urlCurat = imgUrl.trim();
-                        // Dacă esteimagine base64 (din paste) sau link extern complet, o afișăm direct; altfel păstrăm calea locală img/
+                        // DacÄƒ esteimagine base64 (din paste) sau link extern complet, o afiÈ™Äƒm direct; altfel pÄƒstrÄƒm calea localÄƒ img/
                         const sourcePrefix = (urlCurat.startsWith('data:image') || urlCurat.startsWith('http://') || urlCurat.startsWith('https://')) ? '' : 'img/';
                         imaginiHtml += `
-                            <img src="${sourcePrefix}${urlCurat}" alt="Miniatură" class="rounded-lg h-10 w-10 object-cover border border-slate-700 cursor-pointer hover:opacity-90 transition" onclick="deschideModalImagine('${sourcePrefix}${urlCurat}')" title="Click pentru mărire">
+                            <img src="${sourcePrefix}${urlCurat}" alt="MiniaturÄƒ" class="rounded-lg h-10 w-10 object-cover border border-slate-700 cursor-pointer hover:opacity-90 transition" onclick="deschideModalImagine('${sourcePrefix}${urlCurat}')" title="Click pentru mÄƒrire">
                         `;
                     });
                     imaginiHtml += '</div>';
                 }
 
                 container.innerHTML += `
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between space-y-4">
+                    <div data-marketplace-id="${escapeHtml(item.id)}" class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between space-y-4">
                         <div class="space-y-2">
                             <div class="flex items-start justify-between">
                                 <div>
                                     <span class="font-bold text-slate-100 text-sm">${escapeHtml(item.nume || '')}</span>
-                                    <div class="text-[10px] text-emerald-400 mt-1">🏢 ${escapeHtml(organizatieText)}</div>
+                                    <div class="text-[10px] text-emerald-400 mt-1">ðŸ¢ ${escapeHtml(organizatieText)}</div>
                                     <div class="text-xs text-slate-400 mt-0.5">Tel: ${escapeHtml(item.telefon || '')}</div>
                                 </div>
                             </div>
@@ -474,7 +478,8 @@
                                 </div>
                                 <div>
                                     ${dataFormatata ? `<div class="text-[10px] text-slate-500">Publicat: ${dataFormatata}</div>` : ''}
-                                    ${poateSterge ? `<button type="button" onclick="stergeAnuntMarketplace('${item.id}')" class="mt-2 px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-[10px] font-bold">Șterge</button>` : ''}
+                                    <a href="marketplace.html?anunt=${encodeURIComponent(item.id)}" class="mt-2 inline-block px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-[10px] font-bold">Mergi la anunÈ›</a>
+                                    ${poateSterge ? `<button type="button" onclick="stergeAnuntMarketplace('${item.id}')" class="mt-2 px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-[10px] font-bold">È˜terge</button>` : ''}
                                 </div>
                             </div>
                             ${imaginiHtml}
@@ -482,10 +487,22 @@
                     </div>
                 `;
             });
+
+            if (!marketplaceFocusHandled) {
+                const focusId = new URLSearchParams(window.location.search).get('anunt');
+                const focusedCard = focusId
+                    ? container.querySelector(`[data-marketplace-id="${CSS.escape(focusId)}"]`)
+                    : null;
+                if (focusedCard) {
+                    marketplaceFocusHandled = true;
+                    focusedCard.classList.add('ring-2', 'ring-emerald-400');
+                    focusedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
         }
 
         async function stergeAnuntMarketplace(id) {
-            if (!confirm('Ștergi definitiv acest anunț?')) return;
+            if (!confirm('È˜tergi definitiv acest anunÈ›?')) return;
             const token = localStorage.getItem('discord_access_token');
             const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-community-posts`, {
                 method: 'POST',
@@ -493,7 +510,7 @@
                 body: JSON.stringify({ action: 'marketplace_delete', table: 'marketplace', item_id: id, access_token: token })
             });
             const result = await response.json();
-            if (!response.ok) return alert(result.error || 'Anunțul nu a putut fi șters.');
+            if (!response.ok) return alert(result.error || 'AnunÈ›ul nu a putut fi È™ters.');
             await incarcaAnunturi();
         }
 
@@ -510,22 +527,22 @@
 
         async function trimitePeDiscord(anunt) {
             const fields = [
-                { name: '👤 Nume', value: anunt.nume, inline: true },
-                { name: '📞 Telefon', value: anunt.telefon, inline: true },
-                { name: '📌 Tip Acțiune', value: anunt.tip_actiune, inline: true }
+                { name: 'ðŸ‘¤ Nume', value: anunt.nume, inline: true },
+                { name: 'ðŸ“ž Telefon', value: anunt.telefon, inline: true },
+                { name: 'ðŸ“Œ Tip AcÈ›iune', value: anunt.tip_actiune, inline: true }
             ];
 
             if (anunt.tip_actiune !== 'Servicii') {
-                fields.push({ name: '📁 Categorie', value: anunt.categorie, inline: false });
-                fields.push({ name: '📦 Produse / Detalii', value: anunt.produse, inline: false });
+                fields.push({ name: 'ðŸ“ Categorie', value: anunt.categorie, inline: false });
+                fields.push({ name: 'ðŸ“¦ Produse / Detalii', value: anunt.produse, inline: false });
             } else {
-                fields.push({ name: '🛠️ Servicii Solicitate / Prestate', value: anunt.produse, inline: false });
+                fields.push({ name: 'ðŸ› ï¸ Servicii Solicitate / Prestate', value: anunt.produse, inline: false });
             }
 
-            fields.push({ name: '💰 Preț', value: anunt.pret, inline: true });
+            fields.push({ name: 'ðŸ’° PreÈ›', value: anunt.pret, inline: true });
             fields.push({
-                name: '🏢 Organizație',
-                value: currentUser.organization_name || 'Organizație legală',
+                name: 'ðŸ¢ OrganizaÈ›ie',
+                value: currentUser.organization_name || 'OrganizaÈ›ie legalÄƒ',
                 inline: true
             });
 
@@ -549,10 +566,10 @@
             });
 
             const embedPrincipal = {
-                title: '📢 Anunț Nou - Marketplace Legal',
+                title: 'ðŸ“¢ AnunÈ› Nou - Marketplace ',
                 color: anunt.tip_actiune === 'Servicii' ? 10181046 : 38159,
                 fields: fields,
-                footer: { text: 'Publicat prin Marketplace Legal - Panel by Little Mario' },
+                footer: { text: 'Publicat prin Marketplace  - Panel by Little Mario' },
                 timestamp: new Date().toISOString()
             };
 
@@ -568,11 +585,11 @@
                 if (!response.ok) {
                     const errText = await response.text();
                     console.error('Erore Discord Webhook API:', response.status, errText);
-                    throw new Error(`Discord a refuzat anunțul (HTTP ${response.status}).`);
+                    throw new Error(`Discord a refuzat anunÈ›ul (HTTP ${response.status}).`);
                 }
                 return response;
             } catch (err) {
-                console.error('Erore de rețea la trimiterea pe Discord:', err);
+                console.error('Erore de reÈ›ea la trimiterea pe Discord:', err);
                 throw err;
             }
         }
@@ -580,11 +597,11 @@
         document.getElementById('marketForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const tipSelectat = document.getElementById('tipAcțiune').value;
+            const tipSelectat = document.getElementById('tipAcÈ›iune').value;
             let pretValoare = document.getElementById('pret').value.trim();
 
             if (pretValoare === '') {
-                alert('Trebuie să completezi prețul sau să scrii "negociabil" pentru a putea publica anunțul!');
+                alert('Trebuie sÄƒ completezi preÈ›ul sau sÄƒ scrii "negociabil" pentru a putea publica anunÈ›ul!');
                 return;
             }
 
@@ -595,7 +612,7 @@
                 }
                 pretValoare += '$';
             } else {
-                const contineLitere = /[a-zA-ZăâîșțĂÂÎȘȚ]/i.test(pretValoare);
+                const contineLitere = /[a-zA-ZÄƒÃ¢Ã®È™È›Ä‚Ã‚ÃŽÈ˜Èš]/i.test(pretValoare);
                 if (!contineLitere && !pretValoare.includes('$')) {
                     pretValoare += '$';
                 }
@@ -608,7 +625,7 @@
                 textProdus = document.getElementById('detalii_servicii').value.trim();
                 categorieSelectata = 'SERVICII';
                 if (!textProdus) {
-                    alert('Te rog completează ce servicii ceri sau prestezi!');
+                    alert('Te rog completeazÄƒ ce servicii ceri sau prestezi!');
                     return;
                 }
             } else {
@@ -646,7 +663,7 @@
                 try {
                     discordResponse = await trimitePeDiscord({ ...nouAnunt, id: savedAnunt.id });
                 } catch (discordError) {
-                    alert(`Anunțul a fost salvat în panel, dar NU a fost trimis pe Discord: ${discordError.message}`);
+                    alert(`AnunÈ›ul a fost salvat Ã®n panel, dar NU a fost trimis pe Discord: ${discordError.message}`);
                     return;
                 }
 
@@ -655,7 +672,7 @@
                     await supabaseClient.from('marketplace').update({ discord_message_ids: discordResult.messages || [] }).eq('id', savedAnunt.id);
                 }
 
-                alert('Anunț publicat și trimis cu succes pe Discord!');
+                alert('AnunÈ› publicat È™i trimis cu succes pe Discord!');
                 document.getElementById('marketForm').reset();
                 document.getElementById('nume').value = currentUser.display_name;
 
@@ -675,3 +692,4 @@
     <script src="js/global-footer.js"></script>
 </body>
 </html>
+
