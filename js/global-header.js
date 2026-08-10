@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 1.3 seconds
-Output:
 (function() {
     let advancedSearchTimer = null;
     let advancedSearchRequest = 0;
