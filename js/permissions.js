@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 1.2 seconds
+Output:
 // ============================================================
 // PERMISSIONS.JS
 // Sistem de acces bazat pe rolurile Discord + allowed_pages.
@@ -112,7 +115,7 @@ function getEffectiveRoleLabel(user = getUser()) {
     ];
     return candidates
         .map(value => String(value || '').trim())
-        .find(value => value && /[\p{L}]/u.test(value) && !/^\d+$/.test(value) && !/^(?:level|nivel|rolul tău|rol discord|necunoscut|rol)$/i.test(value)) || '';
+        .find(value => value && /[\p{L}]/u.test(value) && !/^\d+$/.test(value) && !/^(?:level|nivel|rolul tÄƒu|rol discord|necunoscut|rol)$/i.test(value)) || '';
 }
 
 
@@ -143,7 +146,7 @@ function hasSelectedPages() {
 
 
 // ============================================================
-// VERIFICARE ACCES PAGINĂ
+// VERIFICARE ACCES PAGINÄ‚
 // ============================================================
 
 function canAccessPage(page) {
@@ -159,7 +162,7 @@ function canAccessPage(page) {
         return true;
     }
 
-    // Pagina este lăsată să se încarce pentru verificarea proprietarului;
+    // Pagina este lÄƒsatÄƒ sÄƒ se Ã®ncarce pentru verificarea proprietarului;
     // accesul efectiv este decis server-side de manage-owned-organization.
     if (page === 'administrare-organizatie.html') {
         return isLogged();
@@ -167,19 +170,19 @@ function canAccessPage(page) {
 
     /*
      * Paginile administrative NU pot fi acordate
-     * prin rolurile unei organizații.
+     * prin rolurile unei organizaÈ›ii.
      */
     if (AdministrativePages.has(page)) {
         return false;
     }
 
     /*
-     * Pentru utilizatorii organizațiilor nu mai există
+     * Pentru utilizatorii organizaÈ›iilor nu mai existÄƒ
      * nivel numeric.
      *
      * Accesul este determinat exclusiv de allowed_pages,
-     * calculat după rolurile Discord configurate pentru
-     * organizația respectivă.
+     * calculat dupÄƒ rolurile Discord configurate pentru
+     * organizaÈ›ia respectivÄƒ.
      */
     const allowedPages = getAllowedPages();
     return allowedPages.includes(page);
@@ -219,7 +222,7 @@ async function refreshLegacyPlatformAdmin(force = false) {
     );
 
     /*
-     * Dacă sesiunea este recentă, nu facem request inutil.
+     * DacÄƒ sesiunea este recentÄƒ, nu facem request inutil.
      */
     if (
         !force &&
@@ -260,7 +263,7 @@ async function refreshLegacyPlatformAdmin(force = false) {
             }
             throw new Error(
                 result.error ||
-                'Resincronizarea a eșuat.'
+                'Resincronizarea a eÈ™uat.'
             );
         }
 
@@ -285,7 +288,7 @@ async function refreshLegacyPlatformAdmin(force = false) {
         }
 
         /*
-         * Păstrăm aceste valori pentru compatibilitate
+         * PÄƒstrÄƒm aceste valori pentru compatibilitate
          * cu restul panelului.
          */
         if (result.user?.role !== undefined) {
@@ -360,14 +363,14 @@ function getDefaultAllowedPage() {
         getAllowedPages();
 
     /*
-     * Preferăm Dashboard dacă utilizatorul are acces.
+     * PreferÄƒm Dashboard dacÄƒ utilizatorul are acces.
      */
     if (allowedPages.includes('index.html')) {
         return 'index.html';
     }
 
     /*
-     * Altfel folosim prima pagină permisă.
+     * Altfel folosim prima paginÄƒ permisÄƒ.
      */
     if (allowedPages.length) {
         return allowedPages[0];
@@ -422,9 +425,9 @@ function getDefaultAllowedPage() {
     if (currentPage === 'guest.html') {
 
         /*
-         * Adminul sau utilizatorul care are cel puțin
-         * o pagină configurată nu trebuie să rămână
-         * în pagina Guest.
+         * Adminul sau utilizatorul care are cel puÈ›in
+         * o paginÄƒ configuratÄƒ nu trebuie sÄƒ rÄƒmÃ¢nÄƒ
+         * Ã®n pagina Guest.
          */
         if (
             isPlatformAdmin() ||
@@ -439,7 +442,7 @@ function getDefaultAllowedPage() {
         }
 
         /*
-         * Utilizator autentificat fără rol configurat.
+         * Utilizator autentificat fÄƒrÄƒ rol configurat.
          */
         return;
     }
@@ -460,8 +463,8 @@ function getDefaultAllowedPage() {
             );
 
         /*
-         * Facem o resincronizare înainte să refuzăm accesul,
-         * în cazul în care sesiunea locală este veche.
+         * Facem o resincronizare Ã®nainte sÄƒ refuzÄƒm accesul,
+         * Ã®n cazul Ã®n care sesiunea localÄƒ este veche.
          */
         if (
             token &&
@@ -523,7 +526,7 @@ function getDefaultAllowedPage() {
 
 
     // --------------------------------------------------------
-    // UTILIZATOR FĂRĂ PAGINI
+    // UTILIZATOR FÄ‚RÄ‚ PAGINI
     // --------------------------------------------------------
 
     if (
@@ -541,8 +544,8 @@ function getDefaultAllowedPage() {
             );
 
         /*
-         * Înainte să considerăm utilizatorul Guest,
-         * verificăm încă o dată rolurile Discord.
+         * ÃŽnainte sÄƒ considerÄƒm utilizatorul Guest,
+         * verificÄƒm Ã®ncÄƒ o datÄƒ rolurile Discord.
          */
         if (
             token &&
@@ -594,7 +597,7 @@ function getDefaultAllowedPage() {
 
 
     // --------------------------------------------------------
-    // VERIFICARE PAGINĂ CURENTĂ
+    // VERIFICARE PAGINÄ‚ CURENTÄ‚
     // --------------------------------------------------------
 
     if (!canAccessPage(currentPage)) {
@@ -620,7 +623,7 @@ function getDefaultAllowedPage() {
 
 
     // --------------------------------------------------------
-    // RESINCRONIZARE PERIODICĂ
+    // RESINCRONIZARE PERIODICÄ‚
     // --------------------------------------------------------
 
     if (!window.__panelRoleWatcher) {
@@ -656,7 +659,7 @@ function getDefaultAllowedPage() {
                         ) || '';
 
                     /*
-                     * Dacă rolurile sau paginile permise
+                     * DacÄƒ rolurile sau paginile permise
                      * s-au schimbat, reconstruim pagina.
                      */
                     if (
@@ -682,8 +685,8 @@ function getDefaultAllowedPage() {
 function applyRoleBasedVisibility() {
 
     /*
-     * Linkurile către pagini sunt afișate numai dacă
-     * utilizatorul poate accesa pagina respectivă.
+     * Linkurile cÄƒtre pagini sunt afiÈ™ate numai dacÄƒ
+     * utilizatorul poate accesa pagina respectivÄƒ.
      */
     document.querySelectorAll('a[href]').forEach(element => {
 
@@ -691,7 +694,7 @@ function applyRoleBasedVisibility() {
             element.getAttribute('href') || '';
 
         /*
-         * Ignorăm linkurile externe, ancorele și JS.
+         * IgnorÄƒm linkurile externe, ancorele È™i JS.
          */
         if (
             !rawHref ||
@@ -735,12 +738,12 @@ function applyRoleBasedVisibility() {
 
 
     /*
-     * Compatibilitate temporară.
+     * Compatibilitate temporarÄƒ.
      *
-     * Unele pagini vechi pot avea încă data-role.
-     * Nu mai interpretăm valoarea numerică.
+     * Unele pagini vechi pot avea Ã®ncÄƒ data-role.
+     * Nu mai interpretÄƒm valoarea numericÄƒ.
      *
-     * Dacă elementul este un link către o pagină,
+     * DacÄƒ elementul este un link cÄƒtre o paginÄƒ,
      * accesul este decis de allowed_pages.
      */
     document
@@ -752,8 +755,8 @@ function applyRoleBasedVisibility() {
 
             if (!rawHref) {
                 /*
-                 * Nu ascundem automat elementele fără href.
-                 * Acestea vor fi curățate ulterior din
+                 * Nu ascundem automat elementele fÄƒrÄƒ href.
+                 * Acestea vor fi curÄƒÈ›ate ulterior din
                  * paginile vechi.
                  */
                 return;
@@ -784,7 +787,7 @@ function applyRoleBasedVisibility() {
     });
 }
 
-// Menține sesiunea activă pentru lista utilizatorilor online din Panoul Admin.
+// MenÈ›ine sesiunea activÄƒ pentru lista utilizatorilor online din Panoul Admin.
 function startPanelSessionHeartbeat() {
     if (window.__panelSessionHeartbeat) return;
     window.__panelSessionHeartbeat = true;
@@ -809,7 +812,7 @@ function startPanelSessionHeartbeat() {
                 keepalive: true
             });
         } catch (_) {
-            // Lipsa temporară a rețelei nu închide sesiunea locală.
+            // Lipsa temporarÄƒ a reÈ›elei nu Ã®nchide sesiunea localÄƒ.
         }
     };
 
@@ -818,3 +821,4 @@ function startPanelSessionHeartbeat() {
 }
 
 startPanelSessionHeartbeat();
+
