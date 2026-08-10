@@ -1,19 +1,16 @@
-Exit code: 0
-Wall time: 1.2 seconds
-Output:
 <!DOCTYPE html>
 <html lang="ro" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galerie BucÄƒtÄƒrie - Little Mario Panel</title>
+    <title>Galerie Bucătărie - Little Mario Panel</title>
     <!-- Tailwind CSS CDN -->
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/permissions.js?v=4.5.0"></script>
-    <script src="js/panel-layout.js?v=4.10.0"></script>
+    <script src="js/panel-layout.js?v=4.9.0"></script>
     <style>
         main {
             padding-bottom: 0 !important;
@@ -79,7 +76,7 @@ Output:
             <!-- Grila Galeriei - 29 Imagini bucatarie1.jpg - bucatarie29.jpg -->
         
 
-        <!-- ConÈ›inutul Principal (Galerie BucÄƒtÄƒrie) -->
+        <!-- Conținutul Principal (Galerie Bucătărie) -->
         <main class="flex-1 overflow-y-auto p-0 flex flex-col items-center bg-slate-950">
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-7xl px-4 md:px-8 pt-8 pb-8 mx-auto" id="galleryGrid">
             </div>
@@ -89,7 +86,7 @@ Output:
     <!-- Modal pentru Zoom Imagine -->
     <div id="imageModal" class="modal" onclick="closeModal()">
         <div class="relative max-w-5xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
-            <button class="absolute -top-12 right-0 text-slate-400 hover:text-white text-lg font-bold bg-slate-900 border border-slate-800 rounded-full w-9 h-9 flex items-center justify-center transition" onclick="closeModal()">âœ•</button>
+            <button class="absolute -top-12 right-0 text-slate-400 hover:text-white text-lg font-bold bg-slate-900 border border-slate-800 rounded-full w-9 h-9 flex items-center justify-center transition" onclick="closeModal()">✕</button>
             <img id="modalImg" src="" alt="Zoom" class="max-w-full max-h-[75vh] object-contain rounded-xl border border-slate-800 shadow-2xl bg-black">
             <div class="mt-4 text-center">
                 <h3 id="modalTitle" class="text-lg font-semibold text-slate-100"></h3>
@@ -98,7 +95,7 @@ Output:
         </div>
     </div>
 
-    <!-- Scripturi Supabase È™i Logica de Profil -->
+    <!-- Scripturi Supabase și Logica de Profil -->
     <script>
         const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG?.url || '';
         const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG?.publishableKey || '';
@@ -156,7 +153,7 @@ Output:
 
                 localStorage.setItem('discord_user', JSON.stringify(activeUser));
             } catch (err) {
-                console.error('Eroare la Ã®ncÄƒrcarea profilului:', err);
+                console.error('Eroare la încărcarea profilului:', err);
             }
         }
 
@@ -179,12 +176,12 @@ Output:
 
             loadUserProfile();
 
-            // Generare dinamicÄƒ carduri bucatarie1.jpg - bucatarie29.jpg
+            // Generare dinamică carduri bucatarie1.jpg - bucatarie29.jpg
             const gallery = document.getElementById('galleryGrid');
             if (gallery) {
                 for (let number = 1; number <= 29; number++) {
-                    const title = `BucÄƒtÄƒrie ${number}`;
-                    const description = `Imaginea ${number} din galeria de bucÄƒtÄƒrie.`;
+                    const title = `Bucătărie ${number}`;
+                    const description = `Imaginea ${number} din galeria de bucătărie.`;
                     const filename = `bucatarie${number}.jpg`;
                     const card = document.createElement('div');
                     card.className = 'gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg';
@@ -193,7 +190,7 @@ Output:
                     card.innerHTML = `
                       <div class="w-full h-48 bg-black relative overflow-hidden">
                         <img src="img/${filename}" alt="${title}" class="w-full h-full object-cover transition duration-300 hover:scale-105" style="cursor: zoom-in;">
-                        <button class="zoom-btn" type="button" title="MÄƒreÈ™te imaginea">
+                        <button class="zoom-btn" type="button" title="Mărește imaginea">
                             <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                         </button>
                       </div>
@@ -212,4 +209,3 @@ Output:
     <script src="js/global-footer.js"></script>
 </body>
 </html>
-

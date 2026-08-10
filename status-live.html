@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 1.9 seconds
-Output:
 <!DOCTYPE html>
 <html lang="ro" class="dark">
 <head>
@@ -12,7 +9,7 @@ Output:
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/permissions.js?v=4.5.0"></script>
-     <script src="js/panel-layout.js?v=4.10.0"></script>
+    <script src="js/panel-layout.js?v=4.9.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <script src="js/project-version.js"></script>
     <link rel="icon" href="img/favicon.ico">
@@ -24,7 +21,7 @@ Output:
     <div id="app-container" class="flex h-screen w-full overflow-hidden">
 
 
-        <!-- ConÈ›inut Principal -->
+        <!-- Conținut Principal -->
         <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
 
             <div class="mt-3 flex items-center gap-3">
@@ -39,21 +36,21 @@ Output:
                     onclick="saveLiveWebhook()"
                     class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-semibold">
 
-                    SalveazÄƒ Webhook
+                    Salvează Webhook
 
                 </button>
 
             </div>
 
             <div class="p-8 space-y-6 max-w-5xl mx-auto w-full">
-                <!-- Panou Vizualizare Live Ã®n InterfaÈ›a Web -->
+                <!-- Panou Vizualizare Live în Interfața Web -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-6">
                     <div class="flex items-center justify-between border-b border-slate-800 pb-4">
                         <div>
                             <h3 class="text-base font-bold text-slate-100">Previzualizare Status Live</h3>
                             <p id="active-organization-display"
                             class="text-xs text-slate-400 mt-0.5">
-                                Se identificÄƒ organizaÈ›ia activÄƒ...
+                                Se identifică organizația activă...
                             </p>
                         </div>
                         <div class="flex items-center space-x-2">
@@ -63,39 +60,39 @@ Output:
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- ÃŽn pontaj -->
+                        <!-- În pontaj -->
                         <div class="bg-slate-950 border border-slate-800 p-5 rounded-xl space-y-3">
                             <h4 class="text-sm font-bold text-emerald-400 flex items-center justify-between">
-                                <span>ðŸŸ¢ ÃŽn pontaj</span>
+                                <span>🟢 În pontaj</span>
                                 <span id="count-active" class="text-xs bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">0</span>
                             </h4>
                             <div id="list-active" class="space-y-2 text-xs text-slate-300 min-h-[100px]">
-                                <p class="text-slate-500 italic">Se Ã®ncarcÄƒ utilizatorii...</p>
+                                <p class="text-slate-500 italic">Se încarcă utilizatorii...</p>
                             </div>
                         </div>
 
-                        <!-- ÃŽn pauzÄƒ -->
+                        <!-- În pauză -->
                         <div class="bg-slate-950 border border-slate-800 p-5 rounded-xl space-y-3">
                             <h4 class="text-sm font-bold text-amber-400 flex items-center justify-between">
-                                <span>â˜• ÃŽn pauzÄƒ</span>
+                                <span>☕ În pauză</span>
                                 <span id="count-paused" class="text-xs bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">0</span>
                             </h4>
                             <div id="list-paused" class="space-y-2 text-xs text-slate-300 min-h-[100px]">
-                                <p class="text-slate-500 italic">Se Ã®ncarcÄƒ utilizatorii...</p>
+                                <p class="text-slate-500 italic">Se încarcă utilizatorii...</p>
                             </div>
                         </div>
                     </div>
 
                     <div class="pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                        <span>ðŸ“Š Total pontaÈ›i: <strong id="total-pontaged" class="text-slate-200">0</strong></span>
-                        <span>â±ï¸ Actualizat: <span id="last-update-time" class="text-slate-200 font-mono">acum</span></span>
+                        <span>📊 Total pontați: <strong id="total-pontaged" class="text-slate-200">0</strong></span>
+                        <span>⏱️ Actualizat: <span id="last-update-time" class="text-slate-200 font-mono">acum</span></span>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Logica unificatÄƒ bazatÄƒ pe rapoarte.html È™i anunturi.html / discord-notifications.js -->
+    <!-- Logica unificată bazată pe rapoarte.html și anunturi.html / discord-notifications.js -->
     <script>
 
         const supabaseClient = window.createPanelSupabaseClient();
@@ -106,7 +103,7 @@ Output:
         let activeOrganizationId = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // Autentificare reutilizatÄƒ din rapoarte.html
+            // Autentificare reutilizată din rapoarte.html
             const cachedUser = localStorage.getItem('discord_user') || localStorage.getItem('workforce_user');
             if (!cachedUser) {
                 window.location.href = 'login.html';
@@ -116,11 +113,11 @@ Output:
 
             if (!cachedActiveOrganization) {
                 console.error(
-                    'Status Live: organizaÈ›ia activÄƒ nu existÄƒ Ã®n localStorage.'
+                    'Status Live: organizația activă nu există în localStorage.'
                 );
 
                 alert(
-                    'OrganizaÈ›ia activÄƒ nu a putut fi identificatÄƒ. AutentificÄƒ-te din nou.'
+                    'Organizația activă nu a putut fi identificată. Autentifică-te din nou.'
                 );
 
                 window.location.href = 'login.html';
@@ -131,12 +128,12 @@ Output:
                 activeOrganization = JSON.parse(cachedActiveOrganization);
             } catch (error) {
                 console.error(
-                    'Status Live: datele organizaÈ›iei active sunt invalide.',
+                    'Status Live: datele organizației active sunt invalide.',
                     error
                 );
 
                 alert(
-                    'Datele organizaÈ›iei active sunt invalide. AutentificÄƒ-te din nou.'
+                    'Datele organizației active sunt invalide. Autentifică-te din nou.'
                 );
 
                 window.location.href = 'login.html';
@@ -150,7 +147,7 @@ Output:
 
             if (!activeOrganizationId) {
                 console.error(
-                    'Status Live: organizaÈ›ia activÄƒ nu conÈ›ine un ID valid.',
+                    'Status Live: organizația activă nu conține un ID valid.',
                     activeOrganization
                 );
                 const organizationDisplay =
@@ -158,7 +155,7 @@ Output:
 
                 if (organizationDisplay) {
                     organizationDisplay.textContent =
-                        `OrganizaÈ›ie activÄƒ: ${
+                        `Organizație activă: ${
                             activeOrganization?.name ||
                             activeOrganization?.organization_name ||
                             activeOrganizationId
@@ -166,7 +163,7 @@ Output:
                 }
 
                 alert(
-                    'ID-ul organizaÈ›iei active nu a putut fi identificat.'
+                    'ID-ul organizației active nu a putut fi identificat.'
                 );
 
                 return;
@@ -176,15 +173,15 @@ Output:
 
             if (organizationDisplay) {
                 organizationDisplay.textContent =
-                    `OrganizaÈ›ie activÄƒ: ${
+                    `Organizație activă: ${
                         activeOrganization?.name ||
                         activeOrganization?.organization_name ||
-                        'OrganizaÈ›ie'
+                        'Organizație'
                     }`;
             }
 
             console.log(
-                'Status Live â€” organizaÈ›ie activÄƒ:',
+                'Status Live — organizație activă:',
                 activeOrganizationId,
                 activeOrganization
             );
@@ -212,7 +209,7 @@ Output:
                 await fetchUsersData();
                 await fetchAndRenderActiveShifts();
 
-                // Realtime nativ Supabase existent Ã®n proiect pentru actualizare automatÄƒ
+                // Realtime nativ Supabase existent în proiect pentru actualizare automată
                 supabaseClient
                     .channel(`status-live-realtime-${activeOrganizationId}`)
                     .on(
@@ -225,7 +222,7 @@ Output:
                         },
                         payload => {
                             console.log(
-                                'Status Live â€” modificare pontaj pentru organizaÈ›ia activÄƒ:',
+                                'Status Live — modificare pontaj pentru organizația activă:',
                                 payload
                             );
 
@@ -234,12 +231,12 @@ Output:
                     )
                     .subscribe(status => {
                         console.log(
-                            'Status Live â€” stare conexiune Realtime:',
+                            'Status Live — stare conexiune Realtime:',
                             status
                         );
                     });
 
-                // Sincronizare periodicÄƒ automatÄƒ cu Discord (la fiecare 60 de secunde)
+                // Sincronizare periodică automată cu Discord (la fiecare 60 de secunde)
                 setInterval(() => {
                     fetchAndRenderActiveShifts(true);
                 }, 60000);
@@ -252,7 +249,7 @@ Output:
 
 
 
-        // Citirea utilizatorilor (reutilizatÄƒ exact din rapoarte.html)
+        // Citirea utilizatorilor (reutilizată exact din rapoarte.html)
         async function fetchUsersData() {
             try {
                 const { data: directory, error } = await supabaseClient.rpc('get_user_directory');
@@ -274,12 +271,12 @@ Output:
             } catch (error) {}
         }
 
-        // Citirea tabelului shifts pentru pontaje active (reutilizatÄƒ din rapoarte.html)
+        // Citirea tabelului shifts pentru pontaje active (reutilizată din rapoarte.html)
         async function fetchAndRenderActiveShifts(sendDiscord = false) {
             try {
                 if (!activeOrganizationId) {
                     throw new Error(
-                        'OrganizaÈ›ia activÄƒ nu este disponibilÄƒ pentru filtrarea pontajelor.'
+                        'Organizația activă nu este disponibilă pentru filtrarea pontajelor.'
                     );
                 }
 
@@ -323,9 +320,9 @@ Output:
             document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString('ro-RO');
 
 
-            // Simplificat pentru randare sigurÄƒ
+            // Simplificat pentru randare sigură
             document.getElementById('list-active').innerHTML = activeList.length === 0
-                ? '<p class="text-slate-500 italic">Niciun membru Ã®n pontaj.</p>'
+                ? '<p class="text-slate-500 italic">Niciun membru în pontaj.</p>'
                 : activeList.map(s => {
                     const name =
                         s.colleague_name ||
@@ -335,7 +332,7 @@ Output:
                 }).join('');
 
             document.getElementById('list-paused').innerHTML = pausedList.length === 0
-                ? '<p class="text-slate-500 italic">Niciun membru Ã®n pauzÄƒ.</p>'
+                ? '<p class="text-slate-500 italic">Niciun membru în pauză.</p>'
                 : pausedList.map(s => {
                     const name =
                         s.colleague_name ||
@@ -380,37 +377,37 @@ Output:
         const activeText = activeList.length === 0
             ? '_Niciun membru activ_'
             : activeList.map(s =>
-                `ðŸŸ¢ **${s.colleague_name || usersMap[String(s.discord_id).trim()] || 'Utilizator'}** .......... ${calculateElapsed(s)}`
+                `🟢 **${s.colleague_name || usersMap[String(s.discord_id).trim()] || 'Utilizator'}** .......... ${calculateElapsed(s)}`
             ).join('\n');
 
         const pausedText = pausedList.length === 0
-            ? '_Niciun membru Ã®n pauzÄƒ_'
+            ? '_Niciun membru în pauză_'
             : pausedList.map(s =>
-                `â˜• **${s.colleague_name || usersMap[String(s.discord_id).trim()] || 'Utilizator'}** .......... ${calculateElapsed(s)}`
+                `☕ **${s.colleague_name || usersMap[String(s.discord_id).trim()] || 'Utilizator'}** .......... ${calculateElapsed(s)}`
             ).join('\n');
 
         const payload = {
             embeds: [{
-                title: "ðŸ“¡ STATUS LIVE",
+                title: "📡 STATUS LIVE",
                 description:
-    `â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+    `━━━━━━━━━━━━━━
 
-    ðŸŸ¢ **ÃŽn pontaj (${activeList.length})**
+    🟢 **În pontaj (${activeList.length})**
 
     ${activeText}
 
-    â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+    ━━━━━━━━━━━━━━
 
-    â˜• **ÃŽn pauzÄƒ (${pausedList.length})**
+    ☕ **În pauză (${pausedList.length})**
 
     ${pausedText}
 
-    â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+    ━━━━━━━━━━━━━━
 
-    ðŸ“Š **Total pontaÈ›i:** ${shifts.length}
-    â±ï¸ **Actualizat:** <t:${Math.floor(Date.now()/1000)}:R>
+    📊 **Total pontați:** ${shifts.length}
+    ⏱️ **Actualizat:** <t:${Math.floor(Date.now()/1000)}:R>
 
-    ðŸŸ¢ **Sistem Online**`,
+    🟢 **Sistem Online**`,
                 color: 3066993,
                 timestamp: new Date().toISOString()
             }]
@@ -423,7 +420,7 @@ Output:
 
         if (!webhook) {
 
-            alert('ConfigureazÄƒ mai Ã®ntÃ¢i webhook-ul.');
+            alert('Configurează mai întâi webhook-ul.');
 
             return;
 
@@ -469,4 +466,3 @@ Output:
     <script src="js/global-footer.js"></script>
 </body>
 </html>
-
