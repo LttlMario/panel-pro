@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 1.9 seconds
-Output:
 // BazÄƒ de cunoÈ™tinÈ›e localÄƒ. Nu conÈ›ine chei, webhook-uri sau informaÈ›ii externe.
 window.PANEL_ASSISTANT_KNOWLEDGE = [
     {
