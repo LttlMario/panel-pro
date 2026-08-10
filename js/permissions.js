@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 1.2 seconds
-Output:
 // ============================================================
 // PERMISSIONS.JS
 // Sistem de acces bazat pe rolurile Discord + allowed_pages.
