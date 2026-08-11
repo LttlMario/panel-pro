@@ -13,6 +13,9 @@ verify_jwt = false
 [functions.close-expired-shifts]
 verify_jwt = false
 
+[functions.send-weekly-shift-report]
+verify_jwt = false
+
 [functions.manage-admin-center]
 verify_jwt = false
 

@@ -25,6 +25,7 @@ $functions = @(
     'manage-community-posts',
     'send-discord-notification',
     'close-expired-shifts',
+    'send-weekly-shift-report',
     'manage-admin-center',
     'manage-organizations',
     'manage-owned-organization'

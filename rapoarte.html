@@ -96,8 +96,8 @@
                         </div>
 
                         <div class="space-y-1.5">
-                            <label class="text-xs font-medium text-slate-400">Caută Membru / ID Discord</label>
-                            <input type="text" id="filter-mechanic" placeholder="Nume sau Discord ID..." class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
+                            <label class="text-xs font-medium text-slate-400">Caută Membru</label>
+                            <input type="text" id="filter-mechanic" placeholder="Nume membru..." class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
                         </div>
 
                         <div class="flex space-x-2">
@@ -379,7 +379,7 @@
                 usersMap[String(currentUser.discord_id).trim()] =
                     currentUser.display_name || String(currentUser.discord_id).trim();
 
-                
+
                 canManagePontaj = Boolean(currentUser.organization_id) && (
                     isPlatformAdmin() ||
                     canAccessPage('rapoarte.html')
@@ -399,7 +399,7 @@
                         fetchAdminAbsences();
                     }, 15000);
                 }
-                initAutoSundayReportChecker();
+                // Raportul săptămânal este trimis server-side de Supabase.
 
             } catch (err) {
                 console.error('Erore sesiune:', err);
@@ -682,11 +682,11 @@
                 if (!activeShiftsData.length) { container.innerHTML = '<p class="text-xs text-slate-500 md:col-span-3 py-3">Nu există pontaje active în acest moment.</p>'; return; }
                 container.innerHTML = activeShiftsData.map(shift => {
                     const normalizedId = String(shift.discord_id || '').trim();
-                    const name = shift.colleague_name || usersMap[normalizedId] || normalizedId || 'Membru necunoscut';
+                    const name = shift.colleague_name || usersMap[normalizedId] || 'Membru necunoscut';
                     const stateLabel = shift.status === 'paused' ? 'PAUZĂ' : 'ACTIV';
                     const stateClass = shift.status === 'paused' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
                     const actions = `<div class="grid grid-cols-2 gap-2"><button onclick="openActiveShiftModal('${shift.id}')" class="py-2 rounded-lg text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 cursor-pointer">Editează</button><button onclick="forceStopActiveShift('${shift.id}')" class="py-2 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 cursor-pointer">Oprește</button></div>`;
-                    return `<article class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3"><div class="flex justify-between gap-2"><div class="min-w-0"><p class="font-semibold text-slate-100 text-sm truncate">${escapeHtml(name)}</p><p class="text-[10px] text-slate-500 font-mono truncate">${escapeHtml(shift.discord_id)}</p></div><span class="text-[10px] px-2 py-1 h-fit rounded-lg border ${stateClass}">${stateLabel}</span></div><div class="text-xs text-slate-400">${escapeHtml((shift.shift_type || 'tură').toUpperCase())} · început <span class="font-mono text-slate-200">${escapeHtml(shift.start_time || '--:--')}</span><br><strong class="text-emerald-400 font-mono">${formatActiveDuration(shift)}</strong></div>${actions}</article>`;
+                    return `<article class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3"><div class="flex justify-between gap-2"><div class="min-w-0"><p class="font-semibold text-slate-100 text-sm truncate">${escapeHtml(name)}</p></div><span class="text-[10px] px-2 py-1 h-fit rounded-lg border ${stateClass}">${stateLabel}</span></div><div class="text-xs text-slate-400">${escapeHtml((shift.shift_type || 'tură').toUpperCase())} · început <span class="font-mono text-slate-200">${escapeHtml(shift.start_time || '--:--')}</span><br><strong class="text-emerald-400 font-mono">${formatActiveDuration(shift)}</strong></div>${actions}</article>`;
                 }).join('');
             } catch (err) { console.error('Eroare la preluarea pontajelor active:', err); container.innerHTML = '<p class="text-xs text-rose-400 md:col-span-3">Nu s-au putut încărca pontajele active.</p>'; }
         }
@@ -820,7 +820,7 @@ async function forceStopActiveShift(shiftId) {
                 if (error) throw error;
                 adminAbsences = data || [];
                 if (!adminAbsences.length) { tbody.innerHTML = '<tr><td colspan="4" class="p-5 text-center text-slate-500">Nu există înștiințări.</td></tr>'; return; }
-                tbody.innerHTML = adminAbsences.map(item => `<tr class="hover:bg-slate-800/40"><td class="p-3 font-medium text-slate-200">${escapeHtml(item.colleague_name || usersMap[item.discord_id] || item.discord_id)}</td><td class="p-3 text-slate-300">${escapeHtml(item.notice_type || 'Înștiințare')}<br><span class="text-[10px] text-slate-500">${item.start_at ? new Date(item.start_at).toLocaleDateString('ro-RO') : escapeHtml(item.start_date || '')}</span></td><td class="p-3 text-slate-400 max-w-xs truncate">${escapeHtml(item.reason || item.notes || '')}</td><td class="p-3 text-right whitespace-nowrap"><button onclick="openAdminAbsenceModal('${item.id}')" class="text-amber-400 hover:text-amber-300 mr-3">Editează</button><button onclick="deleteAdminAbsence('${item.id}')" class="text-rose-400 hover:text-rose-300">Șterge</button></td></tr>`).join('');
+                tbody.innerHTML = adminAbsences.map(item => `<tr class="hover:bg-slate-800/40"><td class="p-3 font-medium text-slate-200">${escapeHtml(item.colleague_name || usersMap[item.discord_id] || 'Membru necunoscut')}</td><td class="p-3 text-slate-300">${escapeHtml(item.notice_type || 'Înștiințare')}<br><span class="text-[10px] text-slate-500">${item.start_at ? new Date(item.start_at).toLocaleDateString('ro-RO') : escapeHtml(item.start_date || '')}</span></td><td class="p-3 text-slate-400 max-w-xs truncate">${escapeHtml(item.reason || item.notes || '')}</td><td class="p-3 text-right whitespace-nowrap"><button onclick="openAdminAbsenceModal('${item.id}')" class="text-amber-400 hover:text-amber-300 mr-3">Editează</button><button onclick="deleteAdminAbsence('${item.id}')" class="text-rose-400 hover:text-rose-300">Șterge</button></td></tr>`).join('');
             } catch (err) { console.error('Eroare la preluarea învoirilor:', err); tbody.innerHTML = '<tr><td colspan="4" class="p-5 text-center text-rose-400">Nu s-au putut încărca înștiințările.</td></tr>'; }
         }
 
@@ -987,7 +987,6 @@ async function forceStopActiveShift(shiftId) {
                     const resolvedName =
                         shift.colleague_name ||
                         usersMap[normalizedId] ||
-                        normalizedId ||
                         'Membru necunoscut';
 
                     return {
@@ -1022,8 +1021,7 @@ async function forceStopActiveShift(shiftId) {
 
             filteredShiftsData = allShiftsData.filter(shift => {
                 const nameVal = (shift.mechanic_name || '').toLowerCase();
-                const discordIdVal = (shift.discord_id || '').toLowerCase();
-                const matchesMechanic = mechanicQuery === '' || nameVal.includes(mechanicQuery) || discordIdVal.includes(mechanicQuery);
+                const matchesMechanic = mechanicQuery === '' || nameVal.includes(mechanicQuery);
 
                 if (!matchesMechanic) return false;
 
@@ -1079,7 +1077,6 @@ async function forceStopActiveShift(shiftId) {
                         <tr class="hover:bg-slate-800/40 transition">
                             <td class="p-2.5 font-semibold text-emerald-400 truncate max-w-[130px]" title="${shift.mechanic_name}">
                                 <div>${shift.mechanic_name}</div>
-                                <div class="text-[9px] text-slate-500 font-mono">ID: ${shift.discord_id || 'N/A'}</div>
                             </td>
                             <td class="p-2.5">${typeBadge}</td>
                             <td class="p-2.5 text-slate-300">${shift.date || 'N/A'}</td>
@@ -1173,20 +1170,16 @@ async function forceStopActiveShift(shiftId) {
                 return;
             }
 
-            let csvContent = "ID Tura,Discord ID,Nume Membru,Data,Tip Tura,Ora Start,Ora Stop,Durata,Durata MS,Creat la\n";
+            let csvContent = "Nume Membru,Data,Tip Tura,Ora Start,Ora Stop,Durata\n";
 
             filteredShiftsData.forEach(shift => {
                 const row = [
-                    `"${shift.id || ''}"`,
-                    `"${shift.discord_id || ''}"`,
                     `"${shift.mechanic_name || ''}"`,
                     `"${shift.date || ''}"`,
                     `"${shift.shift_type || ''}"`,
                     `"${shift.start_time || ''}"`,
                     `"${shift.end_time || ''}"`,
-                    `"${shift.duration || ''}"`,
-                    `"${shift.duration_ms || 0}"`,
-                    `"${shift.created_at || ''}"`
+                    `"${shift.duration || ''}"`
                 ];
                 csvContent += row.join(",") + "\n";
             });
