@@ -11,7 +11,7 @@ const headers = {
 
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const webhookChannels = new Set([
-  'organization', 'departments', 'pontaj', 'requests', 'requests_organization',
+  'organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization',
   'requests_departments', 'contracts', 'marketplace', 'illegal_marketplace',
   'fines_organization', 'fines_departments', 'status_live'
 ]);

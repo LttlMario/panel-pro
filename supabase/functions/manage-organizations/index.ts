@@ -10,6 +10,7 @@ const webhookChannels=new Set([
   'organization',
   'departments',
   'pontaj',
+  'weekly_reports',
   'requests',
   'requests_organization',
   'requests_departments',

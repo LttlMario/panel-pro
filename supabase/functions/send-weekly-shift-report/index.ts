@@ -53,13 +53,12 @@ function getWeeklyPeriod(now = new Date()) {
   };
 }
 
-function getPontajWebhookUrls(settings: Record<string, any> | null) {
-  const route = settings?.webhook_routes?.pontaj || {};
+function getWeeklyReportWebhookUrls(settings: Record<string, any> | null) {
+  const route = settings?.webhook_routes?.weekly_reports || {};
   return [...new Set([
     route?.primary?.url,
     route?.secondary?.url,
-    settings?.pontaj_webhook_url,
-    Deno.env.get('DISCORD_PONTAJ_WEBHOOK_URL'),
+    Deno.env.get('DISCORD_WEEKLY_REPORT_WEBHOOK_URL'),
   ].map((value) => String(value || '').trim()).filter(Boolean))];
 }
 
@@ -167,7 +166,7 @@ Deno.serve(async (request) => {
             .order('date', { ascending: false })
             .order('created_at', { ascending: false }),
           db.from('organization_settings')
-            .select('webhook_routes,pontaj_webhook_url')
+            .select('webhook_routes')
             .eq('organization_id', organization.id)
             .maybeSingle(),
         ]);
@@ -180,8 +179,8 @@ Deno.serve(async (request) => {
           continue;
         }
 
-        const webhooks = getPontajWebhookUrls(settings);
-        if (!webhooks.length) throw new Error('Webhook-ul de pontaj nu este configurat.');
+        const webhooks = getWeeklyReportWebhookUrls(settings);
+        if (!webhooks.length) throw new Error('Webhook-ul pentru rapoarte săptămânale nu este configurat.');
 
         const totalMs = shifts.reduce((sum: number, shift: any) => sum + (Number(shift.duration_ms) || 0), 0);
         const uniqueMembers = new Set(shifts.map((shift: any) => String(shift.discord_id || shift.colleague_name || ''))).size;
@@ -193,7 +192,7 @@ Deno.serve(async (request) => {
         const payload = JSON.stringify({
           allowed_mentions: { parse: [] },
           embeds: [{
-            title: `🔔 Raport Săptămânal Pontaj (${period.start} – ${period.end})`,
+            title: `🔔 Raport Săptămânal (${period.start} – ${period.end})`,
             description: organization.name ? `Organizație: **${organization.name}**` : undefined,
             color: 3447003,
             fields: [
