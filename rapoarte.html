@@ -1065,9 +1065,9 @@ async function forceStopActiveShift(shiftId) {
                     const typeLower = (shift.shift_type || '').toLowerCase();
                     let typeBadge = '';
                     if (typeLower === 'zi') {
-                        typeBadge = `<span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-md font-medium">☀️ Zi</span>`;
+                        typeBadge = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap bg-amber-500/10 text-amber-300 border border-amber-500/20 px-2 py-1 rounded-lg font-semibold"><span class="h-1.5 w-1.5 rounded-full bg-amber-300" aria-hidden="true"></span>Zi</span>`;
                     } else if (typeLower === 'noapte') {
-                        typeBadge = `<span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-md font-medium">🌙 Noapte</span>`;
+                        typeBadge = `<span class="inline-flex items-center gap-1.5 whitespace-nowrap bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-1 rounded-lg font-semibold"><span class="h-1.5 w-1.5 rounded-full bg-indigo-300" aria-hidden="true"></span>Noapte</span>`;
                     } else {
                         typeBadge = `<span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md">${shift.shift_type || 'N/A'}</span>`;
                     }
@@ -1263,7 +1263,7 @@ async function forceStopActiveShift(shiftId) {
             };
 
             try {
-                let response = await sendPanelDiscord('pontaj', payload);
+                let response = await sendPanelDiscord('weekly_reports', payload);
                 return response.ok;
             } catch (err) {
                 console.error('Erore webhook raport:', err);
