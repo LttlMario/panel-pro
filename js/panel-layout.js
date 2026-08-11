@@ -631,7 +631,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (navigation.querySelector('a[href="anunturi.html"]')) return;
         const link = document.createElement('a');
         link.href = 'anunturi.html';
-        link.dataset.role = '1';
         link.className = 'nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm';
         link.classList.add(...(currentPage === 'anunturi.html'
             ? ['bg-emerald-500/10', 'text-emerald-400', 'font-medium']
@@ -744,19 +743,18 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             const stateClasses = active
                 ? 'bg-emerald-500/10 text-emerald-400 font-medium'
                 : 'text-slate-300 hover:bg-slate-800';
-            return `<a href="${href}" data-role="${role}" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm ${stateClasses}"><span>${icon}</span><span>${label}</span></a>`;
+            return `<a href="${href}" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm ${stateClasses}"><span>${icon}</span><span>${label}</span></a>`;
         };
         navigation.innerHTML = sections.map(([key, label, links]) =>
             `<section class="panel-nav-section" data-nav-section="${key}"><p class="panel-nav-section-label">${label}</p><div class="panel-nav-section-links">${links.map(renderLink).join('')}</div></section>`
         ).join('');
 
         if (typeof isPlatformAdmin === 'function' && isPlatformAdmin() && !navigation.querySelector('a[href="vouchere.html"]')) {
-            const voucher = document.createElement('a'); voucher.href='vouchere.html'; voucher.dataset.role='99'; voucher.className='nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm text-slate-300 hover:bg-slate-800'; voucher.innerHTML='<span>🎟️</span><span>Vouchere</span>'; (navigation.querySelector('[data-nav-section="administratie"] .panel-nav-section-links') || navigation).appendChild(voucher);
+            const voucher = document.createElement('a'); voucher.href='vouchere.html'; voucher.className='nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm text-slate-300 hover:bg-slate-800'; voucher.innerHTML='<span>🎟️</span><span>Vouchere</span>'; (navigation.querySelector('[data-nav-section="administratie"] .panel-nav-section-links') || navigation).appendChild(voucher);
         }
         if (!navigation.querySelector('a[href="administrare-organizatie.html"]')) {
             const organizationAdmin = document.createElement('a');
             organizationAdmin.href = 'administrare-organizatie.html';
-            organizationAdmin.dataset.role = '1';
             organizationAdmin.className = 'nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm ' + (
                 currentPage === 'administrare-organizatie.html'
                     ? 'bg-emerald-500/10 text-emerald-400 font-medium'

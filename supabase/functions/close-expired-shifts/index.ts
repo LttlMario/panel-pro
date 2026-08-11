@@ -65,7 +65,10 @@ Deno.serve(async (request) => {
 
   const results = await Promise.all((expired ?? []).map(async (shift) => {
     const { data: panelConfig } = await supabase.from('organization_settings').select('webhook_routes,pontaj_webhook_url').eq('organization_id', shift.organization_id).maybeSingle();
-    const webhookUrl = panelConfig?.webhook_routes?.pontaj?.url || panelConfig?.pontaj_webhook_url || Deno.env.get('DISCORD_PONTAJ_WEBHOOK_URL');
+    const webhookUrl = panelConfig?.webhook_routes?.pontaj?.primary?.url
+      || panelConfig?.webhook_routes?.pontaj?.secondary?.url
+      || panelConfig?.pontaj_webhook_url
+      || Deno.env.get('DISCORD_PONTAJ_WEBHOOK_URL');
     const alreadyClosed = shift.status === 'auto_completed';
     const finishedAt = alreadyClosed && shift.ended_at ? new Date(String(shift.ended_at)) : now;
     const seconds = alreadyClosed && Number(shift.duration_ms) >= 0

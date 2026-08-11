@@ -780,7 +780,9 @@ function applyRoleBasedVisibility() {
     document.querySelectorAll('[data-nav-section]').forEach(section => {
         const hasVisibleLink = [...section.querySelectorAll('a[href]')]
             .some(link => getComputedStyle(link).display !== 'none');
-        section.classList.toggle('is-empty', !hasVisibleLink);
+        const hidden = !hasVisibleLink;
+        section.hidden = hidden;
+        section.classList.toggle('is-empty', hidden);
     });
 }
 
