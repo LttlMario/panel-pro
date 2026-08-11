@@ -547,7 +547,7 @@ CREATE TABLE public.admin_audit_log (
     target_id text,
     details jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    organization_id uuid DEFAULT public.current_panel_organization_id() NOT NULL
+    organization_id uuid DEFAULT public.current_panel_organization_id()
 );
 
 
@@ -2502,21 +2502,21 @@ ALTER TABLE public.marketplace_ilegal ENABLE ROW LEVEL SECURITY;
 -- Name: marketplace_ilegal marketplace_illegal_insert; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY marketplace_illegal_insert ON public.marketplace_ilegal FOR INSERT TO authenticated, anon WITH CHECK (((organization_id = public.current_panel_organization_id()) AND (created_by_discord_id = public.current_panel_discord_id()) AND (public.current_panel_permission_level() >= 3)));
+CREATE POLICY marketplace_illegal_insert ON public.marketplace_ilegal FOR INSERT TO authenticated, anon WITH CHECK (((organization_id IS NULL) AND (created_by_discord_id = public.current_panel_discord_id()) AND (public.current_panel_permission_level() >= 3)));
 
 
 --
 -- Name: marketplace_ilegal marketplace_illegal_read; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY marketplace_illegal_read ON public.marketplace_ilegal FOR SELECT TO authenticated, anon USING (((organization_id = public.current_panel_organization_id()) AND (public.current_panel_permission_level() >= 3)));
+CREATE POLICY marketplace_illegal_read ON public.marketplace_ilegal FOR SELECT TO authenticated, anon USING (((organization_id IS NULL) OR (organization_id = public.current_panel_organization_id())));
 
 
 --
 -- Name: marketplace_ilegal marketplace_illegal_update; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY marketplace_illegal_update ON public.marketplace_ilegal FOR UPDATE TO authenticated, anon USING (((organization_id = public.current_panel_organization_id()) AND ((created_by_discord_id = public.current_panel_discord_id()) OR (public.current_panel_permission_level() = 7)))) WITH CHECK ((organization_id = public.current_panel_organization_id()));
+CREATE POLICY marketplace_illegal_update ON public.marketplace_ilegal FOR UPDATE TO authenticated, anon USING ((((organization_id IS NULL) OR (organization_id = public.current_panel_organization_id())) AND ((created_by_discord_id = public.current_panel_discord_id()) OR (public.current_panel_permission_level() = 7)))) WITH CHECK ((organization_id IS NULL));
 
 
 --
@@ -2785,7 +2785,6 @@ GRANT ALL ON FUNCTION public.current_panel_is_platform_admin() TO authenticated;
 
 --
 -- Name: FUNCTION enforce_organization_package_limits(); Type: ACL; Schema: public; Owner: postgres
--- Type: ACL; Schema: public; Owner: postgres
 --
 
 GRANT ALL ON FUNCTION public.enforce_organization_package_limits() TO service_role;
@@ -3168,4 +3167,3 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES 
 --
 
 \unrestrict 776HATD2Y9xN7owVd12lCs56WRrPvepKgijWovf0fzfd4WkhgQ0Ch2hDeq1IRq2
-

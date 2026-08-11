@@ -4,8 +4,7 @@
     'use strict';
     if (window.PanelAssistantCore) return;
 
-    const CACHE_VERSION = '7';
-    const CACHE_TTL_MS = 30 * 60 * 1000;
+    const CACHE_VERSION = '11';
     const STOP_WORDS = new Set(['a', 'ai', 'al', 'ale', 'am', 'ar', 'are', 'as', 'asta', 'ca', 'care', 'ce', 'cea', 'cel', 'cu', 'cum', 'de', 'din', 'doar', 'este', 'eu', 'fi', 'in', 'la', 'mai', 'ma', 'mi', 'o', 'pe', 'pentru', 'pot', 'sa', 'se', 'si', 'sunt', 'un', 'una', 'unde', 'vreau']);
     const SYNONYMS = {
         pontare: 'pontaj', pontat: 'pontaj', tura: 'pontaj', ture: 'pontaj', serviciu: 'pontaj',
@@ -68,6 +67,22 @@
             .map((word) => SYNONYMS[word] || word);
     }
 
+    function keywordVariants(values) {
+        const list = Array.isArray(values) ? values : [values];
+        const variants = new Set();
+        list.forEach((value) => {
+            const repaired = repairText(value);
+            const normalized = normalize(repaired);
+            if (normalized.length > 1) variants.add(normalized);
+            normalized
+                .split(' ')
+                .filter((word) => word.length > 1 && !STOP_WORDS.has(word))
+                .forEach((word) => variants.add(word));
+            tokens(repaired).forEach((word) => variants.add(word));
+        });
+        return [...variants].slice(0, 160);
+    }
+
     function bigrams(value) {
         const text = normalize(value).replace(/\s/g, '');
         const result = [];
@@ -93,14 +108,6 @@
         return (2 * matches) / (first.length + second.length);
     }
 
-    function pagePermissions() {
-        try {
-            return typeof PagePermissions === 'object' && PagePermissions ? PagePermissions : {};
-        } catch (_error) {
-            return {};
-        }
-    }
-
     function currentUser() {
         try {
             return typeof getUser === 'function' ? getUser() : null;
@@ -112,30 +119,8 @@
     function currentRole() {
         try {
             if (typeof isPlatformAdmin === 'function' && isPlatformAdmin()) return 99;
-            if (typeof getRole === 'function') {
-                const legacyRole = Number(getRole());
-                if (Number.isFinite(legacyRole) && legacyRole > 0) return legacyRole;
-            }
-            const user = currentUser();
-            const allowed = new Set([
-                ...(Array.isArray(user?.allowed_pages) ? user.allowed_pages : []),
-                ...(Array.isArray(user?.assistant_allowed_pages) ? user.assistant_allowed_pages : [])
-            ].map((page) => String(page || '').split('?')[0].split('#')[0].split('/').pop()));
-            const pageLevels = {
-                'calculatorilegal.html': 3,
-                'locatiiilegale.html': 3,
-                'marketplace-ilegal.html': 3,
-                'rapoarte.html': 4,
-                'contracte.html': 4,
-                'admin.html': 7,
-                'logs.html': 7,
-                'diagnostic.html': 7,
-                'discord-configurare.html': 7,
-                'organizatii.html': 7,
-                'vouchere.html': 7,
-                'developer.html': 7
-            };
-            return Math.max(1, ...[...allowed].map((page) => pageLevels[page] || 1));
+            const legacyRole = Number(typeof getRole === 'function' ? getRole() : 1);
+            return Number.isFinite(legacyRole) && legacyRole > 0 ? legacyRole : 1;
         } catch (_error) {
             return 1;
         }
@@ -143,18 +128,14 @@
 
     function selectedPages() {
         const pages = currentUser()?.allowed_pages;
-        return Array.isArray(pages) ? pages : [];
+        return Array.isArray(pages)
+            ? [...new Set(pages.map((page) => String(page || '').split('?')[0].split('#')[0].split('/').pop()).filter(Boolean))]
+            : [];
     }
 
     function assistantPages() {
-        const user = currentUser();
-        if (user?.assistant_permissions_configured === true) {
-            return Array.isArray(user.assistant_allowed_pages)
-                ? user.assistant_allowed_pages.map(String)
-                : [];
-        }
-        // Compatibilitate pentru organizații care nu au salvat încă selectorul robotului.
-        // Robotul moștenește accesul normal, dar nu primește niciodată pagini administrative.
+        // Robotul moștenește exclusiv accesul normal al organizației.
+        // Nu există o listă separată de pagini pentru asistent.
         return selectedPages().filter((page) => ![
             'admin.html', 'logs.html', 'diagnostic.html', 'discord-configurare.html',
             'organizatii.html', 'vouchere.html', 'developer.html', 'administrare-organizatie.html'
@@ -166,11 +147,9 @@
         const user = currentUser();
         if (!user) return null;
 
-        const permissions = pagePermissions();
         const entries = [];
         let lastMatch = null;
         let indexPromise = null;
-        const cacheKey = `panel_assistant_index_v${CACHE_VERSION}_role_${role}`;
 
         function roleName() {
             if (typeof getEffectiveRoleLabel === 'function') {
@@ -201,8 +180,6 @@
         function requiredRoleForPage(page) {
             if (!page) return 1;
             const file = String(page).split('?')[0].split('#')[0].split('/').pop();
-            const required = Number(permissions[file]);
-            if (Number.isFinite(required)) return required;
             const manifestItem = (window.PANEL_ASSISTANT_PAGES || []).find((item) => item.file === file);
             return Number(manifestItem?.role || 1);
         }
@@ -211,7 +188,7 @@
             if (!page || /^\s*(?:javascript:|data:|https?:|\/\/)/i.test(String(page))) return false;
             const file = String(page).split('?')[0].split('#')[0].split('/').pop();
             if (isPlatformAdmin()) return true;
-            return assistantPages().includes(file) && (selectedPages().includes(file) || isPlatformAdmin());
+            return assistantPages().includes(file);
         }
 
         function searchableText(entry) {
@@ -223,9 +200,12 @@
             const queryTokens = tokens(question);
             const source = searchableText(entry);
             const title = normalize(entry.title);
+            const category = normalize(entry.category);
             let score = 0;
 
             if (title === query) score += 120;
+            if (category === query) score += 110;
+            else if (query.length > 3 && category.includes(query)) score += 60;
             if (query.length > 3 && source.includes(query)) score += 65;
             if (query.length > 3 && title.includes(query)) score += 35;
 
@@ -239,10 +219,12 @@
                 }
             });
 
-            const keywordMatches = (entry.keywords || []).filter((keyword) => {
+            const keywordMatches = (entry.keywords || []).reduce((matches, keyword) => {
                 const clean = normalize(keyword);
-                return clean && (query.includes(clean) || clean.includes(query));
-            }).length;
+                if (!clean) return matches;
+                const keywordTokens = keywordVariants(keyword);
+                return matches + (query.includes(clean) || clean.includes(query) || keywordTokens.some((token) => queryTokens.includes(token)) ? 1 : 0);
+            }, 0);
             return score + (keywordMatches * 18);
         }
 
@@ -252,9 +234,14 @@
                 title: repairText(entry.title),
                 category: repairText(entry.category),
                 answer: repairText(entry.answer),
-                keywords: (entry.keywords || []).map(repairText)
+                keywords: keywordVariants([
+                    ...(entry.keywords || []).map(repairText),
+                    entry.title,
+                    entry.category,
+                    entry.answer
+                ])
             } : null;
-            if (!cleanEntry?.title || !cleanEntry?.answer || Number(cleanEntry.role || 1) > role) return false;
+            if (!cleanEntry?.title || !cleanEntry?.answer) return false;
             if (cleanEntry.page && !isPageAllowed(cleanEntry.page)) return false;
             const signature = `${normalize(cleanEntry.title)}|${cleanEntry.page || ''}`;
             if (entries.some((item) => item.signature === signature)) return false;
@@ -264,43 +251,32 @@
 
         (window.PANEL_ASSISTANT_KNOWLEDGE || []).forEach((entry) => addEntry(entry));
 
-        function restoreCachedIndex() {
-            try {
-                const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
-                if (!cached || cached.version !== CACHE_VERSION || Date.now() - cached.savedAt > CACHE_TTL_MS || !Array.isArray(cached.entries)) return false;
-                cached.entries.forEach((entry) => addEntry(entry, 'page'));
-                return true;
-            } catch (_error) {
-                return false;
-            }
-        }
-
-        function saveIndexCache() {
-            try {
-                const indexed = entries
-                    .filter((entry) => entry.source === 'page')
-                    .slice(0, 500)
-                    .map(({ title, category, role: entryRole, page, keywords, answer }) => ({ title, category, role: entryRole, page, keywords, answer }));
-                sessionStorage.setItem(cacheKey, JSON.stringify({ version: CACHE_VERSION, savedAt: Date.now(), entries: indexed }));
-            } catch (_error) {
-                // Asistentul funcționează și când stocarea browserului este indisponibilă.
-            }
-        }
-
         function elementAllowed(element) {
-            const guarded = element.closest('[data-role]');
-            if (!guarded) return true;
-            const required = Number.parseInt(guarded.getAttribute('data-role'), 10);
-            return Number.isNaN(required) || required <= role;
+            // Accesul este decis la nivel de pagină, prin allowed_pages.
+            // Nu mai aplicăm praguri numerice hardcodate elementelor din pagină.
+            return Boolean(element);
         }
 
         async function indexPage(page) {
             const required = requiredRoleForPage(page.file);
-            if (required > role) return;
-            const response = await fetch(page.file, { cache: 'no-store' });
+            if (!isPageAllowed(page.file)) return;
+            const separator = page.file.includes('?') ? '&' : '?';
+            const response = await fetch(`${page.file}${separator}assistant_refresh=${Date.now()}`, { cache: 'no-store' });
             if (!response.ok) return;
             const markup = await response.text();
             const documentCopy = new DOMParser().parseFromString(markup, 'text/html');
+            const contextFor = (element) => {
+                const scope = element.closest('section, fieldset, article, details, form') || element.parentElement;
+                const heading = scope?.querySelector('h1, h2, h3, h4, h5, h6, legend, summary')?.textContent;
+                const cleanHeading = String(heading || '').replace(/\s+/g, ' ').trim();
+                return cleanHeading && normalize(cleanHeading) !== normalize(page.label) ? cleanHeading : page.label;
+            };
+            const describe = (element, text) => {
+                const context = contextFor(element);
+                return context === page.label
+                    ? `În pagina ${page.label}: ${text}`
+                    : `În pagina ${page.label}, în secțiunea „${context}”: ${text}`;
+            };
 
             documentCopy.querySelectorAll('[data-title]').forEach((element) => {
                 if (!elementAllowed(element)) return;
@@ -313,7 +289,7 @@
                     role: required,
                     page: page.file === 'craftmecanics.html' ? `${page.file}?search=${encodeURIComponent(title)}` : page.file,
                     keywords: [title, description, page.label],
-                    answer: description ? `${title}: ${description}` : `${title} este disponibil în pagina ${page.label}.`
+                    answer: describe(element, description ? `${title}: ${description}` : `${title} este disponibil.`)
                 }, 'page');
             });
 
@@ -330,7 +306,7 @@
                     role: required,
                     page: page.file,
                     keywords: [title, page.label],
-                    answer: `În pagina ${page.label} găsești secțiunea „${title}”.`
+                    answer: describe(element, `găsești secțiunea „${title}”.`)
                 }, 'page');
             });
 
@@ -344,25 +320,135 @@
                     role: required,
                     page: page.file,
                     keywords: [title, page.label],
-                    answer: `Opțiunea „${title}” este disponibilă în pagina ${page.label}.`
+                    answer: describe(element, `opțiunea „${title}” este disponibilă.`)
+                }, 'page');
+            });
+
+            documentCopy.querySelectorAll('button, [role="button"], label, input[placeholder], textarea[placeholder]').forEach((element) => {
+                if (!elementAllowed(element)) return;
+                const title = String(
+                    element.getAttribute('aria-label') ||
+                    element.getAttribute('title') ||
+                    element.getAttribute('placeholder') ||
+                    element.textContent ||
+                    ''
+                ).replace(/\s+/g, ' ').trim();
+                if (title.length < 3 || title.length > 100 || /^[-–—:]+$/.test(title)) return;
+                addEntry({
+                    title,
+                    category: page.label,
+                    role: required,
+                    page: page.file,
+                    keywords: [title, page.label, 'acțiune', 'formular'],
+                    answer: describe(element, `poți folosi „${title}”.`)
+                }, 'page');
+            });
+
+            const contentRoot = documentCopy.querySelector('main') || documentCopy.body;
+            const seenContent = new Set();
+            contentRoot?.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, dt, dd, th, td, summary, article, [data-title], [data-desc]').forEach((element) => {
+                if (!elementAllowed(element)) return;
+                const text = String(element.textContent || element.getAttribute('data-desc') || '').replace(/\s+/g, ' ').trim();
+                const clean = normalize(text);
+                if (text.length < 8 || text.length > 360 || seenContent.has(clean)) return;
+                seenContent.add(clean);
+                const title = text.length <= 100 ? text : `${text.slice(0, 97).trim()}…`;
+                addEntry({
+                    title,
+                    category: page.label,
+                    role: required,
+                    page: page.file,
+                    keywords: keywordVariants([text, page.label]),
+                    answer: describe(element, text)
                 }, 'page');
             });
         }
 
-        function indexLocalPages() {
-            if (indexPromise) return indexPromise;
-            if (restoreCachedIndex()) {
-                options.onIndexUpdate?.(entries.length, true);
-                return Promise.resolve(entries.length);
+        function clearIndexedPageEntries() {
+            for (let index = entries.length - 1; index >= 0; index -= 1) {
+                if (entries[index].source === 'page') entries.splice(index, 1);
             }
+            lastMatch = null;
+        }
 
-            const pages = (window.PANEL_ASSISTANT_PAGES || []).filter((page) => requiredRoleForPage(page.file) <= role);
+        function indexLocalPages({ force = false } = {}) {
+            if (indexPromise && !force) return indexPromise;
+            if (indexPromise && force) {
+                return indexPromise.then(() => {
+                    indexPromise = null;
+                    return indexLocalPages({ force: true });
+                });
+            }
+            if (force) clearIndexedPageEntries();
+            const pages = (window.PANEL_ASSISTANT_PAGES || []).filter((page) => isPageAllowed(page.file));
             indexPromise = Promise.allSettled(pages.map(indexPage)).then(() => {
-                saveIndexCache();
                 options.onIndexUpdate?.(entries.length, false);
                 return entries.length;
             });
             return indexPromise;
+        }
+
+        async function refreshIndex() {
+            return indexLocalPages({ force: true });
+        }
+
+        function exactPageMatch(question) {
+            const query = normalize(question);
+            if (!query) return null;
+            return (window.PANEL_ASSISTANT_PAGES || []).find((page) => {
+                if (!isPageAllowed(page.file)) return false;
+                const fileName = normalize(page.file.replace(/\.html$/i, ''));
+                return normalize(page.label) === query || fileName === query;
+            }) || null;
+        }
+
+        function collectPageMatches(question) {
+            const query = normalize(question);
+            const queryTokens = tokens(question);
+            const ranked = entries
+                .map((entry) => ({ entry, score: scoreEntry(entry, question) }))
+                .sort((left, right) => right.score - left.score);
+            const best = ranked[0];
+            const pageMatches = new Map();
+            ranked
+                .filter((item) => {
+                    if (item.score < 8 || !item.entry.page || !isPageAllowed(item.entry.page)) return false;
+                    const source = searchableText(item.entry);
+                    const sourceWords = source.split(' ');
+                    return source.includes(query) || queryTokens.some((token) => sourceWords.includes(token) || sourceWords.some((word) => word.startsWith(token) || token.startsWith(word)));
+                })
+                .slice(0, 60)
+                .forEach(({ entry, score }) => {
+                    const page = String(entry.page).split('?')[0];
+                    const manifestPage = (window.PANEL_ASSISTANT_PAGES || []).find((item) => item.file === page);
+                    const current = pageMatches.get(page) || { page, title: manifestPage?.label || page, score, items: [] };
+                    if (score > current.score) current.score = score;
+                    if (!current.items.some((item) => item.title === entry.title) && current.items.length < 3) {
+                        current.items.push({ title: entry.title, answer: entry.answer });
+                    }
+                    pageMatches.set(page, current);
+                });
+            const groups = [...pageMatches.values()]
+                .sort((left, right) => right.score - left.score)
+                .slice(0, 6);
+            return {
+                best,
+                groups,
+                links: groups.map(({ page, title, items }) => ({
+                    page,
+                    title,
+                    matches: items.map((item) => item.title)
+                }))
+            };
+        }
+
+        async function findPageMatches(question) {
+            const cleanQuestion = String(question || '').trim().slice(0, 500);
+            if (!cleanQuestion) return [];
+            await refreshIndex();
+            const pageMatch = exactPageMatch(cleanQuestion);
+            if (pageMatch) return [{ page: pageMatch.file, title: pageMatch.label, matches: [] }];
+            return collectPageMatches(cleanQuestion).links;
         }
 
         function specialResponse(question) {
@@ -379,22 +465,39 @@
             if (blockedTopic) return { answer: 'Nu ai permisiunea necesară pentru această secțiune. Asistentul îți poate arăta doar informațiile disponibile rolului tău.' };
             if (/^(salut|buna|buna ziua|buna seara|neata|hey|hello)\b/.test(query)) return { answer: `Salut! Sunt asistentul intern al panelului. Ai acces de tip „${roleName()}”. Cu ce informație din proiect te pot ajuta?` };
             if (/\b(multumesc|mersi|ms|super|perfect)\b/.test(query)) return { answer: 'Cu plăcere! Poți continua cu orice întrebare despre paginile și funcțiile panelului.' };
-            if (/\b(ce rol|rolul meu|ce functie|functia mea)\b/.test(query)) return { answer: `Rolul disponibil în sesiunea ta este „${roleName()}”, cu nivel de acces ${role}. Rezultatele sunt filtrate după acest nivel.` };
+            if (/\b(ce rol|rolul meu|ce functie|functia mea)\b/.test(query)) return { answer: `Rolul disponibil în sesiunea ta este „${roleName()}”. Rezultatele sunt filtrate exact după paginile permise organizației tale.` };
             if (/^(cat e ceasul|cat este ceasul|cat e ora|ce ora este|ce ora e|ora acum)$/.test(query)) return { answer: `Ora României este ${new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit' }).format(new Date())}.` };
             if (/^(unde|deschide|du ma|pagina)$/i.test(query) && lastMatch?.page) return { answer: `Informația anterioară se află în ${lastMatch.category || lastMatch.title}.`, page: lastMatch.page, title: lastMatch.title };
             return null;
         }
 
-        function answer(question) {
+        async function answer(question) {
             const cleanQuestion = String(question || '').trim().slice(0, 500);
             if (!cleanQuestion) return { answer: 'Scrie o întrebare despre panel și încerc să găsesc informația potrivită.' };
             const special = specialResponse(cleanQuestion);
             if (special) return special;
 
-            const ranked = entries
-                .map((entry) => ({ entry, score: scoreEntry(entry, cleanQuestion) }))
-                .sort((left, right) => right.score - left.score);
-            const best = ranked[0];
+            await refreshIndex();
+            const pageMatch = exactPageMatch(cleanQuestion);
+            if (pageMatch) {
+                lastMatch = { page: pageMatch.file, title: pageMatch.label, category: pageMatch.label };
+                const pageEntries = entries
+                    .filter((entry) => String(entry.page || '').split('?')[0] === pageMatch.file)
+                    .sort((left, right) => scoreEntry(right, cleanQuestion) - scoreEntry(left, cleanQuestion))
+                    .slice(0, 6);
+                const pageSummary = pageEntries.length
+                    ? `\n\n${pageEntries.map((entry) => `• ${entry.answer}`).join('\n')}`
+                    : '';
+                return {
+                    answer: `Am găsit pagina „${pageMatch.label}”. Acestea sunt câteva informații disponibile acolo, în funcție de accesul rolului tău:${pageSummary}`,
+                    page: pageMatch.file,
+                    title: pageMatch.label,
+                    links: [{ page: pageMatch.file, title: pageMatch.label }]
+                };
+            }
+
+            const search = collectPageMatches(cleanQuestion);
+            const best = search.best;
             if (!best || best.score < 9) {
                 const topics = entries
                     .filter((entry) => ['pontaj', 'invoiri', 'craft', 'marketplace', 'ilegal', 'manager', 'admin'].includes(entry.category))
@@ -405,13 +508,15 @@
             }
 
             lastMatch = best.entry;
-            const closeMatches = ranked.filter((item, index) => index > 0 && item.score >= best.score - 3 && item.score >= 16).slice(0, 2);
-            let response = best.entry.answer;
-            if (closeMatches.length && tokens(cleanQuestion).length <= 2) response += ` Am mai găsit: ${closeMatches.map((item) => item.entry.title).join(' și ')}.`;
+            const { groups, links } = search;
+            const response = groups.length
+                ? `Am găsit informații pentru „${cleanQuestion}” în paginile permise rolului tău:\n\n${groups.map((group) => `${group.title}:\n${group.items.map((item) => `• ${item.answer}`).join('\n')}`).join('\n\n')}`
+                : best.entry.answer;
             return {
                 answer: response,
                 page: isPageAllowed(best.entry.page) ? best.entry.page : '',
-                title: best.entry.title
+                title: best.entry.title,
+                links
             };
         }
 
@@ -421,6 +526,8 @@
             user,
             answer,
             indexLocalPages,
+            refreshIndex,
+            findPageMatches,
             isPageAllowed,
             repairText,
             getEntryCount: () => entries.length

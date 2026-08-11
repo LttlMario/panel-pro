@@ -19,13 +19,19 @@
         paragraph.textContent = engine?.repairText(text || '') || String(text || '');
         bubble.appendChild(paragraph);
 
-        if (result.page && result.page !== 'asistent.html' && engine?.isPageAllowed(result.page)) {
-            const link = document.createElement('a');
-            link.href = result.page;
-            link.className = 'mt-3 inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20';
-            link.textContent = `Deschide ${engine.repairText(result.title || 'pagina')} →`;
-            bubble.appendChild(link);
-        }
+        const links = Array.isArray(result.links) && result.links.length
+            ? result.links
+            : (result.page ? [{ page: result.page, title: result.title }] : []);
+        links
+            .filter((item) => item?.page && item.page !== 'asistent.html' && engine?.isPageAllowed(item.page))
+            .slice(0, 8)
+            .forEach((item) => {
+                const link = document.createElement('a');
+                link.href = item.page;
+                link.className = 'mt-2 mr-2 inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20';
+                link.textContent = `Deschide ${engine.repairText(item.title || 'pagina')} →`;
+                bubble.appendChild(link);
+            });
         wrapper.appendChild(bubble);
         chat.appendChild(wrapper);
         chat.scrollTop = chat.scrollHeight;
@@ -50,7 +56,7 @@
         const typingId = showTyping();
         await new Promise((resolve) => setTimeout(resolve, 220));
         document.getElementById(typingId)?.remove();
-        const result = engine.answer(question);
+        const result = await engine.answer(question);
         createMessage(result.answer, 'assistant', result);
     }
 
@@ -60,11 +66,14 @@
     }
 
     function quickQuestions() {
-        const questions = ['Cum pornesc pontajul?', 'Unde găsesc Runflat?', 'Cum trimit o învoire?'];
-        if (engine.role >= 3) questions.push('Ce găsesc la locații ilegale?');
-        if (engine.role >= 4) questions.push('Cum văd pontajele active?');
-        if (engine.role >= 7) questions.push('Cum schimb ora de închidere?');
-        return questions;
+        return [
+            ['Cum pornesc pontajul?', 'pontaj.html'],
+            ['Unde găsesc Runflat?', 'craftmecanics.html'],
+            ['Cum trimit o învoire?', 'cereri.html'],
+            ['Ce găsesc la locații ilegale?', 'locatiiilegale.html'],
+            ['Cum văd pontajele active?', 'rapoarte.html'],
+            ['Cum schimb ora de închidere?', 'admin.html']
+        ].filter(([, page]) => engine?.isPageAllowed(page)).map(([question]) => question);
     }
 
     function initialize() {
@@ -73,12 +82,13 @@
         const status = document.getElementById('assistant-index-status');
         engine = window.PanelAssistantCore.create({
             onIndexUpdate: (count) => {
-                if (status) status.textContent = `${count} informații locale disponibile · acces nivel ${engine?.role || 0}`;
+                if (status) status.textContent = `${count} informații locale disponibile · acces după paginile selectate`;
             }
         });
         if (!engine) return;
+        window.__panelAssistantEngine = engine;
 
-        if (status) status.textContent = `${engine.getEntryCount()} informații locale disponibile · acces nivel ${engine.role}`;
+        if (status) status.textContent = `${engine.getEntryCount()} informații locale disponibile · acces după paginile selectate`;
         engine.indexLocalPages().catch((error) => console.warn('Asistent: indexarea locală nu a fost finalizată.', error));
 
         const user = engine.user;

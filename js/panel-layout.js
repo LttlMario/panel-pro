@@ -10,9 +10,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     if (window.location.pathname.endsWith('admin.html')) { const script=document.createElement('script');script.src='js/admin-organization-center.js';document.head.appendChild(script); }
     if (window.location.pathname.endsWith('anunturi.html')) { const script=document.createElement('script');script.src='js/anunturi-permissions.js';document.head.appendChild(script); }
     const COLLAPSE_KEY = 'panel_sidebar_collapsed';
-    const isAndroidApp = window.Capacitor?.getPlatform?.() === 'android'
-        || /\bAndroid\b.*\bwv\b|\bVersion\/4\.0\b.*\bChrome\b/i.test(navigator.userAgent);
-    if (isAndroidApp) document.documentElement.classList.add('panel-android-device');
+    let globalSearchTimer = null;
+    let globalSearchRequest = 0;
 
     function addStyles() {
         if (document.getElementById('panel-layout-styles')) return;
@@ -107,6 +106,12 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             .panel-global-search::placeholder { color:#64748b; }
             .panel-global-search:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.12); }
             .panel-global-search-match { outline:2px solid rgba(16,185,129,.7) !important; outline-offset:2px; }
+            .panel-global-search-results { position:absolute; top:calc(100% + 8px); left:0; right:0; z-index:2000; max-height:340px; overflow:auto; padding:6px; border:1px solid #334155; border-radius:14px; background:#0b1526; box-shadow:0 18px 40px rgba(0,0,0,.42); }
+            .panel-global-search-result { display:block; padding:10px 11px; border-radius:10px; color:#dbeafe; text-decoration:none; }
+            .panel-global-search-result:hover { background:#17243a; }
+            .panel-global-search-result-title { display:block; font-size:12px; font-weight:800; color:#6ee7b7; }
+            .panel-global-search-result-hits { display:block; margin-top:3px; color:#94a3b8; font-size:10px; line-height:1.35; }
+            .panel-global-search-empty { padding:11px; color:#94a3b8; font-size:11px; }
             .panel-header-tools #panel-theme-toggle { margin-left:auto; pointer-events:auto; }
             .panel-global-header #panel-theme-toggle { margin-left:auto; pointer-events:auto; }
 
@@ -132,14 +137,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             #panel-mobile-menu .panel-mobile-top { height:64px; padding:0 18px; border-bottom:1px solid #1e293b; display:flex; align-items:center; justify-content:space-between; }
             #panel-mobile-menu .panel-mobile-nav { padding:16px; }
             .panel-mobile-toggle { display:none; position:relative; z-index:40; width:40px; height:40px; flex:none; align-items:center; justify-content:center; border:1px solid #334155; border-radius:12px; background:#020617; color:#e2e8f0; font-size:18px; cursor:pointer; }
-            html.panel-android-device body.panel-shared-sidebar-page { padding-left:0 !important; }
-            html.panel-android-device #panel-shared-sidebar { display:none !important; }
-            html.panel-android-device .panel-responsive-sidebar,
-            html.panel-android-device .panel-sidebar-toggle { display:none !important; }
-            html.panel-android-device #global-header-mobile-btn { display:inline-flex !important; align-items:center; justify-content:center; }
-            html.panel-android-device .panel-global-header { min-height:76px !important; padding:12px 14px !important; }
-            html.panel-android-device .panel-global-header > div:not(.panel-header-tools) { flex:1; min-width:calc(100% - 58px); }
-            html.panel-android-device .panel-mobile-toggle { display:none !important; }
             .panel-action-bar { display:flex; align-items:center; justify-content:flex-end; gap:12px; flex-wrap:wrap; padding:12px max(16px, calc((100vw - 1280px) / 2)); border-bottom:1px solid #1e293b; background:rgba(15,23,42,.72); }
             .panel-action-bar > div { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
             .panel-bottom-save-bar { position:sticky; bottom:0; z-index:30; display:flex; justify-content:flex-end; padding:14px 16px; border-top:1px solid #1e293b; background:rgba(15,23,42,.96); backdrop-filter:blur(10px); }
@@ -180,6 +177,14 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 main :is(.dialog,[role="dialog"],.modal-content) { width:100% !important; max-height:calc(100dvh - 20px) !important; overflow:auto; border-radius:16px !important; }
                 footer { padding-left:12px !important; padding-right:12px !important; padding-bottom:max(18px,env(safe-area-inset-bottom)) !important; }
                 #panel-save-reminder { right:10px; bottom:82px; max-width:calc(100vw - 20px); }
+            }
+            /* Păstrăm meniul standard pe toate dimensiunile; meniul mobil nu mai schimbă layout-ul. */
+            @media (max-width:767px) {
+                body.panel-global-shell { min-width:1024px !important; overflow-x:auto !important; }
+                body.panel-shared-sidebar-page { padding-left:245px !important; }
+                body.panel-shared-sidebar-page > #panel-shared-sidebar { display:flex !important; position:fixed !important; inset:0 auto 0 0 !important; width:245px !important; z-index:60 !important; }
+                #panel-mobile-menu, #panel-mobile-backdrop, .panel-mobile-toggle, #global-header-mobile-btn, #mobile-menu-toggle { display:none !important; }
+                body.panel-global-shell main { max-width:none !important; }
             }
             /* Sidebar-ul este același și pe paginile calculatorului, care au stiluri proprii. */
             #panel-shared-sidebar .nav-link,
@@ -248,8 +253,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
 
         ensureCommunityLink(navigation, currentPage);
         normalizeNavigation(navigation, currentPage);
-        if (typeof applyRoleBasedVisibility === 'function' && typeof getRole === 'function') {
-            applyRoleBasedVisibility(getRole());
+        if (typeof applyRoleBasedVisibility === 'function') {
+            applyRoleBasedVisibility();
         }
         ensureSidebarLogout(sidebar);
         ensureThemeToggle(sidebar);
@@ -312,9 +317,10 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         });
 
         // Dashboard are deja propriul meniu mobil, păstrat pentru compatibilitate.
-        document.getElementById('mobile-menu')?.remove();
-        document.getElementById('mobile-menu-backdrop')?.remove();
-        document.getElementById('mobile-menu-toggle')?.remove();
+        if (document.getElementById('mobile-menu')) {
+            resolveOrganizationAdminVisibility(navigation);
+            return;
+        }
 
         const backdrop = document.createElement('div');
         backdrop.id = 'panel-mobile-backdrop';
@@ -325,13 +331,9 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
 
         const mobileNav = mobileMenu.querySelector('.panel-mobile-nav');
         mobileNav.innerHTML = navigation.innerHTML;
-        if (typeof applyRoleBasedVisibility === 'function' && typeof getRole === 'function') applyRoleBasedVisibility(getRole());
-
-        const setMobileToggleState = (isOpen) => {
-            document.querySelectorAll('#global-header-mobile-btn, .panel-mobile-toggle').forEach((button) => {
-                button.setAttribute('aria-expanded', String(isOpen));
-            });
-        };
+        if (typeof applyRoleBasedVisibility === 'function') applyRoleBasedVisibility();
+        refreshNavigationSections(mobileNav);
+        resolveOrganizationAdminVisibility(navigation);
 
         const closeMobileMenu = () => {
             mobileMenu.classList.remove('is-open');
@@ -342,7 +344,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             legacyBackdrop?.classList.add('hidden');
             document.body.classList.remove('panel-mobile-menu-open');
             document.body.style.overflow = '';
-            setMobileToggleState(false);
         };
         const openMobileMenu = () => {
             document.dispatchEvent(new CustomEvent('panel:mobile-menu-open'));
@@ -350,7 +351,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             backdrop.style.display = 'block';
             document.body.classList.add('panel-mobile-menu-open');
             document.body.style.overflow = 'hidden';
-            setMobileToggleState(true);
         };
         const toggleMobileMenu = () => {
             if (mobileMenu.classList.contains('is-open')) closeMobileMenu();
@@ -373,12 +373,9 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             mobileToggle.className = 'panel-mobile-toggle';
             mobileToggle.textContent = '☰';
             mobileToggle.setAttribute('aria-label', 'Deschide meniul');
-            mobileToggle.setAttribute('aria-expanded', 'false');
-            mobileToggle.addEventListener('click', toggleMobileMenu);
+            mobileToggle.addEventListener('click', openMobileMenu);
             header.insertBefore(mobileToggle, header.firstChild);
         }
-
-        closeMobileMenu();
     }
 
     function ensureGlobalHeader() {
@@ -392,7 +389,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         }
         if (!document.querySelector('script[src^="js/global-header.js"]')) {
             const script = document.createElement('script');
-            script.src = 'js/global-header.js?v=4.1.0';
+            script.src = 'js/global-header.js?v=4.2.0';
             script.defer = true;
             document.head.appendChild(script);
         }
@@ -644,6 +641,74 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         navigation.insertBefore(link, marketplace || null);
     }
 
+    function refreshNavigationSections(navigation) {
+        if (!navigation) return;
+        navigation.querySelectorAll('[data-nav-section]').forEach((section) => {
+            const hasVisibleLink = [...section.querySelectorAll('a.nav-link[href]')]
+                .some((link) => !link.hidden && getComputedStyle(link).display !== 'none');
+            section.hidden = !hasVisibleLink;
+            section.classList.toggle('is-empty', !hasVisibleLink);
+        });
+    }
+
+    async function resolveOrganizationAdminVisibility(navigation) {
+        const link = navigation?.querySelector('a[href="administrare-organizatie.html"]');
+        if (!link) return;
+
+        if (typeof isPlatformAdmin === 'function' && isPlatformAdmin()) {
+            link.hidden = false;
+            link.style.display = '';
+            refreshNavigationSections(navigation);
+            return;
+        }
+
+        // Proprietatea organizației este verificată server-side; până la răspuns
+        // linkul rămâne ascuns, ca să nu apară o opțiune pe care utilizatorul nu o poate folosi.
+        link.hidden = true;
+        link.style.display = 'none';
+
+        const token = localStorage.getItem('discord_access_token');
+        const config = window.PANEL_SUPABASE_CONFIG;
+        if (!token || !config?.url || !config?.publishableKey) {
+            link.remove();
+            refreshNavigationSections(navigation);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${config.url}/functions/v1/manage-owned-organization`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    apikey: config.publishableKey,
+                    Authorization: `Bearer ${config.publishableKey}`
+                },
+                body: JSON.stringify({
+                    action: 'owner_get',
+                    access_token: token,
+                    organization_id: window.getActiveOrganizationId?.() || ''
+                })
+            });
+
+            if (!response.ok) {
+                link.remove();
+            } else {
+                link.hidden = false;
+                link.style.display = '';
+            }
+        } catch (_) {
+            link.remove();
+        }
+
+        refreshNavigationSections(navigation);
+        const mobileNavigation = document.querySelector('#panel-mobile-menu nav');
+        if (mobileNavigation) {
+            mobileNavigation.innerHTML = navigation.innerHTML;
+            if (typeof applyRoleBasedVisibility === 'function') applyRoleBasedVisibility();
+            refreshNavigationSections(mobileNavigation);
+        }
+    }
+
     function normalizeNavigation(navigation, currentPage) {
         const sections = [
             ['management', 'Operațiuni', [
@@ -705,6 +770,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (typeof isPlatformAdmin === 'function' && isPlatformAdmin()) {
             navigation.querySelectorAll('a.nav-link').forEach((link) => { link.style.display = ''; });
         }
+
+        refreshNavigationSections(navigation);
 
         const existingMobileNavigation = document.querySelector('#mobile-menu nav');
         if (existingMobileNavigation) existingMobileNavigation.innerHTML = navigation.innerHTML;
@@ -797,9 +864,9 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         // este filtrat separat de motor după rol și paginile organizației.
         if (currentPage === 'asistent.html' || document.getElementById('panel-assistant-widget')) return;
         try {
-            await loadAssistantScript('panel-assistant-data-script', 'js/asistent-data.js?v=4.4.0', () => Array.isArray(window.PANEL_ASSISTANT_KNOWLEDGE));
-            await loadAssistantScript('panel-assistant-core-script', 'js/asistent-core.js?v=4.4.0', () => Boolean(window.PanelAssistantCore));
-            await loadAssistantScript('panel-assistant-widget-script', 'js/asistent-widget.js?v=4.4.0', () => Boolean(window.__panelAssistantWidgetLoaded));
+            await loadAssistantScript('panel-assistant-data-script', 'js/asistent-data.js?v=4.8.0', () => Array.isArray(window.PANEL_ASSISTANT_KNOWLEDGE));
+            await loadAssistantScript('panel-assistant-core-script', 'js/asistent-core.js?v=4.8.0', () => Boolean(window.PanelAssistantCore));
+            await loadAssistantScript('panel-assistant-widget-script', 'js/asistent-widget.js?v=4.8.0', () => Boolean(window.__panelAssistantWidgetLoaded));
         } catch (error) {
             console.warn('Asistentul plutitor nu a putut fi inițializat.', error);
         }
@@ -808,6 +875,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     function createGlobalPageSearch(header, currentPage) {
         const wrapper = document.createElement('div');
         wrapper.className = 'search-container';
+        wrapper.style.position = 'relative';
         const input = document.createElement('input');
         input.type = 'search';
         input.id = 'global-search';
@@ -823,16 +891,72 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 input.blur();
             }
         });
+        input.dataset.globalSearchBound = 'true';
         wrapper.appendChild(input);
         header.appendChild(wrapper);
         return input;
     }
 
-    function runGlobalPageSearch(value) {
-        const query = String(value || '').trim().toLocaleLowerCase('ro');
+    function globalSearchEngine() {
+        if (window.__panelAssistantEngine?.findPageMatches) return window.__panelAssistantEngine;
+        if (window.PanelAssistantCore && typeof getUser === 'function' && getUser()) {
+            window.__panelAssistantEngine = window.PanelAssistantCore.create({ onIndexUpdate: () => undefined });
+            return window.__panelAssistantEngine;
+        }
+        return null;
+    }
+
+    function globalSearchResultsHost(input) {
+        const host = input.closest('.search-container, .relative') || input.parentElement;
+        if (!host) return null;
+        host.style.position = 'relative';
+        let results = host.querySelector('.panel-global-search-results');
+        if (!results) {
+            results = document.createElement('div');
+            results.className = 'panel-global-search-results';
+            results.hidden = true;
+            host.appendChild(results);
+        }
+        return results;
+    }
+
+    function renderGlobalSearchLocations(input, query, matches) {
+        const results = globalSearchResultsHost(input);
+        if (!results) return;
+        results.replaceChildren();
+        if (!query) {
+            results.hidden = true;
+            return;
+        }
+        results.hidden = false;
+        if (!matches.length) {
+            const empty = document.createElement('div');
+            empty.className = 'panel-global-search-empty';
+            empty.textContent = 'Nu am găsit această informație în paginile permise rolului tău.';
+            results.appendChild(empty);
+            return;
+        }
+        matches.slice(0, 8).forEach((match) => {
+            const link = document.createElement('a');
+            link.className = 'panel-global-search-result';
+            link.href = match.page;
+            const title = document.createElement('span');
+            title.className = 'panel-global-search-result-title';
+            title.textContent = `Deschide ${match.title}`;
+            link.appendChild(title);
+            if (Array.isArray(match.matches) && match.matches.length) {
+                const hits = document.createElement('span');
+                hits.className = 'panel-global-search-result-hits';
+                hits.textContent = `Potriviri: ${match.matches.join(' · ')}`;
+                link.appendChild(hits);
+            }
+            results.appendChild(link);
+        });
+    }
+
+    function filterCurrentPageSearch(query) {
         const main = document.querySelector('main');
         if (!main) return;
-
         const selectorGroups = [
             '.gallery-card',
             'tbody tr',
@@ -845,23 +969,49 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             items = Array.from(main.querySelectorAll(selector)).filter(item => !item.closest('header,footer,[role="dialog"]'));
             if (items.length) break;
         }
-
-        if (!items.length) {
-            main.querySelectorAll('.panel-global-search-match').forEach(item => item.classList.remove('panel-global-search-match'));
-            if (!query) return;
-            const match = Array.from(main.querySelectorAll('h1,h2,h3,h4,a,button,label'))
-                .find(item => item.textContent.toLocaleLowerCase('ro').includes(query));
-            if (match) {
-                match.classList.add('panel-global-search-match');
-                match.scrollIntoView({ behavior:'smooth', block:'center' });
-            }
+        if (items.length) {
+            items.forEach(item => {
+                const visible = !query || item.textContent.toLocaleLowerCase('ro').includes(query);
+                item.style.display = visible ? '' : 'none';
+            });
             return;
         }
+        main.querySelectorAll('.panel-global-search-match').forEach(item => item.classList.remove('panel-global-search-match'));
+        if (!query) return;
+        const match = Array.from(main.querySelectorAll('h1,h2,h3,h4,a,button,label'))
+            .find(item => item.textContent.toLocaleLowerCase('ro').includes(query));
+        if (match) {
+            match.classList.add('panel-global-search-match');
+            match.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
 
-        items.forEach(item => {
-            const visible = !query || item.textContent.toLocaleLowerCase('ro').includes(query);
-            item.style.display = visible ? '' : 'none';
-        });
+    function runGlobalPageSearch(value) {
+        const query = String(value || '').trim().toLocaleLowerCase('ro');
+        const request = ++globalSearchRequest;
+        filterCurrentPageSearch(query);
+        if (globalSearchTimer) window.clearTimeout(globalSearchTimer);
+        const input = document.getElementById('global-search');
+        if (!query || query.length < 2) {
+            if (input) renderGlobalSearchLocations(input, '', []);
+            return;
+        }
+        globalSearchTimer = window.setTimeout(async () => {
+            const engine = globalSearchEngine();
+            if (!engine?.findPageMatches) {
+                if (typeof getUser === 'function' && getUser() && request === globalSearchRequest) {
+                    globalSearchTimer = window.setTimeout(() => runGlobalPageSearch(query), 420);
+                }
+                return;
+            }
+            try {
+                const matches = await engine.findPageMatches(query);
+                if (request !== globalSearchRequest || !input) return;
+                renderGlobalSearchLocations(input, query, matches);
+            } catch (error) {
+                console.warn('Căutarea globală nu a putut indexa paginile permise.', error);
+            }
+        }, 260);
     }
 
     function relocateHeaderActions(currentPage) {
@@ -886,7 +1036,19 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             || header.querySelector('.search-container input, input[type="search"], input[placeholder*="Caută"], input[placeholder*="caută"]')
             || createGlobalPageSearch(header, currentPage);
         if (search) {
+            search.id = 'global-search';
             search.classList.add('panel-global-search');
+            if (search.dataset.globalSearchBound !== 'true') {
+                search.addEventListener('input', () => runGlobalPageSearch(search.value));
+                search.addEventListener('keydown', event => {
+                    if (event.key === 'Escape') {
+                        search.value = '';
+                        runGlobalPageSearch('');
+                        search.blur();
+                    }
+                });
+                search.dataset.globalSearchBound = 'true';
+            }
             const originalWrapper = search.closest('.search-container, .relative') || search.parentElement;
             if (originalWrapper) {
                 const searchHost = document.createElement('div');

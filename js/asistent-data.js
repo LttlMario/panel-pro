@@ -184,10 +184,20 @@ window.PANEL_ASSISTANT_PAGES = [
     { file: 'cereri.html', label: 'Cereri / Absențe', role: 1 },
     { file: 'craftmecanics.html', label: 'Craft Mecanics', role: 1 },
     { file: 'marketplace.html', label: 'Marketplace', role: 1 },
+    { file: 'calculator.html', label: 'Calculator', role: 1 },
     { file: 'calculatorilegal.html', label: 'Calculator Ilegal', role: 3 },
     { file: 'locatiiilegale.html', label: 'Locații Ilegale', role: 3 },
     { file: 'marketplace-ilegal.html', label: 'Black Market', role: 3 },
     { file: 'rapoarte.html', label: 'Rapoarte', role: 4 },
     { file: 'contracte.html', label: 'Contracte', role: 4 },
-    { file: 'asistent.html', label: 'Asistent', role: 1 }
+    { file: 'asistent.html', label: 'Asistent', role: 1 },
+    { file: 'status-live.html', label: 'Status live', role: 1 },
+    { file: 'admin.html', label: 'Panou Admin', role: 7 },
+    { file: 'logs.html', label: 'Loguri', role: 7 },
+    { file: 'diagnostic.html', label: 'Diagnostic', role: 7 },
+    { file: 'discord-configurare.html', label: 'Configurare Discord', role: 7 },
+    { file: 'organizatii.html', label: 'Organizații', role: 7 },
+    { file: 'vouchere.html', label: 'Vouchere', role: 7 },
+    { file: 'developer.html', label: 'Developer', role: 7 },
+    { file: 'administrare-organizatie.html', label: 'Administrare organizație', role: 99 }
 ];

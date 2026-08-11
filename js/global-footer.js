@@ -6,7 +6,7 @@
     androidUrl: "descarca-android.html",
     changelogUrl: "changelog.html",
     thankYouUrl: "thank-you.html",
-    iosUrl: "https://lttlmario.github.io/panel-ios/instalare-ios.html"
+    iosUrl: "instalare-ios.html"
   });
 
   function getReleaseVersion() {

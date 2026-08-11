@@ -5,6 +5,7 @@
 
     const engine = window.PanelAssistantCore.create({ onIndexUpdate: updateStatus });
     if (!engine) return;
+    window.__panelAssistantEngine = engine;
     window.__panelAssistantWidgetLoaded = true;
 
     const MAX_HISTORY = 40;
@@ -208,14 +209,20 @@
         text.textContent = engine.repairText(message.text);
         bubble.appendChild(text);
 
-        if (message.page && message.page !== 'asistent.html' && engine.isPageAllowed(message.page)) {
-            const link = document.createElement('a');
-            link.className = 'paw-source-link';
-            link.href = message.page;
-            link.textContent = `Deschide ${engine.repairText(message.title || 'pagina')} →`;
-            bubble.appendChild(document.createElement('br'));
-            bubble.appendChild(link);
-        }
+        const links = Array.isArray(message.links) && message.links.length
+            ? message.links
+            : (message.page ? [{ page: message.page, title: message.title }] : []);
+        links
+            .filter((item) => item?.page && item.page !== 'asistent.html' && engine.isPageAllowed(item.page))
+            .slice(0, 8)
+            .forEach((item) => {
+                const link = document.createElement('a');
+                link.className = 'paw-source-link';
+                link.href = item.page;
+                link.textContent = `Deschide ${engine.repairText(item.title || 'pagina')} →`;
+                bubble.appendChild(document.createElement('br'));
+                bubble.appendChild(link);
+            });
         row.appendChild(bubble);
         elements.messages.appendChild(row);
     }
@@ -223,9 +230,15 @@
     function addMessage(message, persist = true) {
         const safeMessage = {
             sender: message.sender === 'user' ? 'user' : 'assistant',
-            text: String(message.text || '').slice(0, 1200),
+            text: String(message.text || '').slice(0, 2400),
             page: engine.isPageAllowed(message.page) && message.page !== 'asistent.html' ? message.page : '',
-            title: String(message.title || '').slice(0, 120)
+            title: String(message.title || '').slice(0, 120),
+            links: Array.isArray(message.links)
+                ? message.links
+                    .filter((item) => item?.page && item.page !== 'asistent.html' && engine.isPageAllowed(item.page))
+                    .slice(0, 8)
+                    .map((item) => ({ page: item.page, title: String(item.title || '').slice(0, 120) }))
+                : []
         };
         state.messages.push(safeMessage);
         state.messages = state.messages.slice(-MAX_HISTORY);
@@ -271,8 +284,8 @@
         const typingId = showTyping();
         await new Promise((resolve) => setTimeout(resolve, 220));
         document.getElementById(typingId)?.remove();
-        const result = engine.answer(question);
-        addMessage({ sender: 'assistant', text: result.answer, page: result.page, title: result.title });
+        const result = await engine.answer(question);
+        addMessage({ sender: 'assistant', text: result.answer, page: result.page, title: result.title, links: result.links });
     }
 
     function queueQuestion(value) {
@@ -281,11 +294,14 @@
     }
 
     function suggestionsForRole() {
-        const questions = ['Cum pornesc pontajul?', 'Unde găsesc Runflat?', 'Cum trimit o învoire?'];
-        if (engine.role >= 3) questions.push('Unde se procesează cocaina?');
-        if (engine.role >= 4) questions.push('Cine este pontat acum?');
-        if (engine.role >= 7) questions.push('Cum schimb ora de închidere?');
-        return questions;
+        return [
+            ['Cum pornesc pontajul?', 'pontaj.html'],
+            ['Unde găsesc Runflat?', 'craftmecanics.html'],
+            ['Cum trimit o învoire?', 'cereri.html'],
+            ['Unde se procesează cocaina?', 'locatiiilegale.html'],
+            ['Cine este pontat acum?', 'rapoarte.html'],
+            ['Cum schimb ora de închidere?', 'admin.html']
+        ].filter(([, page]) => engine?.isPageAllowed(page)).map(([question]) => question);
     }
 
     function renderSuggestions() {
