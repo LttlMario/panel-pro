@@ -10,7 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/permissions.js?v=4.5.0"></script>
-    <script src="js/panel-layout.js?v=4.9.0"></script>
+     <script src="js/panel-layout.js?v=4.10.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <script src="js/project-version.js"></script>
     <link rel="icon" href="img/favicon.ico">
@@ -157,6 +157,7 @@
 
         // Gestionare Imagini Multiple prin Paste (Maxim 5)
         let imaginiCurente = [];
+        let marketplaceFocusHandled = false;
         const pasteZone = document.getElementById('paste-zone');
         const pasteInstruction = document.getElementById('paste-instruction');
         const pastePreviewContainer = document.getElementById('paste-preview-container');
@@ -452,7 +453,7 @@
                 }
 
                 container.innerHTML += `
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between space-y-4">
+                    <div data-marketplace-id="${escapeHtml(item.id)}" class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between space-y-4">
                         <div class="space-y-2">
                             <div class="flex items-start justify-between">
                                 <div>
@@ -474,6 +475,7 @@
                                 </div>
                                 <div>
                                     ${dataFormatata ? `<div class="text-[10px] text-slate-500">Publicat: ${dataFormatata}</div>` : ''}
+                                    <a href="marketplace.html?anunt=${encodeURIComponent(item.id)}" class="mt-2 inline-block px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-[10px] font-bold">Mergi la anunț</a>
                                     ${poateSterge ? `<button type="button" onclick="stergeAnuntMarketplace('${item.id}')" class="mt-2 px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-[10px] font-bold">Șterge</button>` : ''}
                                 </div>
                             </div>
@@ -482,6 +484,18 @@
                     </div>
                 `;
             });
+
+            if (!marketplaceFocusHandled) {
+                const focusId = new URLSearchParams(window.location.search).get('anunt');
+                const focusedCard = focusId
+                    ? container.querySelector(`[data-marketplace-id="${CSS.escape(focusId)}"]`)
+                    : null;
+                if (focusedCard) {
+                    marketplaceFocusHandled = true;
+                    focusedCard.classList.add('ring-2', 'ring-emerald-400');
+                    focusedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
         }
 
         async function stergeAnuntMarketplace(id) {
@@ -549,10 +563,10 @@
             });
 
             const embedPrincipal = {
-                title: '📢 Anunț Nou - Marketplace Legal',
+                title: '📢 Anunț Nou - Marketplace ',
                 color: anunt.tip_actiune === 'Servicii' ? 10181046 : 38159,
                 fields: fields,
-                footer: { text: 'Publicat prin Marketplace Legal - Panel by Little Mario' },
+                footer: { text: 'Publicat prin Marketplace  - Panel by Little Mario' },
                 timestamp: new Date().toISOString()
             };
 

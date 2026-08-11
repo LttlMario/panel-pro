@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/permissions.js?v=4.5.0"></script>
-    <script src="js/panel-layout.js?v=4.9.0"></script>
+     <script src="js/panel-layout.js?v=4.10.0"></script>
     <script src="js/global-header.js?v=4.4.0"></script>
     <style>
         /* ==========================================
@@ -1484,6 +1484,7 @@
                 organization_id: null
             };
         }
+
         async function loadLocationsFromDatabase() {
             const { data, error } = await supabaseClient.from('illegal_locations').select('*').order('title');
             if (error) throw error;
