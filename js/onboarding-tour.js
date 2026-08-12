@@ -4,13 +4,14 @@
     if (window.__panelOnboardingLoaded) return;
     window.__panelOnboardingLoaded = true;
 
-    const TOUR_VERSION = '1.0.0';
+  const TOUR_VERSION = '1.1.0';
     const STORAGE_KEY = 'panel_onboarding_version';
+    const STEP_KEY = 'panel_onboarding_step';
     const steps = [
         { target: '#panel-shared-sidebar', title: 'Bun venit în Panel', text: 'Aici găsești meniul principal. Vei vedea doar paginile permise pentru rolul tău Discord și organizația activă.' },
-        { target: 'a[href$="pontaj.html"]', title: 'Pontajul', text: 'Din Pontaj pornești, pui pe pauză și închei turele. Istoricul și totalul orelor se păstrează automat.' },
-        { target: 'a[href$="cereri.html"]', title: 'Învoiri și concedii', text: 'De aici trimiți cereri pentru învoire, concediu sau alte absențe, iar statusul lor poate fi urmărit.' },
-        { target: 'a[href$="marketplace.html"], a[href$="marketplace-ilegal.html"]', title: 'Marketplace și resurse', text: 'Marketplace-ul și resursele organizației sunt disponibile în funcție de rolurile configurate de administratori.' },
+        { page: 'pontaj.html', nav: 'a[href$="pontaj.html"]', target: '#btn-start', label: 'Deschide Pontajul', title: 'Pontajul', text: 'Aceasta este pagina de Pontaj. De aici pornești, pui pe pauză și închei turele. Istoricul și totalul orelor se păstrează automat.' },
+        { page: 'cereri.html', nav: 'a[href$="cereri.html"]', target: '#absence-form', label: 'Deschide Învoirile', title: 'Învoiri și concedii', text: 'Aici trimiți cereri pentru învoire, concediu sau alte absențe. Pagina afișează și statusul cererilor tale.' },
+        { page: 'marketplace.html', nav: 'a[href$="marketplace.html"], a[href$="marketplace-ilegal.html"]', target: '#marketForm', label: 'Deschide Marketplace-ul', title: 'Marketplace și resurse', text: 'Aici găsești anunțurile și resursele organizației. Ce poți vedea sau modifica depinde de rolul tău Discord.' },
         { target: '#panel-sidebar-profile, #panel-user-role', title: 'Rolul tău', text: 'Rolul este citit din Discord. Nu îl alegi manual, iar accesul se actualizează când rolurile Discord se schimbă.' }
     ];
 
@@ -31,8 +32,9 @@
         const style = document.createElement('style');
         style.id = 'panel-onboarding-styles';
         style.textContent = `
-            .panel-onboarding-overlay { position:fixed; inset:0; z-index:10000; background:rgba(2,6,23,.72); backdrop-filter:blur(2px); }
-            .panel-onboarding-card { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); width:min(460px,calc(100vw - 28px)); padding:22px; border:1px solid rgba(52,211,153,.42); border-radius:20px; background:#0b1526; color:#e2e8f0; box-shadow:0 24px 80px rgba(0,0,0,.55); }
+            .panel-onboarding-overlay { position:fixed; inset:0; z-index:10000; pointer-events:none; }
+            .panel-onboarding-shade { position:fixed; background:rgba(2,6,23,.68); pointer-events:auto; }
+            .panel-onboarding-card { position:fixed; z-index:3; left:50%; bottom:28px; transform:translateX(-50%); width:min(460px,calc(100vw - 28px)); padding:22px; border:1px solid rgba(52,211,153,.42); border-radius:20px; background:#0b1526; color:#e2e8f0; box-shadow:0 24px 80px rgba(0,0,0,.55); pointer-events:auto; }
             .panel-onboarding-card h2 { margin:5px 0 8px; color:#f8fafc; font-size:20px; font-weight:800; }
             .panel-onboarding-card p { margin:0; color:#a8b5c7; font-size:13px; line-height:1.6; }
             .panel-onboarding-eyebrow { color:#6ee7b7; font-size:10px; font-weight:900; letter-spacing:.16em; text-transform:uppercase; }
@@ -50,6 +52,7 @@
 
     function finishTour() {
         localStorage.setItem(STORAGE_KEY, TOUR_VERSION);
+        localStorage.removeItem(STEP_KEY);
         document.querySelector('.panel-onboarding-overlay')?.remove();
         document.querySelector('.panel-onboarding-focus')?.remove();
         if (typeof window.refreshLegacyPlatformAdmin === 'function' && localStorage.getItem('discord_access_token')) {
@@ -63,15 +66,25 @@
     }
 
     function createTour() {
-        const availableSteps = steps.filter(step => !step.target || document.querySelector(step.target));
+        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+        const availableSteps = steps.filter(step => !step.page || currentPage === step.page || document.querySelector(step.nav));
         if (!availableSteps.length) return;
-        let index = 0;
+        let index = Math.min(Math.max(Number(localStorage.getItem(STEP_KEY) || 0), 0), availableSteps.length - 1);
+        const pendingStep = availableSteps[index];
+        if (pendingStep?.page && pendingStep.page !== currentPage) {
+            window.location.href = pendingStep.page;
+            return;
+        }
         const overlay = document.createElement('div');
         overlay.className = 'panel-onboarding-overlay';
         overlay.setAttribute('role', 'dialog');
         overlay.setAttribute('aria-modal', 'true');
         overlay.setAttribute('aria-label', 'Tutorial Panel');
         overlay.innerHTML = `
+            <div class="panel-onboarding-shade" data-onboarding-shade="top"></div>
+            <div class="panel-onboarding-shade" data-onboarding-shade="right"></div>
+            <div class="panel-onboarding-shade" data-onboarding-shade="bottom"></div>
+            <div class="panel-onboarding-shade" data-onboarding-shade="left"></div>
             <div class="panel-onboarding-card">
                 <div class="panel-onboarding-eyebrow">Tutorial de început · Panel Pro</div>
                 <h2 data-onboarding-title></h2>
@@ -93,6 +106,24 @@
         const progress = overlay.querySelector('[data-onboarding-progress]');
         const back = overlay.querySelector('[data-onboarding-back]');
         const next = overlay.querySelector('[data-onboarding-next]');
+        const shades = {
+            top: overlay.querySelector('[data-onboarding-shade="top"]'),
+            right: overlay.querySelector('[data-onboarding-shade="right"]'),
+            bottom: overlay.querySelector('[data-onboarding-shade="bottom"]'),
+            left: overlay.querySelector('[data-onboarding-shade="left"]')
+        };
+
+        const goToStep = (nextIndex) => {
+            const nextStep = availableSteps[nextIndex];
+            if (!nextStep) return;
+            localStorage.setItem(STEP_KEY, String(nextIndex));
+            if (nextStep.page && nextStep.page !== currentPage) {
+                window.location.href = nextStep.page;
+                return;
+            }
+            index = nextIndex;
+            render();
+        };
 
         const render = () => {
             const step = availableSteps[index];
@@ -102,8 +133,17 @@
             back.disabled = index === 0;
             back.style.opacity = index === 0 ? '.45' : '1';
             next.textContent = index === availableSteps.length - 1 ? 'Începe utilizarea' : 'Următorul';
+            const following = availableSteps[index + 1];
+            if (following?.page && following.page !== currentPage) next.textContent = following.label || 'Deschide pagina';
             const target = step.target ? document.querySelector(step.target) : null;
-            if (!target) { focus.style.display = 'none'; return; }
+            if (!target) {
+                focus.style.display = 'none';
+                shades.top.style.cssText = 'inset:0';
+                shades.right.style.display = 'none';
+                shades.bottom.style.display = 'none';
+                shades.left.style.display = 'none';
+                return;
+            }
             target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
             const rect = target.getBoundingClientRect();
             focus.style.display = 'block';
@@ -111,11 +151,17 @@
             focus.style.left = `${Math.max(6, rect.left - 5)}px`;
             focus.style.width = `${Math.max(10, rect.width + 10)}px`;
             focus.style.height = `${Math.max(10, rect.height + 10)}px`;
+            const x = Math.max(0, rect.left - 5), y = Math.max(0, rect.top - 5);
+            const w = Math.min(window.innerWidth - x, rect.width + 10), h = Math.min(window.innerHeight - y, rect.height + 10);
+            shades.top.style.cssText = `left:0;top:0;right:0;height:${y}px;display:block`;
+            shades.right.style.cssText = `left:${x + w}px;top:${y}px;right:0;height:${h}px;display:block`;
+            shades.bottom.style.cssText = `left:0;top:${y + h}px;right:0;bottom:0;display:block`;
+            shades.left.style.cssText = `left:0;top:${y}px;width:${x}px;height:${h}px;display:block`;
         };
 
         overlay.querySelector('[data-onboarding-skip]').addEventListener('click', finishTour);
-        back.addEventListener('click', () => { if (index > 0) { index -= 1; render(); } });
-        next.addEventListener('click', () => { if (index >= availableSteps.length - 1) finishTour(); else { index += 1; render(); } });
+        back.addEventListener('click', () => { if (index > 0) goToStep(index - 1); });
+        next.addEventListener('click', () => { if (index >= availableSteps.length - 1) finishTour(); else goToStep(index + 1); });
         window.addEventListener('resize', render);
         render();
     }
