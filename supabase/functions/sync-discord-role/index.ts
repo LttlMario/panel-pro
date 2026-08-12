@@ -10,6 +10,16 @@ const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data)
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}').default;
 const avatarUrl = (id: string, avatar?: string | null) => avatar ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png` : 'https://panel-management.netlify.app//img/logo-192.png';
 const normalizeId = (value: unknown) => String(value ?? '').trim();
+const fetchDiscordMember = async (guildId: string, discordId: string, accessToken: string, botToken: string) => {
+  const botResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`, {
+    headers: { Authorization: `Bot ${botToken}` }
+  });
+  if (botResponse.ok) return botResponse;
+  const oauthResponse = await fetch(`https://discord.com/api/v10/users/@me/guilds/${guildId}/member`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  return oauthResponse.ok || oauthResponse.status === 404 ? oauthResponse : botResponse;
+};
 const randomToken = () => { const bytes = crypto.getRandomValues(new Uint8Array(32)); return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', ''); };
 const sha256 = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 
@@ -76,7 +86,7 @@ Deno.serve(async (request) => {
     }>();
     const liveRoles = new Map<string, Map<string, { name: string; position: number }>>();
     for (const guild of (guilds || []).filter((item:any)=>!inactiveOrganizationIds.has(String(item.organization_id))&&(!voucherCode || String(item.guild_id) === voucherGuildId))) {
-      const memberResponse = await fetch(`https://discord.com/api/v10/guilds/${guild.guild_id}/members/${discordUser.id}`, { headers: { Authorization: `Bot ${botToken}` } });
+      const memberResponse = await fetchDiscordMember(String(guild.guild_id), String(discordUser.id), accessToken, botToken);
       if (memberResponse.status === 404) continue;
       if (!memberResponse.ok) { console.warn('Guild indisponibil', guild.guild_id, memberResponse.status); continue; }
       const member = await memberResponse.json();
