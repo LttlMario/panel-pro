@@ -6,15 +6,16 @@
 
     window.sendPanelDiscord = async (channel, payload) => {
         const accessToken = localStorage.getItem('discord_access_token');
-        const panelSessionToken = localStorage.getItem('panel_session_token');
 
         if (!accessToken) {
             throw new Error('Sesiunea Discord lipsește. Autentifică-te din nou.');
         }
 
-        if (!panelSessionToken) {
-            throw new Error('Sesiunea securizată a panelului lipsește. Reautentifică-te.');
-        }
+        // Reface automat contextul dacă panelul a păstrat tokenul, dar a pierdut organizația activă.
+        if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
+
+        const panelSessionToken = localStorage.getItem('panel_session_token');
+        if (!panelSessionToken) throw new Error('Sesiunea securizată a panelului lipsește. Reautentifică-te.');
 
         // Identificăm organizația activă a utilizatorului.
         const cachedUser = localStorage.getItem('discord_user');
