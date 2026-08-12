@@ -196,10 +196,8 @@
                 }));
 
                 // Încărcare configurare și restaurare pontaj activ
-                await Promise.all([
-                    loadOrganizationPontajConfig(),
-                    restoreActiveShift()
-                ]);
+                await loadOrganizationPontajConfig();
+                await restoreActiveShift();
 
                 } catch (err) {
                     console.error('Eroare sesiune:', err);
@@ -208,12 +206,7 @@
                 }
 
                 // Încărcare istoric pontaj
-                const loadHistory = () => fetchShiftsHistory();
-                if (typeof window.requestIdleCallback === 'function') {
-                    window.requestIdleCallback(loadHistory, { timeout: 1000 });
-                } else {
-                    window.setTimeout(loadHistory, 50);
-                }
+                await fetchShiftsHistory();
 
                 });
 
@@ -292,7 +285,7 @@
 
                 let query = supabaseClient
                     .from('shifts')
-                    .select('shift_type,date,colleague_name,start_time,end_time,duration,duration_ms')
+                    .select('*')
                     .eq('organization_id', currentUser.organization_id)
                     .eq('discord_id', currentUser.discord_id);
 
