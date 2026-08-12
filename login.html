@@ -356,11 +356,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const syncResult = await syncResponse.json();
                 if (!syncResponse.ok || !syncResult.user) {
                     if (['NO_ORGANIZATION', 'ROLE_NOT_CONFIGURED'].includes(String(syncResult.code || ''))) {
-                        localStorage.setItem('discord_access_token', token);
-                        localStorage.setItem('discord_user', JSON.stringify({ discord_id: discordData.id, username: discordData.username, display_name: discordData.global_name || discordData.username, avatar: discordData.avatar }));
-                        sessionStorage.removeItem('panel_onboarding_voucher');
-                        window.location.href = 'organizatie-bun-venit.html';
-                        return;
+                        throw new Error('Nu ai niciun rol Discord configurat pentru această organizație. Contactează administratorul organizației.');
                     }
                     throw new Error(syncResult.error || 'Rolul Discord nu a putut fi verificat.');
                 }

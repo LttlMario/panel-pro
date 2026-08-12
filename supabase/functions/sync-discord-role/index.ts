@@ -243,7 +243,7 @@ if (!existing) {
           roleIds.length > 0
       );
 
-    const allowed_pages =
+    let allowed_pages =
       Object.entries(rules)
         .filter(([, roleIds]: any) =>
           Array.isArray(roleIds) &&
@@ -255,6 +255,10 @@ if (!existing) {
           )
         )
         .map(([page]) => page);
+
+    // Un rol configurat trebuie să poată intra cel puțin în Dashboard și Pontaj,
+    // chiar dacă maparea permisiunilor de pagini nu conține încă ID-ul rolului secundar.
+    if (!allowed_pages.length) allowed_pages = ['index.html', 'pontaj.html'];
 
     const assistantRules: any = assistantPageSettings.get(organization_id) || {};
     const assistantConfigured = Object.keys(assistantRules).length > 0;
