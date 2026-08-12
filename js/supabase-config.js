@@ -40,12 +40,16 @@ window.getActiveOrganizationId = function getActiveOrganizationId() {
 window.ensurePanelSession = async function ensurePanelSession() {
     const current = localStorage.getItem('panel_session_token');
     const expires = Number(localStorage.getItem('panel_session_expires_at') || 0);
-    if (current && expires > Date.now() + 30_000) return current;
+    const activeOrganizationId = window.getActiveOrganizationId?.();
+    // Un token valid nu este suficient: paginile au nevoie și de organizația
+    // activă salvată pentru filtrarea datelor și rutarea notificărilor.
+    if (current && expires > Date.now() + 30_000 && activeOrganizationId) return current;
     const discordToken = localStorage.getItem('discord_access_token');
     if (!discordToken) throw new Error('Sesiunea Discord lipsește. Autentifică-te din nou.');
     const response = await fetch(`${window.PANEL_SUPABASE_CONFIG.url}/functions/v1/sync-discord-role`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: window.PANEL_SUPABASE_CONFIG.publishableKey, Authorization: `Bearer ${window.PANEL_SUPABASE_CONFIG.publishableKey}` }, body: JSON.stringify({ access_token: discordToken, organization_id: window.getActiveOrganizationId?.() }) });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || 'Sesiunea panel nu a putut fi reînnoită.');
+    if (!result.session_token || !result.active_organization?.id) throw new Error('Organizația activă nu a putut fi identificată. Selectează din nou organizația.');
     localStorage.setItem('discord_user', JSON.stringify(result.user));
     localStorage.setItem('user_role', result.user?.role || result.active_organization?.panel_role || '');
     localStorage.setItem('panel_session_token', result.session_token);
