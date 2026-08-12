@@ -278,6 +278,7 @@
             const summaryContainer = document.getElementById('daily-summary-container');
 
             try {
+                await ensurePontajOrganization();
                 if (!currentUser.organization_id || !currentUser.discord_id) {
                     throw new Error('Utilizatorul sau organizația activă nu au fost identificate.');
                 }
@@ -358,11 +359,21 @@
         let autoStopInProgress = false;
         let organizationPontajConfig = null;
 
+        async function ensurePontajOrganization() {
+            if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
+            let organizationId = window.getActiveOrganizationId?.() || currentUser.organization_id || null;
+            if (!organizationId) {
+                try { organizationId = JSON.parse(localStorage.getItem('discord_user') || '{}')?.organization_id || null; } catch (_) {}
+            }
+            if (!organizationId) throw new Error('Organizația activă nu a fost identificată.');
+            currentUser.organization_id = organizationId;
+            supabaseClient = window.createPanelSupabaseClient();
+            return organizationId;
+        }
+
         async function loadOrganizationPontajConfig() {
             try {
-                if (!currentUser.organization_id) {
-                    throw new Error('Organizația activă nu a fost identificată.');
-                }
+                await ensurePontajOrganization();
 
                 const { data, error } = await supabaseClient
                     .from('app_settings')
@@ -464,9 +475,7 @@
         }
 
         async function findActiveShift() {
-            if (!currentUser.organization_id) {
-                throw new Error('Organizația activă nu a fost identificată.');
-            }
+            await ensurePontajOrganization();
 
             const { data, error } = await supabaseClient
                 .from('shifts')
