@@ -4,7 +4,7 @@
 
     const PENDING_KEY = 'panel_pending_discord_notification';
 
-    window.sendPanelDiscord = async (channel, payload) => {
+    const sendNotification = async (channel, payload, retrySession = true) => {
         const accessToken = localStorage.getItem('discord_access_token');
 
         if (!accessToken) {
@@ -78,8 +78,13 @@
                 message = (await response.json()).error || message;
             } catch (_) {}
 
+            if (response.status === 401 && retrySession && !(payload instanceof FormData) && typeof window.refreshLegacyPlatformAdmin === 'function') {
+                const refreshed = await window.refreshLegacyPlatformAdmin(true);
+                if (refreshed || localStorage.getItem('panel_session_token')) return sendNotification(channel, payload, false);
+            }
+
             if (
-                response.status === 401 &&
+                response.status === 401 && false &&
                 !(payload instanceof FormData)
             ) {
                 sessionStorage.setItem(
@@ -111,6 +116,8 @@
 
         return response;
     };
+
+    window.sendPanelDiscord = sendNotification;
 
     // Dacă o notificare a rămas în așteptare din cauza expirării
     // sesiunii Discord, încercăm retrimiterea după autentificare.
