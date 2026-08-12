@@ -302,6 +302,7 @@ if (settingsError) {
     'anunturi.html',
     'pontaj.html',
     'cereri.html',
+    'calculator.html',
     'bucatarie.html',
     'contracte.html',
     'calculatorilegal.html',
