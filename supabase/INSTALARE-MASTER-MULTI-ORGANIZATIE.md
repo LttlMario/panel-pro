@@ -8,23 +8,11 @@ Pentru o instalare nouă, creează un proiect Supabase gol și execută fișieru
 
 ## Funcții Edge
 
-După instalarea schemei, leagă proiectul și publică funcțiile din `supabase/functions`:
+După instalarea schemei, leagă proiectul și publică toate funcțiile active cu scriptul unic al proiectului:
 
 ```powershell
 supabase link --project-ref PROJECT_REF
-supabase functions deploy sync-discord-role
-supabase functions deploy manage-organizations
-supabase functions deploy manage-admin-center
-supabase functions deploy manage-discord-config
-supabase functions deploy manage-community-posts
-supabase functions deploy send-discord-notification
-supabase functions deploy close-expired-shifts
-supabase functions deploy create-voucher-organization
-supabase functions deploy get-organization-status
-supabase functions deploy finalize-organization
-supabase functions deploy manage-draft-organization
-supabase functions deploy discover-draft-roles
-supabase functions deploy save-draft-roles
+./supabase/deploy-functions.ps1 -ProjectRef PROJECT_REF
 ```
 
 Configurează secretele în Supabase: `SUPABASE_SERVICE_ROLE_KEY`, `DISCORD_BOT_TOKEN`, `PLATFORM_OWNER_DISCORD_IDS` și, unde este folosit, `CRON_SECRET`. Nu salva aceste valori în GitHub sau în fișierele publice ale panelului.

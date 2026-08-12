@@ -36,7 +36,7 @@ Din rădăcina proiectului:
 ./supabase/deploy-functions.ps1 -ProjectRef PROJECT_REF
 ```
 
-Trebuie publicate șapte funcții: `sync-discord-role`, `manage-discord-config`, `manage-community-posts`, `send-discord-notification`, `close-expired-shifts`, `manage-admin-center` și `manage-organizations`.
+Rulează `supabase/deploy-functions.ps1`; acesta publică toate funcțiile Edge active și evită menținerea unei liste duplicate în documentație.
 
 ## 4. Site-ul
 

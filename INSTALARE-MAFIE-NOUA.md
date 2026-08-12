@@ -11,7 +11,7 @@ Această instalare trebuie să aibă propriul proiect Supabase, propriul reposit
 
 ## 2. Instalează baza
 
-1. În Supabase SQL Editor rulează `supabase/INSTALARE-NOUA-COMPLETA.sql` o singură dată.
+1. În Supabase SQL Editor rulează `supabase/MASTER-MULTI-ORGANIZATIE.sql` o singură dată, într-un proiect Supabase gol.
 2. Nu copia ID-urile rolurilor din altă mafie. Rolurile se completează ulterior din configurator.
 
 ## 3. Configurează site-ul public
@@ -29,7 +29,7 @@ Autentifică Supabase CLI și rulează din rădăcina repository-ului:
 ./supabase/deploy-functions.ps1 -ProjectRef PROJECT_REF_NOU
 ```
 
-Sunt necesare toate cele șase funcții: `sync-discord-role`, `manage-discord-config`, `manage-community-posts`, `send-discord-notification`, `close-expired-shifts` și `manage-admin-center`.
+Scriptul `supabase/deploy-functions.ps1` publică toate funcțiile Edge active din proiect; folosește-l ca sursă unică pentru lista funcțiilor.
 
 ## 5. Configurează secretele
 
@@ -45,7 +45,7 @@ Sunt necesare toate cele șase funcții: `sync-discord-role`, `manage-discord-co
 
 ## 6. Configurează jobul automat
 
-Completează cele trei valori din `supabase/CONFIGURARE-CRON-TEMPLATE.sql`, apoi rulează fișierul în SQL Editor. `CRON_SECRET` trebuie să fie identic cu cel aplicat la Edge Functions.
+Aplică migrările din `supabase/migrations` după configurarea proiectului. Migrarea `20260811_weekly_shift_report.sql` creează jobul `invoke-weekly-shift-report`; `CRON_SECRET` trebuie să fie identic cu secretul Edge Functions.
 
 ## 7. Prima autentificare și configurarea Discord
 
@@ -61,10 +61,10 @@ Instalația este separată numai dacă are simultan: alt proiect Supabase, alt `
 ## Checklist final
 
 - `js/supabase-config.js` indică proiectul nou.
-- Cele șase Edge Functions sunt publicate în proiectul nou.
+- Toate funcțiile Edge active din `supabase/deploy-functions.ps1` sunt publicate în proiectul nou.
 - Secretele nu există în GitHub.
 - Botul este prezent pe serverul corect.
 - OAuth Redirect indică site-ul nou.
 - Există exact șapte mapări, nivelurile 1–7.
-- Joburile cron `panel-cleanup-after-30-days`, `close-expired-shifts-in-database` și `invoke-close-expired-shifts` sunt active.
+- Jobul `invoke-weekly-shift-report` este activ după aplicarea migrării săptămânale; verifică separat jobul de curățare `panel-cleanup-after-30-days` în `pg_cron`.
 - Verificare sistem nu raportează erori.
