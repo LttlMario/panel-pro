@@ -40,7 +40,9 @@ CREATE POLICY marketplace_illegal_update ON public.marketplace_ilegal
     )
     WITH CHECK (organization_id IS NULL);
 
-CREATE OR REPLACE VIEW public.marketplace_ilegal_feed AS
+CREATE OR REPLACE VIEW public.marketplace_ilegal_feed
+WITH (security_invoker = true)
+AS
 SELECT
     m.id,
     m.nume,

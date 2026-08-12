@@ -386,10 +386,7 @@
                 }
 
                 const activeUser = dbUser ? { ...localData, ...dbUser } : localData;
-                const role = activeUser.role || activeUser.default_role || 'Mecanic';
-
-                const roleLower = String(role).toLowerCase();
-                const isPrivileged = roleLower.includes('sef') || roleLower.includes('șef') || roleLower.includes('manager') || roleLower.includes('admin') || roleLower.includes('owner');
+                const isPrivileged = typeof isPlatformAdmin === 'function' && isPlatformAdmin();
                 const navLogs = document.getElementById('nav-logs');
                 if (isPrivileged && navLogs) {
                     navLogs.classList.remove('hidden');

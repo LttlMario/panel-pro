@@ -346,8 +346,7 @@ console.log(
         2
     )
 );
-    
-                return true;
+            return true;
 
             } catch (err) {
                 console.error(
@@ -545,8 +544,8 @@ console.log(
             const startDate = startAt;
             const days = Math.max(1, Math.floor((getNoticeDateTime(endAt) - getNoticeDateTime(startAt)) / 86400000) + 1);
 
-            const activeName = currentUser.display_name || currentUser.username || 'Mecanic';
-            const activeRole = currentUser.role || currentUser.default_role || 'Mecanic';
+            const activeName = currentUser.display_name || currentUser.username || 'Utilizator Discord';
+            const activeRole = currentUser.role || currentUser.default_role || 'Rol Discord';
 
             if (!activeOrganization?.id) {
                 alert('Nu există o organizație activă.');
@@ -811,11 +810,12 @@ fetchAbsences();
                     title: `📋 ${actionTitle} (Sediu)`,
                     color: 16753920,
                     fields: [
+                        { name: 'Începe', value: formatNoticeDate(data.start_at || data.start_date), inline: true },
+                        { name: 'Se termină', value: formatNoticeDate(getAbsenceEndAt(data)), inline: true },
                         { name: "👤 Membru / Funcție", value: data.colleague_name, inline: true },
                         { name: "🛠️ Rol în Bază", value: role, inline: true },
                         { name: "📌 Tip", value: data.notice_type || 'Înștiințare', inline: true },
-                        { name: "Începe", value: formatNoticeDate(data.start_at || data.start_date), inline: true },
-                        { name: "Se termină", value: formatNoticeDate(getAbsenceEndAt(data)), inline: true },
+                        { name: "🗓️ Interval", value: `${formatNoticeDate(data.start_at)} → ${formatNoticeDate(data.end_at)}`, inline: false },
                         { name: "💬 Motiv", value: data.reason, inline: false },
                         { name: "📎 Dovadă", value: data.proof_url || 'Nu a fost atașat un link.', inline: false }
                     ],

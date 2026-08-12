@@ -70,7 +70,9 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
 
     const cronSecret =
-      Deno.env.get('STATUS_LIVE_CRON_SECRET') || '';
+      Deno.env.get('STATUS_LIVE_CRON_SECRET') ||
+      Deno.env.get('CRON_SECRET') ||
+      '';
 
     const receivedCronSecret =
       request.headers.get('x-cron-secret') || '';
@@ -78,6 +80,12 @@ Deno.serve(async (request) => {
     const isCronRequest: boolean =
       cronSecret.length > 0 &&
       receivedCronSecret === cronSecret;
+
+    const directWebhookUrl = String(body.webhook_url || '').trim();
+    const persistDirectWebhook = directWebhookUrl && body.persist_direct === true;
+    if (directWebhookUrl && !isCronRequest) {
+      return reply({ error: 'Webhookul direct poate fi folosit doar pentru testarea autorizată.' }, 403);
+    }
 
     console.log('STATUS LIVE AUTH DEBUG', {
       hasCronSecret: Boolean(cronSecret),
@@ -139,20 +147,25 @@ Deno.serve(async (request) => {
     const section = (title: string, items: any[], icon: string) => `${title} (${items.length})\n${items.length ? items.map((shift) => line(shift, icon)).join('\n') : '_Nimeni_'}`;
     const description = `${section('🟢 În pontaj', active, '🟢')}\n\n${section('☕ În pauză', paused, '☕')}\n\n📊 **Total:** ${rows.length}\n⏱️ **Actualizat:** <t:${Math.floor(now / 1000)}:R>`;
     const payload = { embeds: [{ title: `📡 STATUS LIVE · ${organization?.name || 'Organizație'}`, description, color: 3066993, timestamp: new Date(now).toISOString(), footer: { text: 'Panel · actualizare live' } }] };
-    const route = settings?.webhook_routes?.status_live || {};
+    const route = directWebhookUrl
+      ? { direct: { enabled: true, url: directWebhookUrl } }
+      : settings?.webhook_routes?.status_live || {};
     const storedMessageId = String(
       organization?.live_status_message_id || ''
     ).trim();
 
     const messageIds: Record<string, string> = {};
 
-    for (const target of ['primary', 'secondary']) {
+    const targets = directWebhookUrl ? ['direct'] : ['primary', 'secondary'];
+    for (const target of targets) {
       const configured = route[target];
       if (!configured?.enabled || !configured.url) continue;
       const webhook = discordUrl(String(configured.url));
       const existingId = target === 'primary'
         ? storedMessageId
-        : '';
+        : target === 'secondary'
+          ? String(configured.message_id || '').trim()
+          : '';
       let response: Response;
 
       if (existingId && /^\d{15,22}$/.test(existingId)) {
@@ -199,16 +212,63 @@ Deno.serve(async (request) => {
     }
         const primaryMessageId = messageIds.primary || storedMessageId || null;
 
-        const { error: updateOrganizationError } = await db
-          .from('organizations')
-          .update({
-            live_status_message_id: primaryMessageId,
-            live_status_last_update: new Date(now).toISOString()
-          })
-          .eq('id', organizationId);
+        // Pentru webhookul secundar păstrăm ID-ul în configurația organizației,
+        // astfel încât actualizările viitoare să editeze primul embed.
+        if (!directWebhookUrl && messageIds.secondary && route.secondary) {
+          route.secondary = {
+            ...route.secondary,
+            message_id: messageIds.secondary
+          };
+          const { error: secondaryRouteError } = await db
+            .from('organization_settings')
+            .update({
+              webhook_routes: {
+                ...settings?.webhook_routes,
+                status_live: route
+              },
+              updated_at: new Date(now).toISOString()
+            })
+            .eq('organization_id', organizationId);
+          if (secondaryRouteError) throw secondaryRouteError;
+        }
 
-        if (updateOrganizationError) {
-          throw updateOrganizationError;
+        if (persistDirectWebhook && messageIds.direct) {
+          const currentRoutes = settings?.webhook_routes && typeof settings.webhook_routes === 'object'
+            ? settings.webhook_routes
+            : {};
+          const { error: directRouteError } = await db
+            .from('organization_settings')
+            .update({
+              webhook_routes: {
+                ...currentRoutes,
+                status_live: {
+                  ...(currentRoutes.status_live || {}),
+                  primary: currentRoutes.status_live?.primary || null,
+                  secondary: {
+                    enabled: true,
+                    url: directWebhookUrl,
+                    message_id: messageIds.direct
+                  }
+                }
+              },
+              updated_at: new Date(now).toISOString()
+            })
+            .eq('organization_id', organizationId);
+          if (directRouteError) throw directRouteError;
+        }
+
+        if (!directWebhookUrl) {
+          const { error: updateOrganizationError } = await db
+            .from('organizations')
+            .update({
+              live_status_message_id: primaryMessageId,
+              live_status_last_update: new Date(now).toISOString()
+            })
+            .eq('id', organizationId);
+
+          if (updateOrganizationError) {
+            throw updateOrganizationError;
+          }
         }
     return reply({ ok: true, organization: organization?.name || '', active: active.length, paused: paused.length, message_ids: messageIds, updated_at: new Date(now).toISOString() });
   } catch (error) {

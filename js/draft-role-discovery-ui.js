@@ -29,7 +29,7 @@
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Nu s-au putut citi rolurile.');
-        output.innerHTML = (result.roles || []).map((role) => `<label class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-700 p-2"><input type="checkbox" data-draft-role="${role.id}" data-role-name="${role.name.replace(/"/g, '&quot;')}"><span class="min-w-36">${role.name}</span><input data-role-level="${role.id}" type="number" min="1" max="99" value="1" class="w-20 rounded bg-slate-950 border border-slate-700 p-1" title="Nivel numeric"><input data-role-panel="${role.id}" value="${role.name.replace(/"/g, '&quot;')}" class="min-w-48 flex-1 rounded bg-slate-950 border border-slate-700 p-1" title="Nume afișat în panel"></label>`).join('') || 'Nu există roluri disponibile.';
+        output.innerHTML = (result.roles || []).map((role) => `<label class="flex items-center gap-2 rounded-lg border border-slate-700 p-2"><input type="checkbox" data-draft-role="${role.id}" data-role-name="${role.name.replace(/"/g, '&quot;')}"><span class="min-w-36">${role.name}</span></label>`).join('') || 'Nu există roluri disponibile.';
         window.draftAvailableRoles = result.roles || [];
         if (window.renderDraftPagePermissions) window.renderDraftPagePermissions(window.draftAvailableRoles);
         window.dispatchEvent(new CustomEvent('draft-roles-discovered'));

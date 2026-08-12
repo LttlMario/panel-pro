@@ -184,9 +184,8 @@
         currentUser = {
             discord_id: '',
             username: '',
-            display_name: 'Mecanic',
-            role: 'Ilegal',
-            panel_level: 0,
+            display_name: '',
+            role: '',
             organization_id: '',
             organization_name: '',
             illegal_organization_name: ''
@@ -389,15 +388,8 @@
 
                 currentUser.discord_id = activeUser.discord_id;
                 currentUser.username = activeUser.username || '';
-                currentUser.display_name = activeUser.display_name || activeUser.username || 'Mecanic';
-                currentUser.role = activeUser.role || activeUser.default_role || 'Ilegal';
-                currentUser.panel_level = Number(
-                    activeUser.permission_level ||
-                    activeUser.panel_level ||
-                    localData.permission_level ||
-                    localData.panel_level ||
-                    0
-                );
+                currentUser.display_name = activeUser.display_name || activeUser.username || 'Utilizator Discord';
+                currentUser.role = activeUser.role || activeUser.default_role || '';
 
                 currentUser.organization_id =
                     localData.organization_id ||
@@ -423,10 +415,7 @@
                 const numeDeCompletat = currentUser.display_name || currentUser.username || '';
                 document.getElementById('nume').value = normalizeBlackMarketName(numeDeCompletat);
 
-                const roleLower = currentUser.role.toLowerCase();
-                const isPrivileged = roleLower.includes('sef') || roleLower.includes('șef') || roleLower.includes('manager') || roleLower.includes('admin') || roleLower.includes('owner');
-
-                if (isPrivileged) {
+                if (typeof isPlatformAdmin === 'function' && isPlatformAdmin()) {
                     const navLogs = document.getElementById('nav-logs');
                     if (navLogs) navLogs.classList.remove('hidden');
                 }
@@ -534,9 +523,7 @@
                 let subBadge = item.subcategorie ? ` / ${item.subcategorie}` : '';
                 let textCurat = item.produse || '';
                 const numeAfisat = normalizeBlackMarketName(item.nume);
-                const poateAdministra =
-                    Number(currentUser.panel_level || 0) >= 99 ||
-                    (typeof isPlatformAdmin === 'function' && isPlatformAdmin());
+                const poateAdministra = typeof isPlatformAdmin === 'function' && isPlatformAdmin();
                 const poateEdita =
                     poateAdministra ||
                     String(item.created_by_discord_id || '') === String(currentUser.discord_id || '');
@@ -646,9 +633,7 @@
             const item = marketplaceItems.find(entry => String(entry.id) === String(id));
             if (!item) return;
 
-            const poateAdministra =
-                Number(currentUser.panel_level || 0) >= 99 ||
-                (typeof isPlatformAdmin === 'function' && isPlatformAdmin());
+            const poateAdministra = typeof isPlatformAdmin === 'function' && isPlatformAdmin();
             const poateEdita =
                 poateAdministra ||
                 String(item.created_by_discord_id || '') === String(currentUser.discord_id || '');

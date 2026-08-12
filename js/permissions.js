@@ -734,49 +734,6 @@ function applyRoleBasedVisibility() {
     });
 
 
-    /*
-     * Compatibilitate temporară.
-     *
-     * Unele pagini vechi pot avea încă data-role.
-     * Nu mai interpretăm valoarea numerică.
-     *
-     * Dacă elementul este un link către o pagină,
-     * accesul este decis de allowed_pages.
-     */
-    document
-        .querySelectorAll('[data-role]')
-        .forEach(element => {
-
-            const rawHref =
-                element.getAttribute('href') || '';
-
-            if (!rawHref) {
-                /*
-                 * Nu ascundem automat elementele fără href.
-                 * Acestea vor fi curățate ulterior din
-                 * paginile vechi.
-                 */
-                return;
-            }
-
-            const href =
-                rawHref
-                    .split('?')[0]
-                    .split('#')[0]
-                    .split('/')
-                    .pop();
-
-            if (
-                href &&
-                href.endsWith('.html')
-            ) {
-                element.style.display =
-                    canAccessPage(href)
-                        ? ''
-                        : 'none';
-            }
-        });
-
     document.querySelectorAll('[data-nav-section]').forEach(section => {
         const hasVisibleLink = [...section.querySelectorAll('a[href]')]
             .some(link => getComputedStyle(link).display !== 'none');

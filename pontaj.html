@@ -155,7 +155,8 @@
                     return;
                 }
 
-                const activeOrganizationId = window.getActiveOrganizationId?.() || null;
+                const activeOrganizationId =
+                    window.getActiveOrganizationId?.() || localData.organization_id || null;
 
                 if (!activeOrganizationId) {
                     window.location.href = 'guest.html';
@@ -181,7 +182,7 @@
                 currentUser.discord_id = activeUser.discord_id;
                 currentUser.display_name = localData.display_name || activeUser.display_name || activeUser.username || 'Membru';
                 // Rolul sincronizat din Discord este sursa de adevăr, nu valoarea veche din tabelul users.
-                currentUser.role = localData.role || localData.default_role || activeUser.role || activeUser.default_role || 'Membru';
+                currentUser.role = localData.role || localData.default_role || activeUser.role || activeUser.default_role || 'Rol Discord';
                 // Organizația selectată în sesiune are prioritate față de datele vechi din users.
                 currentUser.organization_id = activeOrganizationId;
 
@@ -361,11 +362,11 @@
         async function ensurePontajOrganization() {
             if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
 
-            const organizationId = window.getActiveOrganizationId?.() || null;
-            if (!organizationId || !window.isPanelOrganizationId?.(organizationId)) {
-                throw new Error('Organizația activă nu a fost identificată. Reautentifică-te.');
+            let organizationId = window.getActiveOrganizationId?.() || currentUser.organization_id || null;
+            if (!organizationId) {
+                try { organizationId = JSON.parse(localStorage.getItem('discord_user') || '{}')?.organization_id || null; } catch (_) {}
             }
-
+            if (!organizationId) throw new Error('Organizația activă nu a fost identificată.');
             currentUser.organization_id = organizationId;
             supabaseClient = window.createPanelSupabaseClient();
             return organizationId;

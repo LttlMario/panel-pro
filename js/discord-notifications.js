@@ -11,18 +11,28 @@
             throw new Error('Sesiunea Discord lipsește. Autentifică-te din nou.');
         }
 
-        // Reface automat contextul dacă panelul a păstrat tokenul, dar a pierdut organizația activă.
+        // Reface automat contextul dacă panelul a păstrat tokenul, dar a
+        // pierdut organizația activă din localStorage.
         if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
 
         const panelSessionToken = localStorage.getItem('panel_session_token');
         if (!panelSessionToken) throw new Error('Sesiunea securizată a panelului lipsește. Reautentifică-te.');
 
-        // Folosim numai UUID-ul organizației, niciodată guild/user ID-ul numeric din Discord.
+        // Identificăm organizația activă a utilizatorului.
+        const cachedUser = localStorage.getItem('discord_user');
         let organizationId = window.PANEL_ACTIVE_ORGANIZATION_ID || window.getActiveOrganizationId?.() || null;
-        if (!window.isPanelOrganizationId?.(organizationId)) organizationId = null;
 
         if (!organizationId) {
-            throw new Error('Organizația activă nu a fost identificată. Reautentifică-te.');
+            try {
+                const userData = cachedUser ? JSON.parse(cachedUser) : null;
+                organizationId = userData?.organization_id || null;
+            } catch (_) {
+                organizationId = null;
+            }
+        }
+
+        if (!organizationId) {
+            throw new Error('Organizația activă nu a fost identificată.');
         }
 
         let body;

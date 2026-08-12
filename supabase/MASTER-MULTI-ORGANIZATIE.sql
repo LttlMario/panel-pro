@@ -962,6 +962,8 @@ CREATE TABLE public.organizations (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     lifecycle_status text DEFAULT 'active'::text NOT NULL,
     grace_until timestamp with time zone,
+    live_status_message_id text,
+    live_status_last_update timestamp with time zone,
     CONSTRAINT organizations_lifecycle_status_check CHECK ((lifecycle_status = ANY (ARRAY['draft'::text, 'active'::text, 'grace'::text, 'paused'::text]))),
     CONSTRAINT organizations_name_check CHECK (((length(btrim(name)) >= 2) AND (length(btrim(name)) <= 100))),
     CONSTRAINT organizations_slug_check CHECK ((slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'::text))

@@ -16,8 +16,7 @@
       const roles = [...box.querySelectorAll('[data-draft-role]:checked')].map((checkbox) => ({
         id: checkbox.dataset.draftRole,
         name: checkbox.dataset.roleName,
-        level: Number(box.querySelector(`[data-role-level="${checkbox.dataset.draftRole}"]`)?.value || 1),
-        panel_role: box.querySelector(`[data-role-panel="${checkbox.dataset.draftRole}"]`)?.value.trim() || checkbox.dataset.roleName
+        panel_role: checkbox.dataset.roleName
       }));
       const status = document.getElementById('draft-config-status');
       if (!roles.length) { status.textContent = 'Selectează cel puțin un rol.'; return; }

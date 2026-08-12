@@ -190,10 +190,9 @@
             if (user?.organization_access_expired === true) {
                 return 'administrare-organizatie.html';
             }
-            const permissionLevel = Number(user?.permission_level);
-
             const selectedPages = Array.isArray(user?.allowed_pages) && user.allowed_pages.length > 0;
-            if (Number.isInteger(permissionLevel) && permissionLevel === 0 && !selectedPages) {
+            const platformAdmin = user?.platform_admin === true || user?.is_platform_admin === true;
+            if (!platformAdmin && !selectedPages) {
                 return 'guest.html';
             }
 
@@ -209,31 +208,13 @@
             sessionStorage.removeItem('panel_return_after_login');
             if (!savedDestination) return fallback;
 
-            const pagePermissions = {
-                'index.html': 1,
-                'asistent.html': 1,
-                'pontaj.html': 1,
-                'cereri.html': 1,
-                'craftmecanics.html': 1,
-                'marketplace.html': 1,
-                'anunturi.html': 1,
-                'calculatorilegal.html': 3,
-                'locatiiilegale.html': 3,
-                'marketplace-ilegal.html': 3,
-                'rapoarte.html': 4,
-                'contracte.html': 4,
-                'logs.html': 7,
-                'admin.html': 7,
-            };
-
             try {
                 const destination = new URL(savedDestination, window.location.href);
                 if (destination.origin !== window.location.origin) return fallback;
                 const page = destination.pathname.split('/').pop() || 'index.html';
-                const requiredLevel = pagePermissions[page];
-                const userLevel = Number(user?.permission_level) || 0;
                 const selectedPages = Array.isArray(user?.allowed_pages) && user.allowed_pages.includes(page);
-                if (requiredLevel === undefined || (userLevel < requiredLevel && !selectedPages)) return fallback;
+                const platformAdmin = user?.platform_admin === true || user?.is_platform_admin === true;
+                if (!platformAdmin && !selectedPages) return fallback;
                 return `${page}${destination.search}${destination.hash}`;
             } catch (_) {
                 return fallback;

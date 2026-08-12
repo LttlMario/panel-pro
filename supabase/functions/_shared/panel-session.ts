@@ -1,4 +1,10 @@
-export type PanelSession = { organization_id: string; discord_id: string; permission_level: number };
+export type PanelSession = {
+  organization_id: string;
+  discord_id: string;
+  permission_level: number;
+  discord_role_ids: string[];
+  is_platform_admin: boolean;
+};
 
 const sha256 = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))))
   .map((byte) => byte.toString(16).padStart(2, '0')).join('');
@@ -6,7 +12,7 @@ const sha256 = async (value: string) => Array.from(new Uint8Array(await crypto.s
 export async function requirePanelSession(db: any, request: Request, minimumLevel = 0, allowInactiveOrganization = false): Promise<PanelSession> {
   const token = String(request.headers.get('x-panel-session') || '').trim();
   if (!token) throw new Error('Sesiunea securizată a panelului lipsește. Autentifică-te din nou.');
-  const { data, error } = await db.from('panel_sessions').select('organization_id,discord_id,permission_level,expires_at,revoked_at')
+  const { data, error } = await db.from('panel_sessions').select('organization_id,discord_id,permission_level,discord_role_ids,is_platform_admin,expires_at,revoked_at')
     .eq('token_hash', await sha256(token)).maybeSingle();
   if (error) throw error;
   if (!data || data.revoked_at || new Date(data.expires_at).getTime() <= Date.now()) throw new Error('Sesiunea panelului a expirat. Autentifică-te din nou.');
@@ -19,5 +25,11 @@ export async function requirePanelSession(db: any, request: Request, minimumLeve
     throw new Error('Perioada de activare a organizației a expirat. Contactează administratorul platformei pentru prelungire.');
   }
   if (Number(data.permission_level) < minimumLevel) throw new Error(`Este necesar nivelul ${minimumLevel}.`);
-  return { organization_id: String(data.organization_id), discord_id: String(data.discord_id), permission_level: Number(data.permission_level) };
+  return {
+    organization_id: String(data.organization_id),
+    discord_id: String(data.discord_id),
+    permission_level: Number(data.permission_level),
+    discord_role_ids: Array.isArray(data.discord_role_ids) ? data.discord_role_ids.map(String) : [],
+    is_platform_admin: data.is_platform_admin === true
+  };
 }

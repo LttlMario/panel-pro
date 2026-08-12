@@ -38,8 +38,8 @@ Deno.serve(async (req) => {
 
     const { data: organization } = await db.from('organizations').select('lifecycle_status').eq('id', id).maybeSingle();
     if (!organization || organization.lifecycle_status !== 'draft') return reply({ error: 'Organizația nu este în starea Draft.' }, 400);
-    const { data: mappings } = await db.from('organization_role_mappings').select('discord_role_id,discord_role_name,panel_role,permission_level').eq('organization_id', id).eq('enabled', true);
-    const roles = Array.isArray(body.roles) && body.roles.length ? body.roles : (mappings || []).map((item: any) => ({ id: item.discord_role_id, name: item.discord_role_name, panel_role: item.panel_role, level: item.permission_level }));
+    const { data: mappings } = await db.from('organization_role_mappings').select('discord_role_id,discord_role_name,panel_role').eq('organization_id', id).eq('enabled', true);
+    const roles = Array.isArray(body.roles) && body.roles.length ? body.roles : (mappings || []).map((item: any) => ({ id: item.discord_role_id, name: item.discord_role_name, panel_role: item.panel_role }));
     if (!roles.length) return reply({ error: 'Configurează și salvează cel puțin un rol.' }, 400);
     const { data: packageSetting } = await db.from('app_settings').select('value').eq('organization_id', id).eq('key', 'organization_package').maybeSingle();
     const premium = packageSetting?.value?.code === 'full';
@@ -58,8 +58,9 @@ Deno.serve(async (req) => {
     if (verifiedDiscordUser) {
       const { data: activeOrganization } = await db.from('organizations').select('id,name,slug,address,logo_url,banner_url,active').eq('id', id).single();
       const displayName = String(verifiedDiscordUser.global_name || verifiedDiscordUser.username || 'Administrator');
-      const userData = { discord_id: actor.discord_id, username: String(verifiedDiscordUser.username || displayName), display_name: displayName, email: verifiedDiscordUser.email || null, avatar: avatarUrl(actor.discord_id, verifiedDiscordUser.avatar), avatar_url: avatarUrl(actor.discord_id, verifiedDiscordUser.avatar), role: 'Administrator', default_role: 'Administrator' };
-      const { data: savedUser, error: userError } = await db.from('users').upsert(userData, { onConflict: 'discord_id' }).select('*').single();
+      const userData = { discord_id: actor.discord_id, username: String(verifiedDiscordUser.username || displayName), display_name: displayName, avatar: avatarUrl(actor.discord_id, verifiedDiscordUser.avatar), avatar_url: avatarUrl(actor.discord_id, verifiedDiscordUser.avatar), role: 'Administrator', default_role: 'Administrator' };
+      // Emailul nu este solicitat prin OAuth și nu este sincronizat în panel.
+      const { data: savedUser, error: userError } = await db.from('users').upsert(userData, { onConflict: 'discord_id' }).select('id,discord_id,username,display_name,avatar,avatar_url,role,default_role,service,maintenance_mode,discord_logs_active,threshold_value,max_shift_hours,created_at,updated_at').single();
       if (userError) throw userError;
       const { error: memberError } = await db.from('organization_members').upsert({ organization_id: id, discord_id: actor.discord_id, panel_role: 'Administrator', permission_level: 99, active: true, last_verified_at: new Date().toISOString() }, { onConflict: 'organization_id,discord_id' });
       if (memberError) throw memberError;
