@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Max-Age': '86400', 'Content-Type': 'application/json' };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
+const discordBotHeaders = (bot: string) => ({ Authorization: `Bot ${bot}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)' });
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
@@ -24,7 +25,7 @@ Deno.serve(async (request) => {
 
     const bot = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
     if (!bot) return reply({ error: 'Botul Discord nu este configurat în Supabase.' }, 500);
-    const botHeaders = { Authorization: `Bot ${bot}` };
+    const botHeaders = discordBotHeaders(bot);
     const [guildResponse, rolesResponse] = await Promise.all([
       fetch(`https://discord.com/api/v10/guilds/${guildId}`, { headers: botHeaders }),
       fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, { headers: botHeaders })
