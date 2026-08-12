@@ -9,6 +9,7 @@ const headers = {
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}').default;
 const avatarUrl = (id: string, avatar?: string | null) => avatar ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png` : 'https://panel-management.netlify.app//img/logo-192.png';
+const normalizeId = (value: unknown) => String(value ?? '').trim();
 const randomToken = () => { const bytes = crypto.getRandomValues(new Uint8Array(32)); return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', ''); };
 const sha256 = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 
@@ -85,16 +86,16 @@ Deno.serve(async (request) => {
         if (rolesResponse.ok) for (const role of (await rolesResponse.json()) as any[]) roles.set(String(role.id), { name: String(role.name), position: Number(role.position) || 0 });
         liveRoles.set(String(guild.guild_id), roles);
       }
-      const roleIds = new Set<string>(Array.isArray(member.roles) ? member.roles.map(String) : []);
+      const roleIds = new Set<string>(Array.isArray(member.roles) ? member.roles.map(normalizeId) : []);
       const highestDiscordRole = [...roleIds]
         .map((roleId) => liveRoles.get(String(guild.guild_id))?.get(roleId))
         .filter(Boolean)
         .sort((a:any, b:any) => b.position - a.position)[0] as { name: string; position: number } | undefined;
         const matchedMappings = (mappings || [])
           .filter((item: any) =>
-            item.organization_id === guild.organization_id &&
-            item.guild_id === guild.guild_id &&
-            roleIds.has(String(item.discord_role_id))
+            normalizeId(item.organization_id) === normalizeId(guild.organization_id) &&
+            normalizeId(item.guild_id) === normalizeId(guild.guild_id) &&
+            roleIds.has(normalizeId(item.discord_role_id))
           );
 
         const best = matchedMappings
