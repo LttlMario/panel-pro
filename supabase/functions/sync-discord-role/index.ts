@@ -283,9 +283,13 @@ if (!existing) {
         )
         .map(([page]) => page);
 
-    // Un rol configurat trebuie să poată intra cel puțin în Dashboard și Pontaj,
-    // chiar dacă maparea permisiunilor de pagini nu conține încă ID-ul rolului secundar.
-    if (!allowed_pages.length) allowed_pages = ['index.html', 'pontaj.html'];
+    // Orice rol Discord identificat trebuie să poată intra în Dashboard și Pontaj.
+    // Restul paginilor rămân controlate de selecțiile configurate în organizație.
+    if (value.discord_role_ids.length) {
+      allowed_pages = [
+        ...new Set(['index.html', 'pontaj.html', ...allowed_pages])
+      ];
+    }
 
     const assistantRules: any = assistantPageSettings.get(organization_id) || {};
     const assistantConfigured = Object.keys(assistantRules).length > 0;
