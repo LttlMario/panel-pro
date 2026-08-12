@@ -378,6 +378,16 @@ console.log(
             return new Date(value).toLocaleDateString('ro-RO');
         }
 
+        function getAbsenceEndAt(item) {
+            if (item?.end_at) return item.end_at;
+            const start = item?.start_at || item?.start_date;
+            const days = Math.max(1, Number(item?.days) || 1);
+            if (!start) return null;
+            const end = new Date(start);
+            end.setDate(end.getDate() + days - 1);
+            return end.toISOString();
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
 
 
@@ -656,7 +666,7 @@ fetchAbsences();
                 absences.forEach(item => {
                     const createdAtFormatted = new Date(item.created_at).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' });
                     const startFormatted = formatNoticeDate(item.start_at || item.start_date);
-                    const endFormatted = item.end_at ? formatNoticeDate(item.end_at) : `${item.days || 1} zi(le)`;
+                    const endFormatted = formatNoticeDate(getAbsenceEndAt(item));
                     const noticeType = item.notice_type || 'Înștiințare';
                     const proofHtml = item.proof_url
                         ? `<a href="${item.proof_url}" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 underline">Deschide</a>`
@@ -804,7 +814,8 @@ fetchAbsences();
                         { name: "👤 Membru / Funcție", value: data.colleague_name, inline: true },
                         { name: "🛠️ Rol în Bază", value: role, inline: true },
                         { name: "📌 Tip", value: data.notice_type || 'Înștiințare', inline: true },
-                        { name: "🗓️ Interval", value: `${formatNoticeDate(data.start_at)} → ${formatNoticeDate(data.end_at)}`, inline: false },
+                        { name: "Începe", value: formatNoticeDate(data.start_at || data.start_date), inline: true },
+                        { name: "Se termină", value: formatNoticeDate(getAbsenceEndAt(data)), inline: true },
                         { name: "💬 Motiv", value: data.reason, inline: false },
                         { name: "📎 Dovadă", value: data.proof_url || 'Nu a fost atașat un link.', inline: false }
                     ],
