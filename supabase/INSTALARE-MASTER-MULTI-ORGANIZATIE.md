@@ -25,7 +25,6 @@ supabase functions deploy finalize-organization
 supabase functions deploy manage-draft-organization
 supabase functions deploy discover-draft-roles
 supabase functions deploy save-draft-roles
-supabase functions deploy send-organization-expiration-notifications
 ```
 
 Configurează secretele în Supabase: `SUPABASE_SERVICE_ROLE_KEY`, `DISCORD_BOT_TOKEN`, `PLATFORM_OWNER_DISCORD_IDS` și, unde este folosit, `CRON_SECRET`. Nu salva aceste valori în GitHub sau în fișierele publice ale panelului.

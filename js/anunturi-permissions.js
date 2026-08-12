@@ -11,7 +11,7 @@
       const access = await response.json();
       if (!response.ok || access.read === false) {
         const shell = document.querySelector('.community-shell') || document.querySelector('main');
-        if (shell) shell.innerHTML = '<div class="rounded-2xl border border-amber-700/50 bg-amber-950/20 p-6 text-sm text-amber-200">Gradul tău nu are drept de citire pentru Anunțuri.</div>';
+        if (shell) shell.innerHTML = '<div class="rounded-2xl border border-amber-700/50 bg-amber-950/20 p-6 text-sm text-amber-200">Rolurile Discord selectate nu au drept de citire pentru Anunțuri.</div>';
         return;
       }
       if (access.write === false) document.getElementById('create-button')?.remove();

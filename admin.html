@@ -35,7 +35,7 @@
                     <div>
                         <p class="text-[10px] font-black uppercase tracking-widest text-indigo-300">Relocare rapidă</p>
                         <h3 class="text-lg font-black text-slate-100 mt-1">Configurare server Discord</h3>
-                        <p class="text-xs text-slate-400 mt-1 max-w-2xl">Schimbă aplicația, serverul, cele șapte roluri, webhook-urile și adresa panelului dintr-un singur formular securizat.</p>
+                        <p class="text-xs text-slate-400 mt-1 max-w-2xl">Schimbă aplicația, serverul, rolurile Discord, webhook-urile și adresa panelului dintr-un singur formular securizat.</p>
                     </div>
                     <a href="discord-configurare.html" class="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500/15 px-5 py-3 text-xs font-black text-indigo-200 hover:bg-indigo-500/25 transition">⚙️ Deschide configuratorul</a>
                 </div>
@@ -44,8 +44,8 @@
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-lg overflow-hidden flex flex-col">
                     <div class="p-6 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h3 class="text-base font-bold text-slate-100">Gestionare Roluri Echipă & Administrare Utilizatori</h3>
-                            <p class="text-xs text-slate-400 mt-0.5">Setează rolul dorit sau aplică sancțiuni de tip Kick pentru utilizatori.</p>
+                            <h3 class="text-base font-bold text-slate-100">Membri și administrare utilizatori</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Rolurile se sincronizează automat din Discord și se configurează la nivel de organizație.</p>
                         </div>
                         <div class="flex items-center space-x-3">
                             <span id="users-count-badge" class="text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700">0 utilizatori</span>
@@ -65,7 +65,7 @@
                             <input type="text" id="search-id" oninput="renderUsersTable()" placeholder="🆔 Caută după Discord ID..." class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2 focus:outline-none focus:border-emerald-500">
                         </div>
                         <div>
-                            <input id="filter-role" type="number" min="1" max="99" step="1" placeholder="Grad numeric" class="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-1.5 w-32">
+                            <input id="filter-role" type="text" placeholder="Filtrează după rol Discord" class="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-1.5 w-48">
                         </div>
                         <div>
                             <button onclick="resetFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2 px-3 rounded-xl border border-slate-700 transition cursor-pointer">
@@ -82,13 +82,12 @@
                                     <th class="p-4 bg-slate-950">Discord ID</th>
                                     <th class="p-4 bg-slate-950">Nume / Utilizator</th>
                                     <th class="p-4 bg-slate-950">Rol Curent</th>
-                                    <th class="p-4 bg-slate-950">Setează Rol Nou</th>
-                                    <th class="p-4 bg-slate-950 text-right">Acțiuni Administrative (Kick / Salvare)</th>
+                                    <th class="p-4 bg-slate-950 text-right">Acțiuni Administrative</th>
                                 </tr>
                             </thead>
                             <tbody id="admin-users-table-body" class="divide-y divide-slate-800 text-slate-300">
                                 <tr>
-                                    <td colspan="5" class="p-6 text-center text-slate-500">Se încarcă utilizatorii...</td>
+                                    <td colspan="4" class="p-6 text-center text-slate-500">Se încarcă utilizatorii...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -252,7 +251,6 @@
         const supabaseClient = window.createPanelSupabaseClient();
 
         let allUsersData = [];
-        let adminRoleOptions = [];
         document.addEventListener('DOMContentLoaded', async () => {
             // Evidențiere link activ în sidebar
             const currentPage = window.location.pathname.split("/").pop() || "index.html";
@@ -292,14 +290,7 @@
                     return;
                 }
 
-                activeUser.permission_level = 99;
-
-                const role = '99';
-
-                // Afișare tab loguri pentru roluri privilegiate
-                const roleLower = role.toLowerCase();
-                const isPrivileged = roleLower.includes('sef') || roleLower.includes('șef') || roleLower.includes('manager') || roleLower.includes('admin') || roleLower.includes('owner');
-                if (isPrivileged) {
+                if (typeof isPlatformAdmin === 'function' && isPlatformAdmin()) {
                     const navLogs = document.getElementById('nav-logs');
                     if (navLogs) navLogs.classList.remove('hidden');
                 }
@@ -336,19 +327,11 @@
                 let data = result.members, error = null;
 
                 if (error || !data || data.length === 0) {
-                    allUsersData = [
-                        {
-                            discord_id: '247012210021236738',
-                            display_name: 'Little Mario',
-                            role: '99',
-                            permission_level: 99
-                        }
-                    ];
+                    allUsersData = [];
                 } else {
                     allUsersData = data;
                 }
 
-                await loadAdminRoleOptions();
                 renderUsersTable();
             } catch (err) {
                 console.error('Erore preluare utilizatori:', err);
@@ -357,7 +340,7 @@
                     const [usersResult, membersResult] = await Promise.all([
                         supabaseClient.from('users').select('discord_id,username,display_name,avatar,avatar_url,role,default_role').order('display_name'),
                         organizationId
-                            ? supabaseClient.from('organization_members').select('discord_id,panel_role,permission_level,active').eq('organization_id', organizationId).eq('active', true)
+                            ? supabaseClient.from('organization_members').select('discord_id,panel_role,active').eq('organization_id', organizationId).eq('active', true)
                             : Promise.resolve({ data: [], error: null })
                     ]);
                     if (usersResult.error) throw usersResult.error;
@@ -366,34 +349,14 @@
                     allUsersData = (usersResult.data || []).map(user => ({
                         ...user,
                         ...(memberships.get(String(user.discord_id)) || {}),
-                        role: memberships.get(String(user.discord_id))?.panel_role || user.role || user.default_role || 'Mecanic',
-                        permission_level: memberships.get(String(user.discord_id))?.permission_level ?? 1
+                        role: memberships.get(String(user.discord_id))?.panel_role || user.role || user.default_role || 'Rol Discord'
                     }));
-                    await loadAdminRoleOptions();
                     renderUsersTable();
                 } catch (fallbackError) {
                     console.error('Erore fallback utilizatori:', fallbackError);
-                    if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-rose-300">Utilizatorii nu au putut fi încărcați: ${String(fallbackError?.message || err?.message || 'eroare necunoscută').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]))}</td></tr>`;
+                    if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-rose-300">Utilizatorii nu au putut fi încărcați: ${String(fallbackError?.message || err?.message || 'eroare necunoscută').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]))}</td></tr>`;
                 }
             }
-        }
-
-        async function loadAdminRoleOptions() {
-            const organizationId = window.getActiveOrganizationId?.();
-            if (!organizationId) return;
-            const { data, error } = await supabaseClient
-                .from('organization_role_mappings')
-                .select('permission_level,panel_role,discord_role_name,discord_role_id')
-                .eq('organization_id', organizationId)
-                .eq('enabled', true)
-                .order('permission_level', { ascending: true });
-            if (error) throw error;
-            adminRoleOptions = (data || [])
-                .filter(row => Number(row.permission_level) >= 1 && Number(row.permission_level) <= 98)
-                .map(row => ({
-                    level: Number(row.permission_level),
-                    name: String(row.panel_role || row.discord_role_name || `Grad ${row.permission_level}`).trim()
-                }));
         }
 
         function resetFilters() {
@@ -413,11 +376,11 @@
             const filteredUsers = allUsersData.filter(u => {
                 const name = (u.display_name || u.username || '').toLowerCase();
                 const id = String(u.discord_id || u.id || '').toLowerCase();
-                const role = String(Number(u.permission_level ?? u.role ?? 0));
+                const role = String(u.panel_role || u.role || u.default_role || '').toLowerCase();
 
                 const matchesName = name.includes(searchName);
                 const matchesId = id.includes(searchId);
-                const matchesRole = filterRole === '' || role === filterRole;
+                const matchesRole = filterRole === '' || role.includes(filterRole);
 
                 return matchesName && matchesId && matchesRole;
             });
@@ -425,7 +388,7 @@
             document.getElementById('users-count-badge').textContent = `${filteredUsers.length} / ${allUsersData.length} utilizatori`;
 
             if (filteredUsers.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">Nu a fost găsit niciun utilizator conform filtrelor aplicate.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500">Nu a fost găsit niciun utilizator conform filtrelor aplicate.</td></tr>`;
                 return;
             }
 
@@ -433,11 +396,6 @@
             filteredUsers.forEach((u) => {
                 const currentRole = String(u.panel_role || u.role || u.default_role || 'Rol neconfigurat');
                 const uId = u.discord_id || u.id;
-                const selectedLevel = Number(u.permission_level) || 1;
-                const roleOptions = adminRoleOptions.length
-                    ? [...adminRoleOptions, { level: 99, name: 'Administrator global' }]
-                    : [{ level: selectedLevel, name: currentRole }];
-
                 html += `
                     <tr class="hover:bg-slate-800/40 transition">
                         <td class="p-4 font-mono text-slate-400">${uId || 'N/A'}</td>
@@ -447,15 +405,7 @@
                                 ${currentRole}
                             </span>
                         </td>
-                        <td class="p-4">
-                            <select id="role-select-${uId}" class="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-1.5 min-w-32 focus:outline-none focus:border-emerald-500">
-                                ${roleOptions.map(option => `<option value="${option.level}" data-role-name="${String(option.name).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}" ${option.level === selectedLevel ? 'selected' : ''}>${option.name}</option>`).join('')}
-                            </select>
-                        </td>
                         <td class="p-4 text-right space-x-2">
-                            <button onclick="updateUserRole('${uId}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow">
-                                Salvează Rol
-                            </button>
                             <button onclick="kickUser('${uId}', '${u.display_name || u.username || 'Utilizator'}')" class="bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow">
                                 🚪 Kick / Forțează Logout
                             </button>
@@ -468,49 +418,6 @@
             });
 
             tbody.innerHTML = html;
-        }
-
-        async function updateUserRole(discordId) {
-            const PLATFORM_ADMIN_DISCORD_ID = '247012210021236738';
-
-            const selectEl = document.getElementById(`role-select-${discordId}`);
-            if (!selectEl) return;
-
-            let permissionLevel = Number(selectEl.value) || 1;
-
-            if (String(discordId) === PLATFORM_ADMIN_DISCORD_ID) {
-                permissionLevel = 99;
-            } else if (permissionLevel >= 99) {
-                permissionLevel = 98;
-            }
-
-            permissionLevel = Math.max(1, Math.min(99, permissionLevel));
-
-            const newRole = String(selectEl.selectedOptions?.[0]?.dataset.roleName || selectEl.selectedOptions?.[0]?.textContent || `Grad ${permissionLevel}`).trim();
-            selectEl.value = String(permissionLevel);
-
-            const userObj = allUsersData.find(
-                u => String(u.discord_id || u.id) === String(discordId)
-            );
-
-            if (userObj) {
-                userObj.role = newRole;
-                userObj.permission_level = permissionLevel;
-            }
-
-            try {
-                await window.panelAdminInvoke('member_role', {
-                    discord_id: discordId,
-                    role: newRole,
-                    permission_level: permissionLevel
-                });
-
-                alert(`Rolul utilizatorului a fost actualizat cu succes la: ${newRole}`);
-                renderUsersTable();
-            } catch (err) {
-                console.error('Erore actualizare rol:', err);
-                alert('Erore la actualizarea rolului.');
-            }
         }
 
         async function kickUser(discordId, userName) {

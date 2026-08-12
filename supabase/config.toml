@@ -1,5 +1,5 @@
 [functions.sync-discord-role]
-verify_jwt = false
+verify_jwt = true
 
 [functions.manage-discord-config]
 verify_jwt = false
@@ -23,4 +23,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.manage-owned-organization]
+verify_jwt = false
+
+[functions.status-live-sync]
 verify_jwt = false

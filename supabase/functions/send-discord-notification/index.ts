@@ -17,6 +17,7 @@ const reply = (data: unknown, status = 200) =>
 const levels: Record<string, number> = {
   organization: 1,
   pontaj: 1,
+  weekly_reports: 1,
 
   requests_organization: 1,
   requests_departments: 1,

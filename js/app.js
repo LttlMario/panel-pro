@@ -52,9 +52,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         appContainer.classList.remove('hidden');
 
         document.getElementById('user-display-name').textContent = user.display_name || user.username || 'Utilizator';
-        document.getElementById('user-role').textContent = user.role || 'Mecanic';
-        document.getElementById('welcome-name').textContent = user.display_name || user.username || 'Mecanic';
-        document.getElementById('card-role').textContent = user.role || 'Mecanic';
+        document.getElementById('user-role').textContent = user.role || 'Rol Discord';
+        document.getElementById('welcome-name').textContent = user.display_name || user.username || 'Utilizator Discord';
+        document.getElementById('card-role').textContent = user.role || 'Rol Discord';
         document.getElementById('card-service').textContent = user.service || 'Nespecificat';
 
         if (user.avatar) {

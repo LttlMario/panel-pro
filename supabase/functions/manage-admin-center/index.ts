@@ -3,7 +3,6 @@ import { requirePanelSession } from '../_shared/panel-session.ts';
 import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json'};
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
-const roleLevel=(value:unknown)=>{const text=String(value||'').toLowerCase();const number=Number(value);if(Number.isFinite(number))return number;if(text.includes('admin')||text.includes('owner'))return 7;if(text.includes('manager'))return 4;return 1};
 Deno.serve(async request=>{
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
   try{
@@ -15,7 +14,7 @@ Deno.serve(async request=>{
     const session=await requirePanelSession(db,request),discordUser={id:session.discord_id};
     const {data:user}=await db.from('users').select('display_name,username').eq('discord_id',discordUser.id).maybeSingle();
     if(!user)return reply({error:'Utilizatorul nu este înregistrat în panel.'},403);
-    const level=session.permission_level, organizationId=session.organization_id,actorName=user.display_name||user.username||discordUser.id;
+    const organizationId=session.organization_id,actorName=user.display_name||user.username||discordUser.id;
     if(!isPlatformAdminDiscordId(discordUser.id))return reply({error:'Această funcție este rezervată administratorului platformei.'},403);
     if(body.action==='notifications'){
       const {data:notes,error}=await db.from('panel_notifications').select('*').eq('organization_id',organizationId).or(`recipient_discord_id.is.null,recipient_discord_id.eq.${discordUser.id}`).order('created_at',{ascending:false}).limit(40);if(error)throw error;
@@ -26,7 +25,7 @@ Deno.serve(async request=>{
       const ids=(Array.isArray(body.ids)?body.ids:[]).slice(0,100);if(ids.length)await db.from('panel_notification_reads').upsert(ids.map((id:unknown)=>({organization_id:organizationId,notification_id:id,discord_id:discordUser.id})),{onConflict:'notification_id,discord_id'});return reply({ok:true});
     }
     if(body.action==='members'){
-      const {data:members,error}=await db.from('organization_members').select('*').eq('organization_id',organizationId).eq('active',true).order('permission_level',{ascending:false});if(error)throw error;
+      const {data:members,error}=await db.from('organization_members').select('organization_id,discord_id,panel_role,active,last_verified_at,created_at').eq('organization_id',organizationId).eq('active',true).order('created_at',{ascending:true});if(error)throw error;
       const ids=(members||[]).map((m:any)=>m.discord_id),{data:users}=ids.length?await db.from('users').select('discord_id,username,display_name,avatar,avatar_url').in('discord_id',ids):{data:[]};
       const profiles=new Map((users||[]).map((u:any)=>[String(u.discord_id),u]));return reply({members:(members||[]).map((m:any)=>({...profiles.get(String(m.discord_id)),...m,role:m.panel_role}))});
     }
@@ -42,11 +41,6 @@ Deno.serve(async request=>{
       if(memberError)throw memberError;
       const roles=new Map((members||[]).map((member:any)=>[String(member.discord_id),member.panel_role]));
       return reply({online_members:(sessions||[]).filter((session:any,index:number,array:any[])=>index===array.findIndex((item:any)=>String(item.discord_id)===String(session.discord_id))).map((session:any)=>({...profiles.get(String(session.discord_id)),discord_id:String(session.discord_id),panel_role:roles.get(String(session.discord_id))||profiles.get(String(session.discord_id))?.role||profiles.get(String(session.discord_id))?.default_role||'Rol neconfigurat'}))});
-    }
-    if(body.action==='member_role'){
-      const target=String(body.discord_id||''),role=String(body.role||'').trim(),permission=Number(body.permission_level);if(!target||!role||permission<1||permission>99)return reply({error:'Gradul numeric este invalid.'},400);
-      const {error}=await db.from('organization_members').update({panel_role:role,permission_level:permission,last_verified_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('discord_id',target);if(error)throw error;
-      await db.from('panel_sessions').update({revoked_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('discord_id',target).is('revoked_at',null);return reply({ok:true});
     }
     if(body.action==='member_kick'){
       const target=String(body.discord_id||'');if(!target)return reply({error:'Discord ID lipsește.'},400);

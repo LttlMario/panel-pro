@@ -33,20 +33,8 @@ window.getActiveOrganization = function getActiveOrganization() {
     catch (_) { return null; }
 };
 
-window.isPanelOrganizationId = function isPanelOrganizationId(value) {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
-};
-
 window.getActiveOrganizationId = function getActiveOrganizationId() {
-    const activeId = window.getActiveOrganization()?.id;
-    if (window.isPanelOrganizationId(activeId)) return activeId;
-
-    try {
-        const cachedUserId = JSON.parse(localStorage.getItem('discord_user') || 'null')?.organization_id;
-        return window.isPanelOrganizationId(cachedUserId) ? cachedUserId : null;
-    } catch (_) {
-        return null;
-    }
+    return window.getActiveOrganization()?.id || JSON.parse(localStorage.getItem('discord_user') || 'null')?.organization_id || null;
 };
 
 window.ensurePanelSession = async function ensurePanelSession() {
@@ -61,7 +49,7 @@ window.ensurePanelSession = async function ensurePanelSession() {
     const response = await fetch(`${window.PANEL_SUPABASE_CONFIG.url}/functions/v1/sync-discord-role`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: window.PANEL_SUPABASE_CONFIG.publishableKey, Authorization: `Bearer ${window.PANEL_SUPABASE_CONFIG.publishableKey}` }, body: JSON.stringify({ access_token: discordToken, organization_id: window.getActiveOrganizationId?.() }) });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || 'Sesiunea panel nu a putut fi reînnoită.');
-    if (!result.session_token || !window.isPanelOrganizationId(result.active_organization?.id)) throw new Error('Organizația activă nu a putut fi identificată. Selectează din nou organizația.');
+    if (!result.session_token || !result.active_organization?.id) throw new Error('Organizația activă nu a putut fi identificată. Selectează din nou organizația.');
     localStorage.setItem('discord_user', JSON.stringify(result.user));
     localStorage.setItem('user_role', result.user?.role || result.active_organization?.panel_role || '');
     localStorage.setItem('panel_session_token', result.session_token);

@@ -304,7 +304,7 @@ label {
 
 .roles-table-row {
     display: grid !important;
-    grid-template-columns: minmax(0, 2fr) 80px minmax(0, 1fr) 38px !important;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 38px !important;
     gap: 8px;
     align-items: center;
     width: 100%;
@@ -338,14 +338,14 @@ label {
     }
 
     .roles-table-row {
-        grid-template-columns: minmax(0, 1fr) 60px !important;
+        grid-template-columns: minmax(0, 1fr) 38px !important;
     }
 
-    .roles-table-item > :nth-child(3) {
+    .roles-table-item > :nth-child(2) {
         grid-column: 1 / 2;
     }
 
-    .roles-table-item > :nth-child(4) {
+    .roles-table-item > :nth-child(3) {
         grid-column: 2 / 3;
     }
 }
@@ -672,7 +672,6 @@ actionPermissions={};
 assistantPagePermissions={};
 
 roleRows = [{
-    panel_level: 1,
     panel_role: '',
     discord_role_id: '',
     discord_role_name: '',
@@ -734,12 +733,6 @@ async function edit(id) {
     $('delete').hidden = false;
 
     roleRows = (o.organization_role_mappings || []).map(x => ({
-        panel_level: Number(
-            x.panel_level ??
-            x.level ??
-            0
-        ),
-
         panel_role:
             x.panel_role ||
             x.discord_role_name ||
@@ -759,7 +752,6 @@ async function edit(id) {
 
     if (!roleRows.length) {
         roleRows = [{
-            panel_level: 1,
             panel_role: '',
             discord_role_id: '',
             discord_role_name: '',
@@ -851,7 +843,6 @@ const header = `
         class="roles-table-row roles-table-header"
     >
         <div>Rol Discord</div>
-        <div class="text-center">Nivel</div>
         <div>Nume rol Discord</div>
         <div></div>
     </div>
@@ -874,20 +865,6 @@ const header = `
             row.discord_role_name ||
             row.panel_role ||
             '';
-
-
-            let level = Number(row.panel_level);
-
-            if (!Number.isFinite(level) || level <= 0) {
-                level = index + 1;
-            }
-
-            level = Math.max(
-                1,
-                Math.min(99, Math.round(level))
-            );
-
-            row.panel_level = level;
 
 
             return `
@@ -913,28 +890,6 @@ const header = `
                     >
                         ${options}
                     </select>
-                </div>
-
-
-                <!-- NIVEL -->
-                <div>
-
-
-                    <input
-                        id="role-level-${index}"
-                        name="role_level_${index}"
-                        type="number"
-                        min="0"
-                        max="99"
-                        step="1"
-                        class="role-level w-full
-                               rounded-lg border border-slate-700
-                               bg-slate-900 px-2 py-2
-                               text-center text-xs font-black
-                               text-cyan-300"
-                        data-index="${index}"
-                        value="${level}"
-                    >
                 </div>
 
 
@@ -1030,74 +985,6 @@ const header = `
                 renderActionPermissions();
             };
         });
-
-
-    /*
-     * NIVEL 0 - 99
-     */
-    document
-        .querySelectorAll('.role-level')
-        .forEach(input => {
-
-            input.oninput = () => {
-
-                const index =
-                    Number(input.dataset.index);
-
-                let value =
-                    Number(input.value);
-
-                if (!Number.isFinite(value)) {
-                    value = 0;
-                }
-
-                value =
-                    Math.round(value);
-
-                value =
-                    Math.max(
-                        0,
-                        Math.min(99, value)
-                    );
-
-                roleRows[index].panel_level =
-                    value;
-            };
-
-
-            input.onchange = () => {
-
-                const index =
-                    Number(input.dataset.index);
-
-                let value =
-                    Number(input.value);
-
-                if (!Number.isFinite(value)) {
-                    value = 0;
-                }
-
-                value =
-                    Math.round(value);
-
-                value =
-                    Math.max(
-                        0,
-                        Math.min(99, value)
-                    );
-
-                input.value =
-                    value;
-
-                roleRows[index].panel_level =
-                    value;
-
-
-                renderPagePermissions();
-                renderActionPermissions();
-            };
-        });
-
 
     /*
      * ȘTERGERE ROL
@@ -1272,8 +1159,7 @@ function renderAssistantPermissions() {
     const roles = roleRows.filter(row => row.discord_role_id).map(row => ({
         id: String(row.discord_role_id),
         panel: row.panel_role || row.discord_role_name || 'Rol fără nume',
-        discord: row.discord_role_name || row.panel_role || 'Rol Discord',
-        level: Number(row.panel_level) || 0
+        discord: row.discord_role_name || row.panel_role || 'Rol Discord'
     }));
     if (!roles.length) {
         host.innerHTML = '<p class="rounded-xl border border-dashed border-slate-700 p-4 text-sm text-slate-400">Alege mai întâi rolurile Discord ale organizației.</p>';
@@ -1519,18 +1405,7 @@ $('roles').addEventListener('change', () => {
     });
 });
 $('add-role').onclick = () => {
-
-    const nextLevel =
-        roleRows.length > 0
-            ? Math.max(
-                ...roleRows.map(row =>
-                    Number(row.panel_level) || 0
-                )
-            ) + 1
-            : 1;
-
     roleRows.push({
-        panel_level: nextLevel,
         panel_role: '',
         discord_role_id: '',
         discord_role_name: '',
@@ -1549,8 +1424,7 @@ roles.push({
     guild_id: role.guild_id,
     discord_role_id: role.id,
     discord_role_name: role.name,
-    panel_role: panelRole,
-    panel_level: Number(row.panel_level) || (index + 1)
+    panel_role: panelRole
 });
 }if(new Set(roles.map(role=>role.discord_role_id)).size!==roles.length)throw new Error('Același rol Discord nu poate fi adăugat de două ori.');const settings={discord_client_id:$('client').value,panel_public_url:$('url').value,webhook_routes:Object.fromEntries(fields.map(x=>[x,{primary:{enabled:$(`wh_primary_enabled_${x}`).checked,url:$(`wh_primary_url_${x}`).value.trim()},secondary:{enabled:$(`wh_secondary_enabled_${x}`).checked,url:$(`wh_secondary_url_${x}`).value.trim()}}]).filter(([,route])=>route.primary.enabled&&route.primary.url||route.secondary.enabled&&route.secondary.url))},guilds=[{guild_id:guildId,guild_name:$('guild-status').textContent.split(':')[0],kind:'primary'}];if(secondaryId)guilds.push({guild_id:secondaryId,guild_name:$('guild-secondary-status').textContent.split(':')[0],kind:'secondary'});
 await invoke({
@@ -1631,9 +1505,7 @@ renderRoles = () => {
                 row &&
                 role &&
                 (
-                    !row.panel_role ||
-                    row.panel_role === 'Membru' ||
-                    row.panel_role === 'Grad nou'
+                    !row.panel_role
                 )
             ) {
                 row.panel_role = role.name;
@@ -1663,9 +1535,7 @@ renderRoles = () => {
               if (
                   role &&
                   (
-                      !row.panel_role ||
-                      row.panel_role === 'Membru' ||
-                      row.panel_role === 'Grad nou'
+                      !row.panel_role
                   )
               ) {
                   row.panel_role = role.name;

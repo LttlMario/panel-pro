@@ -711,34 +711,34 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     function normalizeNavigation(navigation, currentPage) {
         const sections = [
             ['management', 'Operațiuni', [
-                ['index.html', 1, '📊', 'Dashboard'],
-                ['anunturi.html', 1, '📣', 'Anunțuri & Sondaje'],
-                ['pontaj.html', 1, '⏱️', 'Pontaj'],
-                ['cereri.html', 1, '📋', 'Cereri / Absențe'],
-                ['contracte.html', 4, '📜', 'Contracte'],
-                ['rapoarte.html', 4, '📈', 'Rapoarte']
+                ['index.html', '📊', 'Dashboard'],
+                ['anunturi.html', '📣', 'Anunțuri & Sondaje'],
+                ['pontaj.html', '⏱️', 'Pontaj'],
+                ['cereri.html', '📋', 'Cereri / Absențe'],
+                ['contracte.html', '📜', 'Contracte'],
+                ['rapoarte.html', '📈', 'Rapoarte']
             ]],
             ['resurse', 'Resurse', [
-                ['marketplace.html', 1, '🛒', 'Marketplace'],
-                ['calculator.html', 1, '🧮', 'Calculator'],
-                ['bucatarie.html', 1, '🍳', 'Bucătărie'],
-                ['craftmecanics.html', 1, '🔨', 'Craft Mecanics']
+                ['marketplace.html', '🛒', 'Marketplace'],
+                ['calculator.html', '🧮', 'Calculator'],
+                ['bucatarie.html', '🍳', 'Bucătărie'],
+                ['craftmecanics.html', '🔨', 'Craft Mecanics']
             ]],
             ['ilegal', 'Resurse ilegale', [
-                ['calculatorilegal.html', 3, '🧮', 'Calculator Ilegal'],
-                ['locatiiilegale.html', 3, '🗺️', 'Locații Ilegale'],
-                ['marketplace-ilegal.html', 3, '🚨', 'Black Market']
+                ['calculatorilegal.html', '🧮', 'Calculator Ilegal'],
+                ['locatiiilegale.html', '🗺️', 'Locații Ilegale'],
+                ['marketplace-ilegal.html', '🚨', 'Black Market']
             ]],
             ['administratie', 'Administrație', [
-                ['logs.html', 7, '🧾', 'Loguri'],
-                ['diagnostic.html', 7, '🩺', 'Verificare sistem'],
-                ['discord-configurare.html', 99, '⚙️', 'Configurare Discord'],
-                ['organizatii.html', 7, '🏢', 'Organizații platformă'],
-                ['developer.html', 7, '🛠️', 'Developer'],
-                ['admin.html', 7, '👑', 'Panou Admin']
+                ['logs.html', '🧾', 'Loguri'],
+                ['diagnostic.html', '🩺', 'Verificare sistem'],
+                ['discord-configurare.html', '⚙️', 'Configurare Discord'],
+                ['organizatii.html', '🏢', 'Organizații platformă'],
+                ['developer.html', '🛠️', 'Developer'],
+                ['admin.html', '👑', 'Panou Admin']
             ]]
         ];
-        const renderLink = ([href, role, icon, label]) => {
+        const renderLink = ([href, icon, label]) => {
             const active = currentPage === href;
             const stateClasses = active
                 ? 'bg-emerald-500/10 text-emerald-400 font-medium'

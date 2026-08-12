@@ -116,16 +116,6 @@
         }
     }
 
-    function currentRole() {
-        try {
-            if (typeof isPlatformAdmin === 'function' && isPlatformAdmin()) return 99;
-            const legacyRole = Number(typeof getRole === 'function' ? getRole() : 1);
-            return Number.isFinite(legacyRole) && legacyRole > 0 ? legacyRole : 1;
-        } catch (_error) {
-            return 1;
-        }
-    }
-
     function selectedPages() {
         const pages = currentUser()?.allowed_pages;
         return Array.isArray(pages)
@@ -143,7 +133,6 @@
     }
 
     function create(options = {}) {
-        const role = currentRole();
         const user = currentUser();
         if (!user) return null;
 
@@ -175,13 +164,6 @@
             ];
             return candidates.map(value => String(value || '').trim())
                 .find(value => value && /[\p{L}]/u.test(value) && !/^\d+$/.test(value) && !/^(?:level|nivel|rolul tău|rol discord|necunoscut|rol)$/i.test(value)) || 'Rol Discord indisponibil';
-        }
-
-        function requiredRoleForPage(page) {
-            if (!page) return 1;
-            const file = String(page).split('?')[0].split('#')[0].split('/').pop();
-            const manifestItem = (window.PANEL_ASSISTANT_PAGES || []).find((item) => item.file === file);
-            return Number(manifestItem?.role || 1);
         }
 
         function isPageAllowed(page) {
@@ -245,7 +227,7 @@
             if (cleanEntry.page && !isPageAllowed(cleanEntry.page)) return false;
             const signature = `${normalize(cleanEntry.title)}|${cleanEntry.page || ''}`;
             if (entries.some((item) => item.signature === signature)) return false;
-            entries.push({ ...cleanEntry, source, signature, role: Number(cleanEntry.role || 1) });
+            entries.push({ ...cleanEntry, source, signature });
             return true;
         }
 
@@ -258,7 +240,6 @@
         }
 
         async function indexPage(page) {
-            const required = requiredRoleForPage(page.file);
             if (!isPageAllowed(page.file)) return;
             const separator = page.file.includes('?') ? '&' : '?';
             const response = await fetch(`${page.file}${separator}assistant_refresh=${Date.now()}`, { cache: 'no-store' });
@@ -286,7 +267,6 @@
                 addEntry({
                     title,
                     category: page.label,
-                    role: required,
                     page: page.file === 'craftmecanics.html' ? `${page.file}?search=${encodeURIComponent(title)}` : page.file,
                     keywords: [title, description, page.label],
                     answer: describe(element, description ? `${title}: ${description}` : `${title} este disponibil.`)
@@ -303,7 +283,6 @@
                 addEntry({
                     title,
                     category: page.label,
-                    role: required,
                     page: page.file,
                     keywords: [title, page.label],
                     answer: describe(element, `găsești secțiunea „${title}”.`)
@@ -317,7 +296,6 @@
                 addEntry({
                     title,
                     category: page.label,
-                    role: required,
                     page: page.file,
                     keywords: [title, page.label],
                     answer: describe(element, `opțiunea „${title}” este disponibilă.`)
@@ -337,7 +315,6 @@
                 addEntry({
                     title,
                     category: page.label,
-                    role: required,
                     page: page.file,
                     keywords: [title, page.label, 'acțiune', 'formular'],
                     answer: describe(element, `poți folosi „${title}”.`)
@@ -356,7 +333,6 @@
                 addEntry({
                     title,
                     category: page.label,
-                    role: required,
                     page: page.file,
                     keywords: keywordVariants([text, page.label]),
                     answer: describe(element, text)
@@ -521,7 +497,6 @@
         }
 
         return {
-            role,
             roleName: roleName(),
             user,
             answer,

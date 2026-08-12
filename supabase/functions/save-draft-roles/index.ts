@@ -39,7 +39,7 @@ Deno.serve(async (request) => {
     const { data: packageSetting } = await db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_package').maybeSingle();
     if (packageSetting?.value?.code !== 'full' && roles.length > 6) return reply({ error: 'Pachetul Standard permite maximum 6 roluri.' }, 400);
     await db.from('organization_role_mappings').delete().eq('organization_id', organizationId);
-    const { error } = await db.from('organization_role_mappings').insert(roles.map((role: any) => ({ organization_id: organizationId, guild_id: String(role.guild_id || primaryGuildId), discord_role_id: String(role.id), discord_role_name: String(role.name || ''), panel_role: String(role.panel_role || role.name || ''), permission_level: Number(role.level || role.panel_level) || 1, priority: Number(role.level || role.panel_level || 1) * 10, enabled: true })));
+    const { error } = await db.from('organization_role_mappings').insert(roles.map((role: any, index: number) => ({ organization_id: organizationId, guild_id: String(role.guild_id || primaryGuildId), discord_role_id: String(role.id), discord_role_name: String(role.name || ''), panel_role: String(role.panel_role || role.name || ''), permission_level: 1, priority: roles.length - index, enabled: true })));
     if (error) throw error;
     return reply({ ok: true, count: roles.length });
   } catch (error) {

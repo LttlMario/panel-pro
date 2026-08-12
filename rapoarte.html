@@ -296,7 +296,6 @@
             display_name: '',
             role: '',
             organization_id: '',
-            permission_level: 0,
             platform_admin: false
         };
         let canManagePontaj = false;
@@ -365,12 +364,6 @@
                 if (currentUser.organization_id && !activeUser.organization_id) {
                     activeUser.organization_id = currentUser.organization_id;
                 }
-
-                currentUser.permission_level = Number(
-                    activeUser.permission_level ??
-                    localData.permission_level ??
-                    0
-                );
 
                 currentUser.platform_admin =
                     activeUser.platform_admin === true ||

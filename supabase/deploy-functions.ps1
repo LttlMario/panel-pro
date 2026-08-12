@@ -28,12 +28,20 @@ $functions = @(
     'send-weekly-shift-report',
     'manage-admin-center',
     'manage-organizations',
-    'manage-owned-organization'
+    'manage-owned-organization',
+    'status-live-sync',
+    'create-voucher-organization',
+    'get-organization-status',
+    'finalize-organization',
+    'manage-draft-organization',
+    'discover-draft-roles',
+    'save-draft-roles',
+    'touch-panel-session'
 )
 
 foreach ($functionName in $functions) {
     Write-Host "Deploy: $functionName"
-    Invoke-SupabaseCli functions deploy $functionName --project-ref $ProjectRef --no-verify-jwt --use-api
+    Invoke-SupabaseCli functions deploy $functionName --project-ref $ProjectRef --use-api
 }
 
 Write-Host 'Funcțiile au fost publicate. Configurează acum secretele din Supabase Dashboard.'

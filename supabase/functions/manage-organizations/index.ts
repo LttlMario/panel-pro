@@ -18,7 +18,8 @@ const webhookChannels=new Set([
   'marketplace',
   'illegal_marketplace',
   'fines_organization',
-  'fines_departments'
+  'fines_departments',
+  'status_live'
 ]);
 
 Deno.serve(async request=>{
@@ -70,7 +71,6 @@ Deno.serve(async request=>{
               'contract_template',
               'page_permissions',
               'action_permissions',
-              'announcement_permissions',
               'communication_permissions'
             ])
         : {
@@ -238,7 +238,8 @@ const submittedWebhookRoutes = Object.fromEntries(
 
           return {
             enabled: true,
-            url
+            url,
+            ...(existing?.message_id ? { message_id: String(existing.message_id) } : {})
           };
         }
 
@@ -447,45 +448,6 @@ if(
     value: communicationPermissions,
     updated_at: new Date().toISOString()
   }, { onConflict: 'organization_id,key' });
-  if(error) throw error;
-}
-if(
-  body.announcement_permissions &&
-  typeof body.announcement_permissions === 'object'
-){
-  const clean = (kind:string) => [
-    ...new Set(
-      (
-        Array.isArray(body.announcement_permissions[kind])
-          ? body.announcement_permissions[kind]
-          : []
-      )
-        .map(Number)
-        .filter(
-          (level:number) =>
-            Number.isInteger(level) &&
-            level >= 1 &&
-            level <= 99
-        )
-    )
-  ];
-
-  const announcementPermissions = {
-    read: clean('read'),
-    write: clean('write')
-  };
-
-  const { error } = await db
-    .from('app_settings')
-    .upsert({
-      organization_id: organizationId,
-      key: 'announcement_permissions',
-      value: announcementPermissions,
-      updated_at: new Date().toISOString()
-    }, {
-      onConflict: 'organization_id,key'
-    });
-
   if(error) throw error;
 }
 if (Array.isArray(body.roles)) {

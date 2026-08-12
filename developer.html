@@ -95,25 +95,11 @@
 
   <script>
     (() => {
-      function roleNumber(value) {
-        if (typeof value === "number") return value;
-        const text = String(value || "").trim().toLowerCase();
-        if (/^\d+$/.test(text)) return Number(text);
-        if (text.includes("coordonator") || text.includes("admin") || text.includes("owner")) return 7;
-        if (text === "lider") return 6;
-        if (text.includes("colider") || text.includes("co lider") || text.includes("co-lider")) return 5;
-        if (text.includes("manager")) return 4;
-        if (text.includes("familia")) return 3;
-        if (text.includes("șef") || text.includes("sef")) return 2;
-        return 1;
-      }
-
       let user = null;
       try {
         user = JSON.parse(localStorage.getItem("discord_user") || "null");
       } catch (_) {}
 
-      const role = roleNumber(user?.role ?? user?.default_role ?? user?.role_level);
       const allowed = typeof isPlatformAdmin === "function"
         ? isPlatformAdmin()
         : String(user?.discord_id || user?.id || user?.user_id || "") === "247012210021236738";
