@@ -21,6 +21,7 @@ const webhookChannels=new Set([
   'fines_departments',
   'status_live'
 ]);
+const discordBotHeaders=(bot:string)=>({Authorization:`Bot ${bot}`,'User-Agent':'PanelManagement/1.0 (+https://panel-management.netlify.app)'});
 
 Deno.serve(async request=>{
   if(request.method==='OPTIONS')return new Response('ok',{headers});
@@ -132,8 +133,8 @@ Deno.serve(async request=>{
       const guildId=String(body.guild_id||'').trim();if(!/^\d{15,22}$/.test(guildId))return reply({error:'Guild ID invalid.'},400);
       const bot=String(Deno.env.get('DISCORD_BOT_TOKEN')||'').trim();if(!bot)throw new Error('DISCORD_BOT_TOKEN lipsește.');
       const [guildResponse,rolesResponse]=await Promise.all([
-        fetch(`https://discord.com/api/v10/guilds/${guildId}`,{headers:{Authorization:`Bot ${bot}`}}),
-        fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`,{headers:{Authorization:`Bot ${bot}`}})
+        fetch(`https://discord.com/api/v10/guilds/${guildId}`,{headers:discordBotHeaders(bot)}),
+        fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`,{headers:discordBotHeaders(bot)})
       ]);
       if(!guildResponse.ok||!rolesResponse.ok)return reply({error:`Botul nu poate accesa serverul (HTTP ${!guildResponse.ok?guildResponse.status:rolesResponse.status}). Invită botul pe server.`},400);
       const guild=await guildResponse.json(),roles=await rolesResponse.json();
