@@ -1129,7 +1129,19 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     }
 
     // Load secondary operations after the first page paint.
+    function loadOnboardingTour() {
+        if (document.getElementById('panel-onboarding-script')) return;
+        const page = window.location.pathname.split('/').pop() || 'index.html';
+        if (['login.html', '403.html', 'guest.html'].includes(page)) return;
+        const script = document.createElement('script');
+        script.id = 'panel-onboarding-script';
+        script.src = 'js/onboarding-tour.js?v=1.0.0';
+        script.defer = true;
+        document.head.appendChild(script);
+    }
+
     runWhenIdle(loadOperationsCenter, 1600);
+    runWhenIdle(loadOnboardingTour, 1800);
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
     else setup();
 })();
