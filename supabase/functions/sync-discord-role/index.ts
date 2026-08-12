@@ -81,6 +81,10 @@ Deno.serve(async (request) => {
       discord_role_ids: string[];
     }>();
     const liveRoles = new Map<string, Map<string, { name: string; position: number }>>();
+    let platformRoleLabel = '';
+    let platformRolePosition = -1;
+    let platformRoleLabel = '';
+    let platformRolePosition = -1;
     for (const guild of (guilds || []).filter((item:any)=>!inactiveOrganizationIds.has(String(item.organization_id))&&(!voucherCode || String(item.guild_id) === voucherGuildId))) {
       const memberResponse = await fetchDiscordMember(String(guild.guild_id), String(discordUser.id), accessToken, botToken);
       if (memberResponse.status === 404) continue;
@@ -104,6 +108,29 @@ Deno.serve(async (request) => {
             roleIds.has(String(item.discord_role_id).trim())
           );
 
+        const mappedFallback = [...matchedMappings].sort((a: any, b: any) => {
+          const roleA = liveRoles.get(String(guild.guild_id))?.get(String(a.discord_role_id))?.position ?? Number(a.priority ?? a.permission_level ?? 0);
+          const roleB = liveRoles.get(String(guild.guild_id))?.get(String(b.discord_role_id))?.position ?? Number(b.priority ?? b.permission_level ?? 0);
+          return Number(roleB) - Number(roleA);
+        })[0];
+        const fallbackRoleLabel = String(
+          highestDiscordRole?.name ||
+          mappedFallback?.discord_role_name ||
+          mappedFallback?.panel_role ||
+          ''
+        ).trim();
+        const fallbackRolePosition = Number(
+          highestDiscordRole?.position ??
+          liveRoles.get(String(guild.guild_id))?.get(String(mappedFallback?.discord_role_id || ''))?.position ??
+          mappedFallback?.priority ??
+          mappedFallback?.permission_level ??
+          0
+        );
+        if (isPlatformAdmin && fallbackRoleLabel && fallbackRolePosition >= platformRolePosition) {
+          platformRoleLabel = fallbackRoleLabel;
+          platformRolePosition = fallbackRolePosition;
+        }
+
         const best = matchedMappings
           .sort((a: any, b: any) => {
             const roleA =
@@ -125,11 +152,11 @@ if (!best) {
    * Platform Admin poate intra în organizație chiar dacă
    * nu are un mapping normal configurat.
    */
-  if (isPlatformAdmin && highestDiscordRole) {
+  if (isPlatformAdmin && fallbackRoleLabel) {
     matches.set(String(guild.organization_id), {
       organization: guild.organizations,
 
-      panel_role: highestDiscordRole.name,
+      panel_role: fallbackRoleLabel,
 
       nickname: String(
         member.nick ||
@@ -220,7 +247,7 @@ if (!existing) {
       if (!matches.has(organizationId)) {
         matches.set(organizationId, {
           organization,
-          panel_role: 'Administrator platformă',
+          panel_role: platformRoleLabel || 'Administrator platformă',
           nickname: String(discordUser.global_name || discordUser.username),
           guild_ids: [],
           discord_role_ids: []
