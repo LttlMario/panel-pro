@@ -9,6 +9,7 @@ const headers = {
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}').default;
 const avatarUrl = (id: string, avatar?: string | null) => avatar ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png` : 'https://panel-management.netlify.app//img/logo-192.png';
+const sameId = (left: unknown, right: unknown) => String(left ?? '').trim() === String(right ?? '').trim();
 const randomToken = () => { const bytes = crypto.getRandomValues(new Uint8Array(32)); return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', ''); };
 const sha256 = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 
@@ -92,8 +93,8 @@ Deno.serve(async (request) => {
         .sort((a:any, b:any) => b.position - a.position)[0] as { name: string; position: number } | undefined;
         const matchedMappings = (mappings || [])
           .filter((item: any) =>
-            item.organization_id === guild.organization_id &&
-            item.guild_id === guild.guild_id &&
+            sameId(item.organization_id, guild.organization_id) &&
+            sameId(item.guild_id, guild.guild_id) &&
             roleIds.has(String(item.discord_role_id))
           );
 
