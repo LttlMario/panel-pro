@@ -83,8 +83,6 @@ Deno.serve(async (request) => {
     const liveRoles = new Map<string, Map<string, { name: string; position: number }>>();
     let platformRoleLabel = '';
     let platformRolePosition = -1;
-    let platformRoleLabel = '';
-    let platformRolePosition = -1;
     for (const guild of (guilds || []).filter((item:any)=>!inactiveOrganizationIds.has(String(item.organization_id))&&(!voucherCode || String(item.guild_id) === voucherGuildId))) {
       const memberResponse = await fetchDiscordMember(String(guild.guild_id), String(discordUser.id), accessToken, botToken);
       if (memberResponse.status === 404) continue;
