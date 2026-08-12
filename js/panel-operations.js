@@ -45,7 +45,7 @@
   }
 
   async function setupNotifications() {
-    if (!user || !client() || document.getElementById('panel-notification-button')) return;
+    if (!user || document.getElementById('panel-notification-button')) return;
     const button = document.createElement('button');
     button.id = 'panel-notification-button'; button.type = 'button'; button.className = 'panel-notification-button';
     button.innerHTML = '<span aria-hidden="true">🔔</span><b hidden>0</b>'; button.setAttribute('aria-label', 'Centrul de notificări');
