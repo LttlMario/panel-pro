@@ -1,24 +1,6 @@
 // Navigare comună pentru panel: meniu mobil și sidebar pliabil pe desktop.
 if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetchFixed) { window.__organizationFetchFixed = true; const _fetch = window.fetch; window.fetch = (url, options = {}) => { if (String(url).includes('/functions/v1/manage-organizations')) options.headers = { ...(options.headers || {}), 'x-panel-session': localStorage.getItem('panel_session_token') || '' }; return _fetch(url, options); }; }
 (() => {
-    function runWhenIdle(callback, timeout = 1200) {
-        const run = () => {
-            try {
-                Promise.resolve(callback()).catch(error => {
-                    console.warn('O functie auxiliara a panelului nu a putut fi incarcata.', error);
-                });
-            } catch (error) {
-                console.warn('O functie auxiliara a panelului nu a putut fi pornita.', error);
-            }
-        };
-
-        if (typeof window.requestIdleCallback === 'function') {
-            window.requestIdleCallback(run, { timeout });
-        } else {
-            window.setTimeout(run, Math.min(timeout, 250));
-        }
-    }
-
     if (window.location.pathname.endsWith('vouchere.html')) {
         const script = document.createElement('script'); script.src = 'js/voucher-admin-controls.js?v=3.3.1'; document.head.appendChild(script);
         const listScript = document.createElement('script'); listScript.src = 'js/voucher-list-controls.js?v=3.3.1'; document.head.appendChild(listScript);
@@ -260,7 +242,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         document.querySelector('#banner')?.closest('label')?.style.setProperty('display','none');
         ensureBrandAssets();
         ensureGlobalHeader();
-        runWhenIdle(() => setupAssistantWidget(currentPage), 1400);
+        setupAssistantWidget(currentPage);
         const shared = ensureSharedSidebar();
         const navigation = shared.navigation;
         const sidebar = navigation?.closest('aside');
@@ -1128,8 +1110,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         document.head.appendChild(script);
     }
 
-    // Load secondary operations after the first page paint.
-    runWhenIdle(loadOperationsCenter, 1600);
+    loadOperationsCenter();
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
     else setup();
 })();
