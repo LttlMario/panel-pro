@@ -196,8 +196,10 @@
                 }));
 
                 // Încărcare configurare și restaurare pontaj activ
-                await loadOrganizationPontajConfig();
-                await restoreActiveShift();
+                await Promise.all([
+                    loadOrganizationPontajConfig(),
+                    restoreActiveShift()
+                ]);
 
                 } catch (err) {
                     console.error('Eroare sesiune:', err);
@@ -206,7 +208,12 @@
                 }
 
                 // Încărcare istoric pontaj
-                await fetchShiftsHistory();
+                const loadHistory = () => fetchShiftsHistory();
+                if (typeof window.requestIdleCallback === 'function') {
+                    window.requestIdleCallback(loadHistory, { timeout: 1000 });
+                } else {
+                    window.setTimeout(loadHistory, 50);
+                }
 
                 });
 
@@ -285,7 +292,7 @@
 
                 let query = supabaseClient
                     .from('shifts')
-                    .select('*')
+                    .select('shift_type,date,colleague_name,start_time,end_time,duration,duration_ms')
                     .eq('organization_id', currentUser.organization_id)
                     .eq('discord_id', currentUser.discord_id);
 
@@ -692,7 +699,7 @@
             background: rgba(71, 85, 105, 1);
         }
     </style>
-    <script src="js/discord-notifications.js?v=4.12.0"></script>
+    <script src="js/discord-notifications.js"></script>
     <script src="js/global-footer.js"></script>
 </body>
 </html>
