@@ -186,10 +186,12 @@
                     role: currentUser.role
                 }));
 
-                // Încărcare configurare și restaurare pontaj activ
+                // Configurația, tura activă și istoricul pornesc simultan.
+                // Istoricul nu mai așteaptă finalizarea celorlalte două requesturi.
                 await Promise.all([
                     loadOrganizationPontajConfig(),
-                    restoreActiveShift()
+                    restoreActiveShift(),
+                    fetchShiftsHistory()
                 ]);
 
                 } catch (err) {
@@ -197,11 +199,6 @@
                     window.location.href = 'login.html';
                     return;
                 }
-
-                // Istoricul pornește imediat după inițializarea sesiunii,
-                // fără întârzierea artificială introdusă de requestIdleCallback.
-                // Funcția are propriul tratament de eroare și nu blochează butoanele pontajului.
-                void fetchShiftsHistory();
 
                 });
 
@@ -285,7 +282,8 @@
                     .eq('discord_id', currentUser.discord_id);
 
                 let { data: shifts, error } = await query
-                    .order('created_at', { ascending: false });
+                    .order('created_at', { ascending: false })
+                    .limit(100);
 
                 if (error) throw error;
 
