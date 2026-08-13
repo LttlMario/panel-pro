@@ -17,14 +17,118 @@
     if (!user || user.tutorial_read === true) return;
 
     const steps = [
-        { page: 'index.html', selector: 'main', title: 'Bun venit în Panel Pro', text: 'Acesta este ghidul tău de început. Îți arătăm pe scurt unde găsești funcțiile principale, fără să modificăm nimic în cont sau în organizație.' },
-        { page: 'index.html', selector: '#panel-shared-sidebar, main', title: 'Meniul și profilul tău', text: 'Din meniul lateral navighezi între module. Sub numele tău vezi rolul sincronizat din Discord; accesul este stabilit de rolurile configurate pentru organizație.' },
-        { page: 'index.html', selector: '#dashboard-pontaj-button, main', title: 'Dashboard-ul tău', text: 'Dashboard-ul îți arată starea turei, următoarea învoire și scurtături către funcțiile folosite cel mai des.' },
-        { page: 'pontaj.html', selector: '#btn-start, main', title: 'Pontaj', text: 'Alegi tura de zi sau de noapte, apoi pornești, pui pauză și închizi pontajul. Tura rămâne salvată chiar dacă dai refresh.' },
-        { page: 'cereri.html', selector: '#absence-form, main', title: 'Învoiri și concedii', text: 'Trimiți cereri pentru învoire, concediu sau absență medicală. Completezi perioada și motivul, iar administrația poate procesa cererea.' },
-        { page: 'bucatarie.html', selector: '#galleryGrid, main', title: 'Resursele organizației', text: 'Aici găsești resursele configurate de organizație. Alte module, precum calculatorul sau marketplace-ul, apar în meniu atunci când rolul tău are acces.' },
-        { page: 'rapoarte.html', selector: '#personal-shift-panel, main', title: 'Rapoarte și istoricul', text: 'În Rapoarte vezi istoricul pontajelor și, în funcție de rol, informațiile generale ale organizației.' },
-        { page: 'index.html', selector: '#panel-shared-sidebar, main', title: 'Ghidul s-a încheiat', text: 'Poți relua tutorialul oricând din consolă cu resetPanelTutorial(). În rest, folosește meniul panelului pentru a începe.' }
+        {
+            page: 'index.html',
+            selector: 'main',
+            section: 'Orientare',
+            title: 'Bun venit în Panel Pro',
+            text: 'Acesta este ghidul tău personalizat de început. Îți prezentăm funcțiile disponibile pentru rolul tău, fără să modificăm setările organizației și fără să îți afișăm module la care nu ai acces.'
+        },
+        {
+            page: 'index.html',
+            selector: '#panel-shared-sidebar',
+            section: 'Navigare',
+            title: 'Meniul panelului',
+            text: 'Meniul lateral este centrul navigării. Vei vedea doar paginile permise de rolurile Discord configurate pentru organizația activă. Dacă schimbi organizația, accesul se recalculează automat.'
+        },
+        {
+            page: 'index.html',
+            selector: '#panel-assistant-widget',
+            section: 'Asistent',
+            title: 'Roboțelul panelului',
+            text: 'Roboțelul este asistentul intern al panelului. Îl poți întreba unde găsești o funcție, cum se folosește o pagină sau ce înseamnă un câmp. Răspunsurile sunt locale, bazate pe informațiile pe care rolul tău are voie să le vadă, iar butoanele lui te pot duce direct la pagina relevantă.'
+        },
+        {
+            page: 'index.html',
+            selector: '#dashboard-pontaj-button, main',
+            section: 'Dashboard',
+            title: 'Panoul tău de control',
+            text: 'Dashboard-ul îți arată rapid starea turei, scurtăturile importante și informațiile organizației. Folosește-l ca punct de pornire după autentificare.'
+        },
+        {
+            page: 'pontaj.html',
+            selector: '#btn-start, main',
+            section: 'Activitate',
+            title: 'Pontajul',
+            text: 'Alegi tipul turei și pornești pontajul. Poți pune pauză, relua activitatea și închide tura; datele rămân înregistrate pentru istoricul organizației. Unele acțiuni suplimentare sunt disponibile numai managerilor.'
+        },
+        {
+            page: 'cereri.html',
+            selector: '#absence-form, main',
+            section: 'Solicitări',
+            title: 'Învoiri și concedii',
+            text: 'Trimiți cereri pentru învoire, concediu sau absență medicală. Completează perioada și motivul, apoi urmărește statusul cererii; aprobarea sau respingerea este făcută de persoanele autorizate.'
+        },
+        {
+            page: 'rapoarte.html',
+            selector: '#personal-shift-panel, main',
+            section: 'Monitorizare',
+            title: 'Rapoarte și istoric',
+            text: 'În această pagină îți vezi istoricul disponibil. Pentru manageri pot apărea pontajele active, filtrele, editarea înregistrărilor, exportul și trimiterea rapoartelor pe Discord — în funcție de permisiunile rolului.'
+        },
+        {
+            page: 'bucatarie.html',
+            selector: '#galleryGrid, main',
+            section: 'Resurse',
+            title: 'Resursele organizației',
+            text: 'Aici sunt afișate resursele și informațiile practice configurate pentru organizația ta. Conținutul poate fi diferit între organizații și este controlat prin rolurile Discord.'
+        },
+        {
+            page: 'calculator.html',
+            selector: '#calculator-input-panel, main',
+            section: 'Instrumente',
+            title: 'Calculatorul organizației',
+            text: 'Calculatorul te ajută să estimezi rapid materialele și componentele pentru rețetele disponibile. Introdu cantitățile dorite, apoi verifică rezultatele calculate automat.'
+        },
+        {
+            page: 'craftmecanics.html',
+            selector: 'main',
+            section: 'Instrumente',
+            title: 'Craft Mecanics',
+            text: 'În Craft Mecanics găsești rețete, echipamente și explicații pentru activitățile mecanicilor. Poți căuta articole și deschide detaliile atunci când rolul tău are acces la această secțiune.'
+        },
+        {
+            page: 'contracte.html',
+            selector: 'main',
+            section: 'Administrare',
+            title: 'Contracte',
+            text: 'Pagina Contracte este folosită pentru vizualizarea și gestionarea documentelor organizației. Câmpurile și acțiunile disponibile depind de rolul tău.'
+        },
+        {
+            page: 'anunturi.html',
+            selector: 'main',
+            section: 'Comunicare',
+            title: 'Anunțuri și sondaje',
+            text: 'Aici poți citi comunicările organizației și, dacă rolul tău permite, poți publica anunțuri, întrebări sau sondaje. Accesul la citire și publicare poate fi configurat separat.'
+        },
+        {
+            page: 'calculatorilegal.html',
+            selector: '#cat-ammo, main',
+            section: 'Modul special',
+            title: 'Calculator Ilegal',
+            text: 'Dacă rolul tău are acces, această pagină calculează componentele și materialele pentru arme, muniție, plicuri, marijuana și ciuperci. Introdu cantitatea, iar calculatorul îți arată necesarul pe loturi și totalul materialelor brute.'
+        },
+        {
+            page: 'locatiiilegale.html',
+            selector: '#map-container-wrapper, main',
+            section: 'Modul special',
+            title: 'Locații Ilegale',
+            text: 'Pagina oferă hărți și locații filtrabile pentru activitățile configurate. Poți căuta puncte, filtra după categorie și salva locații la favorite. Ea apare în tutorial numai dacă rolul tău o poate deschide.'
+        },
+        {
+            page: 'marketplace-ilegal.html',
+            selector: 'main',
+            section: 'Modul special',
+            title: 'Black Market',
+            text: 'Black Market este marketplace-ul pentru anunțuri speciale. În funcție de permisiuni, poți vedea sau publica oferte pentru arme, muniție, piese, plicuri, jointuri și servicii, cu preț și imagini.'
+        },
+        {
+            page: 'index.html',
+            selector: '#panel-shared-sidebar',
+            section: 'Final',
+            title: 'Ești pregătit',
+            text: 'Tutorialul a fost adaptat după rolurile tale Discord. Poți naviga în siguranță prin paginile afișate în meniu, iar roboțelul rămâne disponibil pentru întrebări rapide.'
+        }
     ];
 
     function isPlatformAdmin() {
@@ -106,7 +210,7 @@
             #panel-onboarding-root .panel-tour-progress-bar { width:0; height:100%; border-radius:999px; background:linear-gradient(90deg,#34d399,#22d3ee); transition:width .25s ease; }
             #panel-onboarding-root .panel-tour-progress-label { color:#94a3b8; font-size:11px; white-space:nowrap; }
             #panel-onboarding-root .panel-tour-hint { margin-top:12px; color:#64748b; font-size:11px; }
-            #panel-onboarding-root .panel-tour-eyebrow { color:#6ee7b7; font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+            #panel-onboarding-root .panel-tour-eyebrow { color:#6ee7b7; font-size:10px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
             #panel-onboarding-root .panel-tour-title { margin:7px 0 0; color:#f8fafc; font-size:20px; font-weight:800; }
             #panel-onboarding-root .panel-tour-text { margin:9px 0 0; color:#cbd5e1; font-size:13px; line-height:1.65; }
             #panel-onboarding-root .panel-tour-actions { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:18px; }
@@ -129,7 +233,7 @@
             <div class="panel-tour-highlight"></div>
             <section class="panel-tour-card" role="dialog" aria-modal="true" aria-labelledby="panel-tour-title">
                 <div class="panel-tour-progress"><span class="panel-tour-progress-label"></span><div class="panel-tour-progress-track"><div class="panel-tour-progress-bar"></div></div></div><div class="panel-tour-eyebrow"></div><h2 id="panel-tour-title" class="panel-tour-title"></h2><p class="panel-tour-text"></p><p class="panel-tour-hint">Folosește butoanele sau săgețile ← → · Esc pentru închidere</p>
-                <div class="panel-tour-actions"><button type="button" class="panel-tour-skip">Omite tutorialul</button><div class="flex items-center gap-2"><button type="button" class="panel-tour-prev">ÃŽnapoi</button><button type="button" class="panel-tour-next">UrmÄƒtorul pas</button></div></div>
+                <div class="panel-tour-actions"><button type="button" class="panel-tour-skip">Omite tutorialul</button><div class="flex items-center gap-2"><button type="button" class="panel-tour-prev">Înapoi</button><button type="button" class="panel-tour-next">Următorul pas</button></div></div>
             </section>`;
         document.body.appendChild(root);
         return root;
@@ -158,11 +262,11 @@
             setDimmer(root, rect);
             root.querySelector('.panel-tour-progress-label').textContent = `${index + 1}/${availableSteps.length}`;
             root.querySelector('.panel-tour-progress-bar').style.width = `${((index + 1) / availableSteps.length) * 100}%`;
-            root.querySelector('.panel-tour-eyebrow').textContent = `Ghid rapid Â· ${index + 1}/${availableSteps.length}`;
+            root.querySelector('.panel-tour-eyebrow').textContent = `${step.section} · ${index + 1}/${availableSteps.length}`;
             root.querySelector('.panel-tour-title').textContent = step.title;
             root.querySelector('.panel-tour-text').textContent = step.text;
             root.querySelector('.panel-tour-prev').style.visibility = index > 0 ? 'visible' : 'hidden';
-            root.querySelector('.panel-tour-next').textContent = index === availableSteps.length - 1 ? 'ÃŽncheie' : 'UrmÄƒtorul pas';
+            root.querySelector('.panel-tour-next').textContent = index === availableSteps.length - 1 ? 'Încheie' : 'Următorul pas';
             const card = root.querySelector('.panel-tour-card'), cardHeight = card.offsetHeight || 220;
             card.style.top = rect.top > window.innerHeight * .55 ? '20px' : `calc(100vh - ${cardHeight + 20}px)`;
         }, 160);
