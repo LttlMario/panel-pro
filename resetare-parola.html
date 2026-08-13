@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Resetare parolă · Panel Pro</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+  <main class="grid min-h-screen place-items-center p-6">
+    <section class="w-full max-w-md rounded-3xl border border-slate-700/60 bg-slate-900/80 p-7 shadow-2xl">
+      <p class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">Panel Pro</p>
+      <h1 class="mt-3 text-2xl font-black">Alege o parolă nouă</h1>
+      <p class="mt-2 text-sm leading-6 text-slate-400">Parola trebuie să aibă minimum 8 caractere, o literă mare și o cifră.</p>
+      <form id="password-reset-form" class="mt-6 space-y-4">
+        <label class="block text-xs font-semibold text-slate-400">Parolă nouă<input id="new-password" type="password" minlength="8" pattern="(?=.*[A-Z])(?=.*[0-9]).{8,}" autocomplete="new-password" required class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white" placeholder="literă mare + cifră"></label>
+        <label class="block text-xs font-semibold text-slate-400">Repetă parola<input id="new-password-confirm" type="password" minlength="8" autocomplete="new-password" required class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white" placeholder="repetă parola"></label>
+        <button type="submit" class="w-full rounded-xl bg-cyan-500 px-4 py-3 text-sm font-black text-slate-950 hover:bg-cyan-400">Salvează parola</button>
+      </form>
+      <p id="password-reset-status" class="mt-4 min-h-[22px] text-sm text-cyan-200" role="status"></p>
+      <a href="login.html" class="mt-4 block text-center text-xs text-slate-400 hover:text-white">Înapoi la autentificare</a>
+    </section>
+  </main>
+  <script>
+    const authClient = window.createPanelAuthClient({ persistSession: true });
+    const form = document.getElementById('password-reset-form');
+    const status = document.getElementById('password-reset-status');
+    authClient.auth.getSession().then(({ data }) => {
+      if (!data.session) status.textContent = 'Linkul de resetare este invalid sau a expirat.';
+    });
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const password = document.getElementById('new-password').value;
+      const confirmation = document.getElementById('new-password-confirm').value;
+      if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) { status.textContent = 'Parola trebuie să aibă minimum 8 caractere, o literă mare și o cifră.'; return; }
+      if (password !== confirmation) { status.textContent = 'Parolele nu coincid.'; return; }
+      status.textContent = 'Se salvează parola...';
+      const { error } = await authClient.auth.updateUser({ password });
+      if (error) { status.textContent = error.message || 'Parola nu a putut fi salvată.'; return; }
+      status.textContent = 'Parola a fost schimbată. Poți reveni la autentificare.';
+      form.reset();
+    });
+  </script>
+</body>
+</html>

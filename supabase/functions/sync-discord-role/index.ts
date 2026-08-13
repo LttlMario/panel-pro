@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -7,7 +8,29 @@ const headers = {
 };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}').default;
-const avatarUrl = (id: string, avatar?: string | null) => avatar ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png` : 'https://lttlmario.github.io/panel-pro/img/logo-192.png';
+const avatarUrl = (id: string, avatar?: string | null) => avatar ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png` : 'https://panel-management.netlify.app//img/logo-192.png';
+const normalizeId = (value: unknown) => String(value ?? '').trim();
+const discordBotHeaders = (bot: string) => ({ Authorization: `Bot ${bot}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)' });
+const fetchDiscordMember = async (guildId: string, discordId: string, accessToken: string, botToken: string) => {
+  const botResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`, { headers: discordBotHeaders(botToken) });
+  if (botResponse.ok) return botResponse;
+  const oauthResponse = await fetch(`https://discord.com/api/v10/users/@me/guilds/${guildId}/member`, { headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)' } });
+  return oauthResponse.ok || oauthResponse.status === 404 ? oauthResponse : botResponse;
+};
+const fetchGuildSnapshot = async (guildId: string, discordId: string, accessToken: string, botToken: string) => {
+  const [memberResponse, rolesResponse] = await Promise.all([
+    fetchDiscordMember(guildId, discordId, accessToken, botToken),
+    fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, { headers: discordBotHeaders(botToken) })
+  ]);
+  const member = memberResponse.ok ? await memberResponse.json() : null;
+  const roles = new Map<string, { name: string; position: number }>();
+  if (rolesResponse.ok) {
+    for (const role of (await rolesResponse.json()) as any[]) {
+      roles.set(String(role.id), { name: String(role.name), position: Number(role.position) || 0 });
+    }
+  }
+  return { memberResponse, member, roles };
+};
 const randomToken = () => { const bytes = crypto.getRandomValues(new Uint8Array(32)); return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', ''); };
 const sha256 = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 
@@ -38,63 +61,291 @@ Deno.serve(async (request) => {
       if (voucherGuild && !voucherGuildId) voucherGuildId = voucherGuild;
     }
 
-    const userResponse = await fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bearer ${accessToken}` } });
+    const userResponsePromise = fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)' } });
+    const guildsPromise = db.from('organization_guilds')
+      .select('guild_id,guild_name,kind,organization_id,organizations!inner(id,name,slug,address,logo_url,banner_url,active)')
+      .eq('enabled', true);
+    const userResponse = await userResponsePromise;
     if (!userResponse.ok) return reply({ error: 'Sesiunea Discord a expirat.' }, 401);
     const discordUser = await userResponse.json();
-    const platformOwners=String(Deno.env.get('PLATFORM_OWNER_DISCORD_IDS')||'').split(',').map(value=>value.trim()).filter(Boolean),isPlatformAdmin=platformOwners.includes(String(discordUser.id));
+    const isPlatformAdmin=isPlatformAdminDiscordId(discordUser.id);
 
-    const { data: guilds, error: guildError } = await db.from('organization_guilds')
-      .select('guild_id,guild_name,kind,organization_id,organizations!inner(id,name,slug,address,logo_url,banner_url,active)')
-      .eq('enabled', true).eq('organizations.active', true);
+    if (voucherCode) {
+      return reply({
+        ok: true,
+        voucher_valid: true,
+        voucher_code: voucherCode,
+        voucher_guild_id: voucherGuildId || null,
+        discord_id: String(discordUser.id)
+      });
+    }
+
+    const { data: guilds, error: guildError } = await guildsPromise;
     if (guildError) throw guildError;
     const organizationIds=[...new Set((guilds||[]).map((guild:any)=>String(guild.organization_id)))];
-    const {data:accessRows,error:accessError}=organizationIds.length?await db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','page_permissions']):{data:[],error:null};
-    if(accessError)throw accessError;const expiredIds=new Set((accessRows||[]).filter((row:any)=>row.key==='organization_access'&&row.value?.expires_at&&Date.parse(String(row.value.expires_at))<=Date.now()).map((row:any)=>String(row.organization_id))),pageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}]));
-    if(expiredIds.size)await db.from('organizations').update({active:false,updated_at:new Date().toISOString()}).in('id',[...expiredIds]);
-    const { data: mappings, error: mappingError } = await db.from('organization_role_mappings').select('*').eq('enabled', true);
+    const [accessResult, mappingResult] = await Promise.all([
+      organizationIds.length
+        ? db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','page_permissions','assistant_page_permissions','action_permissions'])
+        : Promise.resolve({ data: [], error: null }),
+      db.from('organization_role_mappings').select('*').eq('enabled', true)
+    ]);
+    const { data: accessRows, error: accessError } = accessResult;
+    if(accessError)throw accessError;
+    const { data: mappings, error: mappingError } = mappingResult;
     if (mappingError) throw mappingError;
+    const expiredIds=new Set((accessRows||[]).filter((row:any)=>row.key==='organization_access'&&row.value?.expires_at&&Date.parse(String(row.value.expires_at))<=Date.now()).map((row:any)=>String(row.organization_id))),pageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),assistantPageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='assistant_page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),actionSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='action_permissions').map((row:any)=>[String(row.organization_id),row.value||{}]));
+     if(expiredIds.size)await db.from('organizations').update({active:false,updated_at:new Date().toISOString()}).in('id',[...expiredIds]);
+     const inactiveOrganizationIds=new Set((guilds||[]).filter((item:any)=>item.organizations?.active===false&&!expiredIds.has(String(item.organization_id))).map((item:any)=>String(item.organization_id)));
 
-    const matches = new Map<string, { organization: any; permission_level: number; panel_role: string; nickname: string; guild_ids: string[]; discord_role_ids:string[] }>();
+    const matches = new Map<string, {
+      organization: any;
+      panel_role: string;
+      nickname: string;
+      guild_ids: string[];
+      discord_role_ids: string[];
+    }>();
     const liveRoles = new Map<string, Map<string, { name: string; position: number }>>();
-    for (const guild of (guilds || []).filter((item:any)=>!expiredIds.has(String(item.organization_id)) && (!voucherCode || String(item.guild_id) === voucherGuildId))) {
-      const memberResponse = await fetch(`https://discord.com/api/v10/guilds/${guild.guild_id}/members/${discordUser.id}`, { headers: { Authorization: `Bot ${botToken}` } });
+    let platformRoleLabel = '';
+    let platformRolePosition = -1;
+    const guildsToProcess = (guilds || []).filter((item:any)=>!inactiveOrganizationIds.has(String(item.organization_id))&&(!voucherCode || String(item.guild_id) === voucherGuildId));
+    const guildSnapshots = new Map<string, Promise<{ memberResponse: Response; member: any; roles: Map<string, { name: string; position: number }> }>>();
+    const getGuildSnapshot = (guildId: string) => {
+      if (!guildSnapshots.has(guildId)) guildSnapshots.set(guildId, fetchGuildSnapshot(guildId, String(discordUser.id), accessToken, botToken));
+      return guildSnapshots.get(guildId)!;
+    };
+    // Pornim verificările tuturor serverelor simultan, apoi păstrăm ordinea existentă la procesarea rolurilor.
+    await Promise.all(guildsToProcess.map((guild:any) => getGuildSnapshot(String(guild.guild_id))));
+    for (const guild of guildsToProcess) {
+      const snapshot = await getGuildSnapshot(String(guild.guild_id));
+      const memberResponse = snapshot.memberResponse;
       if (memberResponse.status === 404) continue;
       if (!memberResponse.ok) { console.warn('Guild indisponibil', guild.guild_id, memberResponse.status); continue; }
-      const member = await memberResponse.json();
-      if (!liveRoles.has(String(guild.guild_id))) {
-        const rolesResponse = await fetch(`https://discord.com/api/v10/guilds/${guild.guild_id}/roles`, { headers: { Authorization: `Bot ${botToken}` } });
-        const roles = new Map<string, { name: string; position: number }>();
-        if (rolesResponse.ok) for (const role of (await rolesResponse.json()) as any[]) roles.set(String(role.id), { name: String(role.name), position: Number(role.position) || 0 });
-        liveRoles.set(String(guild.guild_id), roles);
-      }
-      const roleIds = new Set<string>(Array.isArray(member.roles) ? member.roles.map(String) : []);
+      const member = snapshot.member;
+      liveRoles.set(String(guild.guild_id), snapshot.roles);
+      const roleIds = new Set<string>(Array.isArray(member.roles) ? member.roles.map(normalizeId) : []);
       const highestDiscordRole = [...roleIds]
         .map((roleId) => liveRoles.get(String(guild.guild_id))?.get(roleId))
         .filter(Boolean)
         .sort((a:any, b:any) => b.position - a.position)[0] as { name: string; position: number } | undefined;
-      const best = (mappings || []).filter((item: any) => item.organization_id === guild.organization_id && item.guild_id === guild.guild_id && roleIds.has(String(item.discord_role_id)))
-        .sort((a: any, b: any) => Number(b.permission_level) - Number(a.permission_level) || Number(b.priority) - Number(a.priority))[0];
-      if (!best) {
-        if (isPlatformAdmin && highestDiscordRole) matches.set(guild.organization_id, {
-          organization: guild.organizations, permission_level: 99, panel_role: highestDiscordRole.name,
-          nickname: String(member.nick || discordUser.global_name || discordUser.username), guild_ids: [String(guild.guild_id)], discord_role_ids: [...roleIds],
+        const matchedMappings = (mappings || [])
+          .filter((item: any) =>
+            String(item.organization_id).trim() === String(guild.organization_id).trim() &&
+            String(item.guild_id).trim() === String(guild.guild_id).trim() &&
+            roleIds.has(String(item.discord_role_id).trim())
+          );
+
+        const mappedFallback = [...matchedMappings].sort((a: any, b: any) => {
+          const roleA = liveRoles.get(String(guild.guild_id))?.get(String(a.discord_role_id))?.position ?? Number(a.priority ?? a.permission_level ?? 0);
+          const roleB = liveRoles.get(String(guild.guild_id))?.get(String(b.discord_role_id))?.position ?? Number(b.priority ?? b.permission_level ?? 0);
+          return Number(roleB) - Number(roleA);
+        })[0];
+        const fallbackRoleLabel = String(
+          highestDiscordRole?.name ||
+          mappedFallback?.discord_role_name ||
+          mappedFallback?.panel_role ||
+          ''
+        ).trim();
+        const fallbackRolePosition = Number(
+          highestDiscordRole?.position ??
+          liveRoles.get(String(guild.guild_id))?.get(String(mappedFallback?.discord_role_id || ''))?.position ??
+          mappedFallback?.priority ??
+          mappedFallback?.permission_level ??
+          0
+        );
+        if (isPlatformAdmin && fallbackRoleLabel && fallbackRolePosition >= platformRolePosition) {
+          platformRoleLabel = fallbackRoleLabel;
+          platformRolePosition = fallbackRolePosition;
+        }
+
+        const best = matchedMappings
+          .sort((a: any, b: any) => {
+            const roleA =
+              liveRoles
+                .get(String(guild.guild_id))
+                ?.get(String(a.discord_role_id))
+                ?.position || 0;
+
+            const roleB =
+              liveRoles
+                .get(String(guild.guild_id))
+                ?.get(String(b.discord_role_id))
+                ?.position || 0;
+
+            return roleB - roleA;
+          })[0];
+if (!best) {
+  /*
+   * Platform Admin poate intra în organizație chiar dacă
+   * nu are un mapping normal configurat.
+   */
+  if (isPlatformAdmin && fallbackRoleLabel) {
+    matches.set(String(guild.organization_id), {
+      organization: guild.organizations,
+
+      panel_role: fallbackRoleLabel,
+
+      nickname: String(
+        member.nick ||
+        discordUser.global_name ||
+        discordUser.username
+      ),
+
+      guild_ids: [
+        String(guild.guild_id)
+      ],
+
+      discord_role_ids: [
+        ...roleIds
+      ],
+    });
+  }
+
+  continue;
+}
+
+const existing =
+  matches.get(String(guild.organization_id));
+
+if (!existing) {
+  matches.set(String(guild.organization_id), {
+    organization: guild.organizations,
+
+    panel_role: String(
+      liveRoles
+        .get(String(guild.guild_id))
+        ?.get(String(best.discord_role_id))
+        ?.name ||
+      best.discord_role_name ||
+      best.panel_role ||
+      'Rol Discord'
+    ),
+
+    nickname: String(
+      member.nick ||
+      discordUser.global_name ||
+      discordUser.username
+    ),
+
+    guild_ids: [
+      String(guild.guild_id)
+    ],
+
+    discord_role_ids: [
+      ...roleIds
+    ],
+  });
+
+} else {
+
+  if (
+    !existing.guild_ids.includes(
+      String(guild.guild_id)
+    )
+  ) {
+    existing.guild_ids.push(
+      String(guild.guild_id)
+    );
+  }
+
+  /*
+   * Foarte important pentru organizațiile care folosesc
+   * două servere Discord:
+   * unim rolurile găsite pe ambele servere.
+   */
+    existing.discord_role_ids = [
+      ...new Set([
+        ...existing.discord_role_ids,
+        ...roleIds
+      ])
+    ];
+  }
+
+  // Închide procesarea serverului Discord curent.
+  }
+
+  if (isPlatformAdmin) {
+    const { data: platformOrganizations, error: platformOrganizationsError } = await db.from('organizations')
+      .select('id,name,slug,address,logo_url,banner_url,active,lifecycle_status')
+      .order('name');
+    if (platformOrganizationsError) throw platformOrganizationsError;
+    for (const organization of platformOrganizations || []) {
+      const organizationId = String(organization.id);
+      if (!matches.has(organizationId)) {
+        matches.set(organizationId, {
+          organization,
+          panel_role: platformRoleLabel || 'Administrator platformă',
+          nickname: String(discordUser.global_name || discordUser.username),
+          guild_ids: [],
+          discord_role_ids: []
         });
-        continue;
       }
-      const existing = matches.get(guild.organization_id);
-      if (!existing || Number(best.permission_level) > existing.permission_level) {
-        matches.set(guild.organization_id, {
-          organization: guild.organizations,
-          permission_level: isPlatformAdmin?99:Number(best.permission_level),
-          // Afișăm numele actual al rolului Discord; panel_role rămâne doar compatibilitate veche.
-          panel_role: String(highestDiscordRole?.name || best.discord_role_name || best.panel_role || 'Grad Discord'),
-          nickname: String(member.nick || discordUser.global_name || discordUser.username), guild_ids: [String(guild.guild_id)],discord_role_ids:[...roleIds],
-        });
-      } else if (!existing.guild_ids.includes(String(guild.guild_id))) existing.guild_ids.push(String(guild.guild_id));
     }
-    const available = [...matches.entries()].map(([organization_id, value]) => {const rules:any=pageSettings.get(organization_id)||{},configured=Object.values(rules).some((roleIds:any)=>Array.isArray(roleIds)&&roleIds.length>0),allowed_pages=Object.entries(rules).filter(([,roleIds]:any)=>Array.isArray(roleIds)&&roleIds.some((roleId:string)=>value.discord_role_ids.includes(String(roleId)))).map(([page])=>page);return { organization_id, ...value,allowed_pages,page_permissions_configured:configured }})
-      .sort((a, b) => b.permission_level - a.permission_level || String(a.organization.name).localeCompare(String(b.organization.name)));
-    if (!available.length) return reply({ error: 'Nu ai niciun rol configurat într-o organizație a platformei.', code: 'NO_ORGANIZATION' }, 403);
+  }
+
+  const available = [...matches.entries()]
+  .map(([organization_id, value]) => {
+
+    const rules: any = {
+      ...(pageSettings.get(organization_id) || {})
+    };
+
+    const configured =
+      Object.values(rules).some(
+        (roleIds: any) =>
+          Array.isArray(roleIds) &&
+          roleIds.length > 0
+      );
+
+    let allowed_pages =
+      Object.entries(rules)
+        .filter(([, roleIds]: any) =>
+          Array.isArray(roleIds) &&
+          roleIds.some(
+            (roleId: string) =>
+              value.discord_role_ids.includes(
+                String(roleId)
+              )
+          )
+        )
+        .map(([page]) => page);
+
+    // Orice rol Discord identificat trebuie să poată intra în Dashboard și Pontaj.
+    // Restul paginilor rămân controlate de selecțiile configurate în organizație.
+    if (value.discord_role_ids.length) {
+      allowed_pages = [
+        ...new Set(['index.html', 'pontaj.html', ...allowed_pages])
+      ];
+    }
+
+    const assistantRules: any = assistantPageSettings.get(organization_id) || {};
+    const assistantConfigured = Object.keys(assistantRules).length > 0;
+    const assistant_allowed_pages = (assistantConfigured ? Object.entries(assistantRules) : Object.entries(rules))
+      .filter(([, roleIds]: any) => Array.isArray(roleIds) && roleIds.some((roleId: string) => value.discord_role_ids.includes(String(roleId))))
+      .map(([page]) => page)
+      .filter((page) => !['admin.html','logs.html','diagnostic.html','discord-configurare.html','organizatii.html','vouchere.html','developer.html','administrare-organizatie.html'].includes(page));
+
+    return {
+      organization_id,
+      ...value,
+      action_permissions: actionSettings.get(organization_id) || {},
+      allowed_pages,
+      assistant_allowed_pages,
+      assistant_permissions_configured: assistantConfigured,
+      page_permissions_configured: configured
+    };
+  })
+  .sort((a, b) =>
+    String(a.organization.name)
+      .localeCompare(
+        String(b.organization.name),
+        'ro'
+      )
+  );
+    if (!available.length) {
+      await db.from('panel_sessions').update({ revoked_at: new Date().toISOString() }).eq('discord_id', discordUser.id).is('revoked_at', null);
+      await db.from('organization_members').update({ active: false, last_verified_at: new Date().toISOString() }).eq('discord_id', discordUser.id).eq('active', true);
+      return reply({ error: 'Nu ai niciun rol configurat într-o organizație a platformei.', code: 'NO_ORGANIZATION' }, 403);
+    }
     if (voucherCode) return reply({
       error: 'Voucherul trebuie configurat într-o organizație nouă sau existentă.',
       code: 'VOUCHER_REQUIRES_ORGANIZATION_SETUP',
@@ -103,36 +354,263 @@ Deno.serve(async (request) => {
     }, 409);
     const requestedId = String(body.organization_id || '').trim();
     const active = available.find((item) => item.organization_id === requestedId) || available[0];
+    const { data: linkedAccount, error: linkedAccountError } = await db
+      .from('user_accounts')
+      .select('username,auth_user_id')
+      .eq('discord_id', String(discordUser.id))
+      .maybeSingle();
+    if (linkedAccountError) throw linkedAccountError;
+    const accountUsername = String(linkedAccount?.username || '').trim();
     const userData = {
-      discord_id: String(discordUser.id), username: String(discordUser.username), display_name: active.nickname,
-      email: discordUser.email ?? null, avatar: avatarUrl(discordUser.id, discordUser.avatar), avatar_url: avatarUrl(discordUser.id, discordUser.avatar),
+      discord_id: String(discordUser.id), username: accountUsername || String(discordUser.username), display_name: accountUsername || active.nickname,
+      avatar: avatarUrl(discordUser.id, discordUser.avatar), avatar_url: avatarUrl(discordUser.id, discordUser.avatar),
       role: active.panel_role, default_role: active.panel_role,
     };
-    const { data: savedUser, error: userError } = await db.from('users').upsert(userData, { onConflict: 'discord_id' }).select('*').single();
+    // Emailul nu este solicitat prin OAuth și nu este sincronizat în panel.
+    const { data: savedUser, error: userError } = await db.from('users').upsert(userData, { onConflict: 'discord_id' }).select('id,discord_id,username,display_name,avatar,avatar_url,role,default_role,tutorial_read,service,maintenance_mode,discord_logs_active,threshold_value,max_shift_hours,created_at,updated_at').single();
     if (userError) throw userError;
-    await Promise.all(available.map((item) => db.from('organization_members').upsert({
-      organization_id: item.organization_id, discord_id: discordUser.id, panel_role: item.panel_role,
-      permission_level: item.permission_level, active: true, last_verified_at: new Date().toISOString(),
-    }, { onConflict: 'organization_id,discord_id' })));
+    await Promise.all(
+      available.map((item) =>
+        db
+          .from('organization_members')
+          .upsert({
+            organization_id: item.organization_id,
+            discord_id: discordUser.id,
+            panel_role: item.panel_role,
+
+            // Compatibilitate DB temporară.
+            // Nu mai este folosit pentru acces.
+            permission_level:
+              isPlatformAdmin ? 99 : 1,
+
+            active: true,
+            last_verified_at:
+              new Date().toISOString(),
+          }, {
+            onConflict:
+              'organization_id,discord_id'
+          })
+      )
+    );
 
     const sessionToken = randomToken();
-    const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
-    const { error: sessionError } = await db.from('panel_sessions').insert({
-      token_hash: await sha256(sessionToken), organization_id: active.organization_id, discord_id: discordUser.id,
-      permission_level: active.permission_level, is_platform_admin: isPlatformAdmin, expires_at: expiresAt,
-    });
-    if (sessionError) throw sessionError;
-    await db.from('panel_sessions').delete().eq('discord_id', discordUser.id).lt('expires_at', new Date().toISOString());
 
-    return reply({
-      user: { ...savedUser, role: active.panel_role, default_role: active.panel_role, permission_level: active.permission_level,platform_admin:isPlatformAdmin,discord_role_ids:active.discord_role_ids,allowed_pages:active.allowed_pages,page_permissions_configured:active.page_permissions_configured,
-        organization_id: active.organization_id, organization: active.organization },
-      session_token: sessionToken, expires_at: expiresAt,
-      active_organization: { id: active.organization_id, ...active.organization, permission_level: active.permission_level, panel_role: active.panel_role,allowed_pages:active.allowed_pages },
-      organizations: available.map((item) => ({ id: item.organization_id, ...item.organization, permission_level: item.permission_level, panel_role: item.panel_role,allowed_pages:item.allowed_pages })),
+const expiresAt =
+  new Date(
+    Date.now() + 12 * 60 * 60 * 1000
+  ).toISOString();
+
+
+// ============================================================
+// SESIUNEA PANELULUI
+// ============================================================
+
+const { error: sessionError } =
+  await db
+    .from('panel_sessions')
+    .insert({
+
+      token_hash:
+        await sha256(sessionToken),
+
+      organization_id:
+        active.organization_id,
+
+      discord_id:
+        discordUser.id,
+
+      /*
+       * Compatibilitate temporară cu baza de date.
+       *
+       * permission_level NU mai controlează accesul
+       * utilizatorilor normali.
+       *
+       * 99 = Platform Admin
+       * 1  = utilizator normal
+       */
+      permission_level:
+        isPlatformAdmin ? 99 : 1,
+
+      is_platform_admin:
+        isPlatformAdmin,
+
+      // RLS folosește rolurile Discord reale pentru paginile configurate.
+      discord_role_ids:
+        [...new Set((active.discord_role_ids || []).map(String))],
+
+      expires_at:
+        expiresAt,
     });
-  } catch (error) {
-    console.error(error);
-    return reply({ error: error instanceof Error ? error.message : 'Eroare necunoscută.' }, 500);
-  }
+
+if (sessionError) {
+  throw sessionError;
+}
+
+
+// ============================================================
+// ȘTERGEM SESIUNILE EXPIRATE
+// ============================================================
+
+await db
+  .from('panel_sessions')
+  .delete()
+  .eq(
+    'discord_id',
+    discordUser.id
+  )
+  .lt(
+    'expires_at',
+    new Date().toISOString()
+  );
+
+
+// ============================================================
+// RĂSPUNS LOGIN / SYNC
+// ============================================================
+
+return reply({
+
+  // ----------------------------------------------------------
+  // UTILIZATORUL ACTIV
+  // ----------------------------------------------------------
+
+  user: {
+    ...savedUser,
+
+    role:
+      active.panel_role,
+
+    default_role:
+      active.panel_role,
+
+    /*
+     * Administratorul platformei este separat
+     * de rolurile organizației.
+     */
+    platform_admin:
+      isPlatformAdmin,
+
+    is_platform_admin:
+      isPlatformAdmin,
+
+    /*
+     * Rolurile Discord reale ale utilizatorului.
+     */
+    discord_role_ids:
+      active.discord_role_ids,
+
+    /*
+     * Acestea sunt paginile pe care utilizatorul
+     * are voie efectiv să le deschidă.
+     */
+    allowed_pages:
+      active.allowed_pages,
+
+    page_permissions_configured:
+      active.page_permissions_configured,
+
+    action_permissions:
+      active.action_permissions,
+
+    assistant_allowed_pages:
+      active.assistant_allowed_pages,
+
+    assistant_permissions_configured:
+      active.assistant_permissions_configured,
+
+    organization_id:
+      active.organization_id,
+
+    organization:
+      active.organization,
+
+    organization_access_expired:
+      expiredIds.has(String(active.organization_id))
+  },
+
+
+  // ----------------------------------------------------------
+  // SESIUNE
+  // ----------------------------------------------------------
+
+  session_token:
+    sessionToken,
+
+  expires_at:
+    expiresAt,
+
+
+  // ----------------------------------------------------------
+  // ORGANIZAȚIA ACTIVĂ
+  // ----------------------------------------------------------
+
+  active_organization: {
+
+    id:
+      active.organization_id,
+
+    ...active.organization,
+
+    panel_role:
+      active.panel_role,
+
+    allowed_pages:
+      active.allowed_pages,
+
+    action_permissions:
+      active.action_permissions,
+
+    assistant_allowed_pages:
+      active.assistant_allowed_pages,
+
+    assistant_permissions_configured:
+      active.assistant_permissions_configured,
+
+    organization_access_expired:
+      expiredIds.has(String(active.organization_id))
+  },
+
+
+  // ----------------------------------------------------------
+  // TOATE ORGANIZAȚIILE UTILIZATORULUI
+  // ----------------------------------------------------------
+
+  organizations:
+    available.map((item) => ({
+
+      id:
+        item.organization_id,
+
+      ...item.organization,
+
+      panel_role:
+        item.panel_role,
+
+      allowed_pages:
+        item.allowed_pages,
+
+      action_permissions:
+        item.action_permissions,
+      assistant_allowed_pages:
+        item.assistant_allowed_pages,
+      assistant_permissions_configured:
+        item.assistant_permissions_configured
+
+    }))
+});
+
+} catch (error) {
+
+  console.error(error);
+
+  return reply(
+    {
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Eroare necunoscută.'
+    },
+    500
+  );
+}
 });

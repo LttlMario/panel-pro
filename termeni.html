@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Termeni și condiții · Panel Pro</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <style>
+    .terms-grid { background-image: linear-gradient(rgba(34,211,238,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,.04) 1px, transparent 1px); background-size: 32px 32px; }
+  </style>
+</head>
+<body class="terms-grid min-h-screen bg-slate-950 text-slate-100 antialiased">
+  <main class="mx-auto max-w-4xl px-5 py-10 sm:px-8 sm:py-16">
+    <a href="login.html" class="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:border-cyan-400/40 hover:text-cyan-200">← Înapoi la autentificare</a>
+
+    <header class="mt-8 max-w-3xl">
+      <p class="text-xs font-black uppercase tracking-[0.28em] text-cyan-300">Panel Pro · Document oficial</p>
+      <h1 class="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">Termeni și condiții</h1>
+      <p class="mt-4 text-base leading-7 text-slate-400">Regulile de utilizare a contului, protecția datelor și modul în care sunt acordate permisiunile în panel.</p>
+    </header>
+
+    <section class="mt-8 rounded-3xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/15 via-slate-900/90 to-indigo-500/10 p-6 shadow-[0_20px_60px_rgba(8,145,178,0.12)] sm:p-8">
+      <div class="flex items-start gap-4">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-300/15 text-xl text-cyan-200">✓</div>
+        <div>
+          <p class="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Important pentru acces</p>
+          <h2 class="mt-2 text-2xl font-black text-white">Rolurile sunt verificate prin Discord</h2>
+          <p class="mt-2 text-sm leading-6 text-slate-300">Accesul la organizații, pagini și funcții depinde de rolurile Discord configurate de administratorul organizației.</p>
+        </div>
+      </div>
+    </section>
+
+    <article class="mt-6 space-y-4">
+      <section class="rounded-3xl border border-slate-800 bg-slate-900/85 p-6 sm:p-8">
+        <div class="flex gap-4"><span class="text-sm font-black text-cyan-300">01</span><div><h2 class="text-xl font-black text-white">Crearea și utilizarea contului</h2><p class="mt-3 leading-7 text-slate-300">Pentru crearea unui cont, utilizatorul alege un username, o parolă și furnizează o adresă de email pentru confirmare și recuperarea parolei. Utilizatorul este responsabil pentru păstrarea confidențialității datelor de autentificare și pentru toate acțiunile efectuate din contul său.</p></div></div>
+      </section>
+
+      <section class="rounded-3xl border border-amber-400/20 bg-amber-400/5 p-6 sm:p-8">
+        <div class="flex gap-4"><span class="text-sm font-black text-amber-300">02</span><div><h2 class="text-xl font-black text-white">Parola și protecția datelor</h2><p class="mt-3 leading-7 text-slate-300">Parola trebuie să aibă minimum 8 caractere, cel puțin o literă mare și cel puțin o cifră. Parolele nu sunt salvate în format lizibil. Supabase Auth le protejează prin hashing securizat, astfel încât parola originală nu poate fi citită din baza de date.</p><div class="mt-4 rounded-2xl border border-amber-300/20 bg-slate-950/50 p-4 text-sm leading-6 text-amber-100">Nu transmite parola altor persoane. Dacă suspectezi că a fost compromisă, folosește imediat procedura de recuperare.</div></div></div>
+      </section>
+
+      <section class="rounded-3xl border border-indigo-400/25 bg-indigo-500/5 p-6 sm:p-8">
+        <div class="flex gap-4"><span class="text-sm font-black text-indigo-300">03</span><div><h2 class="text-xl font-black text-white">Discord și permisiuni</h2><p class="mt-3 leading-7 text-slate-300">Conectarea Discord este folosită pentru identificare și verificarea rolurilor configurate de organizație. Panel Pro nu acordă și nu modifică roluri Discord și nu poate ocoli permisiunile serverului.</p><p class="mt-3 leading-7 text-slate-300">Pentru accesul complet, utilizatorul trebuie să conecteze contul Discord corect și să se afle pe serverul configurat. Dacă rolul este eliminat sau modificat pe Discord, accesul din panel poate fi actualizat automat.</p></div></div>
+      </section>
+
+      <section class="rounded-3xl border border-slate-800 bg-slate-900/85 p-6 sm:p-8">
+        <div class="flex gap-4"><span class="text-sm font-black text-cyan-300">04</span><div><h2 class="text-xl font-black text-white">Utilizarea corectă</h2><p class="mt-3 leading-7 text-slate-300">Este interzis accesul neautorizat, folosirea contului altei persoane, transmiterea de date false, încercarea de a ocoli permisiunile sau modificarea datelor altor organizații.</p></div></div>
+      </section>
+
+      <section class="rounded-3xl border border-slate-800 bg-slate-900/85 p-6 sm:p-8">
+        <div class="flex gap-4"><span class="text-sm font-black text-cyan-300">05</span><div><h2 class="text-xl font-black text-white">Cookie-uri și stocare locală</h2><p class="mt-3 leading-7 text-slate-300">Panel Pro poate folosi cookie-uri și tehnologii de stocare locală strict necesare pentru autentificare, păstrarea sesiunii, preferințe și funcționarea aplicației. Nu folosim cookie-uri de marketing, profilare sau urmărire publicitară.</p><p class="mt-3 leading-7 text-slate-300">Poți refuza cookie-urile opționale din banner. Stocarea strict necesară poate rămâne activă deoarece fără ea loginul și protecția sesiunii nu pot funcționa corect.</p></div></div>
+      </section>
+
+      <section class="rounded-3xl border border-slate-800 bg-slate-900/85 p-6 sm:p-8">
+        <div class="flex gap-4"><span class="text-sm font-black text-cyan-300">06</span><div><h2 class="text-xl font-black text-white">Date și disponibilitate</h2><p class="mt-3 leading-7 text-slate-300">Datele sunt procesate pentru funcționarea organizațiilor și a modulelor activate de acestea. Administratorii organizației stabilesc ce informații pot fi vizualizate de fiecare rol. Pot exista actualizări, mentenanță sau perioade temporare de indisponibilitate.</p></div></div>
+      </section>
+
+      <section class="rounded-3xl border border-emerald-400/25 bg-emerald-500/5 p-6 sm:p-8">
+        <div class="flex gap-4"><span class="text-sm font-black text-emerald-300">07</span><div><h2 class="text-xl font-black text-white">Acceptarea termenilor</h2><p class="mt-3 leading-7 text-slate-300">Prin bifarea casetei de acceptare și crearea contului, utilizatorul confirmă că a citit și acceptă acești termeni. Versiunea acceptată este salvată împreună cu data acceptării.</p></div></div>
+      </section>
+    </article>
+
+    <footer class="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-5 text-xs text-slate-500">
+      <span>Panel Pro · Termeni de utilizare</span><span>Versiunea 2026-08-13</span>
+    </footer>
+  </main>
+</body>
+</html>
