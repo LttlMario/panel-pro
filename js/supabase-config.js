@@ -28,6 +28,23 @@ window.createPanelSupabaseClient = function createPanelSupabaseClient() {
     });
 };
 
+// Client separat pentru conturile email. Nu îl folosim pentru permisiunile panelului;
+// acesta gestionează doar sesiunea Auth, confirmarea emailului și recuperarea parolei.
+window.createPanelAuthClient = function createPanelAuthClient(options = {}) {
+    const config = window.PANEL_SUPABASE_CONFIG;
+    const persistSession = options.persistSession !== false;
+    const storage = persistSession ? window.localStorage : window.sessionStorage;
+    return window.supabase.createClient(config.url, config.publishableKey, {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storage,
+            storageKey: persistSession ? 'panel-email-auth' : 'panel-email-auth-tab'
+        }
+    });
+};
+
 window.getActiveOrganization = function getActiveOrganization() {
     try { return JSON.parse(localStorage.getItem('panel_active_organization') || 'null'); }
     catch (_) { return null; }
@@ -67,6 +84,7 @@ window.panelRequest = async function panelRequest(functionName, options = {}) {
                 headers,
                 signal: options.signal || controller?.signal
             });
+
             if (timeout) window.clearTimeout(timeout);
             if (canRetry && attempt + 1 < attempts && [408, 429, 500, 502, 503, 504].includes(response.status)) {
                 await new Promise(resolve => window.setTimeout(resolve, 250));
