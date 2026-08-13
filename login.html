@@ -372,6 +372,8 @@
             const registerPasswordConfirmation = document.getElementById('email-register-password-confirm').value;
             if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(registerPassword)) return emailStatus('Parola trebuie să aibă minimum 8 caractere, o literă mare și o cifră.', 'error');
             if (registerPassword !== registerPasswordConfirmation) return emailStatus('Parolele nu coincid.', 'error');
+            const { data: usernameAvailable, error: usernameCheckError } = await panelAuthClient.rpc('check_username_available', { candidate: username });
+            if (!usernameCheckError && usernameAvailable === false) return emailStatus('Usernameul este deja folosit. Alege alt username.', 'error');
             const { data, error } = await panelAuthClient.auth.signUp({
                 email: document.getElementById('email-register-email').value.trim(),
                 password: document.getElementById('email-register-password').value,
