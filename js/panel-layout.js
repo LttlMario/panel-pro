@@ -83,23 +83,18 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             .panel-brand-logo { width:64px; height:64px; flex:none; border-radius:18px; object-fit:cover; border:1px solid #334155; box-shadow:0 8px 24px rgba(0,0,0,.32); }
             .panel-brand-heading { display:flex; align-items:center; justify-content:center; }
             .panel-org-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#f8fafc; font-size:14px; font-weight:700; }
-            .panel-sidebar-profile { display:grid; grid-template-columns:34px minmax(0,1fr); align-items:center; column-gap:9px; row-gap:7px; margin:14px 0 4px; padding:10px; border:1px solid #263952; border-radius:12px; background:#111d31; }
+            .panel-sidebar-profile { display:grid; grid-template-columns:34px minmax(0,1fr); align-items:start; column-gap:9px; row-gap:7px; margin:14px 0 4px; padding:10px; border:1px solid #263952; border-radius:12px; background:#111d31; position:relative; }
             .panel-sidebar-profile > img { grid-column:1; grid-row:1; width:34px; height:34px; border-radius:999px; object-fit:cover; border:1px solid #334155; }
             .panel-sidebar-profile > div { grid-column:2; grid-row:1; min-width:0; }
+            .panel-profile-main { min-width:0; }
+            .panel-profile-actions { display:flex; align-items:center; gap:6px; margin-top:8px; }
+            .panel-account-settings-link { min-width:0; flex:1; display:inline-flex; align-items:center; justify-content:center; padding:6px 7px; border:1px solid #334155; border-radius:7px; color:#a7f3d0; background:#0b1628; font-size:10px; line-height:1.2; text-align:center; text-decoration:none; }
+            .panel-account-settings-link:hover { border-color:#10b981; background:#10273a; }
+            .panel-profile-actions [data-sidebar-logout] { flex:0 0 auto; }
             .panel-sidebar-profile strong,.panel-sidebar-profile small { display:block; max-width:125px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
             .panel-sidebar-profile strong { color:#f8fafc; font-size:12px; }
             .panel-sidebar-profile small { color:#34d399; font-size:10px; margin-top:2px; }
-            .panel-sidebar-profile button { grid-column:1; grid-row:2; justify-self:center; margin:0; padding:6px 7px; border:1px solid rgba(244,63,94,.3); border-radius:7px; color:#fb7185; background:rgba(244,63,94,.08); font-size:10px; cursor:pointer; }
-            .panel-sidebar-profile { position:relative; }
-            .panel-account-settings { grid-column:2; grid-row:2; position:relative; min-width:0; }
-            .panel-account-settings-toggle { width:100%; display:flex; align-items:center; justify-content:center; gap:5px; padding:6px 8px; border:1px solid #334155 !important; border-radius:7px !important; background:#0b1628 !important; color:#a7f3d0 !important; font-size:10px !important; cursor:pointer; }
-            .panel-account-settings-toggle:hover { border-color:#10b981 !important; background:#10273a !important; }
-            .panel-account-settings-menu { position:absolute; right:0; bottom:calc(100% + 8px); z-index:120; width:190px; padding:6px; border:1px solid #334155; border-radius:12px; background:#0b1526; box-shadow:0 18px 40px rgba(0,0,0,.45); }
-            .panel-account-settings-menu[hidden] { display:none; }
-            .panel-account-settings-menu a, .panel-account-settings-menu button { width:100%; display:flex; align-items:center; gap:8px; padding:9px 10px; border:0 !important; border-radius:8px !important; background:transparent !important; color:#cbd5e1 !important; font-size:11px !important; text-align:left; text-decoration:none; cursor:pointer; }
-            .panel-account-settings-menu a:hover, .panel-account-settings-menu button:hover { background:#17243a !important; color:#6ee7b7 !important; }
-            #panel-shared-sidebar.is-collapsed .panel-account-settings { display:block !important; grid-column:auto; }
-            #panel-shared-sidebar.is-collapsed .panel-account-settings-menu { left:calc(100% + 10px); right:auto; bottom:0; }
+            .panel-sidebar-profile button { margin:0; padding:6px 8px; border:1px solid rgba(244,63,94,.3); border-radius:7px; color:#fb7185; background:rgba(244,63,94,.08); font-size:10px; cursor:pointer; }
             body.panel-shared-sidebar-page { padding-left:245px; }
             body.panel-global-shell { display:flex !important; flex-direction:column !important; min-height:100vh !important; }
             body.panel-global-shell > div:has(main) { flex:1 0 auto; min-height:calc(100vh - var(--panel-footer-height, 0px)) !important; height:auto !important; overflow:visible !important; }
@@ -537,24 +532,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const organization=typeof getActiveOrganization==='function'?getActiveOrganization():null;
         heading.innerHTML=`<img class="panel-brand-logo" src="${organization?.logo_url||'img/logo-192.png'}" alt="${organization?.name||'Organizație'}" onerror="this.src='img/logo-192.png'"><span class="panel-org-name">${organization?.name||'Organizație'}</span>`;
         let profile=sidebar.querySelector('.panel-sidebar-profile');
-        if(!profile){const user=typeof getUser==='function'?getUser():null;profile=document.createElement('div');profile.className='panel-sidebar-profile';profile.innerHTML=`<img id="panel-user-avatar" src="${user?.avatar||user?.avatar_url||''}" alt=""><div><strong id="panel-user-display-name">${user?.display_name||user?.username||'Utilizator'}</strong><small id="panel-user-role">${discordRoleLabel(user)}</small></div><button type="button" id="panel-logout-btn" data-sidebar-logout>Logout</button>`;heading.after(profile);profile.querySelector('[data-sidebar-logout]')?.addEventListener('click',()=>typeof logout==='function'?logout():location.replace('login.html'));}
-        mountAccountSettingsMenu(profile);
-    }
-
-    function mountAccountSettingsMenu(container) {
-        if (!container || container.querySelector('[data-account-settings]')) return;
-        const wrapper = document.createElement('div');
-        wrapper.className = 'panel-account-settings';
-        wrapper.dataset.accountSettings = 'true';
-        wrapper.innerHTML = `<button type="button" class="panel-account-settings-toggle" aria-expanded="false" aria-haspopup="menu">⚙️ Setări</button><div class="panel-account-settings-menu" role="menu" hidden><a href="setari-cont.html" role="menuitem">👤 Setări cont</a><a href="setari-cont.html#password" role="menuitem">🔐 Schimbă parola</a><a href="termeni.html" role="menuitem">📄 Termeni și confidențialitate</a></div>`;
-        container.appendChild(wrapper);
-        const toggle = wrapper.querySelector('.panel-account-settings-toggle');
-        const menu = wrapper.querySelector('.panel-account-settings-menu');
-        const close = () => { menu.hidden = true; toggle.setAttribute('aria-expanded', 'false'); };
-        toggle.addEventListener('click', (event) => { event.stopPropagation(); menu.hidden = !menu.hidden; toggle.setAttribute('aria-expanded', String(!menu.hidden)); });
-        menu.addEventListener('click', (event) => event.stopPropagation());
-        document.addEventListener('click', close);
-        document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
+        if(!profile){const user=typeof getUser==='function'?getUser():null;profile=document.createElement('div');profile.className='panel-sidebar-profile';profile.innerHTML=`<img id="panel-user-avatar" src="${user?.avatar||user?.avatar_url||''}" alt=""><div class="panel-profile-main"><strong id="panel-user-display-name">${user?.display_name||user?.username||'Utilizator'}</strong><small id="panel-user-role">${discordRoleLabel(user)}</small><div class="panel-profile-actions"><a class="panel-account-settings-link" href="setari-cont.html">⚙️ Setările contului</a><button type="button" id="panel-logout-btn" data-sidebar-logout>Logout</button></div></div>`;heading.after(profile);profile.querySelector('[data-sidebar-logout]')?.addEventListener('click',()=>typeof logout==='function'?logout():location.replace('login.html'));}
     }
 
     function ensureSharedSidebar() {
