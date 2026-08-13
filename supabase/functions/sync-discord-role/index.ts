@@ -333,7 +333,7 @@ if (!existing) {
       role: active.panel_role, default_role: active.panel_role,
     };
     // Emailul nu este solicitat prin OAuth și nu este sincronizat în panel.
-    const { data: savedUser, error: userError } = await db.from('users').upsert(userData, { onConflict: 'discord_id' }).select('id,discord_id,username,display_name,avatar,avatar_url,role,default_role,service,maintenance_mode,discord_logs_active,threshold_value,max_shift_hours,created_at,updated_at').single();
+    const { data: savedUser, error: userError } = await db.from('users').upsert(userData, { onConflict: 'discord_id' }).select('id,discord_id,username,display_name,avatar,avatar_url,role,default_role,tutorial_read,service,maintenance_mode,discord_logs_active,threshold_value,max_shift_hours,created_at,updated_at').single();
     if (userError) throw userError;
     await Promise.all(
       available.map((item) =>

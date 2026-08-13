@@ -7,26 +7,14 @@
     const page = window.location.pathname.split('/').pop() || 'index.html';
     if (['login.html', '403.html', 'guest.html', 'organizatie-noua.html', 'creare-organizatie-voucher.html'].includes(page)) return;
 
-    const COMPLETE_KEY = 'panel_tutorial_completed_v3';
-    const STATE_KEY = 'panel_tutorial_state_v3';
-    const COMPLETE_COOKIE = 'panel_tutorial_completed_v3';    const user = (() => {
+    const COMPLETE_KEY = 'panel_tutorial_completed_v4';
+    const STATE_KEY = 'panel_tutorial_state_v4';
+    const user = (() => {
         try { return JSON.parse(localStorage.getItem('discord_user') || 'null'); } catch (_) { return null; }
     })();
 
-    function hasCompletionCookie() {
-        return document.cookie.split(';').some(item => item.trim().startsWith(`${COMPLETE_COOKIE}=1`));
-    }
 
-    function markTutorialCompleted() {
-        localStorage.setItem(COMPLETE_KEY, '1');
-        document.cookie = `${COMPLETE_COOKIE}=1; max-age=31536000; path=/; SameSite=Lax`;
-    }
-
-    if (!user) return;
-    if (localStorage.getItem(COMPLETE_KEY) === '1' || hasCompletionCookie()) {
-        markTutorialCompleted();
-        return;
-    }
+    if (!user || user.tutorial_read === true) return;
 
     const steps = [
         { page: 'index.html', selector: 'main', title: 'Bun venit în Panel Pro', text: 'Acesta este ghidul tău de început. Îți arătăm pe scurt unde găsești funcțiile principale, fără să modificăm nimic în cont sau în organizație.' },
@@ -61,10 +49,47 @@
 
     function writeState(index) { localStorage.setItem(STATE_KEY, JSON.stringify({ index })); }
 
-    function finishTutorial() {
-        markTutorialCompleted();
-        localStorage.removeItem(STATE_KEY);
-        document.getElementById('panel-onboarding-root')?.remove();
+    async function markTutorialRead() {
+        const config = window.PANEL_SUPABASE_CONFIG;
+        const sessionToken = localStorage.getItem('panel_session_token') || '';
+        if (!config || !sessionToken) throw new Error('Sesiunea securizată a panelului lipsește.');
+        const response = await fetch(`${config.url}/functions/v1/mark-tutorial-read`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                apikey: config.publishableKey,
+                Authorization: `Bearer ${config.publishableKey}`,
+                'x-panel-session': sessionToken
+            },
+            body: JSON.stringify({})
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.tutorial_read !== true) {
+            throw new Error(result.error || 'Tutorialul nu a putut fi salvat.');
+        }
+        try {
+            const current = JSON.parse(localStorage.getItem('discord_user') || 'null');
+            if (current) {
+                current.tutorial_read = true;
+                localStorage.setItem('discord_user', JSON.stringify(current));
+            }
+        } catch (_) { /* Cache-ul local nu este sursa de adevăr. */ }
+    }
+
+    async function finishTutorial() {
+        const root = document.getElementById('panel-onboarding-root');
+        const next = root?.querySelector('.panel-tour-next');
+        if (next) { next.disabled = true; next.textContent = 'Se salvează...'; }
+        try {
+            await markTutorialRead();
+            localStorage.setItem(COMPLETE_KEY, '1');
+            localStorage.removeItem(STATE_KEY);
+            root?.remove();
+        } catch (error) {
+            const hint = root?.querySelector('.panel-tour-hint');
+            if (hint) hint.textContent = error instanceof Error ? error.message : 'Tutorialul nu a putut fi salvat. Reîncearcă.';
+            if (next) { next.disabled = false; next.textContent = 'Încearcă din nou'; }
+        }
     }
 
     function addStyles() {
@@ -165,7 +190,13 @@
     window.resetPanelTutorial = () => {
         localStorage.removeItem(COMPLETE_KEY);
         localStorage.removeItem(STATE_KEY);
-        document.cookie = `${COMPLETE_COOKIE}=; max-age=0; path=/; SameSite=Lax`;
+        try {
+            const current = JSON.parse(localStorage.getItem('discord_user') || 'null');
+            if (current) {
+                current.tutorial_read = false;
+                localStorage.setItem('discord_user', JSON.stringify(current));
+            }
+        } catch (_) { /* Cache-ul local nu este sursa de adevăr. */ }
         window.location.reload();
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true }); else start();
