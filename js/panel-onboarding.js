@@ -24,7 +24,7 @@
         { page: 'bucatarie.html', selector: '#galleryGrid, main', title: 'Resursele organizației', text: 'Aici găsești resursele configurate de organizație. Alte module, precum calculatorul sau marketplace-ul, apar în meniu atunci când rolul tău are acces.' },
         { page: 'rapoarte.html', selector: '#personal-shift-panel, main', title: 'Rapoarte și istoricul', text: 'În Rapoarte vezi istoricul pontajelor și, în funcție de rol, informațiile generale ale organizației.' },
         { page: 'index.html', selector: '#panel-shared-sidebar, main', title: 'Ghidul s-a încheiat', text: 'Poți relua tutorialul oricând din consolă cu resetPanelTutorial(). În rest, folosește meniul panelului pentru a începe.' }
-    ];;
+    ];
 
     function isPlatformAdmin() {
         return String(user.discord_id || '') === '247012210021236738' || user.platform_admin === true || user.is_platform_admin === true;
@@ -63,7 +63,12 @@
             #panel-onboarding-root .panel-tour-dim { position:fixed; background:rgba(2,6,23,.78); pointer-events:auto; }
             #panel-onboarding-root .panel-tour-highlight { position:fixed; border:2px solid rgba(52,211,153,.95); border-radius:16px; box-shadow:0 0 0 5px rgba(52,211,153,.16),0 0 28px rgba(16,185,129,.28); pointer-events:none; transition:all .2s ease; }
             #panel-onboarding-root .panel-tour-card { position:fixed; left:50%; width:min(440px,calc(100vw - 32px)); transform:translateX(-50%); padding:20px; border:1px solid rgba(71,85,105,.9); border-radius:20px; background:#0f172a; color:#e2e8f0; box-shadow:0 22px 70px rgba(0,0,0,.5); pointer-events:auto; }
-            #panel-onboarding-root .panel-tour-progress { display:flex; align-items:center; gap:10px; margin-bottom:12px; }\n            #panel-onboarding-root .panel-tour-progress-track { height:5px; flex:1; overflow:hidden; border-radius:999px; background:#1e293b; }\n            #panel-onboarding-root .panel-tour-progress-bar { width:0; height:100%; border-radius:999px; background:linear-gradient(90deg,#34d399,#22d3ee); transition:width .25s ease; }\n            #panel-onboarding-root .panel-tour-progress-label { color:#94a3b8; font-size:11px; white-space:nowrap; }\n            #panel-onboarding-root .panel-tour-hint { margin-top:12px; color:#64748b; font-size:11px; }\n            #panel-onboarding-root .panel-tour-eyebrow { color:#6ee7b7; font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+            #panel-onboarding-root .panel-tour-progress { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+            #panel-onboarding-root .panel-tour-progress-track { height:5px; flex:1; overflow:hidden; border-radius:999px; background:#1e293b; }
+            #panel-onboarding-root .panel-tour-progress-bar { width:0; height:100%; border-radius:999px; background:linear-gradient(90deg,#34d399,#22d3ee); transition:width .25s ease; }
+            #panel-onboarding-root .panel-tour-progress-label { color:#94a3b8; font-size:11px; white-space:nowrap; }
+            #panel-onboarding-root .panel-tour-hint { margin-top:12px; color:#64748b; font-size:11px; }
+            #panel-onboarding-root .panel-tour-eyebrow { color:#6ee7b7; font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
             #panel-onboarding-root .panel-tour-title { margin:7px 0 0; color:#f8fafc; font-size:20px; font-weight:800; }
             #panel-onboarding-root .panel-tour-text { margin:9px 0 0; color:#cbd5e1; font-size:13px; line-height:1.65; }
             #panel-onboarding-root .panel-tour-actions { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:18px; }
@@ -113,7 +118,9 @@
             const rect = target.getBoundingClientRect();
             Object.assign(root.querySelector('.panel-tour-highlight').style, { left:`${Math.max(4, rect.left - 7)}px`, top:`${Math.max(4, rect.top - 7)}px`, width:`${Math.min(window.innerWidth - 8, rect.width + 14)}px`, height:`${Math.min(window.innerHeight - 8, rect.height + 14)}px` });
             setDimmer(root, rect);
-            root.querySelector('.panel-tour-progress-label').textContent = `${index + 1}/${availableSteps.length}`;\n            root.querySelector('.panel-tour-progress-bar').style.width = `${((index + 1) / availableSteps.length) * 100}%`;\n            root.querySelector('.panel-tour-eyebrow').textContent = `Ghid rapid Â· ${index + 1}/${availableSteps.length}`;
+            root.querySelector('.panel-tour-progress-label').textContent = `${index + 1}/${availableSteps.length}`;
+            root.querySelector('.panel-tour-progress-bar').style.width = `${((index + 1) / availableSteps.length) * 100}%`;
+            root.querySelector('.panel-tour-eyebrow').textContent = `Ghid rapid Â· ${index + 1}/${availableSteps.length}`;
             root.querySelector('.panel-tour-title').textContent = step.title;
             root.querySelector('.panel-tour-text').textContent = step.text;
             root.querySelector('.panel-tour-prev').style.visibility = index > 0 ? 'visible' : 'hidden';
