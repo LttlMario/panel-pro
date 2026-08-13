@@ -88,38 +88,21 @@ async function load() {
         return;
     }
 
-    const [
-        postResult,
-        optionResult,
-        reactionResult,
-        voteResult,
-        userResult
-    ] = await Promise.all([
+    // Audiența este filtrată în query, înainte ca datele să ajungă în browser.
+    // Filtrarea doar în render ar permite unui utilizator să descarce datele celeilalte audiențe.
+    const postResult = await db
+        .from('community_posts')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .in('audience', readAudiences)
+        .order('created_at', { ascending: false });
 
-        db
-            .from('community_posts')
-            .select('*')
-            .eq('organization_id', organizationId)
-            .order('created_at', { ascending: false }),
-
-        db
-            .from('community_poll_options')
-            .select('*')
-            .eq('organization_id', organizationId),
-
-        db
-            .from('community_reactions')
-            .select('*')
-            .eq('organization_id', organizationId),
-
-        db
-            .from('community_poll_votes')
-            .select('*')
-            .eq('organization_id', organizationId),
-
-        db
-            .from('users')
-            .select('discord_id,display_name,username')
+    const postIds = (postResult.data || []).map(post => post.id).filter(Boolean);
+    const [optionResult, reactionResult, voteResult, userResult] = await Promise.all([
+        postIds.length ? db.from('community_poll_options').select('*').eq('organization_id', organizationId).in('post_id', postIds) : Promise.resolve({ data: [], error: null }),
+        postIds.length ? db.from('community_reactions').select('*').eq('organization_id', organizationId).in('post_id', postIds) : Promise.resolve({ data: [], error: null }),
+        postIds.length ? db.from('community_poll_votes').select('*').eq('organization_id', organizationId).in('post_id', postIds) : Promise.resolve({ data: [], error: null }),
+        db.from('users').select('discord_id,display_name,username')
     ]);
 
     const error =
@@ -309,5 +292,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
         .subscribe();
 });
-  document.addEventListener('DOMContentLoaded',()=>{const content=$('#post-content');content.required=false;content.placeholder='Conținut opțional';const type=$('#post-type');if(type&&!type.querySelector('option[value="fine"]'))type.insertAdjacentHTML('beforeend','<option value="fine">Amendă</option>');});
+  document.addEventListener('DOMContentLoaded',()=>{const content=$('#post-content');content.required=false;content.placeholder='Conținut opțional';});
 })();

@@ -417,6 +417,22 @@ const webhookDefinitions={
     fines_departments:{
         label:'Amenzi Birouri / Angajați',
         help:'Amenzile publicate pentru Birouri / Angajați.'
+    },
+    warnings_organization:{
+        label:'Avertismente organizație',
+        help:'Avertismentele trimise pentru membrii organizației.'
+    },
+    warnings_departments:{
+        label:'Avertismente Birouri / Angajați',
+        help:'Avertismentele trimise pentru Birouri / Angajați.'
+    },
+    sanctions_organization:{
+        label:'Sancțiuni financiare organizație',
+        help:'Sancțiunile financiare emise pentru membrii organizației.'
+    },
+    sanctions_departments:{
+        label:'Sancțiuni financiare Birouri / Angajați',
+        help:'Sancțiunile financiare emise pentru Birouri / Angajați.'
     }
 };
 const fields=Object.keys(webhookDefinitions);
@@ -1714,7 +1730,6 @@ renderRoles = () => {
     event.target.value='';
   };
 
- 
   $('organization-health').onclick=async()=>{const checks=[];try{await invoke({action:'list'});checks.push('Baza de date: OK');}catch(error){checks.push(`Baza de date: ${error.message}`);}for(const channel of fields)for(const target of ['primary','secondary']){const input=$(`wh_${target}_url_${channel}`);if(input?.value.trim())try{await invoke({action:'test_webhook',url:input.value.trim()});checks.push(`${channel}/${target}: OK`);}catch(error){checks.push(`${channel}/${target}: ${error.message}`);}}$('status').textContent=checks.join(' · ');};
   $('organization-audit').onclick=async()=>{try{const result=await invoke({action:'list_audit',organization_id:$('id').value});const lines=(result.events||[]).map(event=>`${new Date(event.created_at).toLocaleString('ro-RO')} · ${event.action} · ${event.actor_discord_id}`).join('\n')||'Nu există modificări înregistrate.';alert(lines);}catch(error){$('status').textContent=error.message;}};
 

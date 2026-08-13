@@ -19,6 +19,10 @@ const webhookChannels=new Set([
   'illegal_marketplace',
   'fines_organization',
   'fines_departments',
+  'warnings_organization',
+  'warnings_departments',
+  'sanctions_organization',
+  'sanctions_departments',
   'status_live'
 ]);
 const discordBotHeaders=(bot:string)=>({Authorization:`Bot ${bot}`,'User-Agent':'PanelManagement/1.0 (+https://panel-management.netlify.app)'});
@@ -72,7 +76,8 @@ Deno.serve(async request=>{
               'contract_template',
               'page_permissions',
               'action_permissions',
-              'communication_permissions'
+              'communication_permissions',
+              'discipline_permissions'
             ])
         : {
             data: [],
@@ -451,6 +456,31 @@ if(
   }, { onConflict: 'organization_id,key' });
   if(error) throw error;
 }
+if (
+  body.discipline_permissions &&
+  typeof body.discipline_permissions === 'object'
+) {
+  const clean = (audience:string, kind:string) => [
+    ...new Set(
+      (Array.isArray(body.discipline_permissions[audience]?.[kind])
+        ? body.discipline_permissions[audience][kind]
+        : [])
+        .map(String)
+        .filter(id => /^\d{15,22}$/.test(id))
+    )
+  ];
+  const disciplinePermissions = {
+    organization: { read: clean('organization','read'), write: clean('organization','write'), sanction: clean('organization','sanction') },
+    departments: { read: clean('departments','read'), write: clean('departments','write'), sanction: clean('departments','sanction') }
+  };
+  const { error } = await db.from('app_settings').upsert({
+    organization_id: organizationId,
+    key: 'discipline_permissions',
+    value: disciplinePermissions,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'organization_id,key' });
+  if(error) throw error;
+}
 if (Array.isArray(body.roles)) {
 
   /*
@@ -710,7 +740,7 @@ if (Array.isArray(body.roles)) {
       if(String(body.confirm_name||'').trim()!==organization.name)return reply({error:'Confirmarea nu corespunde numelui organizației.'},400);
       const {count,error:countError}=await db.from('organizations').select('id',{count:'exact',head:true});if(countError)throw countError;
       if((count||0)<=1)return reply({error:'Ultima organizație nu poate fi ștearsă. Creează întâi alta.'},409);
-      const tenantTables=['panel_notification_reads','community_poll_votes','community_reactions','community_poll_options','community_posts','panel_notifications','admin_audit_log','illegal_locations','profiles','marketplace_ilegal','marketplace','app_settings','absences','shifts'];
+      const tenantTables=['panel_notification_reads','community_poll_votes','community_reactions','community_poll_options','community_posts','disciplinary_warnings','disciplinary_sanctions','panel_notifications','admin_audit_log','illegal_locations','profiles','marketplace_ilegal','marketplace','app_settings','absences','shifts'];
       for(const table of tenantTables){const {error}=await db.from(table).delete().eq('organization_id',organizationId);if(error)throw new Error(`Ștergerea datelor din ${table} a eșuat: ${error.message}`);}
       const {error:deleteError}=await db.from('organizations').delete().eq('id',organizationId);if(deleteError)throw deleteError;
       return reply({ok:true,deleted_organization_id:organizationId});
