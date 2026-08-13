@@ -1,16 +1,39 @@
 // Navigare comună pentru panel: meniu mobil și sidebar pliabil pe desktop.
+if (!window.__panelOnboardingLoader && !window.location.pathname.endsWith('login.html')) { window.__panelOnboardingLoader = true; const onboardingScript = document.createElement('script'); onboardingScript.src = 'js/panel-onboarding.js?v=1'; document.head.appendChild(onboardingScript); }
 if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetchFixed) { window.__organizationFetchFixed = true; const _fetch = window.fetch; window.fetch = (url, options = {}) => { if (String(url).includes('/functions/v1/manage-organizations')) options.headers = { ...(options.headers || {}), 'x-panel-session': localStorage.getItem('panel_session_token') || '' }; return _fetch(url, options); }; }
 (() => {
+    // RuleazÄƒ funcÈ›iile auxiliare dupÄƒ primul afiÈ™aj, astfel Ã®ncÃ¢t
+    // navigarea È™i conÈ›inutul principal sÄƒ nu concureze cu scripturile
+    // care nu sunt necesare pentru prima interacÈ›iune.
+    function runWhenIdle(callback, timeout = 1200) {
+        const run = () => {
+            try {
+                Promise.resolve(callback()).catch(error => {
+                    console.warn('O funcÈ›ie auxiliarÄƒ a panoului nu a putut fi Ã®ncÄƒrcatÄƒ.', error);
+                });
+            } catch (error) {
+                console.warn('O funcÈ›ie auxiliarÄƒ a panoului nu a putut fi pornitÄƒ.', error);
+            }
+        };
+
+        if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(run, { timeout });
+        } else {
+            window.setTimeout(run, Math.min(timeout, 250));
+        }
+    }
+
     if (window.location.pathname.endsWith('vouchere.html')) {
         const script = document.createElement('script'); script.src = 'js/voucher-admin-controls.js?v=3.3.1'; document.head.appendChild(script);
         const listScript = document.createElement('script'); listScript.src = 'js/voucher-list-controls.js?v=3.3.1'; document.head.appendChild(listScript);
         const enhancementScript = document.createElement('script'); enhancementScript.src = 'js/voucher-enhancements.js?v=4.0.0'; document.head.appendChild(enhancementScript);
     }
-    if (window.location.pathname.endsWith('administrare-organizatie.html')) { const script=document.createElement('script');script.src='js/organization-status.js';document.head.appendChild(script); }
     if (window.location.pathname.endsWith('organizatii.html')) { const requestScript=document.createElement('script');requestScript.src='js/organization-request-fix.js';document.head.appendChild(requestScript); const script=document.createElement('script');script.src='js/package-limits.js';document.head.appendChild(script); }
     if (window.location.pathname.endsWith('admin.html')) { const script=document.createElement('script');script.src='js/admin-organization-center.js';document.head.appendChild(script); }
     if (window.location.pathname.endsWith('anunturi.html')) { const script=document.createElement('script');script.src='js/anunturi-permissions.js';document.head.appendChild(script); }
     const COLLAPSE_KEY = 'panel_sidebar_collapsed';
+    let globalSearchTimer = null;
+    let globalSearchRequest = 0;
 
     function addStyles() {
         if (document.getElementById('panel-layout-styles')) return;
@@ -27,33 +50,65 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             #panel-shared-sidebar h1 { display:flex !important; align-items:center !important; justify-content:flex-start !important; gap:10px !important; margin:0 !important; padding:0 !important; text-align:left !important; }
             #panel-shared-sidebar h1 > span { display:block; min-width:0; }
             #panel-shared-sidebar h1 > span > span { display:block !important; margin-top:3px; color:#94a3b8 !important; font-size:12px !important; font-weight:400 !important; line-height:1.3 !important; }
-            #panel-shared-sidebar nav { display:flex !important; flex-direction:column !important; gap:6px !important; margin:24px 0 0 !important; padding:0 !important; }
+             #panel-shared-sidebar nav { display:flex !important; flex-direction:column !important; gap:6px !important; margin:24px 0 0 !important; padding:0 !important; }
+             #panel-shared-sidebar .panel-nav-section { display:flex; flex-direction:column; gap:6px; }
+             #panel-shared-sidebar .panel-nav-section + .panel-nav-section { margin-top:14px; }
+             #panel-shared-sidebar .panel-nav-section-label { margin:2px 4px 2px; color:#64748b; font-size:10px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+             #panel-shared-sidebar .panel-nav-section-links { display:flex; flex-direction:column; gap:6px; }
+             #panel-shared-sidebar .panel-nav-section.is-empty { display:none; }
             #panel-shared-sidebar .nav-link { width:100% !important; min-height:42px; margin:0 !important; padding:10px 14px !important; display:flex; align-items:center !important; gap:12px !important; border-radius:12px !important; color:#cbd5e1 !important; font-size:14px !important; font-weight:500 !important; line-height:1.25 !important; text-align:left !important; text-decoration:none !important; white-space:normal !important; }
             #panel-shared-sidebar .nav-link > span:first-child { width:20px; flex:0 0 20px; text-align:center; }
             #panel-shared-sidebar .nav-link > span:last-child { min-width:0; overflow-wrap:anywhere; }
             #panel-shared-sidebar .nav-link.bg-emerald-500\/10 { color:#6ee7b7 !important; }
-            #panel-shared-sidebar #user-avatar { width:36px !important; height:36px !important; flex:0 0 36px; margin:0 !important; padding:0 !important; border:1px solid #334155 !important; border-radius:999px !important; object-fit:cover; }
-            #panel-shared-sidebar #user-display-name, #panel-shared-sidebar #user-role { margin:0 !important; padding:0 !important; line-height:1.3 !important; }
-            #panel-shared-sidebar #user-display-name { color:#f8fafc !important; font-size:13px !important; font-weight:600 !important; }
-            #panel-shared-sidebar #user-role { margin-top:3px !important; color:#34d399 !important; font-size:11px !important; }
-            #panel-shared-sidebar button { font-family:inherit !important; }
+            #panel-shared-sidebar #panel-user-avatar { width:36px !important; height:36px !important; flex:0 0 36px; margin:0 !important; padding:0 !important; border:1px solid #334155 !important; border-radius:999px !important; object-fit:cover; }
+            #panel-shared-sidebar #panel-user-display-name, #panel-shared-sidebar #panel-user-role { margin:0 !important; padding:0 !important; line-height:1.3 !important; }
+            #panel-shared-sidebar #panel-user-display-name { color:#f8fafc !important; font-size:13px !important; font-weight:600 !important; }
+            #panel-shared-sidebar #panel-user-role { margin-top:3px !important; color:#34d399 !important; font-size:11px !important; }
+             #panel-shared-sidebar button { font-family:inherit !important; }
+             #panel-shared-sidebar.is-collapsed { width:84px !important; flex-basis:84px !important; }
+             #panel-shared-sidebar.is-collapsed > div:first-child { padding:18px 10px !important; }
+             #panel-shared-sidebar.is-collapsed .panel-nav-section-label,
+             #panel-shared-sidebar.is-collapsed .panel-org-name,
+             #panel-shared-sidebar.is-collapsed .panel-sidebar-profile { display:none !important; }
+             #panel-shared-sidebar.is-collapsed h1 { justify-content:center !important; }
+             #panel-shared-sidebar.is-collapsed .panel-brand-logo { width:44px; height:44px; border-radius:13px; }
+             #panel-shared-sidebar.is-collapsed nav { margin-top:18px !important; }
+             #panel-shared-sidebar.is-collapsed .panel-nav-section + .panel-nav-section { margin-top:8px; }
+             #panel-shared-sidebar.is-collapsed .nav-link { justify-content:center !important; gap:0 !important; padding:10px 8px !important; }
+             #panel-shared-sidebar.is-collapsed .nav-link > span:last-child { display:none !important; }
+             #panel-shared-sidebar.is-collapsed .panel-sidebar-bottom-actions { flex-direction:column; align-items:center; }
             #panel-shared-sidebar [data-shared-logout] { min-width:auto !important; margin:0 !important; padding:7px 9px !important; border:1px solid rgba(244,63,94,.25) !important; border-radius:9px !important; background:rgba(244,63,94,.08) !important; color:#fb7185 !important; font-size:11px !important; line-height:1 !important; cursor:pointer; }
             #panel-mobile-menu .panel-mobile-nav { display:flex !important; flex-direction:column !important; gap:6px !important; }
             #panel-mobile-menu .nav-link { min-height:44px; margin:0 !important; padding:11px 14px !important; display:flex; align-items:center !important; gap:12px !important; border-radius:12px !important; color:#cbd5e1 !important; font-size:14px !important; line-height:1.25 !important; text-decoration:none !important; }
             .panel-brand-logo { width:64px; height:64px; flex:none; border-radius:18px; object-fit:cover; border:1px solid #334155; box-shadow:0 8px 24px rgba(0,0,0,.32); }
             .panel-brand-heading { display:flex; align-items:center; justify-content:center; }
             .panel-org-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#f8fafc; font-size:14px; font-weight:700; }
-            .panel-sidebar-profile { display:flex; align-items:center; gap:9px; margin:14px 0 4px; padding:10px; border:1px solid #263952; border-radius:12px; background:#111d31; }
-            .panel-sidebar-profile > img { width:34px; height:34px; flex:0 0 34px; border-radius:999px; object-fit:cover; border:1px solid #334155; }
+            .panel-sidebar-profile { display:grid; grid-template-columns:34px minmax(0,1fr); align-items:center; column-gap:9px; row-gap:7px; margin:14px 0 4px; padding:10px; border:1px solid #263952; border-radius:12px; background:#111d31; }
+            .panel-sidebar-profile > img { grid-column:1; grid-row:1; width:34px; height:34px; border-radius:999px; object-fit:cover; border:1px solid #334155; }
+            .panel-sidebar-profile > div { grid-column:2; grid-row:1; min-width:0; }
             .panel-sidebar-profile strong,.panel-sidebar-profile small { display:block; max-width:125px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
             .panel-sidebar-profile strong { color:#f8fafc; font-size:12px; }
             .panel-sidebar-profile small { color:#34d399; font-size:10px; margin-top:2px; }
-            .panel-sidebar-profile button { margin-left:auto; padding:6px 7px; border:1px solid rgba(244,63,94,.3); border-radius:7px; color:#fb7185; background:rgba(244,63,94,.08); font-size:10px; }
-            body.panel-shared-sidebar-page { padding-left:18rem; }
-            body.panel-global-shell { display:block !important; }
+            .panel-sidebar-profile button { grid-column:1; grid-row:2; justify-self:center; margin:0; padding:6px 7px; border:1px solid rgba(244,63,94,.3); border-radius:7px; color:#fb7185; background:rgba(244,63,94,.08); font-size:10px; cursor:pointer; }
+            .panel-sidebar-profile { position:relative; }
+            .panel-account-settings { grid-column:2; grid-row:2; position:relative; min-width:0; }
+            .panel-account-settings-toggle { width:100%; display:flex; align-items:center; justify-content:center; gap:5px; padding:6px 8px; border:1px solid #334155 !important; border-radius:7px !important; background:#0b1628 !important; color:#a7f3d0 !important; font-size:10px !important; cursor:pointer; }
+            .panel-account-settings-toggle:hover { border-color:#10b981 !important; background:#10273a !important; }
+            .panel-account-settings-menu { position:absolute; right:0; bottom:calc(100% + 8px); z-index:120; width:190px; padding:6px; border:1px solid #334155; border-radius:12px; background:#0b1526; box-shadow:0 18px 40px rgba(0,0,0,.45); }
+            .panel-account-settings-menu[hidden] { display:none; }
+            .panel-account-settings-menu a, .panel-account-settings-menu button { width:100%; display:flex; align-items:center; gap:8px; padding:9px 10px; border:0 !important; border-radius:8px !important; background:transparent !important; color:#cbd5e1 !important; font-size:11px !important; text-align:left; text-decoration:none; cursor:pointer; }
+            .panel-account-settings-menu a:hover, .panel-account-settings-menu button:hover { background:#17243a !important; color:#6ee7b7 !important; }
+            #panel-shared-sidebar.is-collapsed .panel-account-settings { display:block !important; grid-column:auto; }
+            #panel-shared-sidebar.is-collapsed .panel-account-settings-menu { left:calc(100% + 10px); right:auto; bottom:0; }
+            body.panel-shared-sidebar-page { padding-left:245px; }
+            body.panel-global-shell { display:flex !important; flex-direction:column !important; min-height:100vh !important; }
+            body.panel-global-shell > div:has(main) { flex:1 0 auto; min-height:calc(100vh - var(--panel-footer-height, 0px)) !important; height:auto !important; overflow:visible !important; }
+            body.panel-global-shell > div:has(main) main { min-height:0 !important; }
+            body.panel-global-shell > main { flex:1 0 auto; min-height:calc(100vh - var(--panel-footer-height, 0px)) !important; height:auto !important; overflow:visible !important; }
+            body.panel-global-shell > #panel-global-footer { flex:0 0 auto; width:auto !important; margin-left:0 !important; margin-right:0 !important; }
             body.panel-global-shell > main { width:100% !important; }
             body.panel-global-shell > #panel-global-footer { width:100% !important; margin-left:0 !important; }
-            body.panel-shared-sidebar-page > #panel-shared-sidebar { position:fixed; inset:0 auto 0 0; z-index:60; width:18rem; }
+            body.panel-shared-sidebar-page > #panel-shared-sidebar { position:fixed; inset:0 auto 0 0; z-index:60; width:245px; }
             .panel-responsive-sidebar.fixed { position:fixed; }
             #panel-theme-toggle { width:38px; height:38px; flex:none; display:grid; place-items:center; border:1px solid #334155; border-radius:11px; background:#0b1220; color:#cbd5e1; cursor:pointer; box-shadow:0 5px 16px rgba(0,0,0,.18); }
             #panel-theme-toggle:hover { border-color:#10b981; color:#6ee7b7; }
@@ -63,7 +118,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             html,body { max-width:100%; overflow-x:hidden; }
             body,main,#app { min-width:0; }
             #panel-header-host { grid-column:1 / -1 !important; width:100% !important; min-width:0 !important; }
-            .main-content, #app-content { width:100% !important; min-width:0 !important; align-items:stretch !important; }
+            .main-content, #app-content { width:100% !important; min-width:0 !important; min-height:0 !important; align-items:stretch !important; }
             .main-content > *, #app-content > * { max-width:none; }
             img,svg,video,canvas { max-width:100%; }
             .panel-global-header { position:relative; min-height:76px !important; height:auto !important; padding-top:12px !important; padding-bottom:12px !important; gap:12px; }
@@ -83,6 +138,12 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             .panel-global-search::placeholder { color:#64748b; }
             .panel-global-search:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.12); }
             .panel-global-search-match { outline:2px solid rgba(16,185,129,.7) !important; outline-offset:2px; }
+            .panel-global-search-results { position:absolute; top:calc(100% + 8px); left:0; right:0; z-index:2000; max-height:340px; overflow:auto; padding:6px; border:1px solid #334155; border-radius:14px; background:#0b1526; box-shadow:0 18px 40px rgba(0,0,0,.42); }
+            .panel-global-search-result { display:block; padding:10px 11px; border-radius:10px; color:#dbeafe; text-decoration:none; }
+            .panel-global-search-result:hover { background:#17243a; }
+            .panel-global-search-result-title { display:block; font-size:12px; font-weight:800; color:#6ee7b7; }
+            .panel-global-search-result-hits { display:block; margin-top:3px; color:#94a3b8; font-size:10px; line-height:1.35; }
+            .panel-global-search-empty { padding:11px; color:#94a3b8; font-size:11px; }
             .panel-header-tools #panel-theme-toggle { margin-left:auto; pointer-events:auto; }
             .panel-global-header #panel-theme-toggle { margin-left:auto; pointer-events:auto; }
 
@@ -149,6 +210,55 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 footer { padding-left:12px !important; padding-right:12px !important; padding-bottom:max(18px,env(safe-area-inset-bottom)) !important; }
                 #panel-save-reminder { right:10px; bottom:82px; max-width:calc(100vw - 20px); }
             }
+            /* Păstrăm meniul standard pe toate dimensiunile; meniul mobil nu mai schimbă layout-ul. */
+            @media (max-width:767px) {
+                body.panel-global-shell { min-width:1024px !important; overflow-x:auto !important; }
+                body.panel-shared-sidebar-page { padding-left:245px !important; }
+                body.panel-shared-sidebar-page > #panel-shared-sidebar { display:flex !important; position:fixed !important; inset:0 auto 0 0 !important; width:245px !important; z-index:60 !important; }
+                #panel-mobile-menu, #panel-mobile-backdrop, .panel-mobile-toggle, #global-header-mobile-btn, #mobile-menu-toggle { display:none !important; }
+                body.panel-global-shell main { max-width:none !important; }
+            }
+            /* Sidebar-ul este același și pe paginile calculatorului, care au stiluri proprii. */
+            #panel-shared-sidebar .nav-link,
+            #panel-shared-sidebar .nav-link:link,
+            #panel-shared-sidebar .nav-link:visited {
+                min-height:38px !important;
+                margin:0 !important;
+                padding:10px 11px !important;
+                gap:10px !important;
+                font-family:Manrope,Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif !important;
+                font-size:12px !important;
+                font-weight:600 !important;
+                line-height:1.25 !important;
+                color:#91a0b6 !important;
+                text-decoration:none !important;
+            }
+            #panel-shared-sidebar .nav-link > span:first-child { width:19px !important; flex:0 0 19px !important; }
+            #panel-shared-sidebar .nav-link.bg-emerald-500\/10,
+            #panel-shared-sidebar .nav-link.bg-emerald-500\/10:link,
+            #panel-shared-sidebar .nav-link.bg-emerald-500\/10:visited { color:#e5edf8 !important; }
+            /* Pagini istorice: păstrăm conținutul lor, dar folosim aceeași scară globală. */
+            body[data-panel-page="calculator.html"] .main-content,
+            body[data-panel-page="calculatorilegal.html"] .main-content { align-items:stretch !important; background:#030712 !important; }
+            body[data-panel-page="calculator.html"] .calculator-container,
+            body[data-panel-page="calculatorilegal.html"] .calculator-container {
+                width:100% !important;
+                max-width:1200px !important;
+                margin:0 auto !important;
+                padding:24px 32px 32px !important;
+                gap:24px !important;
+            }
+            body[data-panel-page="locatiiilegale.html"] { width:auto !important; height:auto !important; min-height:100vh !important; overflow-x:auto !important; overflow-y:auto !important; background:#030712 !important; }
+            body[data-panel-page="locatiiilegale.html"] > #app { width:100% !important; height:auto !important; min-height:100vh !important; overflow:visible !important; flex:1 0 auto !important; }
+            body[data-panel-page="locatiiilegale.html"] #map-container-wrapper { min-height:calc(100vh - 90px) !important; flex:1 0 auto !important; overflow:hidden !important; }
+            body[data-panel-page="locatiiilegale.html"] #locations-footer-host { display:block !important; min-height:0 !important; }
+            body[data-panel-page="developer.html"] > main { width:100% !important; max-width:1200px !important; margin:0 auto !important; padding:24px 32px 40px !important; }
+            body[data-panel-page="developer.html"] #admin-content > header { display:none !important; }
+            body[data-panel-page="developer.html"] .card { border-radius:16px !important; padding:20px !important; margin-bottom:16px !important; }
+            body[data-panel-page="developer.html"] h1 { font-size:clamp(1.35rem,2vw,1.75rem) !important; line-height:1.25 !important; }
+            body[data-panel-page="developer.html"] h2 { font-size:1rem !important; line-height:1.35 !important; }
+            body[data-panel-page="developer.html"] p,
+            body[data-panel-page="developer.html"] li { font-size:13px !important; line-height:1.55 !important; }
             @media (min-width:768px) and (max-width:1100px) { .panel-header-tools .panel-search-host { width:min(460px,42vw); } }
         `;
         document.head.appendChild(style);
@@ -157,22 +267,26 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     function setup() {
         const currentPage = window.location.pathname.split('/').pop() || 'index.html';
         document.body.classList.add('panel-global-shell');
+        document.body.dataset.panelPage = currentPage;
         addStyles();
+        ensurePanelVisualTheme();
+        ensureTextNormalizer();
         document.querySelector('#banner')?.closest('label')?.style.setProperty('display','none');
         ensureBrandAssets();
         ensureGlobalHeader();
-        setupAssistantWidget(currentPage);
+        runWhenIdle(() => setupAssistantWidget(currentPage), 1400);
         const shared = ensureSharedSidebar();
         const navigation = shared.navigation;
         const sidebar = navigation?.closest('aside');
         if (!navigation || !sidebar) return;
         ensureBrandLogo(sidebar);
+        refreshActualRoleLabel();
         sidebar.querySelector(':scope > div:last-child')?.remove();
 
         ensureCommunityLink(navigation, currentPage);
         normalizeNavigation(navigation, currentPage);
-        if (typeof applyRoleBasedVisibility === 'function' && typeof getRole === 'function') {
-            applyRoleBasedVisibility(getRole());
+        if (typeof applyRoleBasedVisibility === 'function') {
+            applyRoleBasedVisibility();
         }
         ensureSidebarLogout(sidebar);
         ensureThemeToggle(sidebar);
@@ -197,12 +311,18 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         toggle.setAttribute('aria-label', 'Micșorează meniul');
         sidebar.appendChild(toggle);
 
-        const applyCollapsedState = (collapsed) => {
-            sidebar.style.width = collapsed ? '5.25rem' : originalSidebarWidth;
+         const applyCollapsedState = (collapsed) => {
+             const sidebarWidth = collapsed ? '5.25rem' : (originalSidebarWidth || '245px');
+             sidebar.style.width = sidebarWidth;
+             sidebar.style.flexBasis = sidebarWidth;
+             sidebar.classList.toggle('is-collapsed', collapsed);
             if (main?.classList.contains('ml-72')) main.style.marginLeft = collapsed ? '5.25rem' : originalMainMargin;
+            if (document.body.classList.contains('panel-shared-sidebar-page')) {
+                document.body.style.paddingLeft = collapsed ? '5.25rem' : '245px';
+            }
             const mapApp = document.getElementById('app');
             if (mapApp && document.getElementById('map-container-wrapper')) {
-                mapApp.style.gridTemplateColumns = collapsed ? '5.25rem 1fr' : '288px 1fr';
+                mapApp.style.gridTemplateColumns = collapsed ? '5.25rem 1fr' : '245px 1fr';
             }
 
             navigation.querySelectorAll('a').forEach((link) => {
@@ -215,9 +335,9 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             });
             const title = sidebar.querySelector('h1');
             if (title) title.classList.toggle('hidden', collapsed);
-            sidebar.querySelectorAll('#user-display-name, #user-role').forEach((element) => element.classList.toggle('hidden', collapsed));
+            sidebar.querySelectorAll('#panel-user-display-name, #panel-user-role').forEach((element) => element.classList.toggle('hidden', collapsed));
             toggle.textContent = collapsed ? '›' : '‹';
-            toggle.setAttribute('aria-label', collapsed ? 'Extinde meniul' : 'Micșorează meniul');
+        toggle.setAttribute('aria-label', collapsed ? 'Extinde meniul' : 'Micșorează meniul');
         };
 
         const savedState = localStorage.getItem(COLLAPSE_KEY) === 'true';
@@ -229,7 +349,10 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         });
 
         // Dashboard are deja propriul meniu mobil, păstrat pentru compatibilitate.
-        if (document.getElementById('mobile-menu')) return;
+        if (document.getElementById('mobile-menu')) {
+            resolveOrganizationAdminVisibility(navigation);
+            return;
+        }
 
         const backdrop = document.createElement('div');
         backdrop.id = 'panel-mobile-backdrop';
@@ -240,11 +363,17 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
 
         const mobileNav = mobileMenu.querySelector('.panel-mobile-nav');
         mobileNav.innerHTML = navigation.innerHTML;
-        if (typeof applyRoleBasedVisibility === 'function' && typeof getRole === 'function') applyRoleBasedVisibility(getRole());
+        if (typeof applyRoleBasedVisibility === 'function') applyRoleBasedVisibility();
+        refreshNavigationSections(mobileNav);
+        resolveOrganizationAdminVisibility(navigation);
 
         const closeMobileMenu = () => {
             mobileMenu.classList.remove('is-open');
             backdrop.style.display = 'none';
+            const legacyMenu = document.getElementById('mobile-menu');
+            const legacyBackdrop = document.getElementById('mobile-menu-backdrop');
+            legacyMenu?.classList.add('-translate-x-full');
+            legacyBackdrop?.classList.add('hidden');
             document.body.classList.remove('panel-mobile-menu-open');
             document.body.style.overflow = '';
         };
@@ -255,6 +384,16 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             document.body.classList.add('panel-mobile-menu-open');
             document.body.style.overflow = 'hidden';
         };
+        const toggleMobileMenu = () => {
+            if (mobileMenu.classList.contains('is-open')) closeMobileMenu();
+            else openMobileMenu();
+        };
+        window.__panelMobileToggle = toggleMobileMenu;
+        window.__panelMobileClose = closeMobileMenu;
+        document.addEventListener('panel:mobile-menu-close', closeMobileMenu);
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && mobileMenu.classList.contains('is-open')) closeMobileMenu();
+        });
         mobileMenu.querySelector('button').addEventListener('click', closeMobileMenu);
         backdrop.addEventListener('click', closeMobileMenu);
         mobileNav.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMobileMenu));
@@ -280,18 +419,115 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             host.id = 'panel-header-host';
             main.prepend(host);
         }
-        if (!document.querySelector('script[src="js/global-header.js"]')) {
+        if (!document.querySelector('script[src^="js/global-header.js"]')) {
             const script = document.createElement('script');
-            script.src = 'js/global-header.js';
+            script.src = 'js/global-header.js?v=4.2.0';
             script.defer = true;
             document.head.appendChild(script);
         }
+    }
+
+    function ensurePanelVisualTheme() {
+        if (document.querySelector('link[data-panel-visual-theme]')) return;
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'css/panel-demo-theme.css?v=1.0.0';
+        link.dataset.panelVisualTheme = 'true';
+        document.head.appendChild(link);
+    }
+
+    function ensureTextNormalizer() {
+        if (document.querySelector('script[data-panel-text-normalizer]')) return;
+        const script = document.createElement('script');
+        script.src = 'js/text-normalizer.js?v=1.0.0';
+        script.dataset.panelTextNormalizer = 'true';
+        document.head.appendChild(script);
     }
 
     function ensureBrandAssets() {
         if (!document.querySelector('link[rel~="icon"]')) { const icon=document.createElement('link');icon.rel='icon';icon.href='img/favicon.ico';document.head.appendChild(icon); }
         if (!document.querySelector('link[rel="apple-touch-icon"]')) { const touch=document.createElement('link');touch.rel='apple-touch-icon';touch.href='img/logo-180.png';document.head.appendChild(touch); }
     }
+
+    function discordRoleLabel(user) {
+        const active = typeof getActiveOrganization === 'function' ? getActiveOrganization() : null;
+        const candidates = [user?.discord_role_name, user?.discord_role, user?.role_name, user?.panel_role, user?.organization?.panel_role, user?.active_organization?.panel_role, active?.discord_role_name, active?.panel_role, user?.role, user?.default_role];
+        const value = candidates.map(item => String(item || '').trim()).find(item => item && !/^\d+$/.test(item) && !/^(?:level|nivel)\b/i.test(item));
+        return value || 'Rol Discord';
+    }
+
+    function refreshSidebarUserRole() {
+        if (typeof getUser !== 'function') return;
+        const user = getUser();
+        const roleElement = document.getElementById('panel-user-role');
+        const nameElement = document.getElementById('panel-user-display-name');
+        const avatarElement = document.getElementById('panel-user-avatar');
+        if (roleElement) roleElement.textContent = discordRoleLabel(user);
+        if (nameElement) nameElement.textContent = user?.display_name || user?.username || 'Utilizator';
+        if (avatarElement) avatarElement.src = user?.avatar || user?.avatar_url || 'img/logo-192.png';
+    }
+
+    async function refreshRoleFromUsersTable() {
+        const currentUser = typeof getUser === 'function' ? getUser() : null;
+        const discordId = String(currentUser?.discord_id || currentUser?.id || '').trim();
+        const config = window.PANEL_SUPABASE_CONFIG;
+        if (!discordId || !config?.url || !config?.publishableKey) return '';
+
+        try {
+            let data = null;
+            if (typeof window.createPanelSupabaseClient === 'function' && window.supabase?.createClient) {
+                try {
+                    const client = window.createPanelSupabaseClient();
+                    const result = await client
+                        .from('users')
+                        .select('*')
+                        .eq('discord_id', discordId)
+                        .maybeSingle();
+                    data = result.data || null;
+                } catch (_) {}
+            }
+            if (!data) {
+                const response = await fetch(
+                    `${config.url}/rest/v1/users?select=*&discord_id=eq.${encodeURIComponent(discordId)}&limit=1`,
+                    {
+                        headers: {
+                            apikey: config.publishableKey,
+                            Authorization: `Bearer ${config.publishableKey}`,
+                            ...(localStorage.getItem('panel_session_token')
+                                ? { 'X-Panel-Session': localStorage.getItem('panel_session_token') }
+                                : {})
+                        }
+                    }
+                );
+                if (!response.ok) return '';
+                const rows = await response.json();
+                data = Array.isArray(rows) ? rows[0] : null;
+            }
+            if (!data) return '';
+
+            const role = String(data.role || data.default_role || '').trim();
+            if (!role) return '';
+            const mergedUser = {
+                ...currentUser,
+                ...data,
+                discord_id: currentUser.discord_id || discordId,
+                role,
+                default_role: data.default_role || role
+            };
+            localStorage.setItem('discord_user', JSON.stringify(mergedUser));
+            localStorage.setItem('user_role', role);
+            window.dispatchEvent(new CustomEvent('panel-user-updated'));
+            return role;
+        } catch (_) {
+            return '';
+        }
+    }
+
+    async function refreshActualRoleLabel() {
+        await refreshRoleFromUsersTable();
+    }
+
+    window.addEventListener('panel-user-updated', refreshSidebarUserRole);
 
     function ensureBrandLogo(sidebar) {
         const heading=sidebar.querySelector('h1');
@@ -300,7 +536,25 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         heading.replaceChildren();
         const organization=typeof getActiveOrganization==='function'?getActiveOrganization():null;
         heading.innerHTML=`<img class="panel-brand-logo" src="${organization?.logo_url||'img/logo-192.png'}" alt="${organization?.name||'Organizație'}" onerror="this.src='img/logo-192.png'"><span class="panel-org-name">${organization?.name||'Organizație'}</span>`;
-        if(!sidebar.querySelector('.panel-sidebar-profile')){const user=typeof getUser==='function'?getUser():null;const profile=document.createElement('div');profile.className='panel-sidebar-profile';profile.innerHTML=`<img id="user-avatar" src="${user?.avatar||user?.avatar_url||''}" alt=""><div><strong id="user-display-name">${user?.display_name||user?.username||'Utilizator'}</strong><small id="user-role">${user?.role||'Rol'}</small></div><button type="button" id="logout-btn" data-sidebar-logout>Logout</button>`;heading.after(profile);profile.querySelector('[data-sidebar-logout]')?.addEventListener('click',()=>typeof logout==='function'?logout():location.replace('login.html'));}
+        let profile=sidebar.querySelector('.panel-sidebar-profile');
+        if(!profile){const user=typeof getUser==='function'?getUser():null;profile=document.createElement('div');profile.className='panel-sidebar-profile';profile.innerHTML=`<img id="panel-user-avatar" src="${user?.avatar||user?.avatar_url||''}" alt=""><div><strong id="panel-user-display-name">${user?.display_name||user?.username||'Utilizator'}</strong><small id="panel-user-role">${discordRoleLabel(user)}</small></div><button type="button" id="panel-logout-btn" data-sidebar-logout>Logout</button>`;heading.after(profile);profile.querySelector('[data-sidebar-logout]')?.addEventListener('click',()=>typeof logout==='function'?logout():location.replace('login.html'));}
+        mountAccountSettingsMenu(profile);
+    }
+
+    function mountAccountSettingsMenu(container) {
+        if (!container || container.querySelector('[data-account-settings]')) return;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'panel-account-settings';
+        wrapper.dataset.accountSettings = 'true';
+        wrapper.innerHTML = `<button type="button" class="panel-account-settings-toggle" aria-expanded="false" aria-haspopup="menu">⚙️ Setări</button><div class="panel-account-settings-menu" role="menu" hidden><a href="setari-cont.html" role="menuitem">👤 Setări cont</a><a href="setari-cont.html#password" role="menuitem">🔐 Schimbă parola</a><a href="termeni.html" role="menuitem">📄 Termeni și confidențialitate</a></div>`;
+        container.appendChild(wrapper);
+        const toggle = wrapper.querySelector('.panel-account-settings-toggle');
+        const menu = wrapper.querySelector('.panel-account-settings-menu');
+        const close = () => { menu.hidden = true; toggle.setAttribute('aria-expanded', 'false'); };
+        toggle.addEventListener('click', (event) => { event.stopPropagation(); menu.hidden = !menu.hidden; toggle.setAttribute('aria-expanded', String(!menu.hidden)); });
+        menu.addEventListener('click', (event) => event.stopPropagation());
+        document.addEventListener('click', close);
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
     }
 
     function ensureSharedSidebar() {
@@ -312,7 +566,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const legacyNavigation = document.getElementById('sidebar-nav') || [...document.querySelectorAll('aside nav')]
             .find(nav => !nav.closest('#panel-mobile-menu'));
         const legacySidebar = legacyNavigation?.closest('aside') || null;
-        const user=typeof getUser==='function'?getUser():null,organization=typeof getActiveOrganization==='function'?getActiveOrganization():null,sidebar=document.createElement('aside');sidebar.id='panel-shared-sidebar';sidebar.className='panel-responsive-sidebar bg-slate-900 border-r border-slate-800 flex flex-col justify-between';sidebar.style.width='18rem';sidebar.style.flex='0 0 18rem';sidebar.innerHTML=`<div class="p-6 overflow-y-auto"><h1 class="text-xl font-bold"><img src="${organization?.logo_url||'img/logo-192.png'}" alt="${organization?.name||'Logo Panel'}" class="panel-brand-logo" onerror="this.src='img/logo-192.png'"></h1>${organization?.banner_url?`<img src="${organization.banner_url}" alt="" class="mt-3 h-16 w-full rounded-lg object-cover" onerror="this.remove()">`:''}<nav id="sidebar-nav" class="mt-6 space-y-1.5"></nav></div><div class="p-4 border-t border-slate-800 flex items-center justify-between gap-2"><div class="flex items-center gap-3 min-w-0"><img id="user-avatar" class="w-9 h-9 rounded-full border border-slate-700 object-cover" src="${user?.avatar||user?.avatar_url||''}" alt=""><div class="min-w-0"><p id="user-display-name" class="font-semibold truncate">${user?.display_name||user?.username||'Utilizator'}</p><p id="user-role" class="text-xs text-emerald-400 truncate">${user?.role||'Rol Discord'}</p></div></div><button type="button" data-shared-logout class="text-xs text-rose-400">Logout</button></div>`;
+        const user=typeof getUser==='function'?getUser():null,organization=typeof getActiveOrganization==='function'?getActiveOrganization():null,sidebar=document.createElement('aside');sidebar.id='panel-shared-sidebar';sidebar.className='panel-responsive-sidebar bg-slate-900 border-r border-slate-800 flex flex-col justify-between';sidebar.style.width='245px';sidebar.style.flex='0 0 245px';sidebar.innerHTML=`<div class="p-6 overflow-y-auto"><h1 class="text-xl font-bold"><img src="${organization?.logo_url||'img/logo-192.png'}" alt="${organization?.name||'Logo Panel'}" class="panel-brand-logo" onerror="this.src='img/logo-192.png'"></h1>${organization?.banner_url?`<img src="${organization.banner_url}" alt="" class="mt-3 h-16 w-full rounded-lg object-cover" onerror="this.remove()">`:''}<nav id="sidebar-nav" class="mt-6 space-y-1.5"></nav></div><div class="p-4 border-t border-slate-800 flex items-center justify-between gap-2"><div class="flex items-center gap-3 min-w-0"><img id="panel-user-avatar" class="w-9 h-9 rounded-full border border-slate-700 object-cover" src="${user?.avatar||user?.avatar_url||''}" alt=""><div class="min-w-0"><p id="panel-user-display-name" class="font-semibold truncate">${user?.display_name||user?.username||'Utilizator'}</p><p id="panel-user-role" class="text-xs text-emerald-400 truncate">${discordRoleLabel(user)}</p></div></div><button type="button" data-shared-logout class="text-xs text-rose-400">Logout</button></div>`;
         if (legacySidebar) {
             legacySidebar.replaceWith(sidebar);
         } else if (document.getElementById('panel-sidebar-host')) {
@@ -427,7 +681,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (navigation.querySelector('a[href="anunturi.html"]')) return;
         const link = document.createElement('a');
         link.href = 'anunturi.html';
-        link.dataset.role = '1';
         link.className = 'nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm';
         link.classList.add(...(currentPage === 'anunturi.html'
             ? ['bg-emerald-500/10', 'text-emerald-400', 'font-medium']
@@ -437,50 +690,136 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         navigation.insertBefore(link, marketplace || null);
     }
 
-    function normalizeNavigation(navigation, currentPage) {
-        const links = [
-            ['calculator.html', 1, '🧮', 'Calculator'],
-            ['index.html', 1, '📊', 'Dashboard'],
-            ['anunturi.html', 1, '📣', 'Anunțuri & Sondaje'],
-            ['pontaj.html', 1, '⏱️', 'Pontaj'],
-            ['cereri.html', 1, '📋', 'Cereri / Absențe'],
-            ['contracte.html', 4, '📜', 'Contracte'],
-            ['calculatorilegal.html', 3, '🧮', 'Calculator Ilegal'],
-            ['craftmecanics.html', 1, '🔨', 'Craft Mecanics'],
-            ['bucatarie.html', 1, '🍳', 'Bucătărie'],
-            ['locatiiilegale.html', 3, '🗺️', 'Locații Ilegale'],
-            ['marketplace.html', 1, '🛒', 'Marketplace'],
-            ['marketplace-ilegal.html', 3, '🚨', 'Black Market'],
-            ['rapoarte.html', 4, '📈', 'Rapoarte'],
-            ['logs.html', 7, '🧾', 'Loguri'],
-            ['diagnostic.html', 7, '🩺', 'Verificare sistem'],
-            ['discord-configurare.html', 99, '⚙️', 'Configurare Discord'],
-            ['organizatii.html', 7, '🏢', 'Organizații platformă'],
-            ['developer.html', 7, '🛠️', 'Developer'],
-            ['admin.html', 7, '👑', 'Panou Admin']
-        ];
+    function refreshNavigationSections(navigation) {
+        if (!navigation) return;
+        navigation.querySelectorAll('[data-nav-section]').forEach((section) => {
+            const hasVisibleLink = [...section.querySelectorAll('a.nav-link[href]')]
+                .some((link) => !link.hidden && getComputedStyle(link).display !== 'none');
+            section.hidden = !hasVisibleLink;
+            section.classList.toggle('is-empty', !hasVisibleLink);
+        });
+    }
 
-        if (!links.some(([href]) => href === 'status-live.html')) links.splice(4, 0, ['status-live.html', 1, '📡', 'Status Live']);
-        const calculatorIndex = links.findIndex(([href]) => href === 'calculator.html');
-        if (calculatorIndex >= 0) {
-            const [calculatorLink] = links.splice(calculatorIndex, 1);
-            const kitchenIndex = links.findIndex(([href]) => href === 'bucatarie.html');
-            links.splice(kitchenIndex >= 0 ? kitchenIndex + 1 : links.length, 0, calculatorLink);
+    async function resolveOrganizationAdminVisibility(navigation) {
+        const link = navigation?.querySelector('a[href="administrare-organizatie.html"]');
+        if (!link) return;
+
+        if (typeof isPlatformAdmin === 'function' && isPlatformAdmin()) {
+            link.hidden = false;
+            link.style.display = '';
+            refreshNavigationSections(navigation);
+            return;
         }
-        navigation.innerHTML = links.filter(([href]) => href !== 'edit.html').map(([href, role, icon, label]) => {
+
+        // Proprietatea organizației este verificată server-side; până la răspuns
+        // linkul rămâne ascuns, ca să nu apară o opțiune pe care utilizatorul nu o poate folosi.
+        link.hidden = true;
+        link.style.display = 'none';
+
+        const token = localStorage.getItem('discord_access_token');
+        const config = window.PANEL_SUPABASE_CONFIG;
+        if (!token || !config?.url || !config?.publishableKey) {
+            link.remove();
+            refreshNavigationSections(navigation);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${config.url}/functions/v1/manage-owned-organization`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    apikey: config.publishableKey,
+                    Authorization: `Bearer ${config.publishableKey}`
+                },
+                body: JSON.stringify({
+                    action: 'owner_get',
+                    access_token: token,
+                    organization_id: window.getActiveOrganizationId?.() || ''
+                })
+            });
+
+            if (!response.ok) {
+                link.remove();
+            } else {
+                link.hidden = false;
+                link.style.display = '';
+            }
+        } catch (_) {
+            link.remove();
+        }
+
+        refreshNavigationSections(navigation);
+        const mobileNavigation = document.querySelector('#panel-mobile-menu nav');
+        if (mobileNavigation) {
+            mobileNavigation.innerHTML = navigation.innerHTML;
+            if (typeof applyRoleBasedVisibility === 'function') applyRoleBasedVisibility();
+            refreshNavigationSections(mobileNavigation);
+        }
+    }
+
+    function normalizeNavigation(navigation, currentPage) {
+        const sections = [
+            ['management', 'Operațiuni', [
+                ['index.html', '📊', 'Dashboard'],
+                ['anunturi.html', '📣', 'Anunțuri & Sondaje'],
+                ['pontaj.html', '⏱️', 'Pontaj'],
+                ['cereri.html', '📋', 'Cereri / Absențe'],
+                ['contracte.html', '📜', 'Contracte'],
+                ['rapoarte.html', '📈', 'Rapoarte']
+            ]],
+            ['resurse', 'Resurse', [
+                ['marketplace.html', '🛒', 'Marketplace'],
+                ['calculator.html', '🧮', 'Calculator'],
+                ['bucatarie.html', '🍳', 'Bucătărie'],
+                ['craftmecanics.html', '🔨', 'Craft Mecanics']
+            ]],
+            ['ilegal', 'Resurse ilegale', [
+                ['calculatorilegal.html', '🧮', 'Calculator Ilegal'],
+                ['locatiiilegale.html', '🗺️', 'Locații Ilegale'],
+                ['marketplace-ilegal.html', '🚨', 'Black Market']
+            ]],
+            ['administratie', 'Administrație', [
+                ['logs.html', '🧾', 'Loguri'],
+                ['diagnostic.html', '🩺', 'Verificare sistem'],
+                ['discord-configurare.html', '⚙️', 'Configurare Discord'],
+                ['organizatii.html', '🏢', 'Organizații platformă'],
+                ['developer.html', '🛠️', 'Developer'],
+                ['admin.html', '👑', 'Panou Admin']
+            ]]
+        ];
+        const renderLink = ([href, icon, label]) => {
             const active = currentPage === href;
             const stateClasses = active
                 ? 'bg-emerald-500/10 text-emerald-400 font-medium'
                 : 'text-slate-300 hover:bg-slate-800';
-            return `<a href="${href}" data-role="${role}" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm ${stateClasses}"><span>${icon}</span><span>${label}</span></a>`;
-        }).join('');
+            return `<a href="${href}" class="nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm ${stateClasses}"><span>${icon}</span><span>${label}</span></a>`;
+        };
+        navigation.innerHTML = sections.map(([key, label, links]) =>
+            `<section class="panel-nav-section" data-nav-section="${key}"><p class="panel-nav-section-label">${label}</p><div class="panel-nav-section-links">${links.map(renderLink).join('')}</div></section>`
+        ).join('');
 
         if (typeof isPlatformAdmin === 'function' && isPlatformAdmin() && !navigation.querySelector('a[href="vouchere.html"]')) {
-            const voucher = document.createElement('a'); voucher.href='vouchere.html'; voucher.dataset.role='99'; voucher.className='nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm text-slate-300 hover:bg-slate-800'; voucher.innerHTML='<span>🎟️</span><span>Vouchere</span>'; navigation.appendChild(voucher);
+            const voucher = document.createElement('a'); voucher.href='vouchere.html'; voucher.className='nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm text-slate-300 hover:bg-slate-800'; voucher.innerHTML='<span>🎟️</span><span>Vouchere</span>'; (navigation.querySelector('[data-nav-section="administratie"] .panel-nav-section-links') || navigation).appendChild(voucher);
+        }
+        if (!navigation.querySelector('a[href="administrare-organizatie.html"]')) {
+            const organizationAdmin = document.createElement('a');
+            organizationAdmin.href = 'administrare-organizatie.html';
+            organizationAdmin.className = 'nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm ' + (
+                currentPage === 'administrare-organizatie.html'
+                    ? 'bg-emerald-500/10 text-emerald-400 font-medium'
+                    : 'text-slate-300 hover:bg-slate-800'
+            );
+            organizationAdmin.innerHTML = '<span>🏢</span><span>Administrare organizație</span>';
+            const adminSection = navigation.querySelector('[data-nav-section="administratie"] .panel-nav-section-links');
+            if (adminSection) adminSection.appendChild(organizationAdmin);
+            else navigation.appendChild(organizationAdmin);
         }
         if (typeof isPlatformAdmin === 'function' && isPlatformAdmin()) {
             navigation.querySelectorAll('a.nav-link').forEach((link) => { link.style.display = ''; });
         }
+
+        refreshNavigationSections(navigation);
 
         const existingMobileNavigation = document.querySelector('#mobile-menu nav');
         if (existingMobileNavigation) existingMobileNavigation.innerHTML = navigation.innerHTML;
@@ -501,7 +840,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             return;
         }
 
-        const avatar = sidebar.querySelector('#user-avatar');
+        const avatar = sidebar.querySelector('#panel-user-avatar');
         if (!avatar) return;
         let footer = avatar.parentElement;
         while (footer?.parentElement && footer.parentElement !== sidebar) footer = footer.parentElement;
@@ -524,20 +863,22 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     }
 
     function ensureThemeToggle(sidebar) {
-        const avatar = sidebar.querySelector('#user-avatar');
-        if (!avatar) return;
-        let footer = avatar.parentElement;
-        while (footer?.parentElement && footer.parentElement !== sidebar) footer = footer.parentElement;
-        if (!footer) return;
+        let footer = sidebar.querySelector('.panel-sidebar-bottom-actions');
+        if (!footer) {
+            footer = document.createElement('div');
+            footer.className = 'panel-sidebar-bottom-actions';
+            sidebar.appendChild(footer);
+        }
 
         const modes = ['panel', 'dark'];
         const icons = { panel: '🎨', dark: '🌙' };
-        const labels = { panel: 'Tema Panel (originală)', dark: 'Tema Dark' };
+        const labels = { panel: 'Tema normală a panelului', dark: 'Tema întunecată' };
         const apply = (mode) => {
             document.documentElement.dataset.panelTheme = mode;
-            // Unele pagini vechi își citesc culorile din data-theme; Panel folosește paleta lor originală întunecată.
             document.documentElement.dataset.theme = 'dark';
             document.documentElement.classList.add('dark');
+            document.documentElement.classList.toggle('panel-theme-dark', mode === 'dark');
+            document.body.classList.toggle('panel-theme-dark', mode === 'dark');
             const button = document.getElementById('panel-theme-toggle');
             if (button) {
                 button.textContent = icons[mode];
@@ -562,28 +903,18 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             localStorage.setItem('panel_theme', mode);
             apply(mode);
         });
-        if (!legacyButton) {
-            const logoutButton = [...footer.querySelectorAll('button')].find((item) => item !== button && /logout|ieșire|iesire/i.test(item.textContent || ''));
-            let reference = logoutButton || null;
-            while (reference?.parentElement && reference.parentElement !== footer) reference = reference.parentElement;
-            footer.insertBefore(button, reference);
-        }
+        if (button.parentElement !== footer) footer.appendChild(button);
         apply(mode);
     }
 
     async function setupAssistantWidget(currentPage) {
-        const allowedPages = new Set([
-            'calculator.html',
-            'index.html', 'pontaj.html', 'cereri.html', 'rapoarte.html', 'contracte.html', 'admin.html',
-            'calculatorilegal.html', 'craftmecanics.html', 'bucatarie.html', 'locatiiilegale.html', 'marketplace.html',
-            'marketplace-ilegal.html', 'logs.html', 'diagnostic.html', 'organizatii.html'
-        ]);
-        if (!allowedPages.has(currentPage) || document.getElementById('panel-assistant-widget')) return;
+        // Asistentul este disponibil în tot panelul; conținutul răspunsului
+        // este filtrat separat de motor după rol și paginile organizației.
+        if (currentPage === 'asistent.html' || document.getElementById('panel-assistant-widget')) return;
         try {
-            if (typeof isLogged !== 'function' || !isLogged()) return;
-            await loadAssistantScript('panel-assistant-data-script', 'js/asistent-data.js', () => Array.isArray(window.PANEL_ASSISTANT_KNOWLEDGE));
-            await loadAssistantScript('panel-assistant-core-script', 'js/asistent-core.js', () => Boolean(window.PanelAssistantCore));
-            await loadAssistantScript('panel-assistant-widget-script', 'js/asistent-widget.js', () => Boolean(window.__panelAssistantWidgetLoaded));
+            await loadAssistantScript('panel-assistant-data-script', 'js/asistent-data.js?v=4.8.0', () => Array.isArray(window.PANEL_ASSISTANT_KNOWLEDGE));
+            await loadAssistantScript('panel-assistant-core-script', 'js/asistent-core.js?v=4.8.0', () => Boolean(window.PanelAssistantCore));
+            await loadAssistantScript('panel-assistant-widget-script', 'js/asistent-widget.js?v=4.8.0', () => Boolean(window.__panelAssistantWidgetLoaded));
         } catch (error) {
             console.warn('Asistentul plutitor nu a putut fi inițializat.', error);
         }
@@ -592,6 +923,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     function createGlobalPageSearch(header, currentPage) {
         const wrapper = document.createElement('div');
         wrapper.className = 'search-container';
+        wrapper.style.position = 'relative';
         const input = document.createElement('input');
         input.type = 'search';
         input.id = 'global-search';
@@ -607,16 +939,72 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 input.blur();
             }
         });
+        input.dataset.globalSearchBound = 'true';
         wrapper.appendChild(input);
         header.appendChild(wrapper);
         return input;
     }
 
-    function runGlobalPageSearch(value) {
-        const query = String(value || '').trim().toLocaleLowerCase('ro');
+    function globalSearchEngine() {
+        if (window.__panelAssistantEngine?.findPageMatches) return window.__panelAssistantEngine;
+        if (window.PanelAssistantCore && typeof getUser === 'function' && getUser()) {
+            window.__panelAssistantEngine = window.PanelAssistantCore.create({ onIndexUpdate: () => undefined });
+            return window.__panelAssistantEngine;
+        }
+        return null;
+    }
+
+    function globalSearchResultsHost(input) {
+        const host = input.closest('.search-container, .relative') || input.parentElement;
+        if (!host) return null;
+        host.style.position = 'relative';
+        let results = host.querySelector('.panel-global-search-results');
+        if (!results) {
+            results = document.createElement('div');
+            results.className = 'panel-global-search-results';
+            results.hidden = true;
+            host.appendChild(results);
+        }
+        return results;
+    }
+
+    function renderGlobalSearchLocations(input, query, matches) {
+        const results = globalSearchResultsHost(input);
+        if (!results) return;
+        results.replaceChildren();
+        if (!query) {
+            results.hidden = true;
+            return;
+        }
+        results.hidden = false;
+        if (!matches.length) {
+            const empty = document.createElement('div');
+            empty.className = 'panel-global-search-empty';
+            empty.textContent = 'Nu am găsit această informație în paginile permise rolului tău.';
+            results.appendChild(empty);
+            return;
+        }
+        matches.slice(0, 8).forEach((match) => {
+            const link = document.createElement('a');
+            link.className = 'panel-global-search-result';
+            link.href = match.page;
+            const title = document.createElement('span');
+            title.className = 'panel-global-search-result-title';
+            title.textContent = `Deschide ${match.title}`;
+            link.appendChild(title);
+            if (Array.isArray(match.matches) && match.matches.length) {
+                const hits = document.createElement('span');
+                hits.className = 'panel-global-search-result-hits';
+                hits.textContent = `Potriviri: ${match.matches.join(' · ')}`;
+                link.appendChild(hits);
+            }
+            results.appendChild(link);
+        });
+    }
+
+    function filterCurrentPageSearch(query) {
         const main = document.querySelector('main');
         if (!main) return;
-
         const selectorGroups = [
             '.gallery-card',
             'tbody tr',
@@ -629,35 +1017,64 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             items = Array.from(main.querySelectorAll(selector)).filter(item => !item.closest('header,footer,[role="dialog"]'));
             if (items.length) break;
         }
-
-        if (!items.length) {
-            main.querySelectorAll('.panel-global-search-match').forEach(item => item.classList.remove('panel-global-search-match'));
-            if (!query) return;
-            const match = Array.from(main.querySelectorAll('h1,h2,h3,h4,a,button,label'))
-                .find(item => item.textContent.toLocaleLowerCase('ro').includes(query));
-            if (match) {
-                match.classList.add('panel-global-search-match');
-                match.scrollIntoView({ behavior:'smooth', block:'center' });
-            }
+        if (items.length) {
+            items.forEach(item => {
+                const visible = !query || item.textContent.toLocaleLowerCase('ro').includes(query);
+                item.style.display = visible ? '' : 'none';
+            });
             return;
         }
+        main.querySelectorAll('.panel-global-search-match').forEach(item => item.classList.remove('panel-global-search-match'));
+        if (!query) return;
+        const match = Array.from(main.querySelectorAll('h1,h2,h3,h4,a,button,label'))
+            .find(item => item.textContent.toLocaleLowerCase('ro').includes(query));
+        if (match) {
+            match.classList.add('panel-global-search-match');
+            match.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
 
-        items.forEach(item => {
-            const visible = !query || item.textContent.toLocaleLowerCase('ro').includes(query);
-            item.style.display = visible ? '' : 'none';
-        });
+    function runGlobalPageSearch(value) {
+        const query = String(value || '').trim().toLocaleLowerCase('ro');
+        const request = ++globalSearchRequest;
+        filterCurrentPageSearch(query);
+        if (globalSearchTimer) window.clearTimeout(globalSearchTimer);
+        const input = document.getElementById('global-search');
+        if (!query || query.length < 2) {
+            if (input) renderGlobalSearchLocations(input, '', []);
+            return;
+        }
+        globalSearchTimer = window.setTimeout(async () => {
+            const engine = globalSearchEngine();
+            if (!engine?.findPageMatches) {
+                if (typeof getUser === 'function' && getUser() && request === globalSearchRequest) {
+                    globalSearchTimer = window.setTimeout(() => runGlobalPageSearch(query), 420);
+                }
+                return;
+            }
+            try {
+                const matches = await engine.findPageMatches(query);
+                if (request !== globalSearchRequest || !input) return;
+                renderGlobalSearchLocations(input, query, matches);
+            } catch (error) {
+                console.warn('Căutarea globală nu a putut indexa paginile permise.', error);
+            }
+        }, 260);
     }
 
     function relocateHeaderActions(currentPage) {
         const header = document.querySelector('header');
         const themeButton = document.getElementById('panel-theme-toggle');
-        if (!header || !themeButton || document.querySelector('.panel-header-tools')) return;
+        const sidebar = document.getElementById('panel-shared-sidebar');
+        const sidebarFooter = sidebar?.querySelector('.panel-sidebar-bottom-actions');
+        if (themeButton && sidebarFooter && themeButton.parentElement !== sidebarFooter) {
+            sidebarFooter.appendChild(themeButton);
+        }
+        if (!header || document.querySelector('.panel-header-tools')) return;
 
         // Headerul global are deja propriul câmp de căutare. Nu-l mai mutăm
         // într-o bară absolută, deoarece paginile vechi îl așezau pe două rânduri.
         if (header.classList.contains('panel-global-header')) {
-            themeButton.classList.add('panel-global-theme-toggle');
-            header.appendChild(themeButton);
             return;
         }
 
@@ -667,7 +1084,19 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             || header.querySelector('.search-container input, input[type="search"], input[placeholder*="Caută"], input[placeholder*="caută"]')
             || createGlobalPageSearch(header, currentPage);
         if (search) {
+            search.id = 'global-search';
             search.classList.add('panel-global-search');
+            if (search.dataset.globalSearchBound !== 'true') {
+                search.addEventListener('input', () => runGlobalPageSearch(search.value));
+                search.addEventListener('keydown', event => {
+                    if (event.key === 'Escape') {
+                        search.value = '';
+                        runGlobalPageSearch('');
+                        search.blur();
+                    }
+                });
+                search.dataset.globalSearchBound = 'true';
+            }
             const originalWrapper = search.closest('.search-container, .relative') || search.parentElement;
             if (originalWrapper) {
                 const searchHost = document.createElement('div');
@@ -676,7 +1105,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 tools.appendChild(searchHost);
             }
         }
-        tools.appendChild(themeButton);
         header.appendChild(tools);
     }
 
@@ -732,7 +1160,9 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         document.head.appendChild(script);
     }
 
-    loadOperationsCenter();
+    // Centrul de operaÈ›iuni este folosit doar pentru funcÈ›ii secundare;
+    // Ã®ncÄƒrcarea lui nu trebuie sÄƒ concureze cu pagina curentÄƒ.
+    runWhenIdle(loadOperationsCenter, 1600);
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
     else setup();
 })();

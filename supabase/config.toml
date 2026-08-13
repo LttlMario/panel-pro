@@ -54,3 +54,6 @@ verify_jwt = false
 
 [functions.touch-panel-session]
 verify_jwt = false
+
+[functions.update-user-account-settings]
+verify_jwt = false

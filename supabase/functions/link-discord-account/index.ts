@@ -64,7 +64,14 @@ Deno.serve(async (request) => {
       .from('user_accounts')
       .update({ discord_id: discordId, updated_at: new Date().toISOString() })
       .eq('auth_user_id', authData.user.id);
-    if (updateError) throw updateError;
+    if (updateError) {
+      // Protecția UNIQUE pe discord_id rămâne ultima linie de apărare și în
+      // cazul a două încercări simultane de conectare.
+      if (String((updateError as any).code || '') === '23505') {
+        return reply({ error: 'Contul Discord este deja conectat la alt cont email.' }, 409);
+      }
+      throw updateError;
+    }
 
     return reply({ ok: true, auth_user_id: authData.user.id, discord_id: discordId, username: account.username });
   } catch (error) {

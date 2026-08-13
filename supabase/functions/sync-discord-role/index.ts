@@ -356,14 +356,15 @@ if (!existing) {
     const active = available.find((item) => item.organization_id === requestedId) || available[0];
     const { data: linkedAccount, error: linkedAccountError } = await db
       .from('user_accounts')
-      .select('username,auth_user_id')
+      .select('username,auth_user_id,avatar_url')
       .eq('discord_id', String(discordUser.id))
       .maybeSingle();
     if (linkedAccountError) throw linkedAccountError;
     const accountUsername = String(linkedAccount?.username || '').trim();
+    const accountAvatar = String(linkedAccount?.avatar_url || '').trim();
     const userData = {
       discord_id: String(discordUser.id), username: accountUsername || String(discordUser.username), display_name: accountUsername || active.nickname,
-      avatar: avatarUrl(discordUser.id, discordUser.avatar), avatar_url: avatarUrl(discordUser.id, discordUser.avatar),
+      avatar: accountAvatar || avatarUrl(discordUser.id, discordUser.avatar), avatar_url: accountAvatar || avatarUrl(discordUser.id, discordUser.avatar),
       role: active.panel_role, default_role: active.panel_role,
     };
     // Emailul nu este solicitat prin OAuth și nu este sincronizat în panel.
