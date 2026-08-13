@@ -156,6 +156,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    if (!$('discipline-panel')) return;
     document.querySelectorAll('[data-discipline-filter]').forEach((button) => button.addEventListener('click', () => {
       document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active'));
       button.classList.add('active');
@@ -164,11 +165,11 @@
     document.querySelectorAll('[data-filter]').forEach((button) => button.addEventListener('click', () => {
       if (state.filter) showCommunity();
     }));
-    $('discipline-create-button').addEventListener('click', openModal);
-    $('[data-discipline-close]').addEventListener('click', () => { $('discipline-modal').hidden = true; });
-    $('discipline-kind').addEventListener('change', () => { $('sanction-fields').hidden = $('discipline-kind').value !== 'sanction'; });
-    $('discipline-scope').addEventListener('change', loadTargets);
-    $('discipline-form').addEventListener('submit', async (event) => {
+    $('discipline-create-button')?.addEventListener('click', openModal);
+    $('[data-discipline-close]')?.addEventListener('click', () => { if ($('discipline-modal')) $('discipline-modal').hidden = true; });
+    $('discipline-kind')?.addEventListener('change', () => { if ($('sanction-fields')) $('sanction-fields').hidden = $('discipline-kind').value !== 'sanction'; });
+    $('discipline-scope')?.addEventListener('change', loadTargets);
+    $('discipline-form')?.addEventListener('submit', async (event) => {
       event.preventDefault();
       const kind = $('discipline-kind').value;
       const scope = $('discipline-scope').value;
