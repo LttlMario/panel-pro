@@ -36,7 +36,8 @@ $functions = @(
     'manage-draft-organization',
     'discover-draft-roles',
     'save-draft-roles',
-    'touch-panel-session'
+    'touch-panel-session',
+    'mark-tutorial-read'
 )
 
 foreach ($functionName in $functions) {
