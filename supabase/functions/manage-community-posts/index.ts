@@ -32,7 +32,8 @@ const { data: permissionSettings, error: permissionSettingsError } =
         .in('key', [
             'page_permissions',
             'action_permissions',
-            'communication_permissions'
+            'communication_permissions',
+            'discipline_permissions'
         ]);
 
 if (permissionSettingsError) {
@@ -65,6 +66,11 @@ const communicationSetting =
     (permissionSettings || []).find(item => item.key === 'communication_permissions');
 const communicationPermissions = communicationSetting?.value && typeof communicationSetting.value === 'object'
     ? communicationSetting.value
+    : {};
+const disciplineSetting =
+    (permissionSettings || []).find(item => item.key === 'discipline_permissions');
+const disciplinePermissions = disciplineSetting?.value && typeof disciplineSetting.value === 'object'
+    ? disciplineSetting.value
     : {};
 
 const allowedAnnouncementRoles =
@@ -99,6 +105,17 @@ const audienceRoles = (audience:string, kind:'read'|'write') =>
         : [];
 const canForAudience = (audience:string, kind:'read'|'write') =>
     isPlatformAdmin || sessionDiscordRoleIds.some(roleId => audienceRoles(audience, kind).includes(roleId));
+const disciplineRoles = (scope:string, action:'read'|'write'|'sanction') =>
+    Array.isArray(disciplinePermissions?.[scope]?.[action])
+        ? disciplinePermissions[scope][action].map(String)
+        : [];
+const canDiscipline = (scope:string, action:'read'|'write'|'sanction') =>
+    isPlatformAdmin || sessionDiscordRoleIds.some(roleId => disciplineRoles(scope, action).includes(roleId));
+const disciplineVisible = (scope:string, targetDiscordId:string|null) =>
+    scope === 'departments'
+        ? String(targetDiscordId || '') === String(session.discord_id) || canDiscipline(scope, 'read') || canDiscipline(scope, 'write') || canDiscipline(scope, 'sanction')
+        : canDiscipline(scope, 'read') || canDiscipline(scope, 'write') || canDiscipline(scope, 'sanction');
+const disciplineScopeLabel = (scope:string) => scope === 'departments' ? 'Birouri / Angajați' : 'Organizație';
 const readAudiences = isPlatformAdmin
     ? ['organization','departments']
     : ['organization','departments'].filter(audience => canForAudience(audience,'read'));
@@ -114,6 +131,13 @@ if (body.action === 'announcement_access') {
         platform_admin: isPlatformAdmin
     });
 }
+if (body.action === 'discipline_access') {
+    return reply({
+        employee: { read: canDiscipline('departments', 'read'), write: canDiscipline('departments', 'write'), sanction: canDiscipline('departments', 'sanction'), own: true },
+        organization: { read: canDiscipline('organization', 'read'), write: canDiscipline('organization', 'write'), sanction: canDiscipline('organization', 'sanction'), own: false },
+        platform_admin: isPlatformAdmin
+    });
+}
 if (
     body.action === 'create' &&
     !(communicationSetting ? canForAudience(String(body.audience || ''), 'write') : canPublishAnnouncements)
@@ -122,7 +146,161 @@ if (
         error: 'Rolul tău nu are permisiunea de a publica sau administra anunțuri și sondaje.'
     }, 403);
 }
- const {data:user}=await db.from('users').select('*').eq('discord_id',du.id).single();if(!user)return reply({error:'Utilizatorul nu există în panel.'},403);
+  const {data:user}=await db.from('users').select('*').eq('discord_id',du.id).single();if(!user)return reply({error:'Utilizatorul nu există în panel.'},403);
+
+const resolveDisciplineTarget = async (scope:string, targetDiscordId:string|null) => {
+    if (scope === 'organization') {
+        const { data: organization, error } = await db.from('organizations').select('name').eq('id', organizationId).maybeSingle();
+        if (error) throw error;
+        return { discordId: null, name: organization?.name || 'Organizația activă' };
+    }
+    const discordId = String(targetDiscordId || '').trim();
+    if (!discordId) throw new Error('Selectează angajatul vizat.');
+    const { data: member, error: memberError } = await db.from('organization_members')
+        .select('discord_id,panel_role,active')
+        .eq('organization_id', organizationId)
+        .eq('discord_id', discordId)
+        .eq('active', true)
+        .maybeSingle();
+    if (memberError) throw memberError;
+    if (!member) throw new Error('Angajatul selectat nu aparține organizației active.');
+    const { data: profile, error: profileError } = await db.from('users')
+        .select('display_name,username')
+        .eq('discord_id', discordId)
+        .maybeSingle();
+    if (profileError) throw profileError;
+    return { discordId, name: profile?.display_name || profile?.username || `Discord ${discordId}` };
+};
+
+const activeDisciplineCount = async (scope:string, targetDiscordId:string|null) => {
+    const query = db.from('disciplinary_warnings')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+        .eq('target_scope', scope)
+        .eq('status', 'active');
+    if (scope === 'departments') query.eq('target_discord_id', targetDiscordId);
+    const { count, error } = await query;
+    if (error) throw error;
+    return Number(count || 0);
+};
+
+const notifyDisciplineDiscord = async (kind:'warning'|'sanction', record:any) => {
+    const { data: settings } = await db.from('organization_settings')
+        .select('webhook_routes,panel_public_url')
+        .eq('organization_id', organizationId)
+        .maybeSingle();
+    const audience = record.target_scope === 'departments' ? 'departments' : 'organization';
+    const routeKey = kind === 'warning'
+        ? (audience === 'departments' ? 'warnings_departments' : 'warnings_organization')
+        : (audience === 'departments' ? 'sanctions_departments' : 'sanctions_organization');
+    const fallbackKey = audience === 'departments' ? 'fines_departments' : 'fines_organization';
+    const route = settings?.webhook_routes?.[routeKey] || settings?.webhook_routes?.[fallbackKey] || {};
+    const url = route?.primary?.url || route?.secondary?.url;
+    if (!url) return null;
+    const site = String(settings?.panel_public_url || 'https://lttlmario.github.io/panel-pro').replace(/\/$/, '');
+    const detailUrl = `${site}/anunturi.html?discipline=${kind}&id=${record.id}`;
+    const response = await fetch(`${url}?wait=true`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ embeds: [{
+            title: kind === 'warning' ? '⚠️ Evidență disciplinară nouă' : '💰 Măsură financiară nouă',
+            description: 'A fost înregistrată o măsură disciplinară. Detaliile sunt disponibile numai persoanelor autorizate în panel.',
+            color: kind === 'warning' ? 16753920 : 15548997,
+            url: detailUrl,
+            footer: { text: 'Panel Pro · acces controlat' }
+        }] })
+    });
+    if (!response.ok) return null;
+    const message = await response.json().catch(() => ({}));
+    return message?.id || null;
+};
+
+if (['discipline_list', 'discipline_targets'].includes(String(body.action || ''))) {
+    const { data: warnings, error: warningsError } = await db.from('disciplinary_warnings')
+        .select('*').eq('organization_id', organizationId).order('created_at', { ascending: false });
+    if (warningsError) throw warningsError;
+    const { data: sanctions, error: sanctionsError } = await db.from('disciplinary_sanctions')
+        .select('*').eq('organization_id', organizationId).order('created_at', { ascending: false });
+    if (sanctionsError) throw sanctionsError;
+    const visibleWarnings = (warnings || []).filter((item:any) => disciplineVisible(item.target_scope, item.target_discord_id));
+    const visibleSanctions = (sanctions || []).filter((item:any) => disciplineVisible(item.target_scope, item.target_discord_id));
+    if (body.action === 'discipline_targets') {
+        const scope = String(body.target_scope || '');
+        if (!canDiscipline(scope, 'write') && !canDiscipline(scope, 'sanction')) return reply({ error: 'Nu ai dreptul să selectezi destinatari pentru această categorie.' }, 403);
+        if (scope === 'organization') return reply({ targets: [{ discord_id: null, name: 'Organizația activă' }] });
+        const { data: members, error: membersError } = await db.from('organization_members')
+            .select('discord_id,panel_role').eq('organization_id', organizationId).eq('active', true).order('panel_role');
+        if (membersError) throw membersError;
+        const ids = (members || []).map((item:any) => String(item.discord_id));
+        const { data: profiles } = ids.length ? await db.from('users').select('discord_id,display_name,username').in('discord_id', ids) : { data: [] };
+        return reply({ targets: (members || []).map((member:any) => {
+            const profile = (profiles || []).find((item:any) => String(item.discord_id) === String(member.discord_id));
+            return { discord_id: member.discord_id, name: profile?.display_name || profile?.username || member.discord_id, role: member.panel_role };
+        }) });
+    }
+    return reply({
+        warnings: visibleWarnings,
+        sanctions: visibleSanctions,
+        access: {
+            employee: { read: canDiscipline('departments', 'read'), write: canDiscipline('departments', 'write'), sanction: canDiscipline('departments', 'sanction'), own: true },
+            organization: { read: canDiscipline('organization', 'read'), write: canDiscipline('organization', 'write'), sanction: canDiscipline('organization', 'sanction'), own: false }
+        }
+    });
+}
+
+if (body.action === 'discipline_create_warning') {
+    const scope = String(body.target_scope || '');
+    if (!['departments', 'organization'].includes(scope)) return reply({ error: 'Categoria disciplinară este invalidă.' }, 400);
+    if (!canDiscipline(scope, 'write')) return reply({ error: 'Rolul tău nu poate emite avertismente pentru această categorie.' }, 403);
+    const target = await resolveDisciplineTarget(scope, scope === 'departments' ? String(body.target_discord_id || '') : null);
+    const count = await activeDisciplineCount(scope, target.discordId);
+    if (count >= 3) return reply({ error: 'Destinatarul are deja 3 avertismente active. Poți aplica o sancțiune financiară.' }, 409);
+    const { data: warning, error } = await db.from('disciplinary_warnings').insert({
+        organization_id: organizationId, target_scope: scope, target_discord_id: target.discordId, target_name: target.name,
+        reason: String(body.reason || '').trim(), notes: String(body.notes || '').trim(), evidence_url: String(body.evidence_url || '').trim() || null,
+        issued_by_discord_id: du.id, issued_by_name: user.display_name || user.username || du.id
+    }).select('*').single();
+    if (error) throw error;
+    const messageId = await notifyDisciplineDiscord('warning', warning);
+    if (messageId) await db.from('disciplinary_warnings').update({ discord_message_id: messageId }).eq('id', warning.id).eq('organization_id', organizationId);
+    return reply({ ok: true, warning: { ...warning, discord_message_id: messageId }, active_warning_count: count + 1 });
+}
+
+if (body.action === 'discipline_create_sanction') {
+    const scope = String(body.target_scope || '');
+    if (!['departments', 'organization'].includes(scope)) return reply({ error: 'Categoria disciplinară este invalidă.' }, 400);
+    if (!canDiscipline(scope, 'sanction')) return reply({ error: 'Rolul tău nu poate aplica sancțiuni pentru această categorie.' }, 403);
+    const target = await resolveDisciplineTarget(scope, scope === 'departments' ? String(body.target_discord_id || '') : null);
+    const count = await activeDisciplineCount(scope, target.discordId);
+    if (count < 3) return reply({ error: `Sancțiunea devine disponibilă după 3 avertismente active. Acum există ${count}.` }, 409);
+    const amount = Number(body.amount);
+    if (!Number.isFinite(amount) || amount <= 0) return reply({ error: 'Introdu o sumă validă mai mare decât 0.' }, 400);
+    const currency = String(body.currency || 'USD').trim().toUpperCase();
+    if (!/^[A-Z0-9]{2,8}$/.test(currency)) return reply({ error: 'Moneda introdusă este invalidă.' }, 400);
+    const { data: sanction, error } = await db.from('disciplinary_sanctions').insert({
+        organization_id: organizationId, target_scope: scope, target_discord_id: target.discordId, target_name: target.name,
+        warning_count_snapshot: count, amount, currency, reason: String(body.reason || '').trim(), notes: String(body.notes || '').trim(),
+        evidence_url: String(body.evidence_url || '').trim() || null, due_at: body.due_at ? new Date(body.due_at).toISOString() : null,
+        issued_by_discord_id: du.id, issued_by_name: user.display_name || user.username || du.id
+    }).select('*').single();
+    if (error) throw error;
+    const messageId = await notifyDisciplineDiscord('sanction', sanction);
+    if (messageId) await db.from('disciplinary_sanctions').update({ discord_message_id: messageId }).eq('id', sanction.id).eq('organization_id', organizationId);
+    return reply({ ok: true, sanction: { ...sanction, discord_message_id: messageId } });
+}
+
+if (body.action === 'discipline_resolve') {
+    const kind = body.kind === 'sanction' ? 'sanction' : 'warning';
+    const table = kind === 'sanction' ? 'disciplinary_sanctions' : 'disciplinary_warnings';
+    const { data: item, error: itemError } = await db.from(table).select('*').eq('organization_id', organizationId).eq('id', body.id).maybeSingle();
+    if (itemError) throw itemError;
+    if (!item) return reply({ error: 'Înregistrarea disciplinară nu există.' }, 404);
+    if (!canDiscipline(item.target_scope, kind === 'sanction' ? 'sanction' : 'write')) return reply({ error: 'Nu ai dreptul să închizi această înregistrare.' }, 403);
+    const nextStatus = kind === 'sanction' ? (body.status === 'cancelled' ? 'cancelled' : body.status === 'waived' ? 'waived' : 'paid') : (body.status === 'revoked' ? 'revoked' : 'resolved');
+    const { error } = await db.from(table).update({ status: nextStatus, resolved_at: new Date().toISOString(), resolved_by_discord_id: du.id, resolution_note: String(body.resolution_note || '').trim() || null, updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', body.id);
+    if (error) throw error;
+    return reply({ ok: true, status: nextStatus });
+}
 const own = async (id:string) => {
 
     const { data, error } = await db
