@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/tailwind.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-config.js"></script>
+  <script src="js/password-rules.js"></script>
   <style>
     :root { color-scheme: dark; }
     body { min-height:100vh; background:radial-gradient(circle at 10% 0%,rgba(16,185,129,.13),transparent 32rem),radial-gradient(circle at 100% 100%,rgba(99,102,241,.16),transparent 34rem),#020617; }
@@ -62,6 +63,7 @@
         <form id="password-form" class="mt-6 grid gap-4 sm:grid-cols-2">
           <label class="block text-xs font-bold text-slate-400">Parolă nouă<input id="new-password" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="Parola nouă"></label>
           <label class="block text-xs font-bold text-slate-400">Confirmă parola<input id="new-password-confirm" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="Repetă parola"></label>
+          <div id="account-password-rules" class="rounded-2xl border border-slate-700/60 bg-slate-950/40 px-4 py-3 sm:col-span-2"><p class="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Reguli parolă</p><ul data-password-rules-list class="space-y-1"></ul></div>
           <div class="sm:col-span-2"><div id="password-status" class="settings-status" role="status" aria-live="polite"></div><button class="settings-button" type="submit">Actualizează parola</button></div>
         </form>
       </section>
@@ -93,6 +95,7 @@
     const setStatus = (id, message, tone = 'info') => { const element = byId(id); if (!element) return; element.textContent = message; element.style.color = tone === 'error' ? '#fda4af' : tone === 'success' ? '#6ee7b7' : '#67e8f9'; };
     const fallbackAvatar = 'img/logo-192.png';
     let currentSession = null;
+    window.bindPanelPasswordRules?.('new-password', 'account-password-rules');
 
     function authHeaders() { return { apikey: config.publishableKey, Authorization: `Bearer ${currentSession?.access_token || ''}`, 'Content-Type': 'application/json' }; }
     function updateLocalAvatar(avatarUrl) { try { const user = JSON.parse(localStorage.getItem('discord_user') || 'null'); if (!user) return; user.avatar = avatarUrl || fallbackAvatar; user.avatar_url = avatarUrl || fallbackAvatar; localStorage.setItem('discord_user', JSON.stringify(user)); window.dispatchEvent(new CustomEvent('panel-user-updated')); } catch (_) {} }
