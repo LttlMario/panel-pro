@@ -166,18 +166,9 @@
                 // Client nou, cu sesiunea reînnoită mai sus.
                 supabaseClient = window.createPanelSupabaseClient();
 
-                // 3. Citire live din tabelul `users` din Supabase
-                let { data: dbUser, error: dbUserError } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('discord_id', localData.discord_id)
-                    .maybeSingle();
-
-                if (dbUserError) {
-                    console.warn('Profilul Supabase nu a putut fi încărcat; folosesc sesiunea locală:', dbUserError);
-                }
-
-                let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
+                // Loginul a sincronizat deja utilizatorul și organizația în sesiunea locală.
+                // Nu mai facem o citire redundantă din users înaintea controalelor pontajului.
+                const activeUser = localData;
 
                 currentUser.discord_id = activeUser.discord_id;
                 currentUser.display_name = localData.display_name || activeUser.display_name || activeUser.username || 'Membru';
@@ -207,13 +198,10 @@
                     return;
                 }
 
-                // Încărcare istoric pontaj
-                const loadHistory = () => fetchShiftsHistory();
-                if (typeof window.requestIdleCallback === 'function') {
-                    window.requestIdleCallback(loadHistory, { timeout: 1000 });
-                } else {
-                    window.setTimeout(loadHistory, 50);
-                }
+                // Istoricul pornește imediat după inițializarea sesiunii,
+                // fără întârzierea artificială introdusă de requestIdleCallback.
+                // Funcția are propriul tratament de eroare și nu blochează butoanele pontajului.
+                void fetchShiftsHistory();
 
                 });
 
