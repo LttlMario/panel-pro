@@ -313,7 +313,103 @@
             emailStatus('Se verifică rolul Discord pe serverul configurat...');
             const response = await fetch(`${SUPABASE_URL}/functions/v1/sync-discord-role`, {
                 method: 'POST',
-              …1998 tokens truncated…ccess_token || !result.refresh_token) return emailStatus(result.error || 'Usernameul sau parola sunt incorecte.', 'error');
+              
+                headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${sessionData.session.access_token}` },
+                body: JSON.stringify({ email_login: true }),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || !result.user) {
+                if (String(result.code || '') === 'NEEDS_DISCORD_LINK') {
+                    document.getElementById('email-connect-discord')?.classList.remove('hidden');
+                    emailStatus('Contul este confirmat. Conectează Discord pentru verificarea rolului.', 'info');
+                    return false;
+                }
+                if (String(result.code || '') === 'NO_ORGANIZATION') {
+                    sessionStorage.setItem('panel_email_onboarding_source', 'email');
+                    window.location.href = 'organizatie-bun-venit.html?source=email';
+                    return false;
+                }
+                throw new Error(result.error || 'Rolul Discord nu a putut fi verificat.');
+            }
+            const syncedUser = result.user;
+            localStorage.setItem('discord_user', JSON.stringify(syncedUser));
+            localStorage.setItem('user_role', syncedUser.role || '');
+            localStorage.removeItem('discord_access_token');
+            localStorage.setItem('panel_session_token', result.session_token);
+            localStorage.setItem('panel_session_expires_at', result.expires_at);
+            localStorage.setItem('panel_active_organization', JSON.stringify(result.active_organization));
+            localStorage.setItem('panel_organizations', JSON.stringify(result.organizations || []));
+            localStorage.setItem('panel_role_synced_at', String(Date.now()));
+            emailStatus(`Acces confirmat: ${result.active_organization?.name || 'organizație'} • ${syncedUser.role}`, 'success');
+            setTimeout(() => { window.location.href = getSafeReturnDestination(syncedUser); }, 350);
+            return true;
+        }
+
+        async function startDiscordOAuth(emailLink = false) {
+            if (window.location.protocol === 'file:') {
+                setLoginStatus('Pentru conectarea Discord deschide versiunea publică a panelului, nu fișierul local.', 'error');
+                return;
+            }
+            if (!CLIENT_ID || !REDIRECT_URI) {
+                setLoginStatus('Conectarea Discord nu este configurată pentru această adresă.', 'error');
+                return;
+            }
+            if (emailLink) {
+                const { data: sessionData } = await panelAuthClient.auth.getSession();
+                if (!sessionData.session) {
+                    setEmailMode('login');
+                    emailStatus('Autentifică-te mai întâi cu emailul.', 'error');
+                    return;
+                }
+                sessionStorage.setItem(EMAIL_DISCORD_FLOW_KEY, '1');
+            }
+            const oauthState = crypto.randomUUID();
+            sessionStorage.setItem('discord_oauth_state', oauthState);
+            const authParams = new URLSearchParams({ client_id: CLIENT_ID, redirect_uri: REDIRECT_URI, response_type: 'token', scope: emailLink ? 'identify guilds' : DISCORD_SCOPES, state: oauthState });
+            window.location.href = `https://discord.com/oauth2/authorize?${authParams.toString()}`;
+        }
+
+        const accountPanel = document.getElementById('email-auth-panel');
+        const accountTitle = accountPanel?.querySelector('h2');
+        if (accountTitle) accountTitle.textContent = 'Username și parolă';
+        const modeActions = document.getElementById('email-mode-actions');
+        if (modeActions) modeActions.innerHTML = '<button type="button" data-email-mode="register" class="text-emerald-300 hover:text-emerald-200">Creează cont</button><span class="text-slate-700">•</span><button type="button" data-email-mode="reset" class="text-violet-300 hover:text-violet-200">Ai uitat parola?</button>';
+        if (modeActions) modeActions.insertAdjacentHTML('beforeend', '<span class="text-slate-700">•</span><button type="button" data-email-mode="login" class="hidden text-cyan-300 hover:text-cyan-200">Înapoi la autentificare</button>');
+        const registerEmailField = document.getElementById('email-register-email');
+        const loginPasswordField = document.getElementById('email-login-password');
+        if (loginPasswordField && !document.getElementById('email-remember-me')) {
+            loginPasswordField.parentElement.insertAdjacentHTML('afterend', '<label class="flex items-center gap-2 text-xs font-semibold text-slate-400"><input id="email-remember-me" type="checkbox" class="h-4 w-4 accent-cyan-400"><span>Ține-mă minte pe acest dispozitiv</span></label>');
+        }
+        const rememberMeCheckbox = document.getElementById('email-remember-me');
+        if (rememberMeCheckbox) rememberMeCheckbox.checked = localStorage.getItem('panel_remember_me') === '1';
+        const backToLoginButton = modeActions?.querySelector('[data-email-mode="login"]');
+        if (backToLoginButton) {
+            backToLoginButton.textContent = '← Înapoi la Login';
+            backToLoginButton.className = 'hidden rounded-lg border border-slate-700 px-3 py-1.5 text-cyan-300 transition hover:border-cyan-400/50 hover:bg-cyan-400/10 hover:text-cyan-100';
+        }
+        const registerPasswordField = document.getElementById('email-register-password');
+        if (registerPasswordField) {
+            registerPasswordField.pattern = '(?=.*[A-Z])(?=.*[0-9]).{8,}';
+            registerPasswordField.title = 'Minimum 8 caractere, o litera mare și o cifra.';
+        }
+        if (registerPasswordField && !document.getElementById('email-register-password-confirm')) {
+            registerPasswordField.parentElement.insertAdjacentHTML('afterend', '<label class="mt-3 block text-xs font-semibold text-slate-400">Confirma parola<input id="email-register-password-confirm" type="password" minlength="8" autocomplete="new-password" required class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white" placeholder="repeta parola"></label>');
+        }
+        if (!document.getElementById('email-register-password-rules')) {
+            document.getElementById('email-register-password-confirm')?.parentElement.insertAdjacentHTML('afterend', '<div id="email-register-password-rules" class="rounded-xl border border-slate-700/60 bg-slate-950/40 px-3 py-3"><p class="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Reguli parola</p><ul data-password-rules-list class="space-y-1"></ul></div>');
+        }
+        window.bindPanelPasswordRules?.('email-register-password', 'email-register-password-rules');
+        if (registerEmailField) registerEmailField.parentElement.firstChild.textContent = 'Email pentru recuperarea parolei';
+        document.querySelectorAll('[data-email-mode]').forEach((button) => button.addEventListener('click', () => setEmailMode(button.dataset.emailMode)));
+        document.getElementById('email-login-form')?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            emailStatus('Se verifică datele...');
+            const rememberMe = document.getElementById('email-remember-me')?.checked === true;
+            localStorage.setItem('panel_remember_me', rememberMe ? '1' : '0');
+            panelAuthClient = window.createPanelAuthClient({ persistSession: rememberMe });
+            const response = await fetch(`${SUPABASE_URL}/functions/v1/username-login`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }, body: JSON.stringify({ username: document.getElementById('email-login-username').value.trim(), password: document.getElementById('email-login-password').value }) });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || !result.access_token || !result.refresh_token) return emailStatus(result.error || 'Usernameul sau parola sunt incorecte.', 'error');
             const { error: sessionError } = await panelAuthClient.auth.setSession({ access_token: result.access_token, refresh_token: result.refresh_token });
             if (sessionError) return emailStatus('Sesiunea nu a putut fi pornită. Încearcă din nou.', 'error');
             try {
