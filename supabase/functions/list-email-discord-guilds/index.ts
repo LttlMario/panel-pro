@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 0.6 seconds
-Output:
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const headers = {
