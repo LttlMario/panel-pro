@@ -243,7 +243,8 @@ if (['discipline_list', 'discipline_targets'].includes(String(body.action || '')
         sanctions: visibleSanctions,
         access: {
             employee: { read: canDiscipline('departments', 'read'), write: canDiscipline('departments', 'write'), sanction: canDiscipline('departments', 'sanction'), own: true },
-            organization: { read: canDiscipline('organization', 'read'), write: canDiscipline('organization', 'write'), sanction: canDiscipline('organization', 'sanction'), own: false }
+            organization: { read: canDiscipline('organization', 'read'), write: canDiscipline('organization', 'write'), sanction: canDiscipline('organization', 'sanction'), own: false },
+            platform_admin: isPlatformAdmin
         }
     });
 }
@@ -300,6 +301,31 @@ if (body.action === 'discipline_resolve') {
     const { error } = await db.from(table).update({ status: nextStatus, resolved_at: new Date().toISOString(), resolved_by_discord_id: du.id, resolution_note: String(body.resolution_note || '').trim() || null, updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', body.id);
     if (error) throw error;
     return reply({ ok: true, status: nextStatus });
+}
+if (body.action === 'discipline_delete') {
+    const kind = body.kind === 'sanction' ? 'sanction' : 'warning';
+    const table = kind === 'sanction' ? 'disciplinary_sanctions' : 'disciplinary_warnings';
+    const { data: item, error: itemError } = await db.from(table).select('*').eq('organization_id', organizationId).eq('id', body.id).maybeSingle();
+    if (itemError) throw itemError;
+    if (!item) return reply({ error: 'Înregistrarea disciplinară nu există.' }, 404);
+    const configuredDelete = canDiscipline(item.target_scope, kind === 'sanction' ? 'sanction' : 'write');
+    const isAuthor = String(item.issued_by_discord_id || '') === String(du.id);
+    if (!isPlatformAdmin && !isAuthor && !configuredDelete) return reply({ error: 'Nu ai dreptul să ștergi această înregistrare.' }, 403);
+
+    const { data: settings } = await db.from('organization_settings').select('webhook_routes').eq('organization_id', organizationId).maybeSingle();
+    if (item.discord_message_id) {
+        const audience = item.target_scope === 'departments' ? 'departments' : 'organization';
+        const routeKey = kind === 'warning'
+            ? (audience === 'departments' ? 'warnings_departments' : 'warnings_organization')
+            : (audience === 'departments' ? 'sanctions_departments' : 'sanctions_organization');
+        const fallbackKey = audience === 'departments' ? 'fines_departments' : 'fines_organization';
+        const route = settings?.webhook_routes?.[routeKey] || settings?.webhook_routes?.[fallbackKey] || {};
+        const webhookUrls = [...new Set([route.primary?.url, route.secondary?.url].filter(Boolean).map(String))];
+        await Promise.all(webhookUrls.map((url) => fetch(`${url.replace(/\/$/, '')}/messages/${encodeURIComponent(String(item.discord_message_id))}`, { method: 'DELETE' }).catch(() => null)));
+    }
+    const { error } = await db.from(table).delete().eq('organization_id', organizationId).eq('id', body.id);
+    if (error) throw error;
+    return reply({ ok: true, deleted_id: body.id });
 }
 const own = async (id:string) => {
 
