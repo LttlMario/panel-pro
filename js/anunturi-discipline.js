@@ -23,6 +23,10 @@
   };
   const hasWrite = (scope) => Boolean(state.access?.[scope]?.write);
   const hasSanction = (scope) => Boolean(state.access?.[scope]?.sanction);
+  const currentDiscordId = () => {
+    try { return String(window.getUser?.()?.discord_id || JSON.parse(localStorage.getItem('discord_user') || 'null')?.discord_id || ''); }
+    catch (_) { return ''; }
+  };
   const scopeLabel = (scope) => scope === 'departments' ? 'Birouri / Angajați' : 'Organizație';
   const typeLabel = (kind) => kind === 'warning' ? 'Avertisment' : 'Sancțiune financiară';
 
@@ -58,12 +62,21 @@
         catch (error) { notice(error.message, 'error'); button.disabled = false; }
       });
     });
+    $('discipline-feed').querySelectorAll('[data-discipline-delete]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        if (!window.confirm('Ștergi definitiv această înregistrare disciplinară?')) return;
+        button.disabled = true;
+        try { await call({ action: 'discipline_delete', kind: button.dataset.kind, id: button.dataset.disciplineDelete }); await load(); if (state.filter) render(); }
+        catch (error) { notice(error.message, 'error'); button.disabled = false; }
+      });
+    });
   }
 
   function card(row, kind) {
     const isActive = kind === 'warning' ? row.status === 'active' : row.status === 'issued';
     const sameTarget = state.warnings.filter((item) => item.status === 'active' && item.target_scope === row.target_scope && String(item.target_discord_id || '') === String(row.target_discord_id || ''));
     const canResolve = kind === 'warning' ? hasWrite(row.target_scope) : hasSanction(row.target_scope);
+    const canDelete = Boolean(state.access?.platform_admin) || String(row.issued_by_discord_id || '') === currentDiscordId() || (kind === 'warning' ? hasWrite(row.target_scope) : hasSanction(row.target_scope));
     const status = kind === 'warning'
       ? (row.status === 'active' ? 'Activ' : row.status === 'resolved' ? 'Rezolvat' : 'Revocat')
       : (row.status === 'issued' ? 'Emis' : row.status === 'paid' ? 'Plătit' : row.status === 'waived' ? 'Anulat' : 'Anulat');
@@ -75,7 +88,7 @@
       ${row.notes ? `<p class="discipline-notes">${esc(row.notes)}</p>` : ''}
       <div class="meta">Emis de ${esc(row.issued_by_name)} · ${new Date(row.created_at).toLocaleString('ro-RO')}</div>
       ${row.evidence_url ? `<a class="discipline-evidence" href="${esc(row.evidence_url)}" target="_blank" rel="noopener">Deschide dovada</a>` : ''}
-      ${canResolve && isActive ? `<div class="owner-actions"><button class="text-action" data-discipline-resolve="${esc(row.id)}" data-kind="${kind}">${kind === 'sanction' ? 'Marchează plătită' : 'Marchează rezolvat'}</button></div>` : ''}
+      ${(canResolve && isActive) || canDelete ? `<div class="owner-actions">${canResolve && isActive ? `<button class="text-action" data-discipline-resolve="${esc(row.id)}" data-kind="${kind}">${kind === 'sanction' ? 'Marchează plătită' : 'Marchează rezolvat'}</button>` : ''}${canDelete ? `<button class="text-action danger" data-discipline-delete="${esc(row.id)}" data-kind="${kind}">Șterge</button>` : ''}</div>` : ''}
     </article>`;
   }
 
