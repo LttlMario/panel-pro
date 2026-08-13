@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Setări cont · Panel Pro</title>
+  <title>SetÄƒri cont Â· Panel Pro</title>
   <link rel="icon" href="img/favicon.ico">
   <link rel="stylesheet" href="css/tailwind.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -30,60 +30,73 @@
     <header class="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <img src="img/logo-192.png" alt="Panel Pro" class="h-12 w-12 rounded-2xl border border-emerald-400/25 object-cover">
-        <div><p class="text-xs font-black uppercase tracking-[.22em] text-emerald-300">Panel Pro</p><h1 class="mt-1 text-2xl font-black text-white">Setări cont</h1></div>
+        <div><p class="text-xs font-black uppercase tracking-[.22em] text-emerald-300">Panel Pro</p><h1 class="mt-1 text-2xl font-black text-white">SetÄƒri cont</h1></div>
       </div>
-      <a href="index.html" class="settings-button secondary">← Înapoi la panel</a>
+      <a href="index.html" class="settings-button secondary">â† ÃŽnapoi la panel</a>
     </header>
 
     <section id="login-required" class="settings-card hidden rounded-3xl p-7 text-center sm:p-10">
-      <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400/10 text-2xl">🔒</div>
-      <h2 class="mt-4 text-xl font-extrabold text-white">Autentificarea este necesară</h2>
-      <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">Intră în contul principal cu username și parolă pentru a-ți administra setările.</p>
+      <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400/10 text-2xl">ðŸ”’</div>
+      <h2 class="mt-4 text-xl font-extrabold text-white">Autentificarea este necesarÄƒ</h2>
+      <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">IntrÄƒ Ã®n contul principal cu username È™i parolÄƒ pentru a-È›i administra setÄƒrile.</p>
       <a href="login.html" class="settings-button mt-5">Mergi la login</a>
     </section>
 
     <div id="settings-content" class="hidden space-y-5">
       <section class="settings-card rounded-3xl p-6 sm:p-8">
         <div class="flex flex-wrap items-center gap-4">
-          <img id="avatar-preview" class="avatar-preview" src="img/logo-192.png" alt="Previzualizare poză profil">
-          <div><p class="text-xs font-bold uppercase tracking-[.16em] text-emerald-300">Profil</p><h2 class="mt-1 text-xl font-extrabold text-white" id="account-title">Contul meu</h2><p class="mt-1 text-sm text-slate-400">Alege o imagine publică pentru profilul tău.</p></div>
+          <img id="avatar-preview" class="avatar-preview" src="img/logo-192.png" alt="Previzualizare pozÄƒ profil">
+          <div><p class="text-xs font-bold uppercase tracking-[.16em] text-emerald-300">Profil</p><h2 class="mt-1 text-xl font-extrabold text-white" id="account-title">Contul meu</h2><p class="mt-1 text-sm text-slate-400">Alege o imagine publicÄƒ pentru profilul tÄƒu.</p></div>
         </div>
         <form id="avatar-form" class="mt-6 space-y-3">
-          <label class="block text-xs font-bold text-slate-400">Link poză de profil
+          <label class="block text-xs font-bold text-slate-400">Link pozÄƒ de profil
             <input id="avatar-url" class="settings-input mt-2" type="url" maxlength="500" placeholder="https://exemplu.ro/poza.png" autocomplete="url">
           </label>
-          <p class="text-xs leading-5 text-slate-500">Folosește un link direct către o imagine JPG, PNG sau WEBP. Dacă lași câmpul gol, se va folosi avatarul Discord.</p>
+          <p class="text-xs leading-5 text-slate-500">FoloseÈ™te un link direct cÄƒtre o imagine JPG, PNG sau WEBP. DacÄƒ laÈ™i cÃ¢mpul gol, se va folosi avatarul Discord.</p>
           <div id="avatar-status" class="settings-status" role="status" aria-live="polite"></div>
-          <button class="settings-button" type="submit">Salvează poza</button>
+          <button class="settings-button" type="submit">SalveazÄƒ poza</button>
         </form>
       </section>
 
       <section class="settings-card rounded-3xl p-6 sm:p-8" id="password">
-        <div><p class="text-xs font-bold uppercase tracking-[.16em] text-violet-300">Securitate</p><h2 class="mt-1 text-xl font-extrabold text-white">Schimbă parola</h2><p class="mt-1 text-sm text-slate-400">Parola trebuie să aibă minimum 8 caractere, o literă mare și o cifră.</p></div>
+        <div><p class="text-xs font-bold uppercase tracking-[.16em] text-violet-300">Securitate</p><h2 class="mt-1 text-xl font-extrabold text-white">SchimbÄƒ parola</h2><p class="mt-1 text-sm text-slate-400">Parola trebuie sÄƒ aibÄƒ minimum 8 caractere, o literÄƒ mare È™i o cifrÄƒ.</p></div>
         <form id="password-form" class="mt-6 grid gap-4 sm:grid-cols-2">
-          <label class="block text-xs font-bold text-slate-400">Parolă nouă<input id="new-password" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="Parola nouă"></label>
-          <label class="block text-xs font-bold text-slate-400">Confirmă parola<input id="new-password-confirm" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="Repetă parola"></label>
-          <div id="account-password-rules" class="rounded-2xl border border-slate-700/60 bg-slate-950/40 px-4 py-3 sm:col-span-2"><p class="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Reguli parolă</p><ul data-password-rules-list class="space-y-1"></ul></div>
-          <div class="sm:col-span-2"><div id="password-status" class="settings-status" role="status" aria-live="polite"></div><button class="settings-button" type="submit">Actualizează parola</button></div>
+          <label class="block text-xs font-bold text-slate-400">ParolÄƒ nouÄƒ<input id="new-password" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="Parola nouÄƒ"></label>
+          <label class="block text-xs font-bold text-slate-400">ConfirmÄƒ parola<input id="new-password-confirm" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="RepetÄƒ parola"></label>
+          <div id="account-password-rules" class="rounded-2xl border border-slate-700/60 bg-slate-950/40 px-4 py-3 sm:col-span-2"><p class="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Reguli parolÄƒ</p><ul data-password-rules-list class="space-y-1"></ul></div>
+          <div class="sm:col-span-2"><div id="password-status" class="settings-status" role="status" aria-live="polite"></div><button class="settings-button" type="submit">ActualizeazÄƒ parola</button></div>
         </form>
       </section>
 
       <section class="settings-card rounded-3xl p-6 sm:p-8">
-        <p class="text-xs font-bold uppercase tracking-[.16em] text-cyan-300">Preferințe</p>
-        <h2 class="mt-1 text-xl font-extrabold text-white">Sesiune și cont</h2>
+        <p class="text-xs font-bold uppercase tracking-[.16em] text-cyan-300">PreferinÈ›e</p>
+        <h2 class="mt-1 text-xl font-extrabold text-white">Sesiune È™i cont</h2>
         <div class="mt-5 grid gap-3 sm:grid-cols-2">
-          <div class="rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><p class="text-xs text-slate-500">Username</p><p id="account-username" class="mt-1 break-all font-bold text-slate-200">—</p><p class="mt-2 text-xs leading-5 text-slate-500">Username-ul rămâne fix pentru a nu rupe autentificarea și legătura cu Discord.</p></div>
-          <div class="rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><p class="text-xs text-slate-500">Email de recuperare</p><p id="account-email" class="mt-1 break-all font-bold text-slate-200">—</p><p id="discord-status" class="mt-2 text-xs text-emerald-300">Verificare conexiune Discord…</p></div>
+          <div class="rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><p class="text-xs text-slate-500">Username</p><p id="account-username" class="mt-1 break-all font-bold text-slate-200">â€”</p><p class="mt-2 text-xs leading-5 text-slate-500">Username-ul rÄƒmÃ¢ne fix pentru a nu rupe autentificarea È™i legÄƒtura cu Discord.</p></div>
+          <div class="rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><p class="text-xs text-slate-500">Email de recuperare</p><p id="account-email" class="mt-1 break-all font-bold text-slate-200">â€”</p><p id="discord-status" class="mt-2 text-xs text-emerald-300">Verificare conexiune Discordâ€¦</p></div>
         </div>
         <form id="email-form" class="mt-5 rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4">
-          <label class="block text-xs font-bold text-slate-400">Schimbă emailul de recuperare<input id="new-email" class="settings-input mt-2" type="email" autocomplete="email" required placeholder="noul-email@exemplu.ro"></label>
-          <p class="mt-2 text-xs leading-5 text-slate-500">Pentru protecție, Supabase va trimite un mesaj de confirmare la noua adresă.</p>
+          <label class="block text-xs font-bold text-slate-400">SchimbÄƒ emailul de recuperare<input id="new-email" class="settings-input mt-2" type="email" autocomplete="email" required placeholder="noul-email@exemplu.ro"></label>
+          <p class="mt-2 text-xs leading-5 text-slate-500">Pentru protecÈ›ie, Supabase va trimite un mesaj de confirmare la noua adresÄƒ.</p>
           <div id="email-status" class="settings-status mt-2" role="status" aria-live="polite"></div>
-          <button class="settings-button secondary mt-1" type="submit">Actualizează emailul</button>
+          <button class="settings-button secondary mt-1" type="submit">ActualizeazÄƒ emailul</button>
         </form>
-        <label class="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><input id="remember-setting" type="checkbox" class="mt-1 h-4 w-4 accent-emerald-400"><span><strong class="block text-sm text-slate-200">Ține-mă minte pe acest dispozitiv</strong><small class="mt-1 block text-xs leading-5 text-slate-500">Sesiunea rămâne activă și după închiderea browserului. Dezactivează opțiunea pe un calculator public.</small></span></label>
-        <div class="mt-5 flex flex-wrap gap-3"><button id="save-preferences" type="button" class="settings-button">Salvează preferința</button><button id="logout-button" type="button" class="settings-button danger">Deconectare</button></div>
+        <label class="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><input id="remember-setting" type="checkbox" class="mt-1 h-4 w-4 accent-emerald-400"><span><strong class="block text-sm text-slate-200">Èšine-mÄƒ minte pe acest dispozitiv</strong><small class="mt-1 block text-xs leading-5 text-slate-500">Sesiunea rÄƒmÃ¢ne activÄƒ È™i dupÄƒ Ã®nchiderea browserului. DezactiveazÄƒ opÈ›iunea pe un calculator public.</small></span></label>
+        <div class="mt-5 flex flex-wrap gap-3"><button id="save-preferences" type="button" class="settings-button">SalveazÄƒ preferinÈ›a</button><button id="logout-button" type="button" class="settings-button danger">Deconectare</button></div>
         <div id="preferences-status" class="settings-status mt-3" role="status" aria-live="polite"></div>
+      </section>
+
+      <section class="settings-card rounded-3xl border-amber-400/20 p-6 sm:p-8">
+        <p class="text-xs font-bold uppercase tracking-[.16em] text-amber-300">Controlul datelor</p>
+        <h2 class="mt-1 text-xl font-extrabold text-white">ConfidenÈ›ialitate È™i conexiuni</h2>
+        <p class="mt-2 text-sm leading-6 text-slate-400">Ai control asupra legÄƒturii cu Discord È™i asupra datelor opÈ›ionale ale contului. È˜tergerea datelor nu afecteazÄƒ organizaÈ›iile create sau profilul tÄƒu Discord.</p>
+        <div class="mt-5 grid gap-3 sm:grid-cols-2">
+          <button id="disconnect-discord" type="button" class="settings-button secondary text-left">DeconecteazÄƒ Discord<small class="block text-xs font-normal text-slate-400">EliminÄƒ serverul È™i rolul asociat</small></button>
+          <button id="revoke-sessions" type="button" class="settings-button secondary text-left">RevocÄƒ sesiunile<small class="block text-xs font-normal text-slate-400">ÃŽnchide celelalte sesiuni active</small></button>
+          <button id="clear-account-data" type="button" class="settings-button danger text-left">È˜terge datele opÈ›ionale<small class="block text-xs font-normal text-rose-200/70">Discord, serverul È™i poza de profil</small></button>
+          <button id="delete-account" type="button" class="settings-button danger text-left">È˜terge definitiv contul<small class="block text-xs font-normal text-rose-200/70">AcÈ›iune permanentÄƒ, fÄƒrÄƒ recuperare</small></button>
+        </div>
+        <div id="account-actions-status" class="settings-status mt-4" role="status" aria-live="polite"></div>
       </section>
     </div>
   </main>
@@ -105,54 +118,81 @@
       currentSession = sessionData?.session || null;
       if (!currentSession) { byId('login-required').classList.remove('hidden'); return; }
       byId('settings-content').classList.remove('hidden');
-      byId('account-email').textContent = currentSession.user?.email || '—';
+      byId('account-email').textContent = currentSession.user?.email || 'â€”';
       byId('remember-setting').checked = localStorage.getItem('panel_remember_me') === '1';
-      const { data: account, error } = await authClient.from('user_accounts').select('username,avatar_url,discord_id').eq('auth_user_id', currentSession.user.id).maybeSingle();
-      if (error) { setStatus('preferences-status', 'Datele contului nu au putut fi încărcate.', 'error'); return; }
-      byId('account-username').textContent = account?.username || '—';
+      const { data: account, error } = await authClient.from('user_accounts').select('username,avatar_url,discord_id,discord_guild_id').eq('auth_user_id', currentSession.user.id).maybeSingle();
+      if (error) { setStatus('preferences-status', 'Datele contului nu au putut fi Ã®ncÄƒrcate.', 'error'); return; }
+      byId('account-username').textContent = account?.username || 'â€”';
       byId('account-title').textContent = account?.username ? `Contul lui ${account.username}` : 'Contul meu';
       byId('avatar-url').value = account?.avatar_url || '';
       byId('avatar-preview').src = account?.avatar_url || fallbackAvatar;
-      byId('discord-status').textContent = account?.discord_id ? '✓ Cont Discord conectat' : 'Cont Discord neconectat';
+      byId('discord-status').textContent = account?.discord_id ? `âœ“ Cont Discord conectat${account.discord_guild_id ? ` Â· server ${account.discord_guild_id}` : ''}` : 'Cont Discord neconectat';
       byId('discord-status').style.color = account?.discord_id ? '#6ee7b7' : '#fbbf24';
+      byId('disconnect-discord').disabled = !account?.discord_id;
+      byId('disconnect-discord').style.opacity = account?.discord_id ? '1' : '.55';
     }
 
     byId('avatar-url').addEventListener('input', () => { byId('avatar-preview').src = byId('avatar-url').value.trim() || fallbackAvatar; });
     byId('avatar-form').addEventListener('submit', async (event) => {
       event.preventDefault();
       const avatarUrl = byId('avatar-url').value.trim();
-      if (avatarUrl && !/^https?:\/\//i.test(avatarUrl)) return setStatus('avatar-status', 'Introdu un link care începe cu https:// sau http://.', 'error');
-      setStatus('avatar-status', 'Se salvează…');
+      if (avatarUrl && !/^https?:\/\//i.test(avatarUrl)) return setStatus('avatar-status', 'Introdu un link care Ã®ncepe cu https:// sau http://.', 'error');
+      setStatus('avatar-status', 'Se salveazÄƒâ€¦');
       try {
         const response = await fetch(`${config.url}/functions/v1/update-user-account-settings`, { method: 'POST', headers: authHeaders(), body: JSON.stringify({ avatar_url: avatarUrl }) });
         const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error || 'Poza nu a putut fi salvată.');
+        if (!response.ok) throw new Error(payload.error || 'Poza nu a putut fi salvatÄƒ.');
         byId('avatar-preview').src = payload.account?.avatar_url || fallbackAvatar;
         updateLocalAvatar(payload.account?.avatar_url || '');
-        setStatus('avatar-status', 'Poza de profil a fost salvată.', 'success');
-      } catch (error) { setStatus('avatar-status', error.message || 'Poza nu a putut fi salvată.', 'error'); }
+        setStatus('avatar-status', 'Poza de profil a fost salvatÄƒ.', 'success');
+      } catch (error) { setStatus('avatar-status', error.message || 'Poza nu a putut fi salvatÄƒ.', 'error'); }
     });
     byId('password-form').addEventListener('submit', async (event) => {
       event.preventDefault();
       const password = byId('new-password').value; const confirm = byId('new-password-confirm').value;
-      if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) return setStatus('password-status', 'Parola trebuie să aibă minimum 8 caractere, o literă mare și o cifră.', 'error');
+      if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) return setStatus('password-status', 'Parola trebuie sÄƒ aibÄƒ minimum 8 caractere, o literÄƒ mare È™i o cifrÄƒ.', 'error');
       if (password !== confirm) return setStatus('password-status', 'Parolele nu coincid.', 'error');
-      setStatus('password-status', 'Se actualizează parola…');
+      setStatus('password-status', 'Se actualizeazÄƒ parolaâ€¦');
       const { error } = await authClient.auth.updateUser({ password });
-      if (error) return setStatus('password-status', error.message || 'Parola nu a putut fi actualizată.', 'error');
-      byId('password-form').reset(); setStatus('password-status', 'Parola a fost actualizată cu succes.', 'success');
+      if (error) return setStatus('password-status', error.message || 'Parola nu a putut fi actualizatÄƒ.', 'error');
+      byId('password-form').reset(); setStatus('password-status', 'Parola a fost actualizatÄƒ cu succes.', 'success');
     });
     byId('email-form').addEventListener('submit', async (event) => {
       event.preventDefault();
       const email = byId('new-email').value.trim();
-      if (!email || email === currentSession?.user?.email) return setStatus('email-status', 'Introdu o adresă nouă de email.', 'error');
-      setStatus('email-status', 'Se trimite mesajul de confirmare…');
+      if (!email || email === currentSession?.user?.email) return setStatus('email-status', 'Introdu o adresÄƒ nouÄƒ de email.', 'error');
+      setStatus('email-status', 'Se trimite mesajul de confirmareâ€¦');
       const { error } = await authClient.auth.updateUser({ email });
       if (error) return setStatus('email-status', error.message || 'Emailul nu a putut fi actualizat.', 'error');
-      byId('email-form').reset(); setStatus('email-status', 'Am trimis un mesaj de confirmare la noua adresă.', 'success');
+      byId('email-form').reset(); setStatus('email-status', 'Am trimis un mesaj de confirmare la noua adresÄƒ.', 'success');
     });
-    byId('save-preferences').addEventListener('click', () => { localStorage.setItem('panel_remember_me', byId('remember-setting').checked ? '1' : '0'); setStatus('preferences-status', 'Preferința a fost salvată. La următoarea autentificare se va aplica alegerea.', 'success'); });
+    byId('save-preferences').addEventListener('click', () => { localStorage.setItem('panel_remember_me', byId('remember-setting').checked ? '1' : '0'); setStatus('preferences-status', 'PreferinÈ›a a fost salvatÄƒ. La urmÄƒtoarea autentificare se va aplica alegerea.', 'success'); });
     byId('logout-button').addEventListener('click', async () => { await authClient.auth.signOut(); localStorage.removeItem('panel-email-auth'); sessionStorage.removeItem('panel-email-auth-tab'); location.href = 'login.html'; });
+    async function accountAction(action, confirmation) {
+      if (!currentSession || !window.confirm(confirmation)) return;
+      setStatus('account-actions-status', 'Se aplicÄƒ modificareaâ€¦');
+      try {
+        const response = await fetch(`${config.url}/functions/v1/manage-email-account`, { method: 'POST', headers: authHeaders(), body: JSON.stringify({ action }) });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || 'AcÈ›iunea nu a putut fi aplicatÄƒ.');
+        if (action === 'delete_account') {
+          await authClient.auth.signOut();
+          ['panel-email-auth', 'email_account', 'discord_user', 'user_role', 'discord_access_token', 'panel_session_token', 'panel_session_expires_at', 'panel_active_organization', 'panel_organizations'].forEach((key) => localStorage.removeItem(key));
+          sessionStorage.clear();
+          location.href = 'login.html?account_deleted=1';
+          return;
+        }
+        if (action === 'disconnect_discord' || action === 'clear_data') {
+          ['discord_user', 'user_role', 'discord_access_token', 'panel_session_token', 'panel_session_expires_at', 'panel_active_organization', 'panel_organizations'].forEach((key) => localStorage.removeItem(key));
+          await loadSettings();
+        }
+        setStatus('account-actions-status', payload.message || 'Modificarea a fost aplicatÄƒ.', 'success');
+      } catch (error) { setStatus('account-actions-status', error.message || 'AcÈ›iunea nu a putut fi aplicatÄƒ.', 'error'); }
+    }
+    byId('disconnect-discord').addEventListener('click', () => accountAction('disconnect_discord', 'Sigur vrei sÄƒ elimini asocierea Discord? Va trebui sÄƒ Ã®l conectezi din nou pentru acces la panel.'));
+    byId('revoke-sessions').addEventListener('click', () => accountAction('revoke_sessions', 'Revoci toate celelalte sesiuni active ale contului?'));
+    byId('clear-account-data').addEventListener('click', () => accountAction('clear_data', 'È˜tergi datele opÈ›ionale ale contului: Discord, serverul È™i poza de profil?'));
+    byId('delete-account').addEventListener('click', () => accountAction('delete_account', 'È˜tergerea contului este definitivÄƒ È™i nu poate fi anulatÄƒ. Continui?'));
     loadSettings().catch(() => { byId('login-required').classList.remove('hidden'); });
   </script>
 </body>
