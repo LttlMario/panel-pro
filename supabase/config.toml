@@ -57,3 +57,9 @@ verify_jwt = false
 
 [functions.update-user-account-settings]
 verify_jwt = false
+
+[functions.list-email-discord-guilds]
+verify_jwt = false
+
+[functions.link-email-discord-guild]
+verify_jwt = false
