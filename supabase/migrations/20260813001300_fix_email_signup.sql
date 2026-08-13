@@ -1,7 +1,22 @@
 -- Repară înregistrarea conturilor email și oferă un mesaj clar pentru username-uri duplicate.
 -- Rulează după 20260813000400_email_accounts.sql.
 
+CREATE TABLE IF NOT EXISTS public.user_accounts (
+  auth_user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  username text NOT NULL,
+  discord_id text UNIQUE,
+  discord_guild_id text,
+  terms_version text NOT NULL DEFAULT '2026-08-13',
+  terms_accepted_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT user_accounts_username_length CHECK (char_length(username) BETWEEN 3 AND 32),
+  CONSTRAINT user_accounts_username_format CHECK (username ~ '^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+);
+
 ALTER TABLE IF EXISTS public.user_accounts
+  ADD COLUMN IF NOT EXISTS auth_user_id uuid,
+  ADD COLUMN IF NOT EXISTS username text,
   ADD COLUMN IF NOT EXISTS discord_id text,
   ADD COLUMN IF NOT EXISTS discord_guild_id text,
   ADD COLUMN IF NOT EXISTS terms_version text NOT NULL DEFAULT '2026-08-13',
