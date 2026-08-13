@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Setări cont · Panel Pro</title>
+  <link rel="icon" href="img/favicon.ico">
+  <link rel="stylesheet" href="css/tailwind.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    body { min-height:100vh; background:radial-gradient(circle at 10% 0%,rgba(16,185,129,.13),transparent 32rem),radial-gradient(circle at 100% 100%,rgba(99,102,241,.16),transparent 34rem),#020617; }
+    .settings-shell { animation:settings-in .45s ease both; }
+    @keyframes settings-in { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+    .settings-card { border:1px solid rgba(51,65,85,.75); background:rgba(15,23,42,.84); box-shadow:0 24px 80px rgba(0,0,0,.35); backdrop-filter:blur(18px); }
+    .settings-input { width:100%; border:1px solid #334155; border-radius:13px; background:rgba(2,6,23,.72); padding:.8rem .9rem; color:#f8fafc; outline:none; transition:border-color .18s,box-shadow .18s; }
+    .settings-input:focus { border-color:#34d399; box-shadow:0 0 0 4px rgba(16,185,129,.1); }
+    .settings-button { display:inline-flex; align-items:center; justify-content:center; gap:.45rem; border:1px solid rgba(52,211,153,.55); border-radius:12px; background:rgba(16,185,129,.13); padding:.72rem 1rem; color:#a7f3d0; font-size:.875rem; font-weight:800; transition:transform .18s,background .18s; }
+    .settings-button:hover { transform:translateY(-1px); background:rgba(16,185,129,.23); }
+    .settings-button.secondary { border-color:#334155; background:#0f1b2e; color:#cbd5e1; }
+    .settings-button.danger { border-color:rgba(251,113,133,.35); background:rgba(244,63,94,.08); color:#fda4af; }
+    .settings-status { min-height:1.5rem; font-size:.82rem; }
+    .avatar-preview { width:84px; height:84px; border:2px solid rgba(52,211,153,.45); border-radius:999px; background:#0b1220; object-fit:cover; box-shadow:0 8px 28px rgba(0,0,0,.25); }
+  </style>
+</head>
+<body class="px-5 py-8 text-slate-100 sm:px-8 sm:py-12">
+  <main class="settings-shell mx-auto w-full max-w-3xl">
+    <header class="mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <img src="img/logo-192.png" alt="Panel Pro" class="h-12 w-12 rounded-2xl border border-emerald-400/25 object-cover">
+        <div><p class="text-xs font-black uppercase tracking-[.22em] text-emerald-300">Panel Pro</p><h1 class="mt-1 text-2xl font-black text-white">Setări cont</h1></div>
+      </div>
+      <a href="index.html" class="settings-button secondary">← Înapoi la panel</a>
+    </header>
+
+    <section id="login-required" class="settings-card hidden rounded-3xl p-7 text-center sm:p-10">
+      <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400/10 text-2xl">🔒</div>
+      <h2 class="mt-4 text-xl font-extrabold text-white">Autentificarea este necesară</h2>
+      <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">Intră în contul principal cu username și parolă pentru a-ți administra setările.</p>
+      <a href="login.html" class="settings-button mt-5">Mergi la login</a>
+    </section>
+
+    <div id="settings-content" class="hidden space-y-5">
+      <section class="settings-card rounded-3xl p-6 sm:p-8">
+        <div class="flex flex-wrap items-center gap-4">
+          <img id="avatar-preview" class="avatar-preview" src="img/logo-192.png" alt="Previzualizare poză profil">
+          <div><p class="text-xs font-bold uppercase tracking-[.16em] text-emerald-300">Profil</p><h2 class="mt-1 text-xl font-extrabold text-white" id="account-title">Contul meu</h2><p class="mt-1 text-sm text-slate-400">Alege o imagine publică pentru profilul tău.</p></div>
+        </div>
+        <form id="avatar-form" class="mt-6 space-y-3">
+          <label class="block text-xs font-bold text-slate-400">Link poză de profil
+            <input id="avatar-url" class="settings-input mt-2" type="url" maxlength="500" placeholder="https://exemplu.ro/poza.png" autocomplete="url">
+          </label>
+          <p class="text-xs leading-5 text-slate-500">Folosește un link direct către o imagine JPG, PNG sau WEBP. Dacă lași câmpul gol, se va folosi avatarul Discord.</p>
+          <div id="avatar-status" class="settings-status" role="status" aria-live="polite"></div>
+          <button class="settings-button" type="submit">Salvează poza</button>
+        </form>
+      </section>
+
+      <section class="settings-card rounded-3xl p-6 sm:p-8" id="password">
+        <div><p class="text-xs font-bold uppercase tracking-[.16em] text-violet-300">Securitate</p><h2 class="mt-1 text-xl font-extrabold text-white">Schimbă parola</h2><p class="mt-1 text-sm text-slate-400">Parola trebuie să aibă minimum 8 caractere, o literă mare și o cifră.</p></div>
+        <form id="password-form" class="mt-6 grid gap-4 sm:grid-cols-2">
+          <label class="block text-xs font-bold text-slate-400">Parolă nouă<input id="new-password" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="Parola nouă"></label>
+          <label class="block text-xs font-bold text-slate-400">Confirmă parola<input id="new-password-confirm" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="Repetă parola"></label>
+          <div class="sm:col-span-2"><div id="password-status" class="settings-status" role="status" aria-live="polite"></div><button class="settings-button" type="submit">Actualizează parola</button></div>
+        </form>
+      </section>
+
+      <section class="settings-card rounded-3xl p-6 sm:p-8">
+        <p class="text-xs font-bold uppercase tracking-[.16em] text-cyan-300">Preferințe</p>
+        <h2 class="mt-1 text-xl font-extrabold text-white">Sesiune și cont</h2>
+        <div class="mt-5 grid gap-3 sm:grid-cols-2">
+          <div class="rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><p class="text-xs text-slate-500">Username</p><p id="account-username" class="mt-1 break-all font-bold text-slate-200">—</p><p class="mt-2 text-xs leading-5 text-slate-500">Username-ul rămâne fix pentru a nu rupe autentificarea și legătura cu Discord.</p></div>
+          <div class="rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><p class="text-xs text-slate-500">Email de recuperare</p><p id="account-email" class="mt-1 break-all font-bold text-slate-200">—</p><p id="discord-status" class="mt-2 text-xs text-emerald-300">Verificare conexiune Discord…</p></div>
+        </div>
+        <form id="email-form" class="mt-5 rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4">
+          <label class="block text-xs font-bold text-slate-400">Schimbă emailul de recuperare<input id="new-email" class="settings-input mt-2" type="email" autocomplete="email" required placeholder="noul-email@exemplu.ro"></label>
+          <p class="mt-2 text-xs leading-5 text-slate-500">Pentru protecție, Supabase va trimite un mesaj de confirmare la noua adresă.</p>
+          <div id="email-status" class="settings-status mt-2" role="status" aria-live="polite"></div>
+          <button class="settings-button secondary mt-1" type="submit">Actualizează emailul</button>
+        </form>
+        <label class="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><input id="remember-setting" type="checkbox" class="mt-1 h-4 w-4 accent-emerald-400"><span><strong class="block text-sm text-slate-200">Ține-mă minte pe acest dispozitiv</strong><small class="mt-1 block text-xs leading-5 text-slate-500">Sesiunea rămâne activă și după închiderea browserului. Dezactivează opțiunea pe un calculator public.</small></span></label>
+        <div class="mt-5 flex flex-wrap gap-3"><button id="save-preferences" type="button" class="settings-button">Salvează preferința</button><button id="logout-button" type="button" class="settings-button danger">Deconectare</button></div>
+        <div id="preferences-status" class="settings-status mt-3" role="status" aria-live="polite"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const config = window.PANEL_SUPABASE_CONFIG;
+    const authClient = window.createPanelAuthClient({ persistSession: localStorage.getItem('panel_remember_me') === '1' });
+    const byId = (id) => document.getElementById(id);
+    const setStatus = (id, message, tone = 'info') => { const element = byId(id); if (!element) return; element.textContent = message; element.style.color = tone === 'error' ? '#fda4af' : tone === 'success' ? '#6ee7b7' : '#67e8f9'; };
+    const fallbackAvatar = 'img/logo-192.png';
+    let currentSession = null;
+
+    function authHeaders() { return { apikey: config.publishableKey, Authorization: `Bearer ${currentSession?.access_token || ''}`, 'Content-Type': 'application/json' }; }
+    function updateLocalAvatar(avatarUrl) { try { const user = JSON.parse(localStorage.getItem('discord_user') || 'null'); if (!user) return; user.avatar = avatarUrl || fallbackAvatar; user.avatar_url = avatarUrl || fallbackAvatar; localStorage.setItem('discord_user', JSON.stringify(user)); window.dispatchEvent(new CustomEvent('panel-user-updated')); } catch (_) {} }
+
+    async function loadSettings() {
+      const { data: sessionData } = await authClient.auth.getSession();
+      currentSession = sessionData?.session || null;
+      if (!currentSession) { byId('login-required').classList.remove('hidden'); return; }
+      byId('settings-content').classList.remove('hidden');
+      byId('account-email').textContent = currentSession.user?.email || '—';
+      byId('remember-setting').checked = localStorage.getItem('panel_remember_me') === '1';
+      const { data: account, error } = await authClient.from('user_accounts').select('username,avatar_url,discord_id').eq('auth_user_id', currentSession.user.id).maybeSingle();
+      if (error) { setStatus('preferences-status', 'Datele contului nu au putut fi încărcate.', 'error'); return; }
+      byId('account-username').textContent = account?.username || '—';
+      byId('account-title').textContent = account?.username ? `Contul lui ${account.username}` : 'Contul meu';
+      byId('avatar-url').value = account?.avatar_url || '';
+      byId('avatar-preview').src = account?.avatar_url || fallbackAvatar;
+      byId('discord-status').textContent = account?.discord_id ? '✓ Cont Discord conectat' : 'Cont Discord neconectat';
+      byId('discord-status').style.color = account?.discord_id ? '#6ee7b7' : '#fbbf24';
+    }
+
+    byId('avatar-url').addEventListener('input', () => { byId('avatar-preview').src = byId('avatar-url').value.trim() || fallbackAvatar; });
+    byId('avatar-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const avatarUrl = byId('avatar-url').value.trim();
+      if (avatarUrl && !/^https?:\/\//i.test(avatarUrl)) return setStatus('avatar-status', 'Introdu un link care începe cu https:// sau http://.', 'error');
+      setStatus('avatar-status', 'Se salvează…');
+      try {
+        const response = await fetch(`${config.url}/functions/v1/update-user-account-settings`, { method: 'POST', headers: authHeaders(), body: JSON.stringify({ avatar_url: avatarUrl }) });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || 'Poza nu a putut fi salvată.');
+        byId('avatar-preview').src = payload.account?.avatar_url || fallbackAvatar;
+        updateLocalAvatar(payload.account?.avatar_url || '');
+        setStatus('avatar-status', 'Poza de profil a fost salvată.', 'success');
+      } catch (error) { setStatus('avatar-status', error.message || 'Poza nu a putut fi salvată.', 'error'); }
+    });
+    byId('password-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const password = byId('new-password').value; const confirm = byId('new-password-confirm').value;
+      if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) return setStatus('password-status', 'Parola trebuie să aibă minimum 8 caractere, o literă mare și o cifră.', 'error');
+      if (password !== confirm) return setStatus('password-status', 'Parolele nu coincid.', 'error');
+      setStatus('password-status', 'Se actualizează parola…');
+      const { error } = await authClient.auth.updateUser({ password });
+      if (error) return setStatus('password-status', error.message || 'Parola nu a putut fi actualizată.', 'error');
+      byId('password-form').reset(); setStatus('password-status', 'Parola a fost actualizată cu succes.', 'success');
+    });
+    byId('email-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const email = byId('new-email').value.trim();
+      if (!email || email === currentSession?.user?.email) return setStatus('email-status', 'Introdu o adresă nouă de email.', 'error');
+      setStatus('email-status', 'Se trimite mesajul de confirmare…');
+      const { error } = await authClient.auth.updateUser({ email });
+      if (error) return setStatus('email-status', error.message || 'Emailul nu a putut fi actualizat.', 'error');
+      byId('email-form').reset(); setStatus('email-status', 'Am trimis un mesaj de confirmare la noua adresă.', 'success');
+    });
+    byId('save-preferences').addEventListener('click', () => { localStorage.setItem('panel_remember_me', byId('remember-setting').checked ? '1' : '0'); setStatus('preferences-status', 'Preferința a fost salvată. La următoarea autentificare se va aplica alegerea.', 'success'); });
+    byId('logout-button').addEventListener('click', async () => { await authClient.auth.signOut(); localStorage.removeItem('panel-email-auth'); sessionStorage.removeItem('panel-email-auth-tab'); location.href = 'login.html'; });
+    loadSettings().catch(() => { byId('login-required').classList.remove('hidden'); });
+  </script>
+</body>
+</html>

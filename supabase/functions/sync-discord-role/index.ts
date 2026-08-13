@@ -61,7 +61,7 @@ Deno.serve(async (request) => {
       if (voucherGuild && !voucherGuildId) voucherGuildId = voucherGuild;
     }
 
-    const userResponsePromise = fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bearer ${accessToken}` } });
+    const userResponsePromise = fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)' } });
     const guildsPromise = db.from('organization_guilds')
       .select('guild_id,guild_name,kind,organization_id,organizations!inner(id,name,slug,address,logo_url,banner_url,active)')
       .eq('enabled', true);
@@ -93,6 +93,9 @@ Deno.serve(async (request) => {
     if(accessError)throw accessError;
     const { data: mappings, error: mappingError } = mappingResult;
     if (mappingError) throw mappingError;
+    const expiredIds=new Set((accessRows||[]).filter((row:any)=>row.key==='organization_access'&&row.value?.expires_at&&Date.parse(String(row.value.expires_at))<=Date.now()).map((row:any)=>String(row.organization_id))),pageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),assistantPageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='assistant_page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),actionSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='action_permissions').map((row:any)=>[String(row.organization_id),row.value||{}]));
+     if(expiredIds.size)await db.from('organizations').update({active:false,updated_at:new Date().toISOString()}).in('id',[...expiredIds]);
+     const inactiveOrganizationIds=new Set((guilds||[]).filter((item:any)=>item.organizations?.active===false&&!expiredIds.has(String(item.organization_id))).map((item:any)=>String(item.organization_id)));
 
     const matches = new Map<string, {
       organization: any;
@@ -351,9 +354,17 @@ if (!existing) {
     }, 409);
     const requestedId = String(body.organization_id || '').trim();
     const active = available.find((item) => item.organization_id === requestedId) || available[0];
+    const { data: linkedAccount, error: linkedAccountError } = await db
+      .from('user_accounts')
+      .select('username,auth_user_id,avatar_url')
+      .eq('discord_id', String(discordUser.id))
+      .maybeSingle();
+    if (linkedAccountError) throw linkedAccountError;
+    const accountUsername = String(linkedAccount?.username || '').trim();
+    const accountAvatar = String(linkedAccount?.avatar_url || '').trim();
     const userData = {
-      discord_id: String(discordUser.id), username: String(discordUser.username), display_name: active.nickname,
-      avatar: avatarUrl(discordUser.id, discordUser.avatar), avatar_url: avatarUrl(discordUser.id, discordUser.avatar),
+      discord_id: String(discordUser.id), username: accountUsername || String(discordUser.username), display_name: accountUsername || active.nickname,
+      avatar: accountAvatar || avatarUrl(discordUser.id, discordUser.avatar), avatar_url: accountAvatar || avatarUrl(discordUser.id, discordUser.avatar),
       role: active.panel_role, default_role: active.panel_role,
     };
     // Emailul nu este solicitat prin OAuth și nu este sincronizat în panel.
