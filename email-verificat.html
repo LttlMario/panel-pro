@@ -1,5 +1,5 @@
 Exit code: 0
-Wall time: 0.6 seconds
+Wall time: 0.7 seconds
 Output:
 <!DOCTYPE html>
 <html lang="ro" class="dark">
@@ -9,6 +9,9 @@ Output:
   <title>Confirmare email - Panel</title>
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/global-footer.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js?v=20260813-authfix"></script>
+  <script src="js/discord-config.js"></script>
   <style>
     #email-discord-connect {
       display: flex !important;
@@ -32,9 +35,6 @@ Output:
     #email-discord-connect .connect-copy { display: flex; flex-direction: column; gap: 2px; text-align: left; }
     #email-discord-connect .connect-subtitle { color: rgba(224, 231, 255, .8); font-size: .72rem; font-weight: 600; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/project-version.js"></script>
-  <script src="js/supabase-config.js?v=20260813-authfix"></script>
   <link rel="icon" href="img/favicon.ico">
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
@@ -49,119 +49,54 @@ Output:
         </div>
       </div>
 
-      <div id="email-verification-loading" class="rounded-2xl border border-slate-700 bg-slate-950/50 p-5 text-sm text-slate-300">Se verifică sesiunea și se încarcă serverele disponibile...</div>
-
-      <div id="email-verification-content" class="hidden space-y-5">
-        <div class="grid gap-3 sm:grid-cols-3">
-          <div class="rounded-2xl border border-slate-700 bg-slate-950/50 p-4"><p class="text-xs font-bold uppercase tracking-wider text-slate-500">Cont</p><p id="email-account-name" class="mt-2 truncate font-bold text-white">—</p></div>
-          <div class="rounded-2xl border border-slate-700 bg-slate-950/50 p-4"><p class="text-xs font-bold uppercase tracking-wider text-slate-500">Date salvate</p><p class="mt-2 font-bold text-emerald-300">Doar ID Discord</p></div>
-          <div class="rounded-2xl border border-slate-700 bg-slate-950/50 p-4"><p class="text-xs font-bold uppercase tracking-wider text-slate-500">Rol</p><p class="mt-2 font-bold text-cyan-300">Verificat live</p></div>
+      <div class="space-y-4">
+        <div class="rounded-2xl border border-emerald-400/25 bg-emerald-400/10 p-5">
+          <p class="text-sm font-black text-emerald-200">Pasul 1 — adresa ta de email este confirmată.</p>
+          <p class="mt-2 text-sm leading-6 text-slate-300">Acum revino la login și autentifică-te cu username-ul și parola alese la înregistrare.</p>
         </div>
-
-        <div class="rounded-2xl border border-indigo-400/20 bg-indigo-500/5 p-5">
-          <div class="flex items-start gap-3">
-            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-400/20 text-sm font-black text-indigo-200">1</span>
-            <div>
-              <label for="email-discord-guild" class="block text-sm font-bold text-white">Alege serverul Discord</label>
-              <p class="mt-1 text-xs leading-5 text-slate-400">Apar doar serverele configurate în panel. Botul va verifica membrul și rolul direct pe serverul ales.</p>
-            </div>
-          </div>
-          <select id="email-discord-guild" class="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300"></select>
-          <p id="email-discord-selection-help" class="mt-3 text-xs leading-5 text-slate-400">Selectarea serverului nu conectează contul. După alegere, apasă butonul de mai jos pentru confirmare.</p>
-          <button id="email-discord-connect" type="button" disabled aria-describedby="email-discord-selection-help">
-            <span class="connect-copy"><span>2. Confirmă serverul și continuă</span><span class="connect-subtitle">Se va deschide Discord pentru aprobarea accesului</span></span>
-          </button>
+        <div class="rounded-2xl border border-indigo-400/25 bg-indigo-500/10 p-5">
+          <p class="text-sm font-black text-indigo-100">Pasul 2 — confirmă accesul Discord.</p>
+          <p class="mt-2 text-sm leading-6 text-slate-300">Poți face verificarea direct acum sau poți reveni la login și apăsa același buton din cont. După aprobare, vei alege dintre guildurile tale eligibile, iar botul va verifica rolul configurat pentru organizația respectivă.</p>
+          <p class="mt-3 text-xs leading-5 text-indigo-100/75">Potrivirea se face după Guild ID, nu după numele serverului. Nu trebuie să scrii sau să introduci manual numele Discord.</p>
         </div>
-
-        <div id="email-verification-status" class="min-h-[24px] text-sm leading-6 text-cyan-200" role="status"></div>
-        <a href="login.html" class="inline-flex rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-bold text-slate-300 transition hover:border-cyan-300/50 hover:text-white">← Înapoi la login</a>
+        <div class="rounded-2xl border border-indigo-400/40 bg-indigo-500/15 p-5">
+          <p class="text-sm font-black text-white">Aprobă accesul Discord</p>
+          <p class="mt-2 text-xs leading-5 text-slate-300">Discord îți va arăta exact permisiunile minime cerute: ID-ul tehnic Discord și lista serverelor Discord din care faci parte. Nu cerem emailul, avatarul sau alte date de profil, nu cerem parola Discord și nu salvăm tokenul Discord pentru contul email.</p>
+          <button id="email-verification-discord" type="button" class="mt-4 inline-flex w-full items-center justify-center rounded-xl border-2 border-indigo-300/70 bg-indigo-500 px-4 py-3.5 text-sm font-black text-white shadow-[0_8px_24px_rgba(99,102,241,0.25)] transition hover:-translate-y-0.5 hover:bg-indigo-400">Continuă cu Discord</button>
+          <p id="email-verification-discord-status" class="mt-3 min-h-[20px] text-xs leading-5 text-rose-300" role="status"></p>
+        </div>
+        <a href="login.html" class="inline-flex w-full items-center justify-center rounded-xl border-2 border-cyan-300/60 bg-cyan-500/10 px-4 py-3.5 text-sm font-black text-cyan-100 transition hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-cyan-400/20">Continuă la login</a>
       </div>
-
-      <div id="email-verification-error" class="hidden rounded-2xl border border-rose-400/30 bg-rose-500/10 p-5 text-sm leading-6 text-rose-200"></div>
     </section>
   </main>
   <div data-panel-footer-host class="w-full"></div>
 
   <script>
-    const config = window.PANEL_SUPABASE_CONFIG;
-    const authClient = window.createPanelAuthClient({ persistSession: true });
-    const flowKey = 'panel_email_discord_link_flow';
-    const guildKey = 'panel_email_discord_guild_id';
-    const statusElement = document.getElementById('email-verification-status');
-    const setStatus = (message, tone = 'info') => {
-      statusElement.textContent = message;
-      statusElement.className = `min-h-[24px] text-sm leading-6 ${tone === 'error' ? 'text-rose-300' : tone === 'success' ? 'text-emerald-300' : 'text-cyan-200'}`;
-    };
-    const showError = (message) => {
-      document.getElementById('email-verification-loading').classList.add('hidden');
-      const element = document.getElementById('email-verification-error');
-      element.textContent = message;
-      element.classList.remove('hidden');
-    };
-
-    async function loadEmailVerification() {
-      const { data: sessionData, error: sessionError } = await authClient.auth.getSession();
-      if (sessionError || !sessionData.session) throw new Error('Sesiunea de verificare nu mai este disponibilă. Deschide din nou linkul din email sau autentifică-te.');
-      const session = sessionData.session;
-      const { data: account, error: accountError } = await authClient
-        .from('user_accounts')
-        .select('username,discord_id,discord_guild_id')
-        .eq('auth_user_id', session.user.id)
-        .maybeSingle();
-      if (accountError) throw new Error(accountError.message || 'Profilul contului nu a putut fi încărcat.');
-      if (!account) throw new Error('Profilul contului nu există. Reia înregistrarea.');
-
-      document.getElementById('email-verification-loading').classList.add('hidden');
-      document.getElementById('email-verification-content').classList.remove('hidden');
-      document.getElementById('email-account-name').textContent = account.username;
-
-      if (account.discord_id && account.discord_guild_id) {
-        setStatus('Discord este deja conectat pentru acest cont. La următorul login, rolul va fi reverificat automat.', 'success');
-        document.getElementById('email-discord-guild').disabled = true;
-        document.getElementById('email-discord-connect').disabled = true;
+    window.createPanelAuthClient?.({ persistSession: true });
+    const discordButton = document.getElementById('email-verification-discord');
+    const discordStatus = document.getElementById('email-verification-discord-status');
+    discordButton?.addEventListener('click', () => {
+      const config = window.PANEL_DISCORD_CONFIG || {};
+      if (!config.clientId) {
+        discordStatus.textContent = 'Conectarea Discord nu este configurată pentru această adresă.';
         return;
       }
-
-      const response = await fetch(`${config.url}/functions/v1/list-email-discord-guilds`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${session.access_token}` },
-        body: '{}',
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || 'Serverele Discord nu au putut fi încărcate.');
-      const select = document.getElementById('email-discord-guild');
-      const connectButton = document.getElementById('email-discord-connect');
-      const availableGuilds = (result.guilds || []).filter((guild) => guild.bot_available);
-      select.innerHTML = availableGuilds.length
-        ? '<option value="">Selectează serverul...</option>' + availableGuilds.map((guild) => `<option value="${guild.guild_id}">${guild.guild_name} — ${guild.organization_name}</option>`).join('')
-        : '<option value="">Nu există servere disponibile</option>';
-      if (!availableGuilds.length) setStatus('Nu există momentan un server configurat pe care botul să fie prezent.', 'error');
-      select.addEventListener('change', () => {
-        connectButton.disabled = !select.value;
-        if (select.value) setStatus('Server selectat. Confirmă alegerea pentru a continua către Discord.', 'info');
-      });
-    }
-
-    document.getElementById('email-discord-connect').addEventListener('click', async () => {
-      const guildId = document.getElementById('email-discord-guild').value;
-      if (!guildId) return setStatus('Alege mai întâi un server Discord.', 'error');
-      const oauthState = crypto.randomUUID();
-      sessionStorage.setItem(flowKey, '1');
-      sessionStorage.setItem(guildKey, guildId);
-      sessionStorage.setItem('discord_oauth_state', oauthState);
+      const state = crypto.randomUUID();
+      sessionStorage.setItem('panel_email_discord_link_flow', '1');
+      sessionStorage.setItem('discord_oauth_state', state);
       const params = new URLSearchParams({
-        client_id: window.PANEL_DISCORD_CONFIG.clientId,
+        client_id: config.clientId,
         redirect_uri: `${window.location.origin}${window.location.pathname.replace(/email-verificat\.html$/, 'login.html')}`,
         response_type: 'token',
-        scope: 'identify guilds.members.read',
-        state: oauthState,
+        scope: 'identify guilds',
+        state,
       });
-      setStatus('Se deschide Discord pentru aprobarea accesului...', 'info');
+      discordButton.disabled = true;
+      discordButton.textContent = 'Se deschide Discord...';
       window.location.href = `https://discord.com/oauth2/authorize?${params.toString()}`;
     });
-
-    loadEmailVerification().catch((error) => showError(error.message || 'Nu s-a putut încărca verificarea contului.'));
   </script>
+
 </body>
 </html>
 
