@@ -146,7 +146,7 @@
                 </div>
             </form>
             <form id="email-register-form" class="mt-4 hidden space-y-3">
-                <label class="block text-xs font-semibold text-slate-400">Username<input id="email-register-username" type="text" minlength="3" maxlength="32" pattern="[A-Za-z0-9][A-Za-z0-9_.-]*" autocomplete="username" required class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white" placeholder="username"></label>
+                <label class="block text-xs font-semibold text-slate-400">Username<input id="email-register-username" type="text" minlength="3" maxlength="32" pattern="[A-Za-z0-9][A-Za-z0-9_.\-]*" autocomplete="username" required class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white" placeholder="username"></label>
                 <label class="block text-xs font-semibold text-slate-400">Email pentru recuperarea parolei<input id="email-register-email" type="email" autocomplete="email" required class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white" placeholder="nume@exemplu.ro"></label>
                 <label class="block text-xs font-semibold text-slate-400">Parolă<input id="email-register-password" type="password" minlength="8" autocomplete="new-password" required class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white" placeholder="minimum 8 caractere"></label>
                 <label class="flex items-start gap-2 text-xs leading-5 text-slate-400"><input id="email-register-terms" type="checkbox" required class="mt-1 accent-cyan-400"><span>Acceptă termenii de utilizare și înțeleg că rolurile și accesul sunt verificate prin Discord.</span></label>
@@ -379,7 +379,10 @@
                 password: document.getElementById('email-register-password').value,
                 options: { data: { username, terms_version: '2026-08-13', terms_accepted_at: new Date().toISOString() }, emailRedirectTo: new URL('email-verificat.html', window.location.href).href }
             });
-            if (error) return emailStatus(String(error.message || '').includes('USERNAME_TAKEN') ? 'Usernameul este deja folosit. Alege alt username.' : (error.message || 'Contul nu a putut fi creat.'), 'error');
+            if (error) {
+                const message = String(error.message || '');
+                return emailStatus(message.includes('USERNAME_TAKEN') ? 'Usernameul este deja folosit. Alege alt username.' : message.toLowerCase().includes('database error saving new user') ? 'Înregistrarea nu poate fi finalizată până nu este aplicată migrarea SQL pentru conturile email în Supabase.' : (message || 'Contul nu a putut fi creat.'), 'error');
+            }
             if (data.session) {
                 try { await continueEmailSession(); } catch (sessionError) { emailStatus(sessionError.message, 'error'); }
             } else {
