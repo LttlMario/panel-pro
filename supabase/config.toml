@@ -63,3 +63,6 @@ verify_jwt = false
 
 [functions.link-email-discord-guild]
 verify_jwt = false
+
+[functions.manage-email-account]
+verify_jwt = false

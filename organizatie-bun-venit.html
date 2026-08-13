@@ -3,10 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Bine ai venit · Panel</title>
+  <title>Bine ai venit Â· Panel</title>
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/global-footer.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-config.js"></script>
+  <script src="js/discord-config.js"></script>
   <link rel="icon" href="img/favicon.ico">
   <style>
     html, body { min-height: 100%; }
@@ -41,25 +43,25 @@
         </div>
         <div class="text-left sm:text-right">
           <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Acces panel</span>
-          <strong class="block text-sm text-amber-300">Fără rol momentan</strong>
-          <span class="block text-xs text-slate-500">Configurează o organizație pentru acces</span>
+          <strong class="block text-sm text-amber-300">FÄƒrÄƒ rol momentan</strong>
+          <span class="block text-xs text-slate-500">ConfigureazÄƒ o organizaÈ›ie pentru acces</span>
         </div>
       </div>
 
       <div id="welcome-step" class="mt-8">
         <div class="grid gap-4 md:grid-cols-3">
           <article class="rounded-2xl border border-slate-700 bg-slate-950/70 p-5">
-            <div class="text-2xl">📊</div>
+            <div class="text-2xl">ðŸ“Š</div>
             <h2 class="mt-3 font-black">Organizare clara</h2>
             <p class="mt-2 text-sm leading-6 text-slate-400">Pontaj, cereri, contracte si rapoarte intr-un singur loc.</p>
           </article>
           <article class="rounded-2xl border border-slate-700 bg-slate-950/70 p-5">
-            <div class="text-2xl">🛡️</div>
+            <div class="text-2xl">ðŸ›¡ï¸</div>
             <h2 class="mt-3 font-black">Permisiuni Discord</h2>
             <p class="mt-2 text-sm leading-6 text-slate-400">Accesul se sincronizeaza cu rolurile configurate pe server.</p>
           </article>
           <article class="rounded-2xl border border-slate-700 bg-slate-950/70 p-5">
-            <div class="text-2xl">⚡</div>
+            <div class="text-2xl">âš¡</div>
             <h2 class="mt-3 font-black">Automatizari</h2>
             <p class="mt-2 text-sm leading-6 text-slate-400">Notificari Discord, marketplace, ture si fluxuri pentru echipa.</p>
           </article>
@@ -75,23 +77,23 @@
       </div>
 
       <div id="choice-step" class="mt-8" hidden>
-        <button id="back" type="button" class="text-sm text-slate-400 transition hover:text-white">← Inapoi la prezentare</button>
+        <button id="back" type="button" class="text-sm text-slate-400 transition hover:text-white">â† Inapoi la prezentare</button>
         <h2 class="mt-5 text-2xl font-black">Cum vrei sa continui?</h2>
         <p class="mt-2 text-sm text-slate-400">Alege varianta potrivita pentru tine.</p>
 
         <div class="mt-5 grid gap-4 md:grid-cols-2">
           <button id="has-voucher" type="button" class="choice-card rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/10 p-6 text-left">
-            <span class="text-3xl">🎟️</span>
+            <span class="text-3xl">ðŸŽŸï¸</span>
             <b class="mt-4 block text-lg">Am deja un voucher</b>
             <span class="mt-2 block text-sm leading-6 text-slate-300">Verifica voucherul, apoi creeaza Draft-ul organizatiei si adauga Guild ID-ul.</span>
-            <span class="mt-4 inline-block text-sm font-black text-fuchsia-300">Verifica voucherul →</span>
+            <span class="mt-4 inline-block text-sm font-black text-fuchsia-300">Verifica voucherul â†’</span>
           </button>
 
           <button id="need-voucher" type="button" class="choice-card rounded-2xl border border-slate-600 bg-slate-950/70 p-6 text-left">
-            <span class="text-3xl">💬</span>
+            <span class="text-3xl">ðŸ’¬</span>
             <b class="mt-4 block text-lg">Nu am voucher inca</b>
             <span class="mt-2 block text-sm leading-6 text-slate-300">Afla de unde poti primi un voucher pentru crearea unei organizatii.</span>
-            <span class="mt-4 inline-block text-sm font-black text-cyan-300">Vezi informatiile →</span>
+            <span class="mt-4 inline-block text-sm font-black text-cyan-300">Vezi informatiile â†’</span>
           </button>
         </div>
 
@@ -115,10 +117,19 @@
   <div data-panel-footer-host class="welcome-footer-host"></div>
 
   <script>
-    (() => {
+    (async () => {
+      const emailOnboarding = new URLSearchParams(location.search).get('source') === 'email' || sessionStorage.getItem('panel_email_onboarding_source') === 'email';
+      const authClient = emailOnboarding ? window.createPanelAuthClient({ persistSession: true }) : null;
       const token = localStorage.getItem('discord_access_token') || '';
-      const user = JSON.parse(localStorage.getItem('discord_user') || 'null');
-      if (!token || !user) {
+      let user = JSON.parse(localStorage.getItem('discord_user') || 'null');
+      if (emailOnboarding && !token) {
+        const { data: sessionData } = await authClient.auth.getSession();
+        if (sessionData?.session) {
+          const { data: account } = await authClient.from('user_accounts').select('username').eq('auth_user_id', sessionData.session.user.id).maybeSingle();
+          if (account) user = { username: account.username, display_name: account.username, email_account: true };
+        }
+      }
+      if ((!token || !user) && !emailOnboarding) {
         location.replace('login.html');
         return;
       }
@@ -127,9 +138,23 @@
       document.getElementById('account-name').textContent = user.display_name || user.username || 'Cont Discord';
       document.getElementById('account-username').textContent = user.username ? '@' + user.username : 'Cont autentificat';
       document.getElementById('account-avatar').src = user.avatar || user.avatar_url || 'img/logo-192.png';
+      if (emailOnboarding && !token) {
+        document.getElementById('account-name').textContent = user?.username || 'Cont email';
+        document.getElementById('account-username').textContent = 'ConecteazÄƒ Discord pentru configurare';
+        document.querySelector('#welcome-step p')?.replaceChildren(document.createTextNode('Pentru crearea unei organizaÈ›ii prin voucher este nevoie de o aprobare Discord temporarÄƒ.'));
+        document.getElementById('begin').textContent = 'ConecteazÄƒ Discord';
+      }
       const welcome = document.getElementById('welcome-step');
       const choice = document.getElementById('choice-step');
+      const startEmailOnboardingOAuth = () => {
+        const state = crypto.randomUUID();
+        sessionStorage.setItem('panel_email_onboarding_flow', '1');
+        sessionStorage.setItem('discord_oauth_state', state);
+        const params = new URLSearchParams({ client_id: window.PANEL_DISCORD_CONFIG.clientId, redirect_uri: `${window.location.origin}${window.location.pathname.replace(/organizatie-bun-venit\.html$/, 'login.html')}`, response_type: 'token', scope: 'identify', state });
+        location.href = `https://discord.com/oauth2/authorize?${params.toString()}`;
+      };
       document.getElementById('begin').onclick = () => {
+        if (emailOnboarding && !token) return startEmailOnboardingOAuth();
         welcome.hidden = true;
         choice.hidden = false;
         choice.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -155,6 +180,7 @@
       document.getElementById('logout').onclick = () => {
         localStorage.clear();
         sessionStorage.clear();
+        authClient?.auth.signOut();
         location.replace('login.html');
       };
     })();
