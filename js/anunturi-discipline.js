@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 (() => {
   'use strict';
 
@@ -18,7 +21,12 @@
       method: 'POST', headers: sessionHeaders(), body: JSON.stringify(body)
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || `Operația a eșuat (${response.status}).`);
+    if (!response.ok) {
+      const error = new Error(result.error || `Operația a eșuat (${response.status}).`);
+      error.status = response.status;
+      error.code = result.code || '';
+      throw error;
+    }
     return result;
   };
   const hasWrite = (scope) => Boolean(state.access?.[scope]?.write);
@@ -201,8 +209,15 @@
         notice(`${typeLabel(kind)} a fost salvat(ă) și va fi vizibil(ă) doar audienței permise.`, 'success');
         await load();
         if (state.filter) render();
-      } catch (error) { notice(error.message, 'error'); }
+      } catch (error) {
+        if (kind === 'sanction' && error.status === 409) {
+          notice(error.message || 'Sancțiunea poate fi emisă după 3 avertismente active pentru aceeași persoană.', 'error');
+        } else {
+          notice(error.message, 'error');
+        }
+      }
     });
     load();
   });
 })();
+

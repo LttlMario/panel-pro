@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 <!DOCTYPE html>
 <html lang="ro" class="dark">
 <head>
@@ -6,6 +9,29 @@
   <title>Confirmare email - Panel</title>
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/global-footer.css">
+  <style>
+    #email-discord-connect {
+      display: flex !important;
+      min-height: 58px;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: 1px solid rgba(129, 140, 248, .75) !important;
+      border-radius: 14px !important;
+      background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+      box-shadow: 0 12px 30px rgba(79, 70, 229, .25);
+      cursor: pointer;
+      font-weight: 900;
+      letter-spacing: .01em;
+      transition: transform .18s ease, filter .18s ease, opacity .18s ease;
+    }
+    #email-discord-connect::before { content: '✓'; font-size: 1.15rem; }
+    #email-discord-connect:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+    #email-discord-connect:focus-visible { outline: 3px solid rgba(103, 232, 249, .55); outline-offset: 3px; }
+    #email-discord-connect:disabled { cursor: not-allowed; opacity: .45; filter: grayscale(.35); box-shadow: none; }
+    #email-discord-connect .connect-copy { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+    #email-discord-connect .connect-subtitle { color: rgba(224, 231, 255, .8); font-size: .72rem; font-weight: 600; }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/project-version.js"></script>
   <script src="js/supabase-config.js?v=20260813-authfix"></script>
@@ -33,10 +59,18 @@
         </div>
 
         <div class="rounded-2xl border border-indigo-400/20 bg-indigo-500/5 p-5">
-          <label for="email-discord-guild" class="block text-sm font-bold text-white">Alege serverul Discord</label>
-          <p class="mt-1 text-xs leading-5 text-slate-400">Apar doar serverele configurate în panel. Botul va verifica membrul și rolul direct pe serverul ales.</p>
+          <div class="flex items-start gap-3">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-400/20 text-sm font-black text-indigo-200">1</span>
+            <div>
+              <label for="email-discord-guild" class="block text-sm font-bold text-white">Alege serverul Discord</label>
+              <p class="mt-1 text-xs leading-5 text-slate-400">Apar doar serverele configurate în panel. Botul va verifica membrul și rolul direct pe serverul ales.</p>
+            </div>
+          </div>
           <select id="email-discord-guild" class="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300"></select>
-          <button id="email-discord-connect" type="button" class="mt-4 w-full rounded-xl bg-indigo-500 px-4 py-3.5 text-sm font-black text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50">Aprobă Discord și verifică rolul</button>
+          <p id="email-discord-selection-help" class="mt-3 text-xs leading-5 text-slate-400">Selectarea serverului nu conectează contul. După alegere, apasă butonul de mai jos pentru confirmare.</p>
+          <button id="email-discord-connect" type="button" disabled aria-describedby="email-discord-selection-help">
+            <span class="connect-copy"><span>2. Confirmă serverul și continuă</span><span class="connect-subtitle">Se va deschide Discord pentru aprobarea accesului</span></span>
+          </button>
         </div>
 
         <div id="email-verification-status" class="min-h-[24px] text-sm leading-6 text-cyan-200" role="status"></div>
@@ -96,11 +130,16 @@
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Serverele Discord nu au putut fi încărcate.');
       const select = document.getElementById('email-discord-guild');
+      const connectButton = document.getElementById('email-discord-connect');
       const availableGuilds = (result.guilds || []).filter((guild) => guild.bot_available);
       select.innerHTML = availableGuilds.length
         ? '<option value="">Selectează serverul...</option>' + availableGuilds.map((guild) => `<option value="${guild.guild_id}">${guild.guild_name} — ${guild.organization_name}</option>`).join('')
         : '<option value="">Nu există servere disponibile</option>';
       if (!availableGuilds.length) setStatus('Nu există momentan un server configurat pe care botul să fie prezent.', 'error');
+      select.addEventListener('change', () => {
+        connectButton.disabled = !select.value;
+        if (select.value) setStatus('Server selectat. Confirmă alegerea pentru a continua către Discord.', 'info');
+      });
     }
 
     document.getElementById('email-discord-connect').addEventListener('click', async () => {
@@ -125,3 +164,4 @@
   </script>
 </body>
 </html>
+
