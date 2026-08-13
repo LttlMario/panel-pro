@@ -17,6 +17,20 @@ const fetchDiscordMember = async (guildId: string, discordId: string, accessToke
   const oauthResponse = await fetch(`https://discord.com/api/v10/users/@me/guilds/${guildId}/member`, { headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)' } });
   return oauthResponse.ok || oauthResponse.status === 404 ? oauthResponse : botResponse;
 };
+const fetchGuildSnapshot = async (guildId: string, discordId: string, accessToken: string, botToken: string) => {
+  const [memberResponse, rolesResponse] = await Promise.all([
+    fetchDiscordMember(guildId, discordId, accessToken, botToken),
+    fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, { headers: discordBotHeaders(botToken) })
+  ]);
+  const member = memberResponse.ok ? await memberResponse.json() : null;
+  const roles = new Map<string, { name: string; position: number }>();
+  if (rolesResponse.ok) {
+    for (const role of (await rolesResponse.json()) as any[]) {
+      roles.set(String(role.id), { name: String(role.name), position: Number(role.position) || 0 });
+    }
+  }
+  return { memberResponse, member, roles };
+};
 const randomToken = () => { const bytes = crypto.getRandomValues(new Uint8Array(32)); return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', ''); };
 const sha256 = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 
@@ -47,7 +61,11 @@ Deno.serve(async (request) => {
       if (voucherGuild && !voucherGuildId) voucherGuildId = voucherGuild;
     }
 
-    const userResponse = await fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bearer ${accessToken}` } });
+    const userResponsePromise = fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bearer ${accessToken}` } });
+    const guildsPromise = db.from('organization_guilds')
+      .select('guild_id,guild_name,kind,organization_id,organizations!inner(id,name,slug,address,logo_url,banner_url,active)')
+      .eq('enabled', true);
+    const userResponse = await userResponsePromise;
     if (!userResponse.ok) return reply({ error: 'Sesiunea Discord a expirat.' }, 401);
     const discordUser = await userResponse.json();
     const isPlatformAdmin=isPlatformAdminDiscordId(discordUser.id);
@@ -62,16 +80,18 @@ Deno.serve(async (request) => {
       });
     }
 
-    const { data: guilds, error: guildError } = await db.from('organization_guilds')
-      .select('guild_id,guild_name,kind,organization_id,organizations!inner(id,name,slug,address,logo_url,banner_url,active)')
-      .eq('enabled', true);
+    const { data: guilds, error: guildError } = await guildsPromise;
     if (guildError) throw guildError;
     const organizationIds=[...new Set((guilds||[]).map((guild:any)=>String(guild.organization_id)))];
-    const {data:accessRows,error:accessError}=organizationIds.length?await db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','page_permissions','assistant_page_permissions','action_permissions']):{data:[],error:null};
-    if(accessError)throw accessError;const expiredIds=new Set((accessRows||[]).filter((row:any)=>row.key==='organization_access'&&row.value?.expires_at&&Date.parse(String(row.value.expires_at))<=Date.now()).map((row:any)=>String(row.organization_id))),pageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),assistantPageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='assistant_page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),actionSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='action_permissions').map((row:any)=>[String(row.organization_id),row.value||{}]));
-     if(expiredIds.size)await db.from('organizations').update({active:false,updated_at:new Date().toISOString()}).in('id',[...expiredIds]);
-     const inactiveOrganizationIds=new Set((guilds||[]).filter((item:any)=>item.organizations?.active===false&&!expiredIds.has(String(item.organization_id))).map((item:any)=>String(item.organization_id)));
-    const { data: mappings, error: mappingError } = await db.from('organization_role_mappings').select('*').eq('enabled', true);
+    const [accessResult, mappingResult] = await Promise.all([
+      organizationIds.length
+        ? db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','page_permissions','assistant_page_permissions','action_permissions'])
+        : Promise.resolve({ data: [], error: null }),
+      db.from('organization_role_mappings').select('*').eq('enabled', true)
+    ]);
+    const { data: accessRows, error: accessError } = accessResult;
+    if(accessError)throw accessError;
+    const { data: mappings, error: mappingError } = mappingResult;
     if (mappingError) throw mappingError;
 
     const matches = new Map<string, {
@@ -84,17 +104,21 @@ Deno.serve(async (request) => {
     const liveRoles = new Map<string, Map<string, { name: string; position: number }>>();
     let platformRoleLabel = '';
     let platformRolePosition = -1;
-    for (const guild of (guilds || []).filter((item:any)=>!inactiveOrganizationIds.has(String(item.organization_id))&&(!voucherCode || String(item.guild_id) === voucherGuildId))) {
-      const memberResponse = await fetchDiscordMember(String(guild.guild_id), String(discordUser.id), accessToken, botToken);
+    const guildsToProcess = (guilds || []).filter((item:any)=>!inactiveOrganizationIds.has(String(item.organization_id))&&(!voucherCode || String(item.guild_id) === voucherGuildId));
+    const guildSnapshots = new Map<string, Promise<{ memberResponse: Response; member: any; roles: Map<string, { name: string; position: number }> }>>();
+    const getGuildSnapshot = (guildId: string) => {
+      if (!guildSnapshots.has(guildId)) guildSnapshots.set(guildId, fetchGuildSnapshot(guildId, String(discordUser.id), accessToken, botToken));
+      return guildSnapshots.get(guildId)!;
+    };
+    // Pornim verificările tuturor serverelor simultan, apoi păstrăm ordinea existentă la procesarea rolurilor.
+    await Promise.all(guildsToProcess.map((guild:any) => getGuildSnapshot(String(guild.guild_id))));
+    for (const guild of guildsToProcess) {
+      const snapshot = await getGuildSnapshot(String(guild.guild_id));
+      const memberResponse = snapshot.memberResponse;
       if (memberResponse.status === 404) continue;
       if (!memberResponse.ok) { console.warn('Guild indisponibil', guild.guild_id, memberResponse.status); continue; }
-      const member = await memberResponse.json();
-      if (!liveRoles.has(String(guild.guild_id))) {
-        const rolesResponse = await fetch(`https://discord.com/api/v10/guilds/${guild.guild_id}/roles`, { headers: { Authorization: `Bot ${botToken}` } });
-        const roles = new Map<string, { name: string; position: number }>();
-        if (rolesResponse.ok) for (const role of (await rolesResponse.json()) as any[]) roles.set(String(role.id), { name: String(role.name), position: Number(role.position) || 0 });
-        liveRoles.set(String(guild.guild_id), roles);
-      }
+      const member = snapshot.member;
+      liveRoles.set(String(guild.guild_id), snapshot.roles);
       const roleIds = new Set<string>(Array.isArray(member.roles) ? member.roles.map(normalizeId) : []);
       const highestDiscordRole = [...roleIds]
         .map((roleId) => liveRoles.get(String(guild.guild_id))?.get(roleId))
