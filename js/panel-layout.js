@@ -1,4 +1,5 @@
 // Navigare comună pentru panel: meniu mobil și sidebar pliabil pe desktop.
+if (!window.__panelOnboardingLoader && !window.location.pathname.endsWith('login.html')) { window.__panelOnboardingLoader = true; const onboardingScript = document.createElement('script'); onboardingScript.src = 'js/panel-onboarding.js?v=1'; document.head.appendChild(onboardingScript); }
 if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetchFixed) { window.__organizationFetchFixed = true; const _fetch = window.fetch; window.fetch = (url, options = {}) => { if (String(url).includes('/functions/v1/manage-organizations')) options.headers = { ...(options.headers || {}), 'x-panel-session': localStorage.getItem('panel_session_token') || '' }; return _fetch(url, options); }; }
 (() => {
     function runWhenIdle(callback, timeout = 1200) {
