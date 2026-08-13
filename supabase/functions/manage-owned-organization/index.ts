@@ -13,28 +13,13 @@ const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data)
 const webhookChannels = new Set([
   'organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization',
   'requests_departments', 'contracts', 'marketplace', 'illegal_marketplace',
-  'fines_organization', 'fines_departments', 'status_live'
+  'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments',
+  'sanctions_organization', 'sanctions_departments', 'status_live'
 ]);
 const allowedContractPlaceholders = new Set([
   '{{COMPANY}}', '{{ADDRESS}}', '{{MANAGER}}', '{{EMPLOYEE_NAME}}', '{{CNP}}',
   '{{PHONE}}', '{{POSITION}}', '{{SALARY}}', '{{PROGRAM}}', '{{START_DATE}}',
   '{{CONTRACT_NUMBER}}'
-]);
-const allowedPages = new Map([
-  ['index.html', 'Dashboard'],
-  ['anunturi.html', 'Anunțuri și sondaje'],
-  ['pontaj.html', 'Pontaj'],
-  ['cereri.html', 'Cereri / Învoiri'],
-  ['calculator.html', 'Calculator'],
-  ['bucatarie.html', 'Bucătărie'],
-  ['contracte.html', 'Contracte'],
-  ['calculatorilegal.html', 'Calculator ilegal'],
-  ['craftmecanics.html', 'Craft Mecanics'],
-  ['locatiiilegale.html', 'Locații ilegale'],
-  ['marketplace.html', 'Marketplace'],
-  ['marketplace-ilegal.html', 'Marketplace ilegal'],
-  ['rapoarte.html', 'Rapoarte'],
-  ['asistent.html', 'Asistent Panel']
 ]);
 
 const normalizeContract = (raw: unknown) => {
@@ -97,25 +82,6 @@ const discordGuild = async (guildId: string, botToken: string) => {
   });
   if (!response.ok) return null;
   return await response.json();
-};
-
-const discordGuildRoles = async (guildId: string, guildName: string, botToken: string) => {
-  const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
-    headers: { Authorization: `Bot ${botToken}` }
-  });
-  if (!response.ok) throw new Error(`Rolurile pentru serverul ${guildName || guildId} nu pot fi citite (HTTP ${response.status}).`);
-  const roles = await response.json();
-  return (Array.isArray(roles) ? roles : [])
-    .filter((role: any) => !role.managed && String(role.id) !== String(guildId))
-    .map((role: any) => ({
-      id: String(role.id),
-      name: String(role.name || '').trim(),
-      guild_id: String(guildId),
-      guild_name: String(guildName || guildId),
-      position: Number(role.position || 0)
-    }))
-    .filter((role: any) => /^\d{15,22}$/.test(role.id) && role.name)
-    .sort((a: any, b: any) => b.position - a.position);
 };
 
 Deno.serve(async (request) => {
@@ -198,43 +164,16 @@ Deno.serve(async (request) => {
 
     const organizationId = String(owned.organization.id);
     const loadSettings = async () => {
-      const [{ data: settings }, { data: contractSetting }, { data: roleMappings }, { data: pageSetting }, { data: guilds }] = await Promise.all([
+      const [{ data: settings }, { data: contractSetting }] = await Promise.all([
         db.from('organization_settings').select('*').eq('organization_id', organizationId).maybeSingle(),
-        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'contract_template').maybeSingle(),
-        db.from('organization_role_mappings').select('guild_id,discord_role_id,discord_role_name,panel_role,permission_level,priority,enabled').eq('organization_id', organizationId).order('priority', { ascending: false }),
-        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'page_permissions').maybeSingle(),
-        db.from('organization_guilds').select('guild_id,guild_name,kind,enabled').eq('organization_id', organizationId).eq('enabled', true).order('kind')
+        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'contract_template').maybeSingle()
       ]);
-      return {
-        settings: settings || {},
-        contract_template: contractSetting?.value || {},
-        role_mappings: roleMappings || [],
-        page_permissions: pageSetting?.value || {},
-        guilds: guilds || []
-      };
-    };
-
-    const loadDiscordRoles = async (guilds: any[]) => {
-      const roles = await Promise.all((guilds || []).map((guild) =>
-        discordGuildRoles(String(guild.guild_id), String(guild.guild_name || guild.guild_id), botToken)
-      ));
-      return roles.flat();
+      return { settings: settings || {}, contract_template: contractSetting?.value || {} };
     };
 
     if (action === 'owner_get') {
       const state = await loadSettings();
-      const discordRoles = await loadDiscordRoles(state.guilds);
-      return reply({
-        ok: true,
-        organization: owned.organization,
-        guild: owned.guild,
-        guilds: state.guilds,
-        settings: state.settings,
-        contract_template: state.contract_template,
-        role_mappings: state.role_mappings,
-        page_permissions: state.page_permissions,
-        discord_roles: discordRoles
-      });
+      return reply({ ok: true, organization: owned.organization, guild: owned.guild, settings: state.settings, contract_template: state.contract_template });
     }
 
     const input = body.organization && typeof body.organization === 'object' ? body.organization : {};
@@ -285,85 +224,12 @@ Deno.serve(async (request) => {
       }
     }
 
-    const currentState = await loadSettings();
-    const availableDiscordRoles = await loadDiscordRoles(currentState.guilds);
-    let savedRoleIds = new Set((currentState.role_mappings || []).map((role: any) => String(role.discord_role_id)));
-
-    if (body.roles !== undefined) {
-      if (!Array.isArray(body.roles) || body.roles.length < 1) {
-        return reply({ error: 'Configurează cel puțin un rol Discord pentru organizație.' }, 400);
-      }
-
-      const seen = new Set<string>();
-      const cleanRoles = body.roles.map((rawRole: any, index: number) => {
-        const guildId = String(rawRole?.guild_id || '').trim();
-        const roleId = String(rawRole?.discord_role_id || '').trim();
-        const role = availableDiscordRoles.find((item: any) => item.guild_id === guildId && item.id === roleId);
-        if (!role) throw new Error(`Rolul Discord de pe rândul ${index + 1} nu aparține serverului organizației.`);
-        const key = `${guildId}:${roleId}`;
-        if (seen.has(key)) throw new Error(`Rolul Discord „${role.name}” este selectat de două ori.`);
-        seen.add(key);
-        const panelRole = String(rawRole?.panel_role || role.name).trim();
-        if (panelRole.length < 1 || panelRole.length > 100) throw new Error(`Numele rolului de pe rândul ${index + 1} este invalid.`);
-        const level = body.roles.length - index;
-        return {
-          organization_id: organizationId,
-          guild_id: guildId,
-          discord_role_id: roleId,
-          discord_role_name: role.name,
-          panel_role: panelRole,
-          permission_level: Math.max(1, Math.min(99, level)),
-          priority: Math.max(1, level) * 10,
-          enabled: true
-        };
-      });
-
-      const { error: deleteRolesError } = await db.from('organization_role_mappings').delete().eq('organization_id', organizationId);
-      if (deleteRolesError) throw deleteRolesError;
-      const { error: insertRolesError } = await db.from('organization_role_mappings').insert(cleanRoles);
-      if (insertRolesError) throw insertRolesError;
-      savedRoleIds = new Set(cleanRoles.map((role: any) => String(role.discord_role_id)));
-    }
-
-    if (body.page_permissions !== undefined) {
-      if (!body.page_permissions || typeof body.page_permissions !== 'object') {
-        return reply({ error: 'Permisiunile pe pagini sunt invalide.' }, 400);
-      }
-      const pageRules = Object.fromEntries(
-        Object.entries(body.page_permissions)
-          .filter(([page]) => allowedPages.has(page))
-          .map(([page, ids]: any) => [
-            page,
-            [...new Set((Array.isArray(ids) ? ids : [])
-              .map(String)
-              .filter((id: string) => savedRoleIds.has(id)))]
-          ])
-      );
-      const { error: pagePermissionError } = await db.from('app_settings').upsert({
-        organization_id: organizationId,
-        key: 'page_permissions',
-        value: pageRules,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'organization_id,key' });
-      if (pagePermissionError) throw pagePermissionError;
-    }
-
     const { data: updatedOrganization, error: updatedError } = await db.from('organizations')
       .select('id,name,slug,address,description,logo_url,banner_url,active,lifecycle_status')
       .eq('id', organizationId).single();
     if (updatedError) throw updatedError;
     const updatedState = await loadSettings();
-    return reply({
-      ok: true,
-      organization: updatedOrganization,
-      guild: owned.guild,
-      guilds: updatedState.guilds,
-      settings: updatedState.settings,
-      contract_template: updatedState.contract_template,
-      role_mappings: updatedState.role_mappings,
-      page_permissions: updatedState.page_permissions,
-      discord_roles: availableDiscordRoles
-    });
+    return reply({ ok: true, organization: updatedOrganization, guild: owned.guild, settings: updatedState.settings, contract_template: updatedState.contract_template });
   } catch (error) {
     console.error(error);
     return reply({ error: error instanceof Error ? error.message : 'Eroare internă.' }, 500);
