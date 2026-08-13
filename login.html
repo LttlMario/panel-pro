@@ -362,6 +362,9 @@
                     return;
                 }
                 sessionStorage.setItem(EMAIL_DISCORD_FLOW_KEY, '1');
+            } else {
+                sessionStorage.removeItem(EMAIL_DISCORD_FLOW_KEY);
+                sessionStorage.removeItem('panel_email_discord_guild_id');
             }
             const oauthState = crypto.randomUUID();
             sessionStorage.setItem('discord_oauth_state', oauthState);
