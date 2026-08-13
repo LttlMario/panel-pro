@@ -9,11 +9,24 @@
 
     const COMPLETE_KEY = 'panel_tutorial_completed_v3';
     const STATE_KEY = 'panel_tutorial_state_v3';
-    const user = (() => {
+    const COMPLETE_COOKIE = 'panel_tutorial_completed_v3';    const user = (() => {
         try { return JSON.parse(localStorage.getItem('discord_user') || 'null'); } catch (_) { return null; }
     })();
 
-    if (!user || localStorage.getItem(COMPLETE_KEY) === '1') return;
+    function hasCompletionCookie() {
+        return document.cookie.split(';').some(item => item.trim().startsWith(`${COMPLETE_COOKIE}=1`));
+    }
+
+    function markTutorialCompleted() {
+        localStorage.setItem(COMPLETE_KEY, '1');
+        document.cookie = `${COMPLETE_COOKIE}=1; max-age=31536000; path=/; SameSite=Lax`;
+    }
+
+    if (!user) return;
+    if (localStorage.getItem(COMPLETE_KEY) === '1' || hasCompletionCookie()) {
+        markTutorialCompleted();
+        return;
+    }
 
     const steps = [
         { page: 'index.html', selector: 'main', title: 'Bun venit în Panel Pro', text: 'Acesta este ghidul tău de început. Îți arătăm pe scurt unde găsești funcțiile principale, fără să modificăm nimic în cont sau în organizație.' },
@@ -49,7 +62,7 @@
     function writeState(index) { localStorage.setItem(STATE_KEY, JSON.stringify({ index })); }
 
     function finishTutorial() {
-        localStorage.setItem(COMPLETE_KEY, '1');
+        markTutorialCompleted();
         localStorage.removeItem(STATE_KEY);
         document.getElementById('panel-onboarding-root')?.remove();
     }
@@ -149,6 +162,11 @@
         showStep(root, state.index);
     }
 
-    window.resetPanelTutorial = () => { localStorage.removeItem(COMPLETE_KEY); localStorage.removeItem(STATE_KEY); window.location.reload(); };
+    window.resetPanelTutorial = () => {
+        localStorage.removeItem(COMPLETE_KEY);
+        localStorage.removeItem(STATE_KEY);
+        document.cookie = `${COMPLETE_COOKIE}=; max-age=0; path=/; SameSite=Lax`;
+        window.location.reload();
+    };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true }); else start();
 })();
