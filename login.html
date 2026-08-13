@@ -1,3 +1,7 @@
+Exit code: 0
+Wall time: 0.7 seconds
+Total output lines: 752
+Output:
 <!DOCTYPE html>
 <html lang="ro" class="dark">
 <head>
@@ -158,7 +162,24 @@
                 <button type="submit" class="w-full rounded-xl bg-violet-500 px-4 py-3 text-sm font-black text-white hover:bg-violet-400">Trimite linkul</button>
             </form>
             <div id="email-auth-status" class="mt-3 min-h-[20px] text-xs leading-5 text-cyan-200" role="status"></div>
-            <button id="email-connect-discord" type="button" class="mt-3 hidden w-full rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-4 py-3 text-sm font-bold text-indigo-200 hover:bg-indigo-500/20">Conectează Discord și verifică rolul</button>
+            <div id="email-confirmation-notice" class="mt-4 hidden rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-left">
+                <p class="text-sm font-black text-amber-100">Cont creat — confirmă adresa de email</p>
+                <p class="mt-1 text-xs leading-5 text-amber-100/75">Ți-am trimis un link de confirmare. Până nu îl accesezi, autentificarea și accesul la panel rămân blocate.</p>
+            </div>
+            <button id="email-connect-discord" type="button" class="mt-3 hidden w-full rounded-xl border border-indigo-400/50 bg-indigo-500/15 px-4 py-3 text-sm font-black text-indigo-100 shadow-[0_8px_24px_rgba(99,102,241,0.16)] transition hover:-translate-y-0.5 hover:bg-indigo-500/25">Conectează Discord și alege serverul</button>
+            <div id="email-guild-picker" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+                <section class="w-full max-w-lg rounded-2xl border border-indigo-400/40 bg-slate-900 p-6 shadow-2xl">
+                    <p class="text-xs font-bold uppercase tracking-[0.18em] text-indigo-300">Pas suplimentar</p>
+                    <h3 class="mt-1 text-xl font-black text-white">Alege serverul pentru rol</h3>
+                    <p class="mt-2 text-sm leading-6 text-slate-400">Sunt afișate serverele din contul tău Discord care sunt configurate în panel și pe care botul poate verifica rolurile. Alegerea se face după Guild ID, nu după numele afișat.</p>
+                    <label class="mt-5 block text-xs font-bold text-slate-400">Server Discord<select id="email-guild-choice" class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-sm text-white outline-none focus:border-indigo-300"></select></label>
+                    <p id="email-guild-picker-status" class="mt-3 min-h-[20px] text-xs leading-5 text-rose-300"></p>
+                    <div class="mt-5 flex flex-wrap justify-end gap-3">
+                        <button id="email-guild-cancel" type="button" class="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-bold text-slate-300 hover:border-slate-500 hover:text-white">Anulează</button>
+                        <button id="email-guild-confirm" type="button" class="rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-black text-white hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50" disabled>Confirmă serverul</button>
+                    </div>
+                </section>
+            </div>
         </section>
 
     <div class="space-y-5">
@@ -220,6 +241,41 @@
             element.className = `mt-3 min-h-[20px] text-xs leading-5 ${tone === 'error' ? 'text-rose-300' : tone === 'success' ? 'text-emerald-300' : 'text-cyan-200'}`;
         };
 
+        const showEmailConfirmationNotice = (visible = true) => {
+            document.getElementById('email-confirmation-notice')?.classList.toggle('hidden', !visible);
+        };
+
+        const chooseEmailGuild = (guilds) => new Promise((resolve) => {
+            const picker = document.getElementById('email-guild-picker');
+            const select = document.getElementById('email-guild-choice');
+            const confirm = document.getElementById('email-guild-confirm');
+            const cancel = document.getElementById('email-guild-cancel');
+            const status = document.getElementById('email-guild-picker-status');
+            if (!picker || !select || !confirm || !cancel) return resolve('');
+            select.replaceChildren(...guilds.map((guild) => {
+                const option = document.createElement('option');
+                option.value = String(guild.guild_id || '');
+                option.textContent = `${guild.guild_name || 'Server Discord'} — ${guild.organization_name || 'Organizație'} (${guild.guild_id})`;
+                return option;
+            }));
+            select.value = '';
+            confirm.disabled = true;
+            status.textContent = '';
+            picker.classList.remove('hidden');
+            picker.classList.add('flex');
+            const finish = (value) => {
+                picker.classList.add('hidden');
+                picker.classList.remove('flex');
+                select.onchange = null;
+                confirm.onclick = null;
+                cancel.onclick = null;
+                resolve(value || '');
+            };
+            select.onchange = () => { confirm.disabled = !select.value; status.textContent = ''; };
+            confirm.onclick = () => finish(select.value);
+            cancel.onclick = () => finish('');
+        });
+
         const setEmailMode = (mode) => {
             document.querySelectorAll('[data-email-mode]').forEach((button) => {
                 const active = button.dataset.emailMode === mode;
@@ -232,6 +288,7 @@
             document.getElementById('email-reset-form')?.classList.toggle('hidden', mode !== 'reset');
             document.querySelector('[data-email-mode="login"]')?.classList.toggle('hidden', mode === 'login');
             if (mode !== 'login') document.getElementById('email-connect-discord')?.classList.add('hidden');
+            if (mode !== 'login') showEmailConfirmationNotice(false);
             emailStatus('');
         };
 
@@ -246,6 +303,7 @@
             if (error) throw new Error(error.message || 'Profilul de email nu a putut fi încărcat.');
             if (!account) throw new Error('Profilul contului nu există. Reîncearcă înregistrarea.');
             localStorage.setItem('email_account', JSON.stringify({ ...account, auth_user_id: sessionData.session.user.id }));
+            showEmailConfirmationNotice(false);
             const connectButton = document.getElementById('email-connect-discord');
             connectButton?.classList.remove('hidden');
             emailStatus(account.discord_id
@@ -259,102 +317,7 @@
             emailStatus('Se verifică rolul Discord pe serverul configurat...');
             const response = await fetch(`${SUPABASE_URL}/functions/v1/sync-discord-role`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${sessionData.session.access_token}` },
-                body: JSON.stringify({ email_login: true }),
-            });
-            const result = await response.json().catch(() => ({}));
-            if (!response.ok || !result.user) {
-                if (String(result.code || '') === 'NEEDS_DISCORD_LINK') {
-                    document.getElementById('email-connect-discord')?.classList.remove('hidden');
-                    emailStatus('Contul este confirmat. Conectează Discord pentru verificarea rolului.', 'info');
-                    return false;
-                }
-                if (String(result.code || '') === 'NO_ORGANIZATION') {
-                    sessionStorage.setItem('panel_email_onboarding_source', 'email');
-                    window.location.href = 'organizatie-bun-venit.html?source=email';
-                    return false;
-                }
-                throw new Error(result.error || 'Rolul Discord nu a putut fi verificat.');
-            }
-            const syncedUser = result.user;
-            localStorage.setItem('discord_user', JSON.stringify(syncedUser));
-            localStorage.setItem('user_role', syncedUser.role || '');
-            localStorage.removeItem('discord_access_token');
-            localStorage.setItem('panel_session_token', result.session_token);
-            localStorage.setItem('panel_session_expires_at', result.expires_at);
-            localStorage.setItem('panel_active_organization', JSON.stringify(result.active_organization));
-            localStorage.setItem('panel_organizations', JSON.stringify(result.organizations || []));
-            localStorage.setItem('panel_role_synced_at', String(Date.now()));
-            emailStatus(`Acces confirmat: ${result.active_organization?.name || 'organizație'} • ${syncedUser.role}`, 'success');
-            setTimeout(() => { window.location.href = getSafeReturnDestination(syncedUser); }, 350);
-            return true;
-        }
-
-        async function startDiscordOAuth(emailLink = false) {
-            if (window.location.protocol === 'file:') {
-                setLoginStatus('Pentru conectarea Discord deschide versiunea publică a panelului, nu fișierul local.', 'error');
-                return;
-            }
-            if (!CLIENT_ID || !REDIRECT_URI) {
-                setLoginStatus('Conectarea Discord nu este configurată pentru această adresă.', 'error');
-                return;
-            }
-            if (emailLink) {
-                const { data: sessionData } = await panelAuthClient.auth.getSession();
-                if (!sessionData.session) {
-                    setEmailMode('login');
-                    emailStatus('Autentifică-te mai întâi cu emailul.', 'error');
-                    return;
-                }
-                sessionStorage.setItem(EMAIL_DISCORD_FLOW_KEY, '1');
-            }
-            const oauthState = crypto.randomUUID();
-            sessionStorage.setItem('discord_oauth_state', oauthState);
-            const authParams = new URLSearchParams({ client_id: CLIENT_ID, redirect_uri: REDIRECT_URI, response_type: 'token', scope: DISCORD_SCOPES, state: oauthState });
-            window.location.href = `https://discord.com/oauth2/authorize?${authParams.toString()}`;
-        }
-
-        const accountPanel = document.getElementById('email-auth-panel');
-        const accountTitle = accountPanel?.querySelector('h2');
-        if (accountTitle) accountTitle.textContent = 'Username și parolă';
-        const modeActions = document.getElementById('email-mode-actions');
-        if (modeActions) modeActions.innerHTML = '<button type="button" data-email-mode="register" class="text-emerald-300 hover:text-emerald-200">Creează cont</button><span class="text-slate-700">•</span><button type="button" data-email-mode="reset" class="text-violet-300 hover:text-violet-200">Ai uitat parola?</button>';
-        if (modeActions) modeActions.insertAdjacentHTML('beforeend', '<span class="text-slate-700">•</span><button type="button" data-email-mode="login" class="hidden text-cyan-300 hover:text-cyan-200">Înapoi la autentificare</button>');
-        const registerEmailField = document.getElementById('email-register-email');
-        const loginPasswordField = document.getElementById('email-login-password');
-        if (loginPasswordField && !document.getElementById('email-remember-me')) {
-            loginPasswordField.parentElement.insertAdjacentHTML('afterend', '<label class="flex items-center gap-2 text-xs font-semibold text-slate-400"><input id="email-remember-me" type="checkbox" class="h-4 w-4 accent-cyan-400"><span>Ține-mă minte pe acest dispozitiv</span></label>');
-        }
-        const rememberMeCheckbox = document.getElementById('email-remember-me');
-        if (rememberMeCheckbox) rememberMeCheckbox.checked = localStorage.getItem('panel_remember_me') === '1';
-        const backToLoginButton = modeActions?.querySelector('[data-email-mode="login"]');
-        if (backToLoginButton) {
-            backToLoginButton.textContent = '← Înapoi la Login';
-            backToLoginButton.className = 'hidden rounded-lg border border-slate-700 px-3 py-1.5 text-cyan-300 transition hover:border-cyan-400/50 hover:bg-cyan-400/10 hover:text-cyan-100';
-        }
-        const registerPasswordField = document.getElementById('email-register-password');
-        if (registerPasswordField) {
-            registerPasswordField.pattern = '(?=.*[A-Z])(?=.*[0-9]).{8,}';
-            registerPasswordField.title = 'Minimum 8 caractere, o litera mare și o cifra.';
-        }
-        if (registerPasswordField && !document.getElementById('email-register-password-confirm')) {
-            registerPasswordField.parentElement.insertAdjacentHTML('afterend', '<label class="mt-3 block text-xs font-semibold text-slate-400">Confirma parola<input id="email-register-password-confirm" type="password" minlength="8" autocomplete="new-password" required class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white" placeholder="repeta parola"></label>');
-        }
-        if (!document.getElementById('email-register-password-rules')) {
-            document.getElementById('email-register-password-confirm')?.parentElement.insertAdjacentHTML('afterend', '<div id="email-register-password-rules" class="rounded-xl border border-slate-700/60 bg-slate-950/40 px-3 py-3"><p class="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Reguli parola</p><ul data-password-rules-list class="space-y-1"></ul></div>');
-        }
-        window.bindPanelPasswordRules?.('email-register-password', 'email-register-password-rules');
-        if (registerEmailField) registerEmailField.parentElement.firstChild.textContent = 'Email pentru recuperarea parolei';
-        document.querySelectorAll('[data-email-mode]').forEach((button) => button.addEventListener('click', () => setEmailMode(button.dataset.emailMode)));
-        document.getElementById('email-login-form')?.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            emailStatus('Se verifică datele...');
-            const rememberMe = document.getElementById('email-remember-me')?.checked === true;
-            localStorage.setItem('panel_remember_me', rememberMe ? '1' : '0');
-            panelAuthClient = window.createPanelAuthClient({ persistSession: rememberMe });
-            const response = await fetch(`${SUPABASE_URL}/functions/v1/username-login`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }, body: JSON.stringify({ username: document.getElementById('email-login-username').value.trim(), password: document.getElementById('email-login-password').value }) });
-            const result = await response.json().catch(() => ({}));
-            if (!response.ok || !result.access_token || !result.refresh_token) return emailStatus(result.error || 'Usernameul sau parola sunt incorecte.', 'error');
+              …1998 tokens truncated…ccess_token || !result.refresh_token) return emailStatus(result.error || 'Usernameul sau parola sunt incorecte.', 'error');
             const { error: sessionError } = await panelAuthClient.auth.setSession({ access_token: result.access_token, refresh_token: result.refresh_token });
             if (sessionError) return emailStatus('Sesiunea nu a putut fi pornită. Încearcă din nou.', 'error');
             try {
@@ -387,6 +350,7 @@
                 try { await continueEmailSession(); } catch (sessionError) { emailStatus(sessionError.message, 'error'); }
             } else {
                 setEmailMode('login');
+                showEmailConfirmationNotice(true);
                 emailStatus('Contul a fost creat. Verifica adresa de email din mesajul primit, apoi revino aici pentru autentificare.', 'success');
             }
         });
@@ -396,7 +360,7 @@
             const { error } = await panelAuthClient.auth.resetPasswordForEmail(document.getElementById('email-reset-email').value.trim(), { redirectTo: new URL('resetare-parola.html', window.location.href).href });
             emailStatus(error ? (error.message || 'Linkul nu a putut fi trimis.') : 'Dacă emailul există, vei primi imediat linkul de resetare.', error ? 'error' : 'success');
         });
-        document.getElementById('email-connect-discord')?.addEventListener('click', () => { window.location.href = 'email-verificat.html'; });
+        document.getElementById('email-connect-discord')?.addEventListener('click', () => startDiscordOAuth(true));
 
         document.getElementById('voucher-code')?.closest('div')?.remove();
         const loginInfo = document.createElement('details');
@@ -582,9 +546,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const { data: emailSessionData, error: emailSessionError } = await panelAuthClient.auth.getSession();
                     if (emailSessionError || !emailSessionData.session) throw new Error('Sesiunea email a expirat. Autentifica-te din nou.');
                     emailSessionAccessToken = emailSessionData.session.access_token;
-                    setLoginStatus('Se conectează contul de email la Discord...');
-                    const selectedGuildId = sessionStorage.getItem('panel_email_discord_guild_id') || '';
-                    if (!selectedGuildId) throw new Error('Selectează mai întâi serverul Discord pentru contul de email.');
+                    setLoginStatus('Se verifică serverele Discord din contul tău...');
+                    const guildsResponse = await fetch(`${SUPABASE_URL}/functions/v1/list-email-discord-guilds`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${emailSessionData.session.access_token}` },
+                        body: JSON.stringify({ discord_access_token: token })
+                    });
+                    const guildsResult = await guildsResponse.json().catch(() => ({}));
+                    if (!guildsResponse.ok) throw new Error(guildsResult.error || 'Guildurile Discord nu au putut fi încărcate.');
+                    const availableGuilds = (guildsResult.guilds || []).filter((guild) => guild.bot_available);
+                    if (!availableGuilds.length) throw new Error('Nu ai niciun server Discord eligibil: trebuie să fii membru, organizația să fie configurată în panel, iar botul să fie prezent.');
+                    const selectedGuildId = await chooseEmailGuild(availableGuilds);
+                    if (!selectedGuildId) {
+                        sessionStorage.removeItem(EMAIL_DISCORD_FLOW_KEY);
+                        setLoginStatus('Conectarea Discord a fost anulată. Poți încerca din nou din butonul contului email.');
+                        return;
+                    }
+                    setLoginStatus('Se verifică rolul pe serverul ales...');
                     const linkResponse = await fetch(`${SUPABASE_URL}/functions/v1/link-email-discord-guild`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${emailSessionData.session.access_token}` },
@@ -680,3 +658,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     <script src="js/global-footer.js"></script>
 </body>
 </html>
+
