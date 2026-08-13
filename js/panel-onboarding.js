@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 1.1 seconds
-Output:
 (() => {
     'use strict';
 
@@ -10,8 +7,8 @@ Output:
     const page = window.location.pathname.split('/').pop() || 'index.html';
     if (['login.html', '403.html', 'guest.html', 'organizatie-noua.html', 'creare-organizatie-voucher.html'].includes(page)) return;
 
-    const COMPLETE_KEY = 'panel_tutorial_completed_v2';
-    const STATE_KEY = 'panel_tutorial_state_v2';
+    const COMPLETE_KEY = 'panel_tutorial_completed_v3';
+    const STATE_KEY = 'panel_tutorial_state_v3';
     const user = (() => {
         try { return JSON.parse(localStorage.getItem('discord_user') || 'null'); } catch (_) { return null; }
     })();
@@ -19,12 +16,15 @@ Output:
     if (!user || localStorage.getItem(COMPLETE_KEY) === '1') return;
 
     const steps = [
-        { page: 'index.html', selector: '#dashboard-pontaj-button, main', title: 'Dashboard-ul tÄƒu', text: 'Aici vezi rapid starea turei, urmÄƒtoarea Ã®nvoire È™i scurtÄƒturile cÄƒtre funcÈ›iile importante ale organizaÈ›iei.' },
-        { page: 'pontaj.html', selector: '#btn-start, main', title: 'Pontaj', text: 'Din Pontaj alegi tura de zi sau de noapte, apoi porneÈ™ti, pui pauzÄƒ È™i Ã®nchizi pontajul. Tura rÄƒmÃ¢ne salvatÄƒ È™i dupÄƒ refresh.' },
-        { page: 'cereri.html', selector: '#absence-form, main', title: 'ÃŽnvoiri È™i concedii', text: 'Aici trimiÈ›i cereri pentru Ã®nvoire, concediu sau absenÈ›Äƒ medicalÄƒ. Completezi perioada È™i motivul, iar administraÈ›ia poate procesa cererea.' },
-        { page: 'bucatarie.html', selector: '#galleryGrid, main', title: 'Resursele organizaÈ›iei', text: 'ÃŽn funcÈ›ie de rolul tÄƒu, aici gÄƒseÈ™ti resursele È™i informaÈ›iile configurate de organizaÈ›ie, cum ar fi bucÄƒtÄƒria, calculatorul sau alte module.' },
-        { page: 'rapoarte.html', selector: '#personal-shift-panel, main', title: 'Rapoarte È™i istoricul', text: 'ÃŽn Rapoarte poÈ›i vedea istoricul pontajelor È™i, dacÄƒ rolul tÄƒu permite, informaÈ›iile generale ale organizaÈ›iei.' }
-    ];
+        { page: 'index.html', selector: 'main', title: 'Bun venit în Panel Pro', text: 'Acesta este ghidul tău de început. Îți arătăm pe scurt unde găsești funcțiile principale, fără să modificăm nimic în cont sau în organizație.' },
+        { page: 'index.html', selector: '#panel-shared-sidebar, main', title: 'Meniul și profilul tău', text: 'Din meniul lateral navighezi între module. Sub numele tău vezi rolul sincronizat din Discord; accesul este stabilit de rolurile configurate pentru organizație.' },
+        { page: 'index.html', selector: '#dashboard-pontaj-button, main', title: 'Dashboard-ul tău', text: 'Dashboard-ul îți arată starea turei, următoarea învoire și scurtături către funcțiile folosite cel mai des.' },
+        { page: 'pontaj.html', selector: '#btn-start, main', title: 'Pontaj', text: 'Alegi tura de zi sau de noapte, apoi pornești, pui pauză și închizi pontajul. Tura rămâne salvată chiar dacă dai refresh.' },
+        { page: 'cereri.html', selector: '#absence-form, main', title: 'Învoiri și concedii', text: 'Trimiți cereri pentru învoire, concediu sau absență medicală. Completezi perioada și motivul, iar administrația poate procesa cererea.' },
+        { page: 'bucatarie.html', selector: '#galleryGrid, main', title: 'Resursele organizației', text: 'Aici găsești resursele configurate de organizație. Alte module, precum calculatorul sau marketplace-ul, apar în meniu atunci când rolul tău are acces.' },
+        { page: 'rapoarte.html', selector: '#personal-shift-panel, main', title: 'Rapoarte și istoricul', text: 'În Rapoarte vezi istoricul pontajelor și, în funcție de rol, informațiile generale ale organizației.' },
+        { page: 'index.html', selector: '#panel-shared-sidebar, main', title: 'Ghidul s-a încheiat', text: 'Poți relua tutorialul oricând din consolă cu resetPanelTutorial(). În rest, folosește meniul panelului pentru a începe.' }
+    ];;
 
     function isPlatformAdmin() {
         return String(user.discord_id || '') === '247012210021236738' || user.platform_admin === true || user.is_platform_admin === true;
@@ -63,7 +63,7 @@ Output:
             #panel-onboarding-root .panel-tour-dim { position:fixed; background:rgba(2,6,23,.78); pointer-events:auto; }
             #panel-onboarding-root .panel-tour-highlight { position:fixed; border:2px solid rgba(52,211,153,.95); border-radius:16px; box-shadow:0 0 0 5px rgba(52,211,153,.16),0 0 28px rgba(16,185,129,.28); pointer-events:none; transition:all .2s ease; }
             #panel-onboarding-root .panel-tour-card { position:fixed; left:50%; width:min(440px,calc(100vw - 32px)); transform:translateX(-50%); padding:20px; border:1px solid rgba(71,85,105,.9); border-radius:20px; background:#0f172a; color:#e2e8f0; box-shadow:0 22px 70px rgba(0,0,0,.5); pointer-events:auto; }
-            #panel-onboarding-root .panel-tour-eyebrow { color:#6ee7b7; font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+            #panel-onboarding-root .panel-tour-progress { display:flex; align-items:center; gap:10px; margin-bottom:12px; }\n            #panel-onboarding-root .panel-tour-progress-track { height:5px; flex:1; overflow:hidden; border-radius:999px; background:#1e293b; }\n            #panel-onboarding-root .panel-tour-progress-bar { width:0; height:100%; border-radius:999px; background:linear-gradient(90deg,#34d399,#22d3ee); transition:width .25s ease; }\n            #panel-onboarding-root .panel-tour-progress-label { color:#94a3b8; font-size:11px; white-space:nowrap; }\n            #panel-onboarding-root .panel-tour-hint { margin-top:12px; color:#64748b; font-size:11px; }\n            #panel-onboarding-root .panel-tour-eyebrow { color:#6ee7b7; font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
             #panel-onboarding-root .panel-tour-title { margin:7px 0 0; color:#f8fafc; font-size:20px; font-weight:800; }
             #panel-onboarding-root .panel-tour-text { margin:9px 0 0; color:#cbd5e1; font-size:13px; line-height:1.65; }
             #panel-onboarding-root .panel-tour-actions { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:18px; }
@@ -85,7 +85,7 @@ Output:
             <div class="panel-tour-dim" data-dim="right"></div><div class="panel-tour-dim" data-dim="bottom"></div>
             <div class="panel-tour-highlight"></div>
             <section class="panel-tour-card" role="dialog" aria-modal="true" aria-labelledby="panel-tour-title">
-                <div class="panel-tour-eyebrow"></div><h2 id="panel-tour-title" class="panel-tour-title"></h2><p class="panel-tour-text"></p>
+                <div class="panel-tour-progress"><span class="panel-tour-progress-label"></span><div class="panel-tour-progress-track"><div class="panel-tour-progress-bar"></div></div></div><div class="panel-tour-eyebrow"></div><h2 id="panel-tour-title" class="panel-tour-title"></h2><p class="panel-tour-text"></p><p class="panel-tour-hint">Folosește butoanele sau săgețile ← → · Esc pentru închidere</p>
                 <div class="panel-tour-actions"><button type="button" class="panel-tour-skip">Omite tutorialul</button><div class="flex items-center gap-2"><button type="button" class="panel-tour-prev">ÃŽnapoi</button><button type="button" class="panel-tour-next">UrmÄƒtorul pas</button></div></div>
             </section>`;
         document.body.appendChild(root);
@@ -113,7 +113,7 @@ Output:
             const rect = target.getBoundingClientRect();
             Object.assign(root.querySelector('.panel-tour-highlight').style, { left:`${Math.max(4, rect.left - 7)}px`, top:`${Math.max(4, rect.top - 7)}px`, width:`${Math.min(window.innerWidth - 8, rect.width + 14)}px`, height:`${Math.min(window.innerHeight - 8, rect.height + 14)}px` });
             setDimmer(root, rect);
-            root.querySelector('.panel-tour-eyebrow').textContent = `Ghid rapid Â· ${index + 1}/${availableSteps.length}`;
+            root.querySelector('.panel-tour-progress-label').textContent = `${index + 1}/${availableSteps.length}`;\n            root.querySelector('.panel-tour-progress-bar').style.width = `${((index + 1) / availableSteps.length) * 100}%`;\n            root.querySelector('.panel-tour-eyebrow').textContent = `Ghid rapid Â· ${index + 1}/${availableSteps.length}`;
             root.querySelector('.panel-tour-title').textContent = step.title;
             root.querySelector('.panel-tour-text').textContent = step.text;
             root.querySelector('.panel-tour-prev').style.visibility = index > 0 ? 'visible' : 'hidden';
@@ -133,10 +133,15 @@ Output:
         root.querySelector('.panel-tour-next').addEventListener('click', () => { if (state.index >= availableSteps.length - 1) return finishTutorial(); state.index += 1; showStep(root, state.index); });
         root.querySelector('.panel-tour-prev').addEventListener('click', () => { if (state.index <= 0) return; state.index -= 1; showStep(root, state.index); });
         window.addEventListener('resize', () => showStep(root, state.index));
+        document.addEventListener('keydown', event => {
+            if (!document.getElementById('panel-onboarding-root')) return;
+            if (event.key === 'Escape') finishTutorial();
+            if (event.key === 'ArrowRight') root.querySelector('.panel-tour-next')?.click();
+            if (event.key === 'ArrowLeft') root.querySelector('.panel-tour-prev')?.click();
+        });
         showStep(root, state.index);
     }
 
     window.resetPanelTutorial = () => { localStorage.removeItem(COMPLETE_KEY); localStorage.removeItem(STATE_KEY); window.location.reload(); };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true }); else start();
 })();
-
