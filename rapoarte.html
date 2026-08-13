@@ -664,7 +664,7 @@
                 await fetchUsersData();
                 let activeQuery = supabaseClient
                 .from('shifts')
-                .select('*')
+                .select('id, discord_id, colleague_name, date, start_time, end_time, status, shift_type, paused_at, paused_seconds, started_at, created_at, duration, duration_ms, auto_stop_at')
                 .eq('organization_id', currentUser.organization_id)
                 .in('status', ['active', 'paused'])
                 .is('end_time', null)
@@ -927,7 +927,10 @@ async function forceStopActiveShift(shiftId) {
             } catch (err) { console.error('Eroare la editarea înștiințării:', err); alert('Înștiințarea nu a putut fi actualizată.'); }
         });
 
+        let usersDirectoryLoadedAt = 0;
+
         async function fetchUsersData() {
+            if (Date.now() - usersDirectoryLoadedAt < 60000 && Object.keys(usersMap).length > 0) return;
             try {
                 const { data: directory, error } = await supabaseClient.rpc('get_user_directory');
                 if (error) throw error;
@@ -935,6 +938,7 @@ async function forceStopActiveShift(shiftId) {
                     const id = String(user.discord_id || '').trim();
                     if (id) usersMap[id] = user.display_name || id;
                 });
+                usersDirectoryLoadedAt = Date.now();
                 return;
             } catch (error) {
                 console.warn('Directorul de utilizatori nu este încă instalat; se încearcă metoda compatibilă.', error);
@@ -959,6 +963,7 @@ async function forceStopActiveShift(shiftId) {
                     });
                 }
             } catch (e) {}
+            usersDirectoryLoadedAt = Date.now();
         }
 
         async function fetchAllShifts() {
