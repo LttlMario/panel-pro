@@ -53,6 +53,7 @@
     <script src="js/project-version.js"></script>
     <script src="js/discord-config.js"></script>
     <script src="js/supabase-config.js"></script>
+    <script src="js/password-rules.js"></script>
     <link rel="icon" href="img/favicon.ico">
     <link rel="apple-touch-icon" href="img/logo-180.png">
 </head>
@@ -84,20 +85,20 @@
     </div>
 
         <h1 class="text-4xl font-black tracking-tight bg-gradient-to-r from-white via-indigo-200 to-cyan-300 bg-clip-text text-transparent">
-            PlatformÄƒ organizaÈ›ii
+            PlatformÃ„Æ’ organizaÃˆâ€ºii
         </h1>
 
         <p class="text-sm uppercase tracking-[0.35em] text-slate-500">
-            Autentificare multi-organizaÈ›ie
+            Autentificare multi-organizaÃˆâ€ºie
         </p>
 
         <p class="text-slate-400 leading-relaxed max-w-sm mx-auto">
-            Un singur cont Discord. OrganizaÈ›ia, rolul È™i paginile permise sunt detectate automat la autentificare.
+            Un singur cont Discord. OrganizaÃˆâ€ºia, rolul Ãˆâ„¢i paginile permise sunt detectate automat la autentificare.
         </p>
 
     </div>
 
-        <div class="mb-3 space-y-2"><label for="voucher-code" class="block text-xs text-slate-400">Voucher (opÈ›ional)</label><input id="voucher-code" type="text" maxlength="64" placeholder="Ex: FULL-ABC123" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100"><label for="voucher-guild-id" class="block text-xs text-slate-400">Guild ID pentru voucher</label><input id="voucher-guild-id" type="text" inputmode="numeric" maxlength="22" placeholder="ID-ul serverului Discord ales de tine" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100"></div>
+        <div class="mb-3 space-y-2"><label for="voucher-code" class="block text-xs text-slate-400">Voucher (opÃˆâ€ºional)</label><input id="voucher-code" type="text" maxlength="64" placeholder="Ex: FULL-ABC123" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100"><label for="voucher-guild-id" class="block text-xs text-slate-400">Guild ID pentru voucher</label><input id="voucher-guild-id" type="text" inputmode="numeric" maxlength="22" placeholder="ID-ul serverului Discord ales de tine" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100"></div>
         <!-- Butonul de Login Discord -->
         <button
             id="discord-login-btn"
@@ -119,19 +120,56 @@
                         </div>
 
                         <div class="text-sm text-indigo-100">
-                            Conectare securizatÄƒ OAuth2
+                            Conectare securizatÃ„Æ’ OAuth2
                         </div>
                     </div>
 
                 </div>
 
                 <div class="text-2xl text-white transition-all duration-500 group-hover:translate-x-2 group-hover:scale-110">
-                    â†’
+                    Ã¢â€ â€™
                 </div>
 
             </div>
 
         </button>
+
+        <section id="email-auth-panel" class="mt-5 rounded-2xl border border-slate-700/60 bg-slate-950/40 p-5 text-left">
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">Cont principal</p>
+                    <h2 class="mt-1 text-lg font-bold text-white">Username Ãˆâ„¢i parolÃ„Æ’</h2>
+                </div>
+                <div class="flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-[11px] font-bold text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.10)]">
+                    <span class="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-300/20 text-cyan-200">Ã¢Å“â€œ</span>
+                    <span>Rolurile sunt verificate prin Discord</span>
+                </div>
+            </div>
+            <form id="email-login-form" class="mt-4 space-y-3">
+                <label class="block text-xs font-semibold text-slate-400">Username<input id="email-login-username" type="text" autocomplete="username" required class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white" placeholder="username"></label>
+                <label class="block text-xs font-semibold text-slate-400">ParolÃ„Æ’<input id="email-login-password" type="password" autocomplete="current-password" required class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white" placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢"></label>
+                <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl border-2 border-cyan-300/70 bg-cyan-500/10 px-4 py-3.5 text-sm font-black tracking-wide text-cyan-100 shadow-[0_8px_24px_rgba(34,211,238,0.16)] transition duration-200 hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-cyan-400/20 hover:text-white hover:shadow-[0_12px_30px_rgba(34,211,238,0.28)] active:translate-y-0">Login</button>
+                <div id="email-mode-actions" class="flex items-center justify-center gap-4 pt-1 text-xs font-bold">
+                    <button type="button" data-email-mode="register" class="text-emerald-300 transition hover:text-emerald-200">CreeazÃ„Æ’ cont</button>
+                    <span class="text-slate-700">Ã¢â‚¬Â¢</span>
+                    <button type="button" data-email-mode="reset" class="text-violet-300 transition hover:text-violet-200">Ai uitat parola?</button>
+                </div>
+            </form>
+            <form id="email-register-form" class="mt-4 hidden space-y-3">
+                <label class="block text-xs font-semibold text-slate-400">Username<input id="email-register-username" type="text" minlength="3" maxlength="32" pattern="[A-Za-z0-9][A-Za-z0-9_.-]*" autocomplete="username" required class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white" placeholder="username"></label>
+                <label class="block text-xs font-semibold text-slate-400">Email pentru recuperarea parolei<input id="email-register-email" type="email" autocomplete="email" required class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white" placeholder="nume@exemplu.ro"></label>
+                <label class="block text-xs font-semibold text-slate-400">ParolÃ„Æ’<input id="email-register-password" type="password" minlength="8" autocomplete="new-password" required class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white" placeholder="minimum 8 caractere"></label>
+                <label class="flex items-start gap-2 text-xs leading-5 text-slate-400"><input id="email-register-terms" type="checkbox" required class="mt-1 accent-cyan-400"><span>Accept <a href="termeni.html" target="_blank" class="text-cyan-300 underline">termenii de utilizare</a> Ãˆâ„¢i ÃƒÂ®nÃˆâ€ºeleg cÃ„Æ’ rolurile Ãˆâ„¢i accesul sunt verificate prin Discord.</span></label>
+                <button type="submit" class="w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-black text-slate-950 hover:bg-emerald-400">CreeazÃ„Æ’ contul</button>
+            </form>
+            <form id="email-reset-form" class="mt-4 hidden space-y-3">
+                <p class="text-xs leading-5 text-slate-400">Introdu emailul contului Ãˆâ„¢i vei primi un link pentru resetarea parolei.</p>
+                <label class="block text-xs font-semibold text-slate-400">Email<input id="email-reset-email" type="email" autocomplete="email" required class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white" placeholder="nume@exemplu.ro"></label>
+                <button type="submit" class="w-full rounded-xl bg-violet-500 px-4 py-3 text-sm font-black text-white hover:bg-violet-400">Trimite linkul</button>
+            </form>
+            <div id="email-auth-status" class="mt-3 min-h-[20px] text-xs leading-5 text-cyan-200" role="status"></div>
+            <button id="email-connect-discord" type="button" class="mt-3 hidden w-full rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-4 py-3 text-sm font-bold text-indigo-200 hover:bg-indigo-500/20">ConecteazÃ„Æ’ Discord Ãˆâ„¢i verificÃ„Æ’ rolul</button>
+        </section>
 
     <div class="space-y-5">
 
@@ -140,21 +178,21 @@
             <div class="flex flex-wrap items-center justify-center gap-4 text-sm">
 
                 <div class="flex items-center gap-2 text-emerald-400">
-                    <span>âœ“</span>
+                    <span>Ã¢Å“â€œ</span>
                     <span class="text-slate-300">OAuth2</span>
                 </div>
 
                 <div class="w-px h-4 bg-slate-700"></div>
 
                 <div class="flex items-center gap-2 text-cyan-400">
-                    <span>ðŸ›¡ï¸</span>
+                    <span>Ã°Å¸â€ºÂ¡Ã¯Â¸Â</span>
                     <span class="text-slate-300">Rol sincronizat</span>
                 </div>
 
                 <div class="w-px h-4 bg-slate-700"></div>
 
                 <div class="flex items-center gap-2 text-violet-400">
-                    <span>âš¡</span>
+                    <span>Ã¢Å¡Â¡</span>
                     <span class="text-slate-300">Permisiuni live</span>
                 </div>
 
@@ -171,222 +209,51 @@
     </div>
     </div>
     <div data-panel-footer-host class="relative z-10 w-full"></div>
-    <!-- Script de Autentificare È™i Sincronizare Supabase -->
+    <!-- Script de Autentificare Ãˆâ„¢i Sincronizare Supabase -->
     <script>
         const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
         const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let panelAuthClient = window.createPanelAuthClient({ persistSession: localStorage.getItem('panel_remember_me') === '1' });
+        const EMAIL_DISCORD_FLOW_KEY = 'panel_email_discord_link_flow';
 
-        document.getElementById('voucher-code')?.closest('div')?.remove();
-        const loginInfo = document.createElement('details');
-        loginInfo.className = 'rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4 text-left';
-        loginInfo.innerHTML = '<summary class="cursor-pointer text-sm font-bold text-cyan-200">Cum funcÈ›ioneazÄƒ accesul?</summary><div class="mt-3 space-y-2 text-xs leading-5 text-slate-300"><p>Te conectezi cu Discord, iar panelul verificÄƒ automat organizaÈ›ia È™i rolurile tale.</p><p>DacÄƒ nu ai Ã®ncÄƒ o organizaÈ›ie, vei primi o paginÄƒ separatÄƒ unde verifici voucherul È™i Ã®ncepi configurarea.</p><p>Guild ID-ul se adaugÄƒ dupÄƒ verificarea voucherului, Ã®n pasul de configurare al organizaÈ›iei.</p></div>';
-        document.getElementById('discord-login-btn')?.before(loginInfo);
+        const clearPanelBrowserSession = () => [
+            'discord_user', 'user_role', 'discord_access_token', 'panel_session_token',
+            'panel_session_expires_at', 'panel_active_organization', 'panel_organizations',
+            'panel_role_synced_at'
+        ].forEach((key) => localStorage.removeItem(key));
 
-        let CLIENT_ID = window.PANEL_DISCORD_CONFIG.clientId;
-        const DISCORD_SCOPES = window.PANEL_DISCORD_CONFIG.scopes.join(' ');
-        const REDIRECT_URI = window.location.origin + window.location.pathname;
-        function getLoginDestination(user) {
-            if (user?.organization_access_expired === true) {
-                return 'administrare-organizatie.html';
-            }
-            const selectedPages = Array.isArray(user?.allowed_pages) && user.allowed_pages.length > 0;
-            const platformAdmin = user?.platform_admin === true || user?.is_platform_admin === true;
-            if (!platformAdmin && !selectedPages) {
-                return 'guest.html';
-            }
+        const emailStatus = (message, tone = 'info') => {
+            const element = document.getElementById('email-auth-status');
+            if (!element) return;
+            element.textContent = message;
+            element.className = `mt-3 min-h-[20px] text-xs leading-5 ${tone === 'error' ? 'text-rose-300' : tone === 'success' ? 'text-emerald-300' : 'text-cyan-200'}`;
+        };
 
-            return 'index.html';
-        }
-
-        function getSafeReturnDestination(user) {
-            const fallback = getLoginDestination(user);
-            if (user?.organization_access_expired === true) {
-                return 'administrare-organizatie.html';
-            }
-            const savedDestination = sessionStorage.getItem('panel_return_after_login');
-            sessionStorage.removeItem('panel_return_after_login');
-            if (!savedDestination) return fallback;
-
-            try {
-                const destination = new URL(savedDestination, window.location.href);
-                if (destination.origin !== window.location.origin) return fallback;
-                const page = destination.pathname.split('/').pop() || 'index.html';
-                const selectedPages = Array.isArray(user?.allowed_pages) && user.allowed_pages.includes(page);
-                const platformAdmin = user?.platform_admin === true || user?.is_platform_admin === true;
-                if (!platformAdmin && !selectedPages) return fallback;
-                return `${page}${destination.search}${destination.hash}`;
-            } catch (_) {
-                return fallback;
-            }
-        }
-
-        document.getElementById('discord-login-btn').addEventListener('click', async () => {
-            try {
-                const { data } = await supabaseClient.rpc('get_discord_oauth_config');
-                // Client ID-ul local este sursa sigura pentru autentificare.
-                // O valoare veche dintr-o migrare nu poate suprascrie aplicatia activa.
-                void data;
-            } catch (_) {
-                // ConfiguraÈ›ia localÄƒ rÄƒmÃ¢ne fallback pentru prima instalare.
-            }
-            const oauthState = crypto.randomUUID();
-            sessionStorage.setItem('discord_oauth_state', oauthState);
-
-            const authParams = new URLSearchParams({
-                client_id: CLIENT_ID,
-                redirect_uri: REDIRECT_URI,
-                response_type: 'token',
-                scope: DISCORD_SCOPES,
-                state: oauthState
+        const setEmailMode = (mode) => {
+            document.querySelectorAll('[data-email-mode]').forEach((button) => {
+                const active = button.dataset.emailMode === mode;
+                button.classList.toggle('bg-cyan-500', active);
+                button.classList.toggle('text-slate-950', active);
+                button.classList.toggle('text-slate-300', !active);
             });
+            document.getElementById('email-login-form')?.classList.toggle('hidden', mode !== 'login');
+            document.getElementById('email-register-form')?.classList.toggle('hidden', mode !== 'register');
+            document.getElementById('email-reset-form')?.classList.toggle('hidden', mode !== 'reset');
+            document.querySelector('[data-email-mode="login"]')?.classList.toggle('hidden', mode === 'login');
+            if (mode !== 'login') document.getElementById('email-connect-discord')?.classList.add('hidden');
+            emailStatus('');
+        };
 
-            window.location.href = `https://discord.com/oauth2/authorize?${authParams.toString()}`;
-        });
-
-document.addEventListener('DOMContentLoaded', async () => {
-
-    const hash = window.location.hash;
-    // Discord OAuth Implicit Flow returneaza tokenul in fragmentul URL.
-    if (hash && hash.includes('access_token')) {
-
-        const params = new URLSearchParams(hash.substring(1));
-        const accessToken = params.get('access_token');
-        const returnedState = params.get('state');
-        const expectedState = sessionStorage.getItem('discord_oauth_state');
-
-        if(accessToken){
-            if (returnedState === 'panel_android') {
-                window.location.replace(`discord-1531023771211792384:/authorize/callback#${params.toString()}`);
-                return;
-            }
-            window.history.replaceState({}, document.title, window.location.pathname);
-            sessionStorage.removeItem('discord_oauth_state');
-
-            if (!expectedState || returnedState !== expectedState) {
-                setLoginStatus("Eroare autentificare: raspuns OAuth invalid.");
-                return;
-            }
-            setLoginStatus("ðŸ”„ Se iniÈ›iazÄƒ autentificarea...");
-            await processDiscordLogin(accessToken);
-            return;
-        }
-
-    }
-
-
-    // Varianta nouÄƒ Discord Code Flow
-    // Authorization Code Flow is intentionally not used by this static page.
-    // The configured login always requests response_type=token.
-    const code = null;
-
-    if(code){
-
-        console.log("CODE DISCORD PRIMIT:", code);
-
-        setLoginStatus("ðŸ”„ Cod Discord primit. Se verificÄƒ...");
-
-        // momentan doar verificÄƒm cÄƒ ajunge aici
-        return;
-
-    }
-
-
-    // sesiune existentÄƒ
-    const existingUser = localStorage.getItem('discord_user');
-
-    if(existingUser){
-
-        try {
-
-            const parsed = JSON.parse(existingUser);
-
-            const panelSession = localStorage.getItem('panel_session_token');
-            const expiresAt = new Date(localStorage.getItem('panel_session_expires_at') || 0).getTime();
-            if(parsed && parsed.discord_id && panelSession && expiresAt > Date.now()){
-                window.location.href = getLoginDestination(parsed);
-                return;
-            }
-            localStorage.clear();
-
-        } catch(error){
-
-            console.error(error);
-            localStorage.clear();
-
-        }
-
-    }
-
-});
-        function setLoginStatus(message) {
-            const status = document.getElementById("status-msg");
-
-            status.style.opacity = 0;
-
-            setTimeout(() => {
-                status.textContent = message;
-                status.style.opacity = 1;
-            }, 150);
-        }
-        async function processDiscordLogin(token) {
-            try {
-                const response = await fetch('https://discord.com/api/users/@me', {
-                    headers: { authorization: `Bearer ${token}` }
-                });
-
-                if (!response.ok) throw new Error('EÈ™ec la preluarea profilului de pe Discord.');
-                const discordData = await response.json();
-
-                if (!discordData.id) {
-                    throw new Error('Profil Discord invalid.');
-                }
-
-                setLoginStatus("ðŸ›¡ï¸ Se verificÄƒ rolul pe server...");
-
-                const syncResponse = await fetch(`${SUPABASE_URL}/functions/v1/sync-discord-role`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        apikey: SUPABASE_KEY,
-                        authorization: `Bearer ${SUPABASE_KEY}`
-                    },
-                    body: JSON.stringify({ access_token: token })
-                });
-                const syncResult = await syncResponse.json();
-                if (!syncResponse.ok || !syncResult.user) {
-                    if (['NO_ORGANIZATION', 'ROLE_NOT_CONFIGURED'].includes(String(syncResult.code || ''))) {
-                        throw new Error('Nu ai niciun rol Discord configurat pentru aceastÄƒ organizaÈ›ie. ContacteazÄƒ administratorul organizaÈ›iei.');
-                    }
-                    throw new Error(syncResult.error || 'Rolul Discord nu a putut fi verificat.');
-                }
-
-                const syncedUser = syncResult.user;
-                localStorage.setItem('discord_user', JSON.stringify(syncedUser));
-                localStorage.setItem('user_role', syncedUser.role);
-                localStorage.setItem('discord_access_token', token);
-                localStorage.setItem('panel_session_token', syncResult.session_token);
-                localStorage.setItem('panel_session_expires_at', syncResult.expires_at);
-                localStorage.setItem('panel_active_organization', JSON.stringify(syncResult.active_organization));
-                localStorage.setItem('panel_organizations', JSON.stringify(syncResult.organizations || []));
-                localStorage.setItem('panel_role_synced_at', String(Date.now()));
-
-                setLoginStatus(`âœ… ${syncResult.active_organization?.name || 'OrganizaÈ›ie'} Â· ${syncedUser.role}`);
-
-                setTimeout(() => {
-                    window.location.href = getSafeReturnDestination(syncedUser);
-                }, 400);
-
-                return;
-
-
-            } catch (err) {
-                console.error('Erore login:', err);
-                document.getElementById('status-msg').textContent = `Eroare autentificare: ${err.message || 'eroare necunoscutÄƒ'}`;
-                localStorage.clear();
-            }
-        }
-    </script>
-    <script src="js/global-footer.js"></script>
-</body>
-</html>
+        async function contißŽ¹¶‰žËkºwµçUµ•¹Ñ	å% •µ…¥°µÉ•¥ÍÑ•ÈµÁ…ÍÍÝ½Éœ¤¹Ù…±Õ”ì(€€€€€€€€€€€½¹ÍÐÉ•¥ÍÑ•ÉA…ÍÍÝ½É‘½¹™¥Éµ…Ñ¥½¸€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% •µ…¥°µÉ•¥ÍÑ•ÈµÁ…ÍÍÝ½Éµ½¹™¥É´œ¤¹Ù…±Õ”ì(€€€€€€€€€€€¥˜€ „½x üô¸©mµit¤ üô¸©q¤¹ìà±ô¼¹Ñ•ÍÐ¡É•¥ÍÑ•ÉA…ÍÍÝ½É¤¤É•ÑÕÉ¸•µ…¥±MÑ…ÑÕÌ A…É½±„ÑÉ•‰Õ¥”ÏH…¥‹Hµ¥¹¥µÕ´€à…É…Ñ•É”°¼±¥Ñ•ËHµ…É”ƒ#Š‰¤¼¥™ËH¸œ°€•ÉÉ½Èœ¤ì(€€€€€€€€€€€¥˜€¡É•¥ÍÑ•ÉA…ÍÍÝ½É€„ôôÉ•¥ÍÑ•ÉA…ÍÍÝ½É‘½¹™¥Éµ…Ñ¥½¸¤É•ÑÕÉ¸•µ…¥±MÑ…ÑÕÌ A…É½±•±”¹Ô½¥¹¥¸œ°€•ÉÉ½Èœ¤ì(€€€€€€€€€€€½¹ÍÐì‘…Ñ„°•ÉÉ½Èô€ô…Ý…¥ÐÁ…¹•±ÕÑ¡±¥•¹Ð¹…ÕÑ ¹Í¥¹UÀ¡ì(€€€€€€€€€€€€€€€•µ…¥°è‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% •µ…¥°µÉ•¥ÍÑ•Èµ•µ…¥°œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤°(€€€€€€€€€€€€€€€Á…ÍÍÝ½Éè‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% •µ…¥°µÉ•¥ÍÑ•ÈµÁ…ÍÍÝ½Éœ¤¹Ù…±Õ”°(€€€€€€€€€€€€€€€½ÁÑ¥½¹Ìèì‘…Ñ„èìÕÍ•É¹…µ”°Ñ•ÉµÍ}Ù•ÉÍ¥½¸è€œÈÀÈØ´Àà´ÄÌœ°Ñ•ÉµÍ}…•ÁÑ•‘}…Ðè¹•Ü…Ñ” ¤¹Ñ½%M=MÑÉ¥¹œ ¤ô°•µ…¥±I•‘¥É•ÑQ¼è¹•ÜUI0 •µ…¥°µÙ•É¥™¥…Ð¹¡Ñµ°œ°Ý¥¹‘½Ü¹±½…Ñ¥½¸¹¡É•˜¤¹¡É•˜ô(€€€€€€€€€€€ô¤ì(€€€€€€€€€€€¥˜€¡•ÉÉ½È¤É•ÑÕÉ¸•µ…¥±MÑ…ÑÕÌ¡MÑÉ¥¹œ¡•ÉÉ½È¹µ•ÍÍ…”ñð€œœ¤¹¥¹±Õ‘•Ì UMI95}Q-8œ¤€ü€UÍ•É¹…µ•Õ°•ÍÑ”‘•©„™½±½Í¥Ð¸±•”…±ÐÕÍ•É¹…µ”¸œ€è€¡•ÉÉ½È¹µ•ÍÍ…”ñð€½¹ÑÕ°¹Ô„ÁÕÑÕÐ™¤É•…Ð¸œ¤°€•ÉÉ½Èœ¤ì(€€€€€€€€€€€¥˜€¡‘…Ñ„¹Í•ÍÍ¥½¸¤ì(€€€€€€€€€€€€€€€ÑÉäì…Ý…¥Ð½¹Ñ¥¹Õ•µ…¥±M•ÍÍ¥½¸ ¤ìô…Ñ €¡Í•ÍÍ¥½¹ÉÉ½È¤ì•µ…¥±MÑ…ÑÕÌ¡Í•ÍÍ¥½¹ÉÉ½È¹µ•ÍÍ…”°€•ÉÉ½Èœ¤ìô(€€€€€€€€€€€ô•±Í”ì(€€€€€€€€€€€€€€€Í•Ñµ…¥±5½‘” ±½¥¸œ¤ì(€€€€€€€€€€€€€€€•µ…¥±MÑ…ÑÕÌ ½¹ÑÕ°„™½ÍÐÉ•…Ð¸Y•É¥™¥H…‘É•Í„‘”•µ…¥°‘¥¸µ•Í…©Õ°ÁÉ¥µ¥Ð°…Á½¤É•Ù¥¹¼…¥¤Á•¹ÑÉÔ…ÕÑ•¹Ñ¥™¥…É”¸œ°€ÍÕ•ÍÌœ¤ì(€€€€€€€€€€€ô(€€€€€€€ô¤ì(€€€€€€€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% •µ…¥°µÉ•Í•Ðµ™½É´œ¤ü¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ÍÕ‰µ¥Ðœ°…Íå¹Œ€¡•Ù•¹Ð¤€ôøì(€€€€€€€€€€€•Ù•¹Ð¹ÁÉ•Ù•¹Ñ•™…Õ±Ð ¤ì(€€€€€€€€€€€•µ…¥±MÑ…ÑÕÌ M”ÑÉ¥µ¥Ñ”±¥¹­Õ°¸¸¸œ¤ì(€€€€€€€€€€€½¹ÍÐì•ÉÉ½Èô€ô…Ý…¥ÐÁ…¹•±ÕÑ¡±¥•¹Ð¹…ÕÑ ¹É•Í•ÑA…ÍÍÝ½É‘½Éµ…¥°¡‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% •µ…¥°µÉ•Í•Ðµ•µ…¥°œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤°ìÉ•‘¥É•ÑQ¼è¹•ÜUI0 É•Í•Ñ…É”µÁ…É½±„¹¡Ñµ°œ°Ý¥¹‘½Ü¹±½…Ñ¥½¸¹¡É•˜¤¹¡É•˜ô¤ì(€€€€€€€€€€€•µ…¥±MÑ…ÑÕÌ¡•ÉÉ½È€ü€¡•ÉÉ½È¹µ•ÍÍ…”ñð€1¥¹­Õ°¹Ô„ÁÕÑÕÐ™¤ÑÉ¥µ¥Ì¸œ¤€è€…H•µ…¥±Õ°•á¥ÍÓH°Ù•¤ÁÉ¥µ¤¥µ•‘¥…Ð±¥¹­Õ°‘”É•Í•Ñ…É”¸œ°•ÉÉ½È€ü€•ÉÉ½Èœ€è€ÍÕ•ÍÌœ¤ì(€€€€€€€ô¤ì(€€€€€€€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% •µ…¥°µ½¹¹•Ðµ‘¥Í½Éœ¤ü¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ°€ ¤€ôøìÝ¥¹‘½Ü¹±½…Ñ¥½¸¹¡É•˜€ô€•µ…¥°µÙ•É¥™¥…Ð¹¡Ñµ°œìô¤ì((€€€€€€€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% Ù½Õ¡•Èµ½‘”œ¤ü¹±½Í•ÍÐ ‘¥Øœ¤ü¹É•µ½Ù” ¤ì(€€€€€€€½¹ÍÐ±½¥¹%¹™¼€ô‘½Õµ•¹Ð¹É•…Ñ•±•µ•¹Ð ‘•Ñ…¥±Ìœ¤ì(€€€€€€€±½¥¹%¹™¼¹±…ÍÍ9…µ”€ô€É½Õ¹‘•´Éá°‰½É‘•È‰½É‘•Èµå…¸´ÔÀÀ¼ÈÀ‰œµå…¸´ÔÀÀ¼ÔÀ´ÐÑ•áÐµ±•™Ðœì(€€€€€€€±½¥¹%¹™¼¹¥¹¹•É!Q50€ô€œñÍÕµµ…Éä±…ÍÌô‰ÕÉÍ½ÈµÁ½¥¹Ñ•ÈÑ•áÐµÍ´™½¹Ðµ‰½±Ñ•áÐµå…¸´ÈÀÀˆùÕ´™Õ¹#Šé¥½¹•…ëH…•ÍÕ°üð½ÍÕµµ…Éäøñ‘¥Ø±…ÍÌô‰µÐ´ÌÍÁ…”µä´ÈÑ•áÐµáÌ±•…‘¥¹œ´ÔÑ•áÐµÍ±…Ñ”´ÌÀÀˆøñÀùQ”½¹•Ñ•é¤Ô¥Í½É°¥…ÈÁ…¹•±Õ°Ù•É¥™¥H…ÕÑ½µ…Ð½É…¹¥é‡#Šé¥„ƒ#Š‰¤É½±ÕÉ¥±”Ñ…±”¸ð½ÀøñÀù…H¹Ô…¤ƒ
+¹¹H¼½É…¹¥é‡#Šé¥”°Ù•¤ÁÉ¥µ¤¼Á…¥»HÍ•Á…É…ÓHÕ¹‘”Ù•É¥™¥¤Ù½Õ¡•ÉÕ°ƒ#Š‰¤ƒ
+¹¹•Á¤½¹™¥ÕÉ…É•„¸ð½ÀøñÀùÕ¥±%µÕ°Í”…‘…ÕŸH‘ÕÃHÙ•É¥™¥…É•„Ù½Õ¡•ÉÕ±Õ¤°ƒ
+¹¸Á…ÍÕ°‘”½¹™¥ÕÉ…É”…°½É…¹¥é‡#Šé¥•¤¸ð½Àøð½‘¥Øøœì(€€€€€€€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ‘¥Í½Éµ±½¥¸µ‰Ñ¸œ¤ü¹‰•™½É”¡±½¥¹%¹™¼¤ì(€€€€€€€½¹ÍÐ‘¥Í½É‘	ÕÑÑ½¸€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ‘¥Í½Éµ±½¥¸µ‰Ñ¸œ¤ì(€€€€€€€¥˜€¡‘¥Í½É‘	ÕÑÑ½¸€˜˜…½Õ¹ÑA…¹•°¤ì(€€€€€€€€€€€½¹ÍÐ™…ÍÑ1…‰•°€ô‘½Õµ•¹Ð¹É•…Ñ•±•µ•¹Ð ‘¥Øœ¤ì(€€€€€€€€€€€™…ÍÑ1…‰•°¹±…ÍÍ9…µ”€ô€µÐ´Ôµˆ´ÈÑ•áÐµ•¹Ñ•ÈÑ•áÐµáÌ™½¹Ðµ‰½±ÕÁÁ•É…Í”ÑÉ…­¥¹œµlÀ¸É•µtÑ•áÐµ¥¹‘¥¼´ÌÀÀœì(€€€€€€€€€€€™…ÍÑ1…‰•°¹Ñ•áÑ½¹Ñ•¹Ð€ô€…ÍÐ½¹¹•Ðœì(€€€€€€€€€€€…½Õ¹ÑA…¹•°¹¥¹Í•ÉÑ‘©…•¹Ñ±•µ•¹Ð …™Ñ•É•¹œ°™…ÍÑ1…‰•°¤ì(€€€€€€€€€€€™…ÍÑ1…‰•°¹¥¹Í•ÉÑ‘©…•¹Ñ±•µ•¹Ð …™Ñ•É•¹œ°‘¥Í½É‘	ÕÑÑ½¸¤ì(€€€€€€€€€€€½¹ÍÐ‘¥Í½É‘MÕ‰Ñ¥Ñ±”€ô‘¥Í½É‘	ÕÑÑ½¸¹ÅÕ•ÉåM•±•Ñ½È œ¹Ñ•áÐµÍ´œ¤ì(€€€€€€€€€€€¥˜€¡‘¥Í½É‘MÕ‰Ñ¥Ñ±”¤‘¥Í½É‘MÕ‰Ñ¥Ñ±”¹Ñ•áÑ½¹Ñ•¹Ð€ô€½¹•Ñ…É”É…Á¥“Hƒ#Š‰¤Í•ÕÉ¥é…ÓHÁÉ¥¸¥Í½Éœì(€€€€€€€ô(4(€€€€€€€±•Ð1%9Q}%€ôÝ¥¹‘½Ü¹A91}%M=I}=9%¹±¥•¹Ñ%ì4(€€€€€€€½¹ÍÐ%M=I}M=AL€ôÝ¥¹‘½Ü¹A91}%M=I}=9%¹Í½Á•Ì¹©½¥¸ œ€œ¤ì4(€€€€€€€½¹ÍÐI%IQ}UI$€ôÝ¥¹‘½Ü¹±½…Ñ¥½¸¹½É¥¥¸€¬Ý¥¹‘½Ü¹±½…Ñ¥½¸¹Á…Ñ¡¹…µ”ì4(€€€€€€€™Õ¹Ñ¥½¸•Ñ1½¥¹•ÍÑ¥¹…Ñ¥½¸¡ÕÍ•È¤ì(€€€€€€€€€€€¥˜€¡ÕÍ•Èü¹½É…¹¥é…Ñ¥½¹}…•ÍÍ}•áÁ¥É•€ôôôÑÉÕ”¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸€…‘µ¥¹¥ÍÑÉ…É”µ½É…¹¥é…Ñ¥”¹¡Ñµ°œì(€€€€€€€€€€€ô(€€€€€€€€€€€½¹ÍÐÍ•±•Ñ•‘A…•Ì€ôÉÉ…ä¹¥ÍÉÉ…ä¡ÕÍ•Èü¹…±±½Ý•‘}Á…•Ì¤€˜˜ÕÍ•È¹…±±½Ý•‘}Á…•Ì¹±•¹Ñ €ø€Àì(€€€€€€€€€€€½¹ÍÐÁ±…Ñ™½Éµ‘µ¥¸€ôÕÍ•Èü¹Á±…Ñ™½Éµ}…‘µ¥¸€ôôôÑÉÕ”ñðÕÍ•Èü¹¥Í}Á±…Ñ™½Éµ}…‘µ¥¸€ôôôÑÉÕ”ì(€€€€€€€€€€€¥˜€ …Á±…Ñ™½Éµ‘µ¥¸€˜˜€…Í•±•Ñ•‘A…•Ì¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸€Õ•ÍÐ¹¡Ñµ°œì(€€€€€€€€€€€ô4(4(€€€€€€€€€€€É•ÑÕÉ¸€¥¹‘•à¹¡Ñµ°œì4(€€€€€€€ô4(4(€€€€€€€™Õ¹Ñ¥½¸•ÑM…™•I•ÑÕÉ¹•ÍÑ¥¹…Ñ¥½¸¡ÕÍ•È¤ì4(€€€€€€€€€€€½¹ÍÐ™…±±‰…¬€ô•Ñ1½¥¹•ÍÑ¥¹…Ñ¥½¸¡ÕÍ•È¤ì(€€€€€€€€€€€¥˜€¡ÕÍ•Èü¹½É…¹¥é…Ñ¥½¹}…•ÍÍ}•áÁ¥É•€ôôôÑÉÕ”¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸€…‘µ¥¹¥ÍÑÉ…É”µ½É…¹¥é…Ñ¥”¹¡Ñµ°œì(€€€€€€€€€€€ô(€€€€€€€€€€€½¹ÍÐÍ…Ù•‘•ÍÑ¥¹…Ñ¥½¸€ôÍ•ÍÍ¥½¹MÑ½É…”¹•Ñ%Ñ•´ Á…¹•±}É•ÑÕÉ¹}…™Ñ•É}±½¥¸œ¤ì(€€€€€€€€€€€Í•ÍÍ¥½¹MÑ½É…”¹É•µ½Ù•%Ñ•´ Á…¹•±}É•ÑÕÉ¹}…™Ñ•É}±½¥¸œ¤ì4(€€€€€€€€€€€¥˜€ …Í…Ù•‘•ÍÑ¥¹…Ñ¥½¸¤É•ÑÕÉ¸™…±±‰…¬ì4(4(€€€€€€€€€€€ÑÉäì(€€€€€€€€€€€€€€€½¹ÍÐ‘•ÍÑ¥¹…Ñ¥½¸€ô¹•ÜUI0¡Í…Ù•‘•ÍÑ¥¹…Ñ¥½¸°Ý¥¹‘½Ü¹±½…Ñ¥½¸¹¡É•˜¤ì(€€€€€€€€€€€€€€€¥˜€¡‘•ÍÑ¥¹…Ñ¥½¸¹½É¥¥¸€„ôôÝ¥¹‘½Ü¹±½…Ñ¥½¸¹½É¥¥¸¤É•ÑÕÉ¸™…±±‰…¬ì(€€€€€€€€€€€€€€€½¹ÍÐÁ…”€ô‘•ÍÑ¥¹…Ñ¥½¸¹Á…Ñ¡¹…µ”¹ÍÁ±¥Ð œ¼œ¤¹Á½À ¤ñð€¥¹‘•à¹¡Ñµ°œì(€€€€€€€€€€€€€€€½¹ÍÐÍ•±•Ñ•‘A…•Ì€ôÉÉ…ä¹¥ÍÉÉ…ä¡ÕÍ•Èü¹…±±½Ý•‘}Á…•Ì¤€˜˜ÕÍ•È¹…±±½Ý•‘}Á…•Ì¹¥¹±Õ‘•Ì¡Á…”¤ì(€€€€€€€€€€€€€€€½¹ÍÐÁ±…Ñ™½Éµ‘µ¥¸€ôÕÍ•Èü¹Á±…Ñ™½Éµ}…‘µ¥¸€ôôôÑÉÕ”ñðÕÍ•Èü¹¥Í}Á±…Ñ™½Éµ}…‘µ¥¸€ôôôÑÉÕ”ì(€€€€€€€€€€€€€€€¥˜€ …Á±…Ñ™½Éµ‘µ¥¸€˜˜€…Í•±•Ñ•‘A…•Ì¤É•ÑÕÉ¸™…±±‰…¬ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸€‘íÁ…•ô‘í‘•ÍÑ¥¹…Ñ¥½¸¹Í•…É¡ô‘í‘•ÍÑ¥¹…Ñ¥½¸¹¡…Í¡õ€ì(€€€€€€€€€€€ô…Ñ €¡|¤ì4(€€€€€€€€€€€€€€€É•ÑÕÉ¸™…±±‰…¬ì4(€€€€€€€€€€€ô4(€€€€€€€ô4(4(€€€€€€€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ‘¥Í½Éµ±½¥¸µ‰Ñ¸œ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ°€ ¤€ôøÍÑ…ÉÑ¥Í½É‘=ÕÑ ¡™…±Í”¤¤ì(€€€€€€€€¼¨(€€€€€€€€€€€ÑÉäì4(€€€€€€€€€€€€€€€½¹ÍÐì‘…Ñ„ô€ô…Ý…¥ÐÍÕÁ…‰…Í•±¥•¹Ð¹ÉÁŒ •Ñ}‘¥Í½É‘}½…ÕÑ¡}½¹™¥œœ¤ì4(€€€€€€€€€€€€€€€€¼¼±¥•¹Ð%µÕ°±½…°•ÍÑ”ÍÕÉÍ„Í¥ÕÉ„Á•¹ÑÉÔ…ÕÑ•¹Ñ¥™¥…É”¸4(€€€€€€€€€€€€€€€€¼¼<Ù…±½…É”Ù•¡”‘¥¹ÑÈµ¼µ¥É…É”¹ÔÁ½…Ñ”ÍÕÁÉ…ÍÉ¥”…Á±¥…Ñ¥„…Ñ¥Ù„¸4(€€€€€€€€€€€€€€€Ù½¥‘…Ñ„ì4(€€€€€€€€€€€ô…Ñ €¡|¤ì4(€€€€€€€€€€€€€€€€¼¼½¹™¥ÕÉ‡#Šé¥„±½…³HËI·
+‰¹”™…±±‰…¬Á•¹ÑÉÔÁÉ¥µ„¥¹ÍÑ…±…É”¸(€€€€€€€€€€€ô4(€€€€€€€€€€€½¹ÍÐ½…ÕÑ¡MÑ…Ñ”€ôÉåÁÑ¼¹É…¹‘½µUU% ¤ì4(€€€€€€€€€€€Í•ÍÍ¥½¹MÑ½É…”¹Í•Ñ%Ñ•´ ‘¥Í½É‘}½…ÕÑ¡}ÍÑ…Ñ”œ°½…ÕÑ¡MÑ…Ñ”¤ì4(4(€€€€€€€€€€€½¹ÍÐ…ÕÑ¡A…É…µÌ€ô¹•ÜUI1M•…É¡A…É…µÌ¡ì4(€€€€€€€€€€€€€€€±¥•¹Ñ}¥è1%9Q}%°4(€€€€€€€€€€€€€€€É•‘¥É•Ñ}ÕÉ¤èI%IQ}UI$°4(€€€€€€€€€€€€€€€É•ÍÁ½¹Í•}ÑåÁ”è€Ñ½­•¸œ°4(€€€€€€€€€€€€€€€Í½Á”è%M=I}M=AL°4(€€€€€€€€€€€€€€€ÍÑ…Ñ”è½…ÕÑ¡MÑ…Ñ”4(€€€€€€€€€€€ô¤ì4(4(€€€€€€€€€€€Ý¥¹‘½Ü¹±½…Ñ¥½¸¹¡É•˜€ô¡ÑÑÁÌè¼½‘¥Í½É¹½´½½…ÕÑ È½…ÕÑ¡½É¥é”ü‘í…ÕÑ¡A…É…µÌ¹Ñ½MÑÉ¥¹œ ¥õ€ì4(€€€€€€€ô¤ì€¨¼(4)‘½Õµ•¹Ð¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È =5½¹Ñ•¹Ñ1½…‘•œ°…Íå¹Œ€ ¤€ôøì4(4(€€€½¹ÍÐ¡…Í €ôÝ¥¹‘½Ü¹±½…Ñ¥½¸¹¡…Í ì4(€€€€¼¼¥Í½É=ÕÑ %µÁ±¥¥Ð±½ÜÉ•ÑÕÉ¹•…é„Ñ½­•¹Õ°¥¸™É…µ•¹ÑÕ°UI0¸4(€€€¥˜€¡¡…Í €˜˜¡…Í ¹¥¹±Õ‘•Ì …•ÍÍ}Ñ½­•¸œ¤¤ì4(4(€€€€€€€½¹ÍÐÁ…É…µÌ€ô¹•ÜUI1M•…É¡A…É…µÌ¡¡…Í ¹ÍÕ‰ÍÑÉ¥¹œ Ä¤¤ì4(€€€€€€€½¹ÍÐ…•ÍÍQ½­•¸€ôÁ…É…µÌ¹•Ð …•ÍÍ}Ñ½­•¸œ¤ì4(€€€€€€€½¹ÍÐÉ•ÑÕÉ¹•‘MÑ…Ñ”€ôÁ…É…µÌ¹•Ð ÍÑ…Ñ”œ¤ì4(€€€€€€€½¹ÍÐ•áÁ•Ñ•‘MÑ…Ñ”€ôÍ•ÍÍ¥½¹MÑ½É…”¹•Ñ%Ñ•´ ‘¥Í½É‘}½…ÕÑ¡}ÍÑ…Ñ”œ¤ì4(4(€€€€€€€¥˜¡…•ÍÍQ½­•¸¥ì4(€€€€€€€€€€€¥˜€¡É•ÑÕÉ¹•‘MÑ…Ñ”€ôôô€Á…¹•±}…¹‘É½¥œ¤ì4(€€€€€€€€€€€€€€€Ý¥¹‘½Ü¹±½…Ñ¥½¸¹É•Á±…”¡‘¥Í½É´ÄÔÌÄÀÈÌÜÜÄÈÄÄÜäÈÌàÐè½…ÕÑ¡½É¥é”½…±±‰…¬Œ‘íÁ…É…µÌ¹Ñ½MÑÉ¥¹œ ¥õ€¤ì4(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì4(€€€€€€€€€€€ô4(€€€€€€€€€€€Ý¥¹‘½Ü¹¡¥ÍÑ½Éä¹É•Á±…•MÑ…Ñ”¡íô°‘½Õµ•¹Ð¹Ñ¥Ñ±”°Ý¥¹‘½Ü¹±½…Ñ¥½¸¹Á…Ñ¡¹…µ”¤ì4(€€€€€€€€€€€Í•ÍÍ¥½¹MÑ½É…”¹É•µ½Ù•%Ñ•´ ‘¥Í½É‘}½…ÕÑ¡}ÍÑ…Ñ”œ¤ì4(4(€€€€€€€€€€€¥˜€ …•áÁ•Ñ•‘MÑ…Ñ”ñðÉ•ÑÕÉ¹•‘MÑ…Ñ”€„ôô•áÁ•Ñ•‘MÑ…Ñ”¤ì4(€€€€€€€€€€€€€€€Í•Ñ1½¥¹MÑ…ÑÕÌ ‰É½…É”…ÕÑ•¹Ñ¥™¥…É”èÉ…ÍÁÕ¹Ì=ÕÑ ¥¹Ù…±¥¸ˆ¤ì4(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì4(€€€€€€€€€€€ô4(€€€€€€€€€€€Í•Ñ1½¥¹MÑ…ÑÕÌ ‹ÃãŠwŠxM”¥¹§#Šé¥…ëH…ÕÑ•¹Ñ¥™¥…É•„¸¸¸ˆ¤ì4(€€€€€€€€€€€…Ý…¥ÐÁÉ½•ÍÍ¥Í½É‘1½¥¸¡…•ÍÍQ½­•¸¤ì4(€€€€€€€€€€€É•ÑÕÉ¸ì4(€€€€€€€ô4(4(€€€ô4(4(4(€€€€¼¼Y…É¥…¹Ñ„¹½×H¥Í½É½‘”±½Ü4(€€€€¼¼ÕÑ¡½É¥é…Ñ¥½¸½‘”±½Ü¥Ì¥¹Ñ•¹Ñ¥½¹…±±ä¹½ÐÕÍ•‰äÑ¡¥ÌÍÑ…Ñ¥ŒÁ…”¸4(€€€€¼¼Q¡”½¹™¥ÕÉ•±½¥¸…±Ý…åÌÉ•ÅÕ•ÍÑÌÉ•ÍÁ½¹Í•}ÑåÁ”õÑ½­•¸¸4(€€€½¹ÍÐ½‘”€ô¹Õ±°ì4(4(€€€¥˜¡½‘”¥ì4(4(€€€€€€€½¹Í½±”¹±½œ ‰=%M=IAI%5%Pèˆ°½‘”¤ì4(4(€€€€€€€Í•Ñ1½¥¹MÑ…ÑÕÌ ‹ÃãŠwŠx½¥Í½ÉÁÉ¥µ¥Ð¸M”Ù•É¥™¥H¸¸¸ˆ¤ì4(4(€€€€€€€€¼¼µ½µ•¹Ñ…¸‘½…ÈÙ•É¥™¥I´H…©Õ¹”…¥¤4(€€€€€€€É•ÑÕÉ¸ì4(4(€€€ô4(4(4(€€€€¼¼Í•Í¥Õ¹”•á¥ÍÑ•¹ÓH4(€€€½¹ÍÐ•á¥ÍÑ¥¹UÍ•È€ô±½…±MÑ½É…”¹•Ñ%Ñ•´ ‘¥Í½É‘}ÕÍ•Èœ¤ì4(4(€€€¥˜¡•á¥ÍÑ¥¹UÍ•È¥ì4(4(€€€€€€€ÑÉäì4(4(€€€€€€€€€€€½¹ÍÐÁ…ÉÍ•€ô)M=8¹Á…ÉÍ”¡•á¥ÍÑ¥¹UÍ•È¤ì4(4(€€€€€€€€€€€½¹ÍÐÁ…¹•±M•ÍÍ¥½¸€ô±½…±MÑ½É…”¹•Ñ%Ñ•´ Á…¹•±}Í•ÍÍ¥½¹}Ñ½­•¸œ¤ì4(€€€€€€€€€€€½¹ÍÐ•áÁ¥É•ÍÐ€ô¹•Ü…Ñ”¡±½…±MÑ½É…”¹•Ñ%Ñ•´ Á…¹•±}Í•ÍÍ¥½¹}•áÁ¥É•Í}…Ðœ¤ñð€À¤¹•ÑQ¥µ” ¤ì4(€€€€€€€€€€€¥˜¡Á…ÉÍ•€˜˜Á…ÉÍ•¹‘¥Í½É‘}¥€˜˜Á…¹•±M•ÍÍ¥½¸€˜˜•áÁ¥É•ÍÐ€ø…Ñ”¹¹½Ü ¤¥ì4(€€€€€€€€€€€€€€€Ý¥¹‘½Ü¹±½…Ñ¥½¸¹¡É•˜€ô•Ñ1½¥¹•ÍÑ¥¹…Ñ¥½¸¡Á…ÉÍ•¤ì4(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì4(€€€€€€€€€€€ô4(€€€€€€€€€€€±•…ÉA…¹•±	É½ÝÍ•ÉM•ÍÍ¥½¸ ¤ì(4(€€€€€€€ô…Ñ ¡•ÉÉ½È¥ì4(4(€€€€€€€€€€€½¹Í½±”¹•ÉÉ½È¡•ÉÉ½È¤ì4(€€€€€€€€€€€±•…ÉA…¹•±	É½ÝÍ•ÉM•ÍÍ¥½¸ ¤ì(4(€€€€€€€ô4(4(€€€ô((€€€ÑÉäì(€€€€€€€½¹ÍÐì‘…Ñ„è•µ…¥±M•ÍÍ¥½¹…Ñ„ô€ô…Ý…¥ÐÁ…¹•±ÕÑ¡±¥•¹Ð¹…ÕÑ ¹•ÑM•ÍÍ¥½¸ ¤ì(€€€€€€€¥˜€¡•µ…¥±M•ÍÍ¥½¹…Ñ„¹Í•ÍÍ¥½¸€˜˜€…•á¥ÍÑ¥¹UÍ•È¤ì(€€€€€€€€€€€…Ý…¥Ð½¹Ñ¥¹Õ•µ…¥±M•ÍÍ¥½¸ ¤ì(€€€€€€€€€€€½¹ÍÐ…½Õ¹Ð€ô)M=8¹Á…ÉÍ”¡±½…±MÑ½É…”¹•Ñ%Ñ•´ •µ…¥±}…½Õ¹Ðœ¤ñð€¹Õ±°œ¤ì(€€€€€€€€€€€¥˜€¡…½Õ¹Ðü¹‘¥Í½É‘}¥€˜˜…½Õ¹Ðü¹‘¥Í½É‘}Õ¥±‘}¥¤…Ý…¥Ð½¹Ñ¥¹Õ•µ…¥±A…¹•±M•ÍÍ¥½¸ ¤ì(€€€€€€€ô(€€€ô…Ñ €¡|¤ì(€€€€€€€€¼¼1½¥¹Õ°¥Í½ÉËI·
+‰¹”‘¥ÍÁ½¹¥‰¥°¡¥…È‘…HÍ•Í¥Õ¹•„•µ…¥°¹ÔÁ½…Ñ”™¤¥Ñ¥ÓH¸(€€€ô()ô¤ì(€€€€€€€™Õ¹Ñ¥½¸Í•Ñ1½¥¹MÑ…ÑÕÌ¡µ•ÍÍ…”¤ì4(€€€€€€€€€€€½¹ÍÐÍÑ…ÑÕÌ€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ‰ÍÑ…ÑÕÌµµÍœˆ¤ì4(4(€€€€€€€€€€€ÍÑ…ÑÕÌ¹ÍÑå±”¹½Á…¥Ñä€ô€Àì4(4(€€€€€€€€€€€Í•ÑQ¥µ•½ÕÐ  ¤€ôøì4(€€€€€€€€€€€€€€€ÍÑ…ÑÕÌ¹Ñ•áÑ½¹Ñ•¹Ð€ôµ•ÍÍ…”ì4(€€€€€€€€€€€€€€€ÍÑ…ÑÕÌ¹ÍÑå±”¹½Á…¥Ñä€ô€Äì4(€€€€€€€€€€€ô°€ÄÔÀ¤ì4(€€€€€€€ô4(€€€€€€€…Íå¹Œ™Õ¹Ñ¥½¸ÁÉ½•ÍÍ¥Í½É‘1½¥¸¡Ñ½­•¸¤ì(€€€€€€€€€€€ÑÉäì(€€€€€€€€€€€€€€€½¹ÍÐ•µ…¥±1¥¹­±½Ü€ôÍ•ÍÍ¥½¹MÑ½É…”¹•Ñ%Ñ•´¡5%1}%M=I}1=]}-d¤€ôôô€œÄœì(€€€€€€€€€€€€€€€±•Ð•µ…¥±M•ÍÍ¥½¹•ÍÍQ½­•¸€ô€œœì(€€€€€€€€€€€€€€€¥˜€¡•µ…¥±1¥¹­±½Ü¤ì(€€€€€€€€€€€€€€€€€€€½¹ÍÐì‘…Ñ„è•µ…¥±M•ÍÍ¥½¹…Ñ„°•ÉÉ½Èè•µ…¥±M•ÍÍ¥½¹ÉÉ½Èô€ô…Ý…¥ÐÁ…¹•±ÕÑ¡±¥•¹Ð¹…ÕÑ ¹•ÑM•ÍÍ¥½¸ ¤ì(€€€€€€€€€€€€€€€€€€€¥˜€¡•µ…¥±M•ÍÍ¥½¹ÉÉ½Èñð€…•µ…¥±M•ÍÍ¥½¹…Ñ„¹Í•ÍÍ¥½¸¤Ñ¡É½Ü¹•ÜÉÉ½È M•Í¥Õ¹•„•µ…¥°„•áÁ¥É…Ð¸ÕÑ•¹Ñ¥™¥HµÑ”‘¥¸¹½Ô¸œ¤ì(€€€€€€€€€€€€€€€€€€€•µ…¥±M•ÍÍ¥½¹•ÍÍQ½­•¸€ô•µ…¥±M•ÍÍ¥½¹…Ñ„¹Í•ÍÍ¥½¸¹…•ÍÍ}Ñ½­•¸ì(€€€€€€€€€€€€€€€€€€€Í•Ñ1½¥¹MÑ…ÑÕÌ ŸÃãŠwŠPM”½¹•Ñ•…ëH½¹ÑÕ°•µ…¥°±„¥Í½É¸¸¸œ¤ì(€€€€€€€€€€€€€€€€€€€½¹ÍÐÍ•±•Ñ•‘Õ¥±‘%€ôÍ•ÍÍ¥½¹MÑ½É…”¹•Ñ%Ñ•´ Á…¹•±}•µ…¥±}‘¥Í½É‘}Õ¥±‘}¥œ¤ñð€œœì(€€€€€€€€€€€€€€€€€€€¥˜€ …Í•±•Ñ•‘Õ¥±‘%¤Ñ¡É½Ü¹•ÜÉÉ½È M•±•Ñ•…ëHµ…¤ƒ
+¹¹Ó
+‰¤Í•ÉÙ•ÉÕ°¥Í½ÉÁ•¹ÑÉÔ½¹ÑÕ°•µ…¥°¸œ¤ì(€€€€€€€€€€€€€€€€€€€½¹ÍÐ±¥¹­I•ÍÁ½¹Í”€ô…Ý…¥Ð™•Ñ ¡€‘íMUA	M}UI1ô½™Õ¹Ñ¥½¹Ì½ØÄ½±¥¹¬µ•µ…¥°µ‘¥Í½ÉµÕ¥±‘€°ì(€€€€€€€€€€€€€€€€€€€€€€€µ•Ñ¡½è€A=MPœ°(€€€€€€€€€€€€€€€€€€€€€€€¡•…‘•ÉÌèì€½¹Ñ•¹ÐµQåÁ”œè€…ÁÁ±¥…Ñ¥½¸½©Í½¸œ°…Á¥­•äèMUA	M}-d°ÕÑ¡½É¥é…Ñ¥½¸è	•…É•È€‘í•µ…¥±M•ÍÍ¥½¹…Ñ„¹Í•ÍÍ¥½¸¹…•ÍÍ}Ñ½­•¹õ€ô°(€€€€€€€€€€€€€€€€€€€€€€€‰½‘äè)M=8¹ÍÑÉ¥¹¥™ä¡ì‘¥Í½É‘}…•ÍÍ}Ñ½­•¸èÑ½­•¸°Õ¥±‘}¥èÍ•±•Ñ•‘Õ¥±‘%ô¤(€€€€€€€€€€€€€€€€€€€ô¤ì(€€€€€€€€€€€€€€€€€€€½¹ÍÐ±¥¹­I•ÍÕ±Ð€ô…Ý…¥Ð±¥¹­I•ÍÁ½¹Í”¹©Í½¸ ¤¹…Ñ   ¤€ôø€¡íô¤¤ì(€€€€€€€€€€€€€€€€€€€¥˜€ …±¥¹­I•ÍÁ½¹Í”¹½¬¤Ñ¡É½Ü¹•ÜÉÉ½È¡±¥¹­I•ÍÕ±Ð¹•ÉÉ½Èñð€½¹ÑÕ°¥Í½É¹Ô„ÁÕÑÕÐ™¤½¹•Ñ…Ð¸œ¤ì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€½¹ÍÐÉ•ÍÁ½¹Í”€ô…Ý…¥Ð™•Ñ  ¡ÑÑÁÌè¼½‘¥Í½É¹½´½…Á¤½ÕÍ•ÉÌ½µ”œ°ì(€€€€€€€€€€€€€€€€€€€¡•…‘•ÉÌèì…ÕÑ¡½É¥é…Ñ¥½¸è	•…É•È€‘íÑ½­•¹õ€ô4(€€€€€€€€€€€€€€€ô¤ì4(4(€€€€€€€€€€€€€€€¥˜€ …É•ÍÁ½¹Í”¹½¬¤Ñ¡É½Ü¹•ÜÉÉ½È #Š‰•Œ±„ÁÉ•±Õ…É•„ÁÉ½™¥±Õ±Õ¤‘”Á”¥Í½É¸œ¤ì4(€€€€€€€€€€€€€€€½¹ÍÐ‘¥Í½É‘…Ñ„€ô…Ý…¥ÐÉ•ÍÁ½¹Í”¹©Í½¸ ¤ì4(4(€€€€€€€€€€€€€€€¥˜€ …‘¥Í½É‘…Ñ„¹¥¤ì4(€€€€€€€€€€€€€€€€€€€Ñ¡É½Ü¹•ÜÉÉ½È AÉ½™¥°¥Í½É¥¹Ù…±¥¸œ¤ì4(€€€€€€€€€€€€€€€ô4(4(€€€€€€€€€€€€€€€Í•Ñ1½¥¹MÑ…ÑÕÌ ‹ÃãŠë
+‡¿
+ã
+<M”Ù•É¥™¥HÉ½±Õ°Á”Í•ÉÙ•È¸¸¸ˆ¤ì4(4(€€€€€€€€€€€€€€€½¹ÍÐÍå¹I•ÍÁ½¹Í”€ô…Ý…¥Ð™•Ñ ¡€‘íMUA	M}UI1ô½™Õ¹Ñ¥½¹Ì½ØÄ½Íå¹Œµ‘¥Í½ÉµÉ½±•€°ì4(€€€€€€€€€€€€€€€€€€€µ•Ñ¡½è€A=MPœ°4(€€€€€€€€€€€€€€€€€€€¡•…‘•ÉÌèì4(€€€€€€€€€€€€€€€€€€€€€€€€½¹Ñ•¹ÐµQåÁ”œè€…ÁÁ±¥…Ñ¥½¸½©Í½¸œ°4(€€€€€€€€€€€€€€€€€€€€€€€…Á¥­•äèMUA	M}-d°4(€€€€€€€€€€€€€€€€€€€€€€€…ÕÑ¡½É¥é…Ñ¥½¸è	•…É•È€‘í•µ…¥±1¥¹­±½Ü€ü•µ…¥±M•ÍÍ¥½¹•ÍÍQ½­•¸€èMUA	M}-eõ€(€€€€€€€€€€€€€€€€€€€ô°(€€€€€€€€€€€€€€€€€€€‰½‘äè)M=8¹ÍÑÉ¥¹¥™ä¡•µ…¥±1¥¹­±½Ü€üì•µ…¥±}±½¥¸èÑÉÕ”ô€èì…•ÍÍ}Ñ½­•¸èÑ½­•¸ô¤(€€€€€€€€€€€€€€€ô¤ì(€€€€€€€€€€€€€€€½¹ÍÐÍå¹I•ÍÕ±Ð€ô…Ý…¥ÐÍå¹I•ÍÁ½¹Í”¹©Í½¸ ¤ì(€€€€€€€€€€€€€€€¥˜€ …Íå¹I•ÍÁ½¹Í”¹½¬ñð€…Íå¹I•ÍÕ±Ð¹ÕÍ•È¤ì(€€€€€€€€€€€€€€€€€€€¥˜€¡l9=}=I9%iQ%=8œ°€I=1}9=Q}=9%UIt¹¥¹±Õ‘•Ì¡MÑÉ¥¹œ¡Íå¹I•ÍÕ±Ð¹½‘”ñð€œœ¤¤¤ì(€€€€€€€€€€€€€€€€€€€€€€€Ñ¡É½Ü¹•ÜÉÉ½È 9Ô…¤¹¥¥Õ¸É½°¥Í½É½¹™¥ÕÉ…ÐÁ•¹ÑÉÔ…•…ÍÓH½É…¹¥é‡#Šé¥”¸½¹Ñ…Ñ•…ëH…‘µ¥¹¥ÍÑÉ…Ñ½ÉÕ°½É…¹¥é‡#Šé¥•¤¸œ¤ì(€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€€€€€Ñ¡É½Ü¹•ÜÉÉ½È¡Íå¹I•ÍÕ±Ð¹•ÉÉ½Èñð€I½±Õ°¥Í½É¹Ô„ÁÕÑÕÐ™¤Ù•É¥™¥…Ð¸œ¤ì(€€€€€€€€€€€€€€€ô4(4(€€€€€€€€€€€€€€€½¹ÍÐÍå¹•‘UÍ•È€ôÍå¹I•ÍÕ±Ð¹ÕÍ•Èì4(€€€€€€€€€€€€€€€±½…±MÑ½É…”¹Í•Ñ%Ñ•´ ‘¥Í½É‘}ÕÍ•Èœ°)M=8¹ÍÑÉ¥¹¥™ä¡Íå¹•‘UÍ•È¤¤ì4(€€€€€€€€€€€€€€€±½…±MÑ½É…”¹Í•Ñ%Ñ•´ ÕÍ•É}É½±”œ°Íå¹•‘UÍ•È¹É½±”¤ì4(€€€€€€€€€€€€€€€¥˜€ …•µ…¥±1¥¹­±½Ü¤±½…±MÑ½É…”¹Í•Ñ%Ñ•´ ‘¥Í½É‘}…•ÍÍ}Ñ½­•¸œ°Ñ½­•¸¤ì(€€€€€€€€€€€€€€€•±Í”±½…±MÑ½É…”¹É•µ½Ù•%Ñ•´ ‘¥Í½É‘}…•ÍÍ}Ñ½­•¸œ¤ì(€€€€€€€€€€€€€€€±½…±MÑ½É…”¹Í•Ñ%Ñ•´ Á…¹•±}Í•ÍÍ¥½¹}Ñ½­•¸œ°Íå¹I•ÍÕ±Ð¹Í•ÍÍ¥½¹}Ñ½­•¸¤ì4(€€€€€€€€€€€€€€€±½…±MÑ½É…”¹Í•Ñ%Ñ•´ Á…¹•±}Í•ÍÍ¥½¹}•áÁ¥É•Í}…Ðœ°Íå¹I•ÍÕ±Ð¹•áÁ¥É•Í}…Ð¤ì4(€€€€€€€€€€€€€€€±½…±MÑ½É…”¹Í•Ñ%Ñ•´ Á…¹•±}…Ñ¥Ù•}½É…¹¥é…Ñ¥½¸œ°)M=8¹ÍÑÉ¥¹¥™ä¡Íå¹I•ÍÕ±Ð¹…Ñ¥Ù•}½É…¹¥é…Ñ¥½¸¤¤ì4(€€€€€€€€€€€€€€€±½…±MÑ½É…”¹Í•Ñ%Ñ•´ Á…¹•±}½É…¹¥é…Ñ¥½¹Ìœ°)M=8¹ÍÑÉ¥¹¥™ä¡Íå¹I•ÍÕ±Ð¹½É…¹¥é…Ñ¥½¹Ìñðmt¤¤ì(€€€€€€€€€€€€€€€±½…±MÑ½É…”¹Í•Ñ%Ñ•´ Á…¹•±}É½±•}Íå¹•‘}…Ðœ°MÑÉ¥¹œ¡…Ñ”¹¹½Ü ¤¤¤ì(€€€€€€€€€€€€€€€Í•ÍÍ¥½¹MÑ½É…”¹É•µ½Ù•%Ñ•´¡5%1}%M=I}1=]}-d¤ì(€€€€€€€€€€€€€€€Í•ÍÍ¥½¹MÑ½É…”¹É•µ½Ù•%Ñ•´ Á…¹•±}•µ…¥±}‘¥Í½É‘}Õ¥±‘}¥œ¤ì(4(€€€€€€€€€€€€€€€Í•Ñ1½¥¹MÑ…ÑÕÌ¡ƒ‹OŠ˜€‘íÍå¹I•ÍÕ±Ð¹…Ñ¥Ù•}½É…¹¥é…Ñ¥½¸ü¹¹…µ”ñð€=É…¹¥é‡#Šé¥”ôƒ
+Ü€‘íÍå¹•‘UÍ•È¹É½±•õ€¤ì4(4(€€€€€€€€€€€€€€€Í•ÑQ¥µ•½ÕÐ  ¤€ôøì4(€€€€€€€€€€€€€€€€€€€Ý¥¹‘½Ü¹±½…Ñ¥½¸¹¡É•˜€ô•ÑM…™•I•ÑÕÉ¹•ÍÑ¥¹…Ñ¥½¸¡Íå¹•‘UÍ•È¤ì4(€€€€€€€€€€€€€€€ô°€ÐÀÀ¤ì4(4(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì4(4(4(€€€€€€€€€€€ô…Ñ €¡•ÉÈ¤ì4(€€€€€€€€€€€€€€€½¹Í½±”¹•ÉÉ½È É½É”±½¥¸èœ°•ÉÈ¤ì4(€€€€€€€€€€€€€€€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ÍÑ…ÑÕÌµµÍœœ¤¹Ñ•áÑ½¹Ñ•¹Ð€ôÉ½…É”…ÕÑ•¹Ñ¥™¥…É”è€‘í•ÉÈ¹µ•ÍÍ…”ñð€•É½…É”¹•Õ¹½ÍÕÓHõ€ì4(€€€€€€€€€€€€€€€±•…ÉA…¹•±	É½ÝÍ•ÉM•ÍÍ¥½¸ ¤ì(€€€€€€€€€€€ô4(€€€€€€€ô4(€€€€ð½ÍÉ¥ÁÐø4(€€€€ñÍÉ¥ÁÐÍÉŒô‰©Ì½±½‰…°µ™½½Ñ•È¹©Ìˆøð½ÍÉ¥ÁÐø(ð½‰½‘äø(ð½¡Ñµ°ø4

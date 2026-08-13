@@ -1,6 +1,9 @@
 [functions.sync-discord-role]
 verify_jwt = true
 
+[functions.username-login]
+verify_jwt = false
+
 [functions.manage-discord-config]
 verify_jwt = false
 
@@ -29,4 +32,34 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.mark-tutorial-read]
+verify_jwt = false
+
+[functions.create-voucher-organization]
+verify_jwt = false
+
+[functions.get-organization-status]
+verify_jwt = false
+
+[functions.finalize-organization]
+verify_jwt = false
+
+[functions.manage-draft-organization]
+verify_jwt = false
+
+[functions.discover-draft-roles]
+verify_jwt = false
+
+[functions.save-draft-roles]
+verify_jwt = false
+
+[functions.touch-panel-session]
+verify_jwt = false
+
+[functions.update-user-account-settings]
+verify_jwt = false
+
+[functions.list-email-discord-guilds]
+verify_jwt = false
+
+[functions.link-email-discord-guild]
 verify_jwt = false

@@ -27,9 +27,11 @@
     window.sendStatusLiveToDiscord = async () => {
       try { await syncLiveEmbed(); } catch (error) { console.error('Status Live Discord:', error); }
     };
+    // Discord nu trebuie actualizat la fiecare secundă; acest interval evita
+    // rate-limit-ul webhookului și păstrează actualizarea suficient de rapidă.
     window.setInterval(() => {
       window.fetchAndRenderActiveShifts(true).catch?.((error) => console.error('Status Live:', error));
-    }, 1000);
+    }, 60000);
   };
   document.addEventListener('DOMContentLoaded', waitForStatusPage, { once: true });
 })();

@@ -1,15 +1,18 @@
 // Navigare comună pentru panel: meniu mobil și sidebar pliabil pe desktop.
-if (!window.__panelOnboardingLoader && !window.location.pathname.endsWith('login.html')) { window.__panelOnboardingLoader = true; const onboardingScript = document.createElement('script'); onboardingScript.src = 'js/panel-onboarding.js?v=2'; document.head.appendChild(onboardingScript); }
+if (!window.__panelOnboardingLoader && !window.location.pathname.endsWith('login.html')) { window.__panelOnboardingLoader = true; const onboardingScript = document.createElement('script'); onboardingScript.src = 'js/panel-onboarding.js?v=1'; document.head.appendChild(onboardingScript); }
 if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetchFixed) { window.__organizationFetchFixed = true; const _fetch = window.fetch; window.fetch = (url, options = {}) => { if (String(url).includes('/functions/v1/manage-organizations')) options.headers = { ...(options.headers || {}), 'x-panel-session': localStorage.getItem('panel_session_token') || '' }; return _fetch(url, options); }; }
 (() => {
+    // RuleazÄƒ funcÈ›iile auxiliare dupÄƒ primul afiÈ™aj, astfel Ã®ncÃ¢t
+    // navigarea È™i conÈ›inutul principal sÄƒ nu concureze cu scripturile
+    // care nu sunt necesare pentru prima interacÈ›iune.
     function runWhenIdle(callback, timeout = 1200) {
         const run = () => {
             try {
                 Promise.resolve(callback()).catch(error => {
-                    console.warn('O functie auxiliara a panelului nu a putut fi incarcata.', error);
+                    console.warn('O funcÈ›ie auxiliarÄƒ a panoului nu a putut fi Ã®ncÄƒrcatÄƒ.', error);
                 });
             } catch (error) {
-                console.warn('O functie auxiliara a panelului nu a putut fi pornita.', error);
+                console.warn('O funcÈ›ie auxiliarÄƒ a panoului nu a putut fi pornitÄƒ.', error);
             }
         };
 
@@ -87,6 +90,16 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             .panel-sidebar-profile strong { color:#f8fafc; font-size:12px; }
             .panel-sidebar-profile small { color:#34d399; font-size:10px; margin-top:2px; }
             .panel-sidebar-profile button { grid-column:1; grid-row:2; justify-self:center; margin:0; padding:6px 7px; border:1px solid rgba(244,63,94,.3); border-radius:7px; color:#fb7185; background:rgba(244,63,94,.08); font-size:10px; cursor:pointer; }
+            .panel-sidebar-profile { position:relative; }
+            .panel-account-settings { grid-column:2; grid-row:2; position:relative; min-width:0; }
+            .panel-account-settings-toggle { width:100%; display:flex; align-items:center; justify-content:center; gap:5px; padding:6px 8px; border:1px solid #334155 !important; border-radius:7px !important; background:#0b1628 !important; color:#a7f3d0 !important; font-size:10px !important; cursor:pointer; }
+            .panel-account-settings-toggle:hover { border-color:#10b981 !important; background:#10273a !important; }
+            .panel-account-settings-menu { position:absolute; right:0; bottom:calc(100% + 8px); z-index:120; width:190px; padding:6px; border:1px solid #334155; border-radius:12px; background:#0b1526; box-shadow:0 18px 40px rgba(0,0,0,.45); }
+            .panel-account-settings-menu[hidden] { display:none; }
+            .panel-account-settings-menu a, .panel-account-settings-menu button { width:100%; display:flex; align-items:center; gap:8px; padding:9px 10px; border:0 !important; border-radius:8px !important; background:transparent !important; color:#cbd5e1 !important; font-size:11px !important; text-align:left; text-decoration:none; cursor:pointer; }
+            .panel-account-settings-menu a:hover, .panel-account-settings-menu button:hover { background:#17243a !important; color:#6ee7b7 !important; }
+            #panel-shared-sidebar.is-collapsed .panel-account-settings { display:block !important; grid-column:auto; }
+            #panel-shared-sidebar.is-collapsed .panel-account-settings-menu { left:calc(100% + 10px); right:auto; bottom:0; }
             body.panel-shared-sidebar-page { padding-left:245px; }
             body.panel-global-shell { display:flex !important; flex-direction:column !important; min-height:100vh !important; }
             body.panel-global-shell > div:has(main) { flex:1 0 auto; min-height:calc(100vh - var(--panel-footer-height, 0px)) !important; height:auto !important; overflow:visible !important; }
@@ -523,7 +536,25 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         heading.replaceChildren();
         const organization=typeof getActiveOrganization==='function'?getActiveOrganization():null;
         heading.innerHTML=`<img class="panel-brand-logo" src="${organization?.logo_url||'img/logo-192.png'}" alt="${organization?.name||'Organizație'}" onerror="this.src='img/logo-192.png'"><span class="panel-org-name">${organization?.name||'Organizație'}</span>`;
-        if(!sidebar.querySelector('.panel-sidebar-profile')){const user=typeof getUser==='function'?getUser():null;const profile=document.createElement('div');profile.className='panel-sidebar-profile';profile.innerHTML=`<img id="panel-user-avatar" src="${user?.avatar||user?.avatar_url||''}" alt=""><div><strong id="panel-user-display-name">${user?.display_name||user?.username||'Utilizator'}</strong><small id="panel-user-role">${discordRoleLabel(user)}</small></div><button type="button" id="panel-logout-btn" data-sidebar-logout>Logout</button>`;heading.after(profile);profile.querySelector('[data-sidebar-logout]')?.addEventListener('click',()=>typeof logout==='function'?logout():location.replace('login.html'));}
+        let profile=sidebar.querySelector('.panel-sidebar-profile');
+        if(!profile){const user=typeof getUser==='function'?getUser():null;profile=document.createElement('div');profile.className='panel-sidebar-profile';profile.innerHTML=`<img id="panel-user-avatar" src="${user?.avatar||user?.avatar_url||''}" alt=""><div><strong id="panel-user-display-name">${user?.display_name||user?.username||'Utilizator'}</strong><small id="panel-user-role">${discordRoleLabel(user)}</small></div><button type="button" id="panel-logout-btn" data-sidebar-logout>Logout</button>`;heading.after(profile);profile.querySelector('[data-sidebar-logout]')?.addEventListener('click',()=>typeof logout==='function'?logout():location.replace('login.html'));}
+        mountAccountSettingsMenu(profile);
+    }
+
+    function mountAccountSettingsMenu(container) {
+        if (!container || container.querySelector('[data-account-settings]')) return;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'panel-account-settings';
+        wrapper.dataset.accountSettings = 'true';
+        wrapper.innerHTML = `<button type="button" class="panel-account-settings-toggle" aria-expanded="false" aria-haspopup="menu">⚙️ Setări</button><div class="panel-account-settings-menu" role="menu" hidden><a href="setari-cont.html" role="menuitem">👤 Setări cont</a><a href="setari-cont.html#password" role="menuitem">🔐 Schimbă parola</a><a href="termeni.html" role="menuitem">📄 Termeni și confidențialitate</a></div>`;
+        container.appendChild(wrapper);
+        const toggle = wrapper.querySelector('.panel-account-settings-toggle');
+        const menu = wrapper.querySelector('.panel-account-settings-menu');
+        const close = () => { menu.hidden = true; toggle.setAttribute('aria-expanded', 'false'); };
+        toggle.addEventListener('click', (event) => { event.stopPropagation(); menu.hidden = !menu.hidden; toggle.setAttribute('aria-expanded', String(!menu.hidden)); });
+        menu.addEventListener('click', (event) => event.stopPropagation());
+        document.addEventListener('click', close);
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
     }
 
     function ensureSharedSidebar() {
@@ -1129,7 +1160,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         document.head.appendChild(script);
     }
 
-    // Load secondary operations after the first page paint.
+    // Centrul de operaÈ›iuni este folosit doar pentru funcÈ›ii secundare;
+    // Ã®ncÄƒrcarea lui nu trebuie sÄƒ concureze cu pagina curentÄƒ.
     runWhenIdle(loadOperationsCenter, 1600);
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
     else setup();
