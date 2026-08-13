@@ -102,6 +102,36 @@ CREATE POLICY user_accounts_self_read
 REVOKE ALL ON TABLE public.user_accounts FROM anon;
 GRANT SELECT ON TABLE public.user_accounts TO authenticated;
 
+-- Repară conturile Auth create înainte ca triggerul corect să fie instalat.
+DO $$
+DECLARE
+  auth_row record;
+  base_username text;
+  candidate text;
+BEGIN
+  FOR auth_row IN
+    SELECT a.id, a.email, a.raw_user_meta_data
+    FROM auth.users a
+    LEFT JOIN public.user_accounts ua ON ua.auth_user_id = a.id
+    WHERE ua.auth_user_id IS NULL
+  LOOP
+    base_username := lower(regexp_replace(
+      coalesce(auth_row.raw_user_meta_data->>'username', split_part(coalesce(auth_row.email, ''), '@', 1), 'utilizator'),
+      '[^a-zA-Z0-9_.-]', '', 'g'
+    ));
+    base_username := regexp_replace(base_username, '^[^a-z0-9]+', '', 'i');
+    base_username := left(base_username, 24);
+    IF char_length(base_username) < 3 THEN base_username := 'utilizator'; END IF;
+    candidate := base_username;
+    IF EXISTS (SELECT 1 FROM public.user_accounts WHERE lower(username) = lower(candidate)) THEN
+      candidate := left(base_username, 17) || '-' || substr(md5(auth_row.id::text), 1, 6);
+    END IF;
+    INSERT INTO public.user_accounts (auth_user_id, username, terms_version, terms_accepted_at)
+    VALUES (auth_row.id, candidate, coalesce(auth_row.raw_user_meta_data->>'terms_version', '2026-08-13'), coalesce(nullif(auth_row.raw_user_meta_data->>'terms_accepted_at', '')::timestamptz, now()))
+    ON CONFLICT (auth_user_id) DO NOTHING;
+  END LOOP;
+END $$;
+
 DO $$
 BEGIN
   IF to_regclass('public.disciplinary_warnings') IS NOT NULL THEN
