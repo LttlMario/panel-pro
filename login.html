@@ -413,7 +413,7 @@
             const input = document.getElementById(inputId);
             if (!input || input.dataset.passwordVisibilityBound === 'true') return;
             const holder = document.createElement('div');
-            holder.className = 'relative mt-1';
+            holder.className = 'relative mt-1 w-full';
             input.parentElement.insertBefore(holder, input);
             holder.appendChild(input);
             input.classList.remove('mt-1');
