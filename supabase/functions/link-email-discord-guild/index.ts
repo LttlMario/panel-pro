@@ -32,7 +32,6 @@ Deno.serve(async (request) => {
     if (!jwt) return reply({ error: 'Sesiunea email lipseÈ™te sau a expirat.' }, 401);
     if (!discordAccessToken) return reply({ error: 'Sesiunea Discord lipseÈ™te.' }, 400);
     if (!/^\d{15,22}$/.test(guildId)) return reply({ error: 'Serverul Discord selectat este invalid.' }, 400);
-    if (!organizationId) return reply({ error: 'Organizatia serverului selectat lipseste.' }, 400);
 
     const db = createClient(supabaseUrl, serviceKey);
     const { data: authData, error: authError } = await db.auth.getUser(jwt);
@@ -50,15 +49,36 @@ Deno.serve(async (request) => {
       return reply({ error: 'Contul este deja asociat cu alt server Discord.' }, 409);
     }
 
-    const { data: configuredGuild, error: guildError } = await db
+    let guildQuery = db
       .from('organization_guilds')
       .select('guild_id,organization_id,organizations!inner(id,name,active)')
       .eq('guild_id', guildId)
-      .eq('organization_id', organizationId)
       .eq('enabled', true)
       .eq('organizations.active', true)
-      .maybeSingle();
+      .limit(5);
+    if (organizationId) guildQuery = guildQuery.eq('organization_id', organizationId);
+
+    const { data: configuredGuildRows, error: guildError } = await guildQuery;
     if (guildError) throw guildError;
+    const configuredOrganizations = Array.from(new Map(
+      (configuredGuildRows || []).map((row: any) => [String(row.organization_id || row.organizations?.id || ''), row]),
+    ).values()).filter((row: any) => String(row.organization_id || row.organizations?.id || '').trim());
+    if (!configuredOrganizations.length) {
+      return reply({
+        error: organizationId
+          ? 'Organizația selectată nu este configurată pentru serverul Discord ales.'
+          : 'Serverul Discord selectat nu este configurat pentru nicio organizație activă.',
+        code: 'GUILD_NOT_CONFIGURED',
+      }, organizationId ? 403 : 404);
+    }
+    if (!organizationId && configuredOrganizations.length > 1) {
+      return reply({
+        error: 'Serverul Discord selectat este asociat cu mai multe organizații. Reîncarcă lista și selectează organizația corectă.',
+        code: 'ORGANIZATION_SELECTION_REQUIRED',
+      }, 409);
+    }
+    const configuredGuild = configuredOrganizations[0] as any;
+    const configuredOrganizationId = String(configuredGuild.organization_id || configuredGuild.organizations?.id || '').trim();
     if (!configuredGuild) return reply({ error: 'Serverul Discord selectat nu este configurat pentru nicio organizaÈ›ie.', code: 'GUILD_NOT_CONFIGURED' }, 404);
 
     const discordResponse = await fetch('https://discord.com/api/v10/users/@me', {
@@ -83,7 +103,7 @@ Deno.serve(async (request) => {
     const { data: mappings, error: mappingError } = await db
       .from('organization_role_mappings')
       .select('discord_role_id,discord_role_name,panel_role,permission_level,priority')
-      .eq('organization_id', configuredGuild.organization_id)
+      .eq('organization_id', configuredOrganizationId)
       .eq('guild_id', guildId)
       .eq('enabled', true);
     if (mappingError) throw mappingError;
@@ -114,7 +134,7 @@ Deno.serve(async (request) => {
       username: account.username,
       discord_id: discordId,
       guild_id: guildId,
-      organization_id: String(configuredGuild.organization_id),
+      organization_id: configuredOrganizationId,
       role: String(selectedRole.panel_role || selectedRole.discord_role_name || roleNames.get(String(selectedRole.discord_role_id)) || 'Rol Discord'),
     });
   } catch (error) {

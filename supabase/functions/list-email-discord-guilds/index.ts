@@ -66,7 +66,7 @@ Deno.serve(async (request) => {
         guild_id: guildId,
         guild_name: String(row.guild_name || row.organizations?.name || 'Server Discord'),
         kind: String(row.kind || 'primary'),
-        organization_id: String(row.organization_id),
+        organization_id: String(row.organization_id || row.organizations?.id || ''),
         organization_name: String(row.organizations?.name || ''),
         bot_available: response.ok,
       };
