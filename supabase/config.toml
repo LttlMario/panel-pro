@@ -4,6 +4,9 @@ verify_jwt = true
 [functions.username-login]
 verify_jwt = false
 
+[functions.link-discord-account]
+verify_jwt = true
+
 [functions.manage-discord-config]
 verify_jwt = false
 
@@ -38,10 +41,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.get-organization-status]
-verify_jwt = false
+verify_jwt = true
 
 [functions.finalize-organization]
-verify_jwt = false
+verify_jwt = true
 
 [functions.manage-draft-organization]
 verify_jwt = false
@@ -56,13 +59,13 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.update-user-account-settings]
-verify_jwt = false
+verify_jwt = true
 
 [functions.list-email-discord-guilds]
-verify_jwt = false
+verify_jwt = true
 
 [functions.link-email-discord-guild]
-verify_jwt = false
+verify_jwt = true
 
 [functions.manage-email-account]
-verify_jwt = false
+verify_jwt = true

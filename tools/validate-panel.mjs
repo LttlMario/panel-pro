@@ -49,3 +49,13 @@ if (missing.length || stale.length) {
   if (stale.length) console.error(`Stale functions in deploy manifest: ${stale.join(', ')}`);
   process.exitCode = 1;
 }
+
+const config = fs.readFileSync(path.join(root, 'supabase', 'config.toml'), 'utf8');
+const configured = [...config.matchAll(/^\[functions\.([^\]]+)\]$/gm)].map(match => match[1]).sort();
+const missingConfig = folders.filter(name => !configured.includes(name));
+const staleConfig = configured.filter(name => !folders.includes(name));
+if (missingConfig.length || staleConfig.length) {
+  if (missingConfig.length) console.error(`Functions missing from Supabase config.toml: ${missingConfig.join(', ')}`);
+  if (staleConfig.length) console.error(`Stale functions in Supabase config.toml: ${staleConfig.join(', ')}`);
+  process.exitCode = 1;
+}

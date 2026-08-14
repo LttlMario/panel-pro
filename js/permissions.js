@@ -8,7 +8,6 @@ const Roles = {
 };
 
 const STORAGE_KEY = 'discord_user';
-const PLATFORM_ADMIN_DISCORD_ID = '247012210021236738';
 
 const AdministrativePages = new Set([
     'admin.html',
@@ -61,7 +60,7 @@ function isPlatformAdmin() {
     }
 
     // Administratorul platformei este un cont fix, nu un rol Discord.
-    return String(user.discord_id ?? user.id ?? user.user_id ?? '').trim() === PLATFORM_ADMIN_DISCORD_ID;
+    return user.platform_admin === true || user.is_platform_admin === true;
 }
 
 function getStoredActiveOrganization() {

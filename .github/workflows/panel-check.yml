@@ -38,6 +38,9 @@ jobs:
       - name: Validate inline JavaScript and deployment parity
         run: node tools/validate-panel.mjs
 
+      - name: Audit npm dependencies
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Check for accidentally committed secrets
         shell: bash
         run: |

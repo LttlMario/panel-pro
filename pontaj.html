@@ -7,7 +7,7 @@
     <!-- Tailwind CSS CDN -->
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/permissions.js?v=4.6.0"></script>
     <script src="js/panel-layout.js?v=4.11.0"></script>
@@ -270,7 +270,6 @@
             const summaryContainer = document.getElementById('daily-summary-container');
 
             try {
-                await ensurePontajOrganization();
                 if (!currentUser.organization_id || !currentUser.discord_id) {
                     throw new Error('Utilizatorul sau organizația activă nu au fost identificate.');
                 }
@@ -367,8 +366,6 @@
 
         async function loadOrganizationPontajConfig() {
             try {
-                await ensurePontajOrganization();
-
                 const { data, error } = await supabaseClient
                     .from('app_settings')
                     .select('value')
@@ -473,7 +470,7 @@
 
             const { data, error } = await supabaseClient
                 .from('shifts')
-                .select('*')
+                .select('id,organization_id,discord_id,shift_type,colleague_name,date,start_time,end_time,duration,duration_ms,started_at,paused_seconds,status,auto_stop_at,stop_reason')
                 .eq('organization_id', currentUser.organization_id)
                 .eq('discord_id', currentUser.discord_id)
                 .in('status', ['active', 'paused'])

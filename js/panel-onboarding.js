@@ -132,7 +132,7 @@
     ];
 
     function isPlatformAdmin() {
-        return String(user.discord_id || '') === '247012210021236738' || user.platform_admin === true || user.is_platform_admin === true;
+        return user.platform_admin === true || user.is_platform_admin === true;
     }
 
     function canUsePage(targetPage) {
