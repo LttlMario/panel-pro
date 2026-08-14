@@ -13,7 +13,7 @@ const normalizeId = (value: unknown) => String(value ?? '').trim();
 const discordBotHeaders = (bot: string) => ({ Authorization: `Bot ${bot}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)' });
 const fetchDiscordMember = async (guildId: string, discordId: string, accessToken: string, botToken: string) => {
   const botResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`, { headers: discordBotHeaders(botToken) });
-  if (botResponse.ok) return botResponse;
+  if (botResponse.ok || !accessToken) return botResponse;
   const oauthResponse = await fetch(`https://discord.com/api/v10/users/@me/guilds/${guildId}/member`, { headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)' } });
   return oauthResponse.ok || oauthResponse.status === 404 ? oauthResponse : botResponse;
 };
@@ -39,11 +39,13 @@ Deno.serve(async (request) => {
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
   try {
     const body = await request.json();
+    const emailLogin = body.email_login === true;
     const voucherCode = String(body.voucher_code || '').trim().toUpperCase();
     let voucherGuildId = String(body.voucher_guild_id || '').trim();
     if (voucherCode && voucherGuildId && !/^\d{15,22}$/.test(voucherGuildId)) return reply({ error: 'Guild ID-ul voucherului este invalid.' }, 400);
-    const accessToken = String(body.access_token || '').trim();
-    if (!accessToken) return reply({ error: 'Tokenul Discord lipsește.' }, 400);
+    let accessToken = String(body.access_token || '').trim();
+    if (emailLogin && voucherCode) return reply({ error: 'Voucherul se verifică numai prin loginul Discord.' }, 400);
+    if (!emailLogin && !accessToken) return reply({ error: 'Tokenul Discord lipsește.' }, 400);
     const key = serviceKey();
     const botToken = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
     if (!key) throw new Error('Cheia secretă Supabase lipsește.');
@@ -61,13 +63,39 @@ Deno.serve(async (request) => {
       if (voucherGuild && !voucherGuildId) voucherGuildId = voucherGuild;
     }
 
-    const userResponsePromise = fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)' } });
+    let discordUser: any;
+    let selectedGuildId = '';
+    if (emailLogin) {
+      const jwt = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
+      if (!jwt || jwt === key) return reply({ error: 'Sesiunea email lipsește sau a expirat.' }, 401);
+      const { data: authData, error: authError } = await db.auth.getUser(jwt);
+      if (authError || !authData.user) return reply({ error: 'Sesiunea email nu este validă.' }, 401);
+      if (!authData.user.email_confirmed_at) return reply({ error: 'Confirmă mai întâi adresa de email.' }, 403);
+      const { data: account, error: accountError } = await db
+        .from('user_accounts')
+        .select('username,discord_id,discord_guild_id')
+        .eq('auth_user_id', authData.user.id)
+        .maybeSingle();
+      if (accountError) throw accountError;
+      if (!account || !account.discord_id || !account.discord_guild_id) {
+        return reply({ error: 'Conectează mai întâi Discord și selectează serverul pentru acest cont.', code: 'NEEDS_DISCORD_LINK' }, 409);
+      }
+      selectedGuildId = String(account.discord_guild_id);
+      discordUser = {
+        id: String(account.discord_id),
+        username: String(account.username || 'utilizator'),
+        global_name: String(account.username || 'utilizator'),
+        avatar: null,
+      };
+      accessToken = '';
+    } else {
+      const userResponse = await fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)' } });
+      if (!userResponse.ok) return reply({ error: 'Sesiunea Discord a expirat.' }, 401);
+      discordUser = await userResponse.json();
+    }
     const guildsPromise = db.from('organization_guilds')
       .select('guild_id,guild_name,kind,organization_id,organizations!inner(id,name,slug,address,logo_url,banner_url,active)')
       .eq('enabled', true);
-    const userResponse = await userResponsePromise;
-    if (!userResponse.ok) return reply({ error: 'Sesiunea Discord a expirat.' }, 401);
-    const discordUser = await userResponse.json();
     const isPlatformAdmin=isPlatformAdminDiscordId(discordUser.id);
 
     if (voucherCode) {
@@ -107,7 +135,7 @@ Deno.serve(async (request) => {
     const liveRoles = new Map<string, Map<string, { name: string; position: number }>>();
     let platformRoleLabel = '';
     let platformRolePosition = -1;
-    const guildsToProcess = (guilds || []).filter((item:any)=>!inactiveOrganizationIds.has(String(item.organization_id))&&(!voucherCode || String(item.guild_id) === voucherGuildId));
+    const guildsToProcess = (guilds || []).filter((item:any)=>!inactiveOrganizationIds.has(String(item.organization_id))&&(!voucherCode || String(item.guild_id) === voucherGuildId)&&(!emailLogin || String(item.guild_id) === selectedGuildId));
     const guildSnapshots = new Map<string, Promise<{ memberResponse: Response; member: any; roles: Map<string, { name: string; position: number }> }>>();
     const getGuildSnapshot = (guildId: string) => {
       if (!guildSnapshots.has(guildId)) guildSnapshots.set(guildId, fetchGuildSnapshot(guildId, String(discordUser.id), accessToken, botToken));
@@ -353,7 +381,20 @@ if (!existing) {
       voucher_guild_id: voucherGuildId || null,
     }, 409);
     const requestedId = String(body.organization_id || '').trim();
-    const active = available.find((item) => item.organization_id === requestedId) || available[0];
+    let active: any;
+    if (emailLogin) {
+      const emailGuildOrganizations = available.filter((item) => item.guild_ids.includes(selectedGuildId));
+      if (requestedId) {
+        active = emailGuildOrganizations.find((item) => item.organization_id === requestedId);
+        if (!active) return reply({ error: 'Organizatia selectata nu corespunde serverului Discord ales.', code: 'ORGANIZATION_MISMATCH' }, 403);
+      } else if (emailGuildOrganizations.length === 1) {
+        active = emailGuildOrganizations[0];
+      } else {
+        return reply({ error: 'Serverul Discord este asociat cu mai multe organizatii. Selecteaza organizatia din nou.', code: 'ORGANIZATION_SELECTION_REQUIRED' }, 409);
+      }
+    } else {
+      active = available.find((item) => item.organization_id === requestedId) || available[0];
+    }
     const { data: linkedAccount, error: linkedAccountError } = await db
       .from('user_accounts')
       .select('username,auth_user_id,avatar_url')

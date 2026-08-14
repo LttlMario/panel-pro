@@ -7,7 +7,8 @@
   <link rel="icon" href="img/favicon.ico">
   <link rel="stylesheet" href="css/tailwind.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-config.js"></script>
+  <script src="js/supabase-config.js?v=20260813-authfix"></script>
+  <script src="js/password-rules.js"></script>
   <style>
     :root { color-scheme: dark; }
     body { min-height:100vh; background:radial-gradient(circle at 10% 0%,rgba(16,185,129,.13),transparent 32rem),radial-gradient(circle at 100% 100%,rgba(99,102,241,.16),transparent 34rem),#020617; }
@@ -60,8 +61,12 @@
       <section class="settings-card rounded-3xl p-6 sm:p-8" id="password">
         <div><p class="text-xs font-bold uppercase tracking-[.16em] text-violet-300">Securitate</p><h2 class="mt-1 text-xl font-extrabold text-white">Schimbă parola</h2><p class="mt-1 text-sm text-slate-400">Parola trebuie să aibă minimum 8 caractere, o literă mare și o cifră.</p></div>
         <form id="password-form" class="mt-6 grid gap-4 sm:grid-cols-2">
+          <label class="sr-only">Username
+            <input name="username" type="text" autocomplete="username" tabindex="-1" aria-label="Username">
+          </label>
           <label class="block text-xs font-bold text-slate-400">Parolă nouă<input id="new-password" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="Parola nouă"></label>
           <label class="block text-xs font-bold text-slate-400">Confirmă parola<input id="new-password-confirm" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="Repetă parola"></label>
+          <div id="account-password-rules" class="rounded-2xl border border-slate-700/60 bg-slate-950/40 px-4 py-3 sm:col-span-2"><p class="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Reguli parolă</p><ul data-password-rules-list class="space-y-1"></ul></div>
           <div class="sm:col-span-2"><div id="password-status" class="settings-status" role="status" aria-live="polite"></div><button class="settings-button" type="submit">Actualizează parola</button></div>
         </form>
       </section>
@@ -83,6 +88,19 @@
         <div class="mt-5 flex flex-wrap gap-3"><button id="save-preferences" type="button" class="settings-button">Salvează preferința</button><button id="logout-button" type="button" class="settings-button danger">Deconectare</button></div>
         <div id="preferences-status" class="settings-status mt-3" role="status" aria-live="polite"></div>
       </section>
+
+      <section class="settings-card rounded-3xl border-amber-400/20 p-6 sm:p-8">
+        <p class="text-xs font-bold uppercase tracking-[.16em] text-amber-300">Controlul datelor</p>
+        <h2 class="mt-1 text-xl font-extrabold text-white">Confiden?ialitate ?i conexiuni</h2>
+        <p class="mt-2 text-sm leading-6 text-slate-400">Ai control asupra legăturii cu Discord și asupra datelor opționale ale contului. Ștergerea datelor nu afectează organizațiile create sau profilul tău Discord.</p>
+        <div class="mt-5 grid gap-3 sm:grid-cols-2">
+          <button id="disconnect-discord" type="button" class="settings-button secondary text-left">Deconectează Discord<small class="block text-xs font-normal text-slate-400">Elimină serverul și rolul asociat</small></button>
+          <button id="revoke-sessions" type="button" class="settings-button secondary text-left">Revocă sesiunile<small class="block text-xs font-normal text-slate-400">Închide celelalte sesiuni active</small></button>
+          <button id="clear-account-data" type="button" class="settings-button danger text-left">Șterge datele opționale<small class="block text-xs font-normal text-rose-200/70">Discord, serverul și poza de profil</small></button>
+          <button id="delete-account" type="button" class="settings-button danger text-left">Șterge definitiv contul<small class="block text-xs font-normal text-rose-200/70">Acțiune permanentă, fără recuperare</small></button>
+        </div>
+        <div id="account-actions-status" class="settings-status mt-4" role="status" aria-live="polite"></div>
+      </section>
     </div>
   </main>
 
@@ -93,8 +111,22 @@
     const setStatus = (id, message, tone = 'info') => { const element = byId(id); if (!element) return; element.textContent = message; element.style.color = tone === 'error' ? '#fda4af' : tone === 'success' ? '#6ee7b7' : '#67e8f9'; };
     const fallbackAvatar = 'img/logo-192.png';
     let currentSession = null;
+    window.bindPanelPasswordRules?.('new-password', 'account-password-rules');
 
-    function authHeaders() { return { apikey: config.publishableKey, Authorization: `Bearer ${currentSession?.access_token || ''}`, 'Content-Type': 'application/json' }; }
+    function isJwt(value) { return String(value || '').split('.').length === 3; }
+    async function getFreshEmailSession() {
+      let { data, error } = await authClient.auth.getSession();
+      if (error || !data?.session || !isJwt(data.session.access_token)) {
+        const refreshed = await authClient.auth.refreshSession();
+        data = refreshed.data;
+        error = refreshed.error;
+      }
+      const session = data?.session || null;
+      if (error || !session || !isJwt(session.access_token)) throw new Error('Sesiunea contului a expirat. Autentifica-te din nou.');
+      currentSession = session;
+      return session;
+    }
+    function authHeaders(accessToken) { return { apikey: config.publishableKey, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }; }
     function updateLocalAvatar(avatarUrl) { try { const user = JSON.parse(localStorage.getItem('discord_user') || 'null'); if (!user) return; user.avatar = avatarUrl || fallbackAvatar; user.avatar_url = avatarUrl || fallbackAvatar; localStorage.setItem('discord_user', JSON.stringify(user)); window.dispatchEvent(new CustomEvent('panel-user-updated')); } catch (_) {} }
 
     async function loadSettings() {
@@ -104,14 +136,16 @@
       byId('settings-content').classList.remove('hidden');
       byId('account-email').textContent = currentSession.user?.email || '—';
       byId('remember-setting').checked = localStorage.getItem('panel_remember_me') === '1';
-      const { data: account, error } = await authClient.from('user_accounts').select('username,avatar_url,discord_id').eq('auth_user_id', currentSession.user.id).maybeSingle();
+      const { data: account, error } = await authClient.from('user_accounts').select('username,avatar_url,discord_id,discord_guild_id').eq('auth_user_id', currentSession.user.id).maybeSingle();
       if (error) { setStatus('preferences-status', 'Datele contului nu au putut fi încărcate.', 'error'); return; }
       byId('account-username').textContent = account?.username || '—';
       byId('account-title').textContent = account?.username ? `Contul lui ${account.username}` : 'Contul meu';
       byId('avatar-url').value = account?.avatar_url || '';
       byId('avatar-preview').src = account?.avatar_url || fallbackAvatar;
-      byId('discord-status').textContent = account?.discord_id ? '✓ Cont Discord conectat' : 'Cont Discord neconectat';
+      byId('discord-status').textContent = account?.discord_id ? `✓ Cont Discord conectat${account.discord_guild_id ? ` · server ${account.discord_guild_id}` : ''}` : 'Cont Discord neconectat';
       byId('discord-status').style.color = account?.discord_id ? '#6ee7b7' : '#fbbf24';
+      byId('disconnect-discord').disabled = !account?.discord_id;
+      byId('disconnect-discord').style.opacity = account?.discord_id ? '1' : '.55';
     }
 
     byId('avatar-url').addEventListener('input', () => { byId('avatar-preview').src = byId('avatar-url').value.trim() || fallbackAvatar; });
@@ -150,6 +184,32 @@
     });
     byId('save-preferences').addEventListener('click', () => { localStorage.setItem('panel_remember_me', byId('remember-setting').checked ? '1' : '0'); setStatus('preferences-status', 'Preferința a fost salvată. La următoarea autentificare se va aplica alegerea.', 'success'); });
     byId('logout-button').addEventListener('click', async () => { await authClient.auth.signOut(); localStorage.removeItem('panel-email-auth'); sessionStorage.removeItem('panel-email-auth-tab'); location.href = 'login.html'; });
+    async function accountAction(action, confirmation) {
+      if (!window.confirm(confirmation)) return;
+      setStatus('account-actions-status', 'Se aplică modificarea…');
+      try {
+        const session = await getFreshEmailSession();
+        const response = await fetch(`${config.url}/functions/v1/manage-email-account`, { method: 'POST', headers: authHeaders(session.access_token), body: JSON.stringify({ action }) });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || 'Acțiunea nu a putut fi aplicată.');
+        if (action === 'delete_account') {
+          await authClient.auth.signOut();
+          ['panel-email-auth', 'email_account', 'discord_user', 'user_role', 'discord_access_token', 'panel_session_token', 'panel_session_expires_at', 'panel_active_organization', 'panel_organizations'].forEach((key) => localStorage.removeItem(key));
+          sessionStorage.clear();
+          location.href = 'login.html?account_deleted=1';
+          return;
+        }
+        if (action === 'disconnect_discord' || action === 'clear_data') {
+          ['discord_user', 'user_role', 'discord_access_token', 'panel_session_token', 'panel_session_expires_at', 'panel_active_organization', 'panel_organizations'].forEach((key) => localStorage.removeItem(key));
+          await loadSettings();
+        }
+        setStatus('account-actions-status', payload.message || 'Modificarea a fost aplicată.', 'success');
+      } catch (error) { setStatus('account-actions-status', error.message || 'Acțiunea nu a putut fi aplicată.', 'error'); }
+    }
+    byId('disconnect-discord').addEventListener('click', () => accountAction('disconnect_discord', 'Sigur vrei să elimini asocierea Discord? Va trebui să îl conectezi din nou pentru acces la panel.'));
+    byId('revoke-sessions').addEventListener('click', () => accountAction('revoke_sessions', 'Revoci toate celelalte sesiuni active ale contului?'));
+    byId('clear-account-data').addEventListener('click', () => accountAction('clear_data', 'Ștergi datele opționale ale contului: Discord, serverul și poza de profil?'));
+    byId('delete-account').addEventListener('click', () => accountAction('delete_account', 'Ștergerea contului este definitivă și nu poate fi anulată. Continui?'));
     loadSettings().catch(() => { byId('login-required').classList.remove('hidden'); });
   </script>
 </body>
