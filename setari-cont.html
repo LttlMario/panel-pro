@@ -6,7 +6,7 @@
   <title>Setări cont · Panel Pro</title>
   <link rel="icon" href="img/favicon.ico">
   <link rel="stylesheet" href="css/tailwind.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
   <script src="js/supabase-config.js?v=20260813-authfix"></script>
   <script src="js/password-rules.js"></script>
   <script src="js/password-visibility.js"></script>
@@ -29,76 +29,37 @@
 <body class="px-5 py-8 text-slate-100 sm:px-8 sm:py-12">
   <main class="settings-shell mx-auto w-full max-w-3xl">
     <header class="mb-6 flex flex-wrap items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <img src="img/logo-192.png" alt="Panel Pro" class="h-12 w-12 rounded-2xl border border-emerald-400/25 object-cover">
-        <div><p class="text-xs font-black uppercase tracking-[.22em] text-emerald-300">Panel Pro</p><h1 class="mt-1 text-2xl font-black text-white">Setări cont</h1></div>
-      </div>
+      <div class="flex items-center gap-3"><img src="img/logo-192.png" alt="Panel Pro" class="h-12 w-12 rounded-2xl border border-emerald-400/25 object-cover"><div><p class="text-xs font-black uppercase tracking-[.22em] text-emerald-300">Panel Pro</p><h1 class="mt-1 text-2xl font-black text-white">Setări cont</h1></div></div>
       <a href="index.html" class="settings-button secondary">← Înapoi la panel</a>
     </header>
 
     <section id="login-required" class="settings-card hidden rounded-3xl p-7 text-center sm:p-10">
       <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400/10 text-2xl">🔒</div>
       <h2 class="mt-4 text-xl font-extrabold text-white">Autentificarea este necesară</h2>
-      <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">Intră în contul principal cu username și parolă pentru a-ți administra setările.</p>
+      <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">Intră în contul principal sau prin Fast Connect Discord pentru a-ți administra setările.</p>
       <a href="login.html" class="settings-button mt-5">Mergi la login</a>
     </section>
 
     <div id="settings-content" class="hidden space-y-5">
       <section class="settings-card rounded-3xl p-6 sm:p-8">
-        <div class="flex flex-wrap items-center gap-4">
-          <img id="avatar-preview" class="avatar-preview" src="img/logo-192.png" alt="Previzualizare poză profil">
-          <div><p class="text-xs font-bold uppercase tracking-[.16em] text-emerald-300">Profil</p><h2 class="mt-1 text-xl font-extrabold text-white" id="account-title">Contul meu</h2><p class="mt-1 text-sm text-slate-400">Alege o imagine publică pentru profilul tău.</p></div>
-        </div>
-        <form id="avatar-form" class="mt-6 space-y-3">
-          <label class="block text-xs font-bold text-slate-400">Link poză de profil
-            <input id="avatar-url" class="settings-input mt-2" type="url" maxlength="500" placeholder="https://exemplu.ro/poza.png" autocomplete="url">
-          </label>
-          <p class="text-xs leading-5 text-slate-500">Folosește un link direct către o imagine JPG, PNG sau WEBP. Dacă lași câmpul gol, se va folosi avatarul Discord.</p>
-          <div id="avatar-status" class="settings-status" role="status" aria-live="polite"></div>
-          <button class="settings-button" type="submit">Salvează poza</button>
-        </form>
+        <div class="flex flex-wrap items-center gap-4"><img id="avatar-preview" class="avatar-preview" src="img/logo-192.png" alt="Previzualizare poză profil"><div><p class="text-xs font-bold uppercase tracking-[.16em] text-emerald-300">Profil</p><h2 class="mt-1 text-xl font-extrabold text-white" id="account-title">Contul meu</h2><p id="account-mode" class="mt-1 text-sm text-slate-400">Alege o imagine publică pentru profilul tău.</p></div></div>
+        <form id="avatar-form" class="mt-6 space-y-3"><label class="block text-xs font-bold text-slate-400">Link poză de profil<input id="avatar-url" class="settings-input mt-2" type="url" maxlength="500" placeholder="https://exemplu.ro/poza.png" autocomplete="url"></label><p class="text-xs leading-5 text-slate-500">Folosește un link direct către o imagine JPG, PNG sau WEBP. Dacă lași câmpul gol, se va folosi avatarul Discord.</p><div id="avatar-status" class="settings-status" role="status" aria-live="polite"></div><button class="settings-button" type="submit">Salvează poza</button></form>
       </section>
 
-      <section class="settings-card rounded-3xl p-6 sm:p-8" id="password">
+      <section id="password" class="settings-card rounded-3xl p-6 sm:p-8">
         <div><p class="text-xs font-bold uppercase tracking-[.16em] text-violet-300">Securitate</p><h2 class="mt-1 text-xl font-extrabold text-white">Schimbă parola</h2><p class="mt-1 text-sm text-slate-400">Parola trebuie să aibă minimum 8 caractere, o literă mare și o cifră.</p></div>
-        <form id="password-form" class="mt-6 grid gap-4 sm:grid-cols-2">
-          <label class="block text-xs font-bold text-slate-400">Parolă nouă<input id="new-password" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="Parola nouă"></label>
-          <label class="block text-xs font-bold text-slate-400">Confirmă parola<input id="new-password-confirm" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="Repetă parola"></label>
-          <div id="account-password-rules" class="rounded-2xl border border-slate-700/60 bg-slate-950/40 px-4 py-3 sm:col-span-2"><p class="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Reguli parolă</p><ul data-password-rules-list class="space-y-1"></ul></div>
-          <div class="sm:col-span-2"><div id="password-status" class="settings-status" role="status" aria-live="polite"></div><button class="settings-button" type="submit">Actualizează parola</button></div>
-        </form>
+        <form id="password-form" class="mt-6 grid gap-4 sm:grid-cols-2"><label class="block text-xs font-bold text-slate-400">Parolă nouă<input id="new-password" name="password" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="Parola nouă"></label><label class="block text-xs font-bold text-slate-400">Confirmă parola<input id="new-password-confirm" name="password_confirmation" class="settings-input mt-2" type="password" minlength="8" autocomplete="new-password" required placeholder="Repetă parola"></label><div id="account-password-rules" class="rounded-2xl border border-slate-700/60 bg-slate-950/40 px-4 py-3 sm:col-span-2"><p class="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Reguli parolă</p><ul data-password-rules-list class="space-y-1"></ul></div><div class="sm:col-span-2"><div id="password-status" class="settings-status" role="status" aria-live="polite"></div><button class="settings-button" type="submit">Actualizează parola</button></div></form>
       </section>
 
       <section class="settings-card rounded-3xl p-6 sm:p-8">
-        <p class="text-xs font-bold uppercase tracking-[.16em] text-cyan-300">Preferințe</p>
-        <h2 class="mt-1 text-xl font-extrabold text-white">Sesiune și cont</h2>
-        <div class="mt-5 grid gap-3 sm:grid-cols-2">
-          <div class="rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><p class="text-xs text-slate-500">Username</p><p id="account-username" class="mt-1 break-all font-bold text-slate-200">—</p><p class="mt-2 text-xs leading-5 text-slate-500">Username-ul rămâne fix pentru a nu rupe autentificarea și legătura cu Discord.</p></div>
-          <div class="rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><p class="text-xs text-slate-500">Email de recuperare</p><p id="account-email" class="mt-1 break-all font-bold text-slate-200">—</p><p id="discord-status" class="mt-2 text-xs text-emerald-300">Verificare conexiune Discord…</p></div>
-        </div>
-        <form id="email-form" class="mt-5 rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4">
-          <label class="block text-xs font-bold text-slate-400">Schimbă emailul de recuperare<input id="new-email" class="settings-input mt-2" type="email" autocomplete="email" required placeholder="noul-email@exemplu.ro"></label>
-          <p class="mt-2 text-xs leading-5 text-slate-500">Pentru protecție, Supabase va trimite un mesaj de confirmare la noua adresă.</p>
-          <div id="email-status" class="settings-status mt-2" role="status" aria-live="polite"></div>
-          <button class="settings-button secondary mt-1" type="submit">Actualizează emailul</button>
-        </form>
-        <label class="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><input id="remember-setting" type="checkbox" class="mt-1 h-4 w-4 accent-emerald-400"><span><strong class="block text-sm text-slate-200">Ține-mă minte pe acest dispozitiv</strong><small class="mt-1 block text-xs leading-5 text-slate-500">Sesiunea rămâne activă și după închiderea browserului. Dezactivează opțiunea pe un calculator public.</small></span></label>
-        <div class="mt-5 flex flex-wrap gap-3"><button id="save-preferences" type="button" class="settings-button">Salvează preferința</button><button id="logout-button" type="button" class="settings-button danger">Deconectare</button></div>
-        <div id="preferences-status" class="settings-status mt-3" role="status" aria-live="polite"></div>
+        <p class="text-xs font-bold uppercase tracking-[.16em] text-cyan-300">Preferințe</p><h2 class="mt-1 text-xl font-extrabold text-white">Sesiune și cont</h2>
+        <div class="mt-5 grid gap-3 sm:grid-cols-2"><div class="rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><p class="text-xs text-slate-500">Username</p><p id="account-username" class="mt-1 break-all font-bold text-slate-200">—</p><p class="mt-2 text-xs leading-5 text-slate-500">Username-ul rămâne fix pentru a nu rupe autentificarea și legătura cu Discord.</p></div><div class="rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><p class="text-xs text-slate-500">Email de recuperare</p><p id="account-email" class="mt-1 break-all font-bold text-slate-200">—</p><p id="discord-status" class="mt-2 text-xs text-emerald-300">Verificare conexiune Discord…</p></div></div>
+        <form id="email-form" class="mt-5 rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><label class="block text-xs font-bold text-slate-400">Schimbă emailul de recuperare<input id="new-email" class="settings-input mt-2" type="email" autocomplete="email" required placeholder="noul-email@exemplu.ro"></label><p class="mt-2 text-xs leading-5 text-slate-500">Pentru protecție, Supabase va trimite un mesaj de confirmare la noua adresă.</p><div id="email-status" class="settings-status mt-2" role="status" aria-live="polite"></div><button class="settings-button secondary mt-1" type="submit">Actualizează emailul</button></form>
+        <label class="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4"><input id="remember-setting" type="checkbox" class="mt-1 h-4 w-4 accent-emerald-400"><span><strong class="block text-sm text-slate-200">Ține-mă minte pe acest dispozitiv</strong><small class="mt-1 block text-xs leading-5 text-slate-500">Preferința se păstrează local. Pe Fast Connect, sesiunea Discord este deja gestionată separat.</small></span></label>
+        <div class="mt-5 flex flex-wrap gap-3"><button id="save-preferences" type="button" class="settings-button">Salvează preferința</button><button id="logout-button" type="button" class="settings-button danger">Deconectare</button></div><div id="preferences-status" class="settings-status mt-3" role="status" aria-live="polite"></div>
       </section>
 
-      <section class="settings-card rounded-3xl border-amber-400/20 p-6 sm:p-8">
-        <p class="text-xs font-bold uppercase tracking-[.16em] text-amber-300">Controlul datelor</p>
-        <h2 class="mt-1 text-xl font-extrabold text-white">Confiden?ialitate ?i conexiuni</h2>
-        <p class="mt-2 text-sm leading-6 text-slate-400">Ai control asupra legăturii cu Discord și asupra datelor opționale ale contului. Ștergerea datelor nu afectează organizațiile create sau profilul tău Discord.</p>
-        <div class="mt-5 grid gap-3 sm:grid-cols-2">
-          <button id="disconnect-discord" type="button" class="settings-button secondary text-left">Deconectează Discord<small class="block text-xs font-normal text-slate-400">Elimină serverul și rolul asociat</small></button>
-          <button id="revoke-sessions" type="button" class="settings-button secondary text-left">Revocă sesiunile<small class="block text-xs font-normal text-slate-400">Închide celelalte sesiuni active</small></button>
-          <button id="clear-account-data" type="button" class="settings-button danger text-left">Șterge datele opționale<small class="block text-xs font-normal text-rose-200/70">Discord, serverul și poza de profil</small></button>
-          <button id="delete-account" type="button" class="settings-button danger text-left">Șterge definitiv contul<small class="block text-xs font-normal text-rose-200/70">Acțiune permanentă, fără recuperare</small></button>
-        </div>
-        <div id="account-actions-status" class="settings-status mt-4" role="status" aria-live="polite"></div>
-      </section>
+      <section class="settings-card rounded-3xl border-amber-400/20 p-6 sm:p-8"><p class="text-xs font-bold uppercase tracking-[.16em] text-amber-300">Controlul datelor</p><h2 class="mt-1 text-xl font-extrabold text-white">Confidențialitate și conexiuni</h2><p id="data-description" class="mt-2 text-sm leading-6 text-slate-400">Ai control asupra legăturii cu Discord și asupra datelor opționale ale contului.</p><div class="mt-5 grid gap-3 sm:grid-cols-2"><button id="disconnect-discord" type="button" class="settings-button secondary text-left">Deconectează Discord<small class="block text-xs font-normal text-slate-400">Elimină serverul și rolul asociat</small></button><button id="revoke-sessions" type="button" class="settings-button secondary text-left">Revocă sesiunile<small class="block text-xs font-normal text-slate-400">Închide sesiunile active</small></button><button id="clear-account-data" type="button" class="settings-button danger text-left">Șterge datele opționale<small class="block text-xs font-normal text-rose-200/70">Discord, serverul și poza de profil</small></button><button id="delete-account" type="button" class="settings-button danger text-left">Șterge definitiv contul<small class="block text-xs font-normal text-rose-200/70">Acțiune permanentă, fără recuperare</small></button></div><div id="account-actions-status" class="settings-status mt-4" role="status" aria-live="polite"></div></section>
     </div>
   </main>
 
@@ -106,116 +67,35 @@
     const config = window.PANEL_SUPABASE_CONFIG;
     const authClient = window.createPanelAuthClient({ persistSession: localStorage.getItem('panel_remember_me') === '1' });
     const byId = (id) => document.getElementById(id);
-    const setStatus = (id, message, tone = 'info') => { const element = byId(id); if (!element) return; element.textContent = message; element.style.color = tone === 'error' ? '#fda4af' : tone === 'success' ? '#6ee7b7' : '#67e8f9'; };
     const fallbackAvatar = 'img/logo-192.png';
+    const panelKeys = ['discord_user','user_role','discord_access_token','panel_session_token','panel_session_expires_at','panel_active_organization','panel_organizations'];
+    let authMode = null;
     let currentSession = null;
+    let currentAccount = null;
+    const setStatus = (id, message, tone = 'info') => { const element = byId(id); if (!element) return; element.textContent = message; element.style.color = tone === 'error' ? '#fda4af' : tone === 'success' ? '#6ee7b7' : '#67e8f9'; };
+    const isJwt = (value) => String(value || '').split('.').length === 3;
+    const clearPanelSession = () => panelKeys.forEach((key) => localStorage.removeItem(key));
+    const authHeaders = (token) => ({ apikey: config.publishableKey, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' });
+    const panelHeaders = () => ({ apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'Content-Type': 'application/json', 'X-Panel-Session': localStorage.getItem('panel_session_token') || '' });
+    const setModeVisibility = (mode) => { const emailOnly = ['password','email-form','disconnect-discord','clear-account-data','delete-account']; emailOnly.forEach((id) => { const element = byId(id); if (element) element.classList.toggle('hidden', mode === 'discord'); }); byId('account-mode').textContent = mode === 'discord' ? 'Fast Connect Discord: avatarul și sesiunile pot fi administrate aici; parola și emailul nu se aplică.' : 'Alege o imagine publică pentru profilul tău.'; byId('data-description').textContent = mode === 'discord' ? 'Fast Connect folosește Discord pentru autentificare. Pentru siguranță, nu există parolă sau email de modificat aici.' : 'Ai control asupra legăturii cu Discord și asupra datelor opționale ale contului.'; };
+    const updateLocalAvatar = (avatarUrl) => { try { const user = JSON.parse(localStorage.getItem('discord_user') || 'null'); if (!user) return; user.avatar = avatarUrl || fallbackAvatar; user.avatar_url = avatarUrl || fallbackAvatar; localStorage.setItem('discord_user', JSON.stringify(user)); window.dispatchEvent(new CustomEvent('panel-user-updated')); } catch (_) {} };
+    async function getFreshEmailSession() { let { data, error } = await authClient.auth.getSession(); if (error || !data?.session || !isJwt(data.session.access_token)) { const refreshed = await authClient.auth.refreshSession(); data = refreshed.data; error = refreshed.error; } const session = data?.session || null; if (error || !session || !isJwt(session.access_token)) return null; currentSession = session; return session; }
+    async function fetchAccount(mode, action, extra = {}) { const endpoint = mode === 'discord' ? 'manage-discord-account' : 'manage-email-account'; const headers = mode === 'discord' ? panelHeaders() : authHeaders(currentSession.access_token); const response = await fetch(`${config.url}/functions/v1/${endpoint}`, { method: 'POST', headers, body: JSON.stringify({ action, ...extra }) }); const payload = await response.json().catch(() => ({})); if (!response.ok) throw new Error(payload.error || 'Setarea contului nu a putut fi aplicată.'); return payload; }
+    function fillAccount(account, mode) { currentAccount = account || {}; byId('account-username').textContent = account?.username || account?.display_name || '—'; byId('account-title').textContent = account?.username ? `Contul lui ${account.username}` : 'Contul meu'; byId('avatar-url').value = account?.avatar_url || account?.avatar || ''; byId('avatar-preview').src = account?.avatar_url || account?.avatar || fallbackAvatar; byId('account-email').textContent = mode === 'discord' ? 'Nu se folosește email pentru Fast Connect' : (currentSession?.user?.email || '—'); const connected = Boolean(account?.discord_id); byId('discord-status').textContent = mode === 'discord' ? '✓ Fast Connect Discord activ' : (connected ? `✓ Cont Discord conectat${account?.discord_guild_id ? ` · server ${account.discord_guild_id}` : ''}` : 'Cont Discord neconectat'); byId('discord-status').style.color = '#6ee7b7'; byId('disconnect-discord').disabled = !connected; byId('disconnect-discord').style.opacity = connected ? '1' : '.55'; }
+    async function loadSettings() { const emailSession = await getFreshEmailSession(); if (emailSession) { authMode = 'email'; setModeVisibility('email'); const payload = await fetchAccount('email', 'get_account'); if (!payload.account) throw new Error('Profilul contului nu există încă.'); fillAccount(payload.account, 'email'); } else if (localStorage.getItem('panel_session_token')) { authMode = 'discord'; setModeVisibility('discord'); const payload = await fetchAccount('discord', 'get_account'); fillAccount(payload.account, 'discord'); } else { byId('login-required').classList.remove('hidden'); return; } byId('settings-content').classList.remove('hidden'); byId('remember-setting').checked = localStorage.getItem('panel_remember_me') === '1'; }
     window.bindPanelPasswordRules?.('new-password', 'account-password-rules');
-
-    function isJwt(value) { return String(value || '').split('.').length === 3; }
-    async function getFreshEmailSession() {
-      let { data, error } = await authClient.auth.getSession();
-      if (error || !data?.session || !isJwt(data.session.access_token)) {
-        const refreshed = await authClient.auth.refreshSession();
-        data = refreshed.data;
-        error = refreshed.error;
-      }
-      const session = data?.session || null;
-      if (error || !session || !isJwt(session.access_token)) throw new Error('Sesiunea contului a expirat. Autentifică-te din nou.');
-      currentSession = session;
-      return session;
-    }
-    function authHeaders(accessToken) { return { apikey: config.publishableKey, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }; }
-    function updateLocalAvatar(avatarUrl) { try { const user = JSON.parse(localStorage.getItem('discord_user') || 'null'); if (!user) return; user.avatar = avatarUrl || fallbackAvatar; user.avatar_url = avatarUrl || fallbackAvatar; localStorage.setItem('discord_user', JSON.stringify(user)); window.dispatchEvent(new CustomEvent('panel-user-updated')); } catch (_) {} }
-
-    async function loadSettings() {
-      try { currentSession = await getFreshEmailSession(); }
-      catch (_) { byId('login-required').classList.remove('hidden'); return; }
-      byId('settings-content').classList.remove('hidden');
-      byId('account-email').textContent = currentSession.user?.email || '—';
-      byId('remember-setting').checked = localStorage.getItem('panel_remember_me') === '1';
-      const accountResponse = await fetch(`${config.url}/functions/v1/manage-email-account`, { method: 'POST', headers: authHeaders(currentSession.access_token), body: JSON.stringify({ action: 'get_account' }) });
-      const accountPayload = await accountResponse.json().catch(() => ({}));
-      const account = accountPayload.account;
-      const error = accountResponse.ok && account ? null : new Error(accountPayload.error || 'Datele contului nu au putut fi încărcate.');
-      if (error) { setStatus('preferences-status', 'Datele contului nu au putut fi încărcate.', 'error'); return; }
-      byId('account-username').textContent = account?.username || '—';
-      byId('account-title').textContent = account?.username ? `Contul lui ${account.username}` : 'Contul meu';
-      byId('avatar-url').value = account?.avatar_url || '';
-      byId('avatar-preview').src = account?.avatar_url || fallbackAvatar;
-      byId('discord-status').textContent = account?.discord_id ? `✓ Cont Discord conectat${account.discord_guild_id ? ` · server ${account.discord_guild_id}` : ''}` : 'Cont Discord neconectat';
-      byId('discord-status').style.color = account?.discord_id ? '#6ee7b7' : '#fbbf24';
-      byId('disconnect-discord').disabled = !account?.discord_id;
-      byId('disconnect-discord').style.opacity = account?.discord_id ? '1' : '.55';
-    }
-
     byId('avatar-url').addEventListener('input', () => { byId('avatar-preview').src = byId('avatar-url').value.trim() || fallbackAvatar; });
-    byId('avatar-form').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const avatarUrl = byId('avatar-url').value.trim();
-      if (avatarUrl && !/^https?:\/\//i.test(avatarUrl)) return setStatus('avatar-status', 'Introdu un link care începe cu https:// sau http://.', 'error');
-      setStatus('avatar-status', 'Se salvează…');
-      try {
-        const session = await getFreshEmailSession();
-        const response = await fetch(`${config.url}/functions/v1/update-user-account-settings`, { method: 'POST', headers: authHeaders(session.access_token), body: JSON.stringify({ avatar_url: avatarUrl }) });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error || 'Poza nu a putut fi salvată.');
-        byId('avatar-preview').src = payload.account?.avatar_url || fallbackAvatar;
-        updateLocalAvatar(payload.account?.avatar_url || '');
-        setStatus('avatar-status', 'Poza de profil a fost salvată.', 'success');
-      } catch (error) { setStatus('avatar-status', error.message || 'Poza nu a putut fi salvată.', 'error'); }
-    });
-    byId('password-form').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const password = byId('new-password').value; const confirm = byId('new-password-confirm').value;
-      if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) return setStatus('password-status', 'Parola trebuie să aibă minimum 8 caractere, o literă mare și o cifră.', 'error');
-      if (password !== confirm) return setStatus('password-status', 'Parolele nu coincid.', 'error');
-      setStatus('password-status', 'Se actualizează parola…');
-      const { error } = await authClient.auth.updateUser({ password });
-      if (error) return setStatus('password-status', error.message || 'Parola nu a putut fi actualizată.', 'error');
-      byId('password-form').reset(); setStatus('password-status', 'Parola a fost actualizată cu succes.', 'success');
-    });
-    byId('email-form').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const email = byId('new-email').value.trim();
-      if (!email || email === currentSession?.user?.email) return setStatus('email-status', 'Introdu o adresă nouă de email.', 'error');
-      setStatus('email-status', 'Se trimite mesajul de confirmare…');
-      const { error } = await authClient.auth.updateUser({ email });
-      if (error) return setStatus('email-status', error.message || 'Emailul nu a putut fi actualizat.', 'error');
-      byId('email-form').reset(); setStatus('email-status', 'Am trimis un mesaj de confirmare la noua adresă.', 'success');
-    });
-    byId('save-preferences').addEventListener('click', () => { localStorage.setItem('panel_remember_me', byId('remember-setting').checked ? '1' : '0'); setStatus('preferences-status', 'Preferința a fost salvată. La următoarea autentificare se va aplica alegerea.', 'success'); });
-    byId('logout-button').addEventListener('click', async () => { await authClient.auth.signOut(); localStorage.removeItem('panel-email-auth'); sessionStorage.removeItem('panel-email-auth-tab'); location.href = 'login.html'; });
-    async function accountAction(action, confirmation) {
-      if (!window.confirm(confirmation)) return;
-      setStatus('account-actions-status', 'Se aplică modificarea…');
-      try {
-        const session = await getFreshEmailSession();
-        const response = await fetch(`${config.url}/functions/v1/manage-email-account`, { method: 'POST', headers: authHeaders(session.access_token), body: JSON.stringify({ action }) });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error || 'Acțiunea nu a putut fi aplicată.');
-        if (action === 'delete_account') {
-          await authClient.auth.signOut();
-          ['panel-email-auth', 'email_account', 'discord_user', 'user_role', 'discord_access_token', 'panel_session_token', 'panel_session_expires_at', 'panel_active_organization', 'panel_organizations'].forEach((key) => localStorage.removeItem(key));
-          sessionStorage.clear();
-          location.href = 'login.html?account_deleted=1';
-          return;
-        }
-        if (action === 'disconnect_discord' || action === 'clear_data') {
-          ['discord_user', 'user_role', 'discord_access_token', 'panel_session_token', 'panel_session_expires_at', 'panel_active_organization', 'panel_organizations'].forEach((key) => localStorage.removeItem(key));
-          await loadSettings();
-        }
-        setStatus('account-actions-status', payload.message || 'Modificarea a fost aplicată.', 'success');
-      } catch (error) { setStatus('account-actions-status', error.message || 'Acțiunea nu a putut fi aplicată.', 'error'); }
-    }
-    byId('disconnect-discord').addEventListener('click', () => accountAction('disconnect_discord', 'Sigur vrei să elimini asocierea Discord? Va trebui să îl conectezi din nou pentru acces la panel.'));
-    byId('revoke-sessions').addEventListener('click', () => accountAction('revoke_sessions', 'Revoci toate celelalte sesiuni active ale contului?'));
-    byId('clear-account-data').addEventListener('click', () => accountAction('clear_data', 'Ștergi datele opționale ale contului: Discord, serverul și poza de profil?'));
+    byId('avatar-form').addEventListener('submit', async (event) => { event.preventDefault(); const avatarUrl = byId('avatar-url').value.trim(); if (avatarUrl && !/^https?:\/\//i.test(avatarUrl)) return setStatus('avatar-status', 'Introdu un link care începe cu https:// sau http://.', 'error'); setStatus('avatar-status', 'Se salvează…'); try { const payload = authMode === 'discord' ? await fetchAccount('discord', 'update_avatar', { avatar_url: avatarUrl }) : await fetch(`${config.url}/functions/v1/update-user-account-settings`, { method: 'POST', headers: authHeaders(currentSession.access_token), body: JSON.stringify({ avatar_url: avatarUrl }) }).then(async (response) => { const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.error || 'Poza nu a putut fi salvată.'); return body; }); const saved = payload.account?.avatar_url || payload.account?.avatar || ''; byId('avatar-preview').src = saved || fallbackAvatar; updateLocalAvatar(saved); setStatus('avatar-status', 'Poza de profil a fost salvată.', 'success'); } catch (error) { setStatus('avatar-status', error.message || 'Poza nu a putut fi salvată.', 'error'); } });
+    byId('password-form').addEventListener('submit', async (event) => { event.preventDefault(); const password = byId('new-password').value; const confirm = byId('new-password-confirm').value; if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) return setStatus('password-status', 'Parola trebuie să aibă minimum 8 caractere, o literă mare și o cifră.', 'error'); if (password !== confirm) return setStatus('password-status', 'Parolele nu coincid.', 'error'); setStatus('password-status', 'Se actualizează parola…'); const { error } = await authClient.auth.updateUser({ password }); if (error) return setStatus('password-status', error.message || 'Parola nu a putut fi actualizată.', 'error'); byId('password-form').reset(); setStatus('password-status', 'Parola a fost actualizată cu succes.', 'success'); });
+    byId('email-form').addEventListener('submit', async (event) => { event.preventDefault(); const email = byId('new-email').value.trim(); if (!email || email === currentSession?.user?.email) return setStatus('email-status', 'Introdu o adresă nouă de email.', 'error'); setStatus('email-status', 'Se trimite mesajul de confirmare…'); const { error } = await authClient.auth.updateUser({ email }); if (error) return setStatus('email-status', error.message || 'Emailul nu a putut fi actualizat.', 'error'); byId('email-form').reset(); setStatus('email-status', 'Am trimis un mesaj de confirmare la noua adresă.', 'success'); });
+    byId('save-preferences').addEventListener('click', () => { localStorage.setItem('panel_remember_me', byId('remember-setting').checked ? '1' : '0'); setStatus('preferences-status', 'Preferința a fost salvată.', 'success'); });
+    byId('logout-button').addEventListener('click', async () => { if (authMode === 'email') await authClient.auth.signOut(); localStorage.removeItem('panel-email-auth'); sessionStorage.removeItem('panel-email-auth-tab'); clearPanelSession(); location.href = 'login.html'; });
+    async function accountAction(action, confirmation) { if (!window.confirm(confirmation)) return; setStatus('account-actions-status', 'Se aplică modificarea…'); try { const payload = await fetchAccount(authMode, action); if (authMode === 'discord' && action === 'revoke_sessions') { setStatus('account-actions-status', payload.message || 'Sesiunile au fost revocate.', 'success'); window.setTimeout(() => { clearPanelSession(); location.href = 'login.html'; }, 800); return; } if (action === 'delete_account') { await authClient.auth.signOut(); clearPanelSession(); localStorage.removeItem('panel-email-auth'); sessionStorage.clear(); location.href = 'login.html?account_deleted=1'; return; } if (action === 'disconnect_discord' || action === 'clear_data') { clearPanelSession(); await loadSettings(); } setStatus('account-actions-status', payload.message || 'Modificarea a fost aplicată.', 'success'); } catch (error) { setStatus('account-actions-status', error.message || 'Acțiunea nu a putut fi aplicată.', 'error'); } }
+    byId('disconnect-discord').addEventListener('click', () => accountAction('disconnect_discord', 'Sigur vrei să elimini asocierea Discord?'));
+    byId('revoke-sessions').addEventListener('click', () => accountAction('revoke_sessions', 'Revoci toate sesiunile active?'));
+    byId('clear-account-data').addEventListener('click', () => accountAction('clear_data', 'Ștergi datele opționale ale contului?'));
     byId('delete-account').addEventListener('click', () => accountAction('delete_account', 'Ștergerea contului este definitivă și nu poate fi anulată. Continui?'));
-    loadSettings().catch(() => { byId('login-required').classList.remove('hidden'); });
-  </script>
-  <script>
-    document.getElementById('new-password')?.setAttribute('name', 'password');
-    document.getElementById('new-password-confirm')?.setAttribute('name', 'password_confirmation');
+    loadSettings().catch((error) => { byId('login-required').classList.remove('hidden'); setStatus('preferences-status', error.message || 'Setările nu au putut fi încărcate.', 'error'); });
   </script>
 </body>
 </html>

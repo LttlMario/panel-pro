@@ -69,3 +69,6 @@ verify_jwt = true
 
 [functions.manage-email-account]
 verify_jwt = true
+
+[functions.manage-discord-account]
+verify_jwt = false

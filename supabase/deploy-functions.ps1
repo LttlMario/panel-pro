@@ -42,6 +42,7 @@ $functions = @(
     'link-email-discord-guild',
     'list-email-discord-guilds',
     'manage-email-account',
+    'manage-discord-account',
     'update-user-account-settings',
     'username-login'
 )
