@@ -755,7 +755,7 @@ function startPanelSessionHeartbeat() {
         if (!token || !config?.url || !config?.publishableKey) return;
 
         try {
-            await fetch(`${config.url}/functions/v1/touch-panel-session`, {
+            const response = await fetch(`${config.url}/functions/v1/touch-panel-session`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -766,13 +766,25 @@ function startPanelSessionHeartbeat() {
                 body: '{}',
                 keepalive: true
             });
+            if (response.status === 401 || response.status === 403) {
+                const payload = await response.json().catch(() => ({}));
+                localStorage.removeItem('panel_session_token');
+                localStorage.removeItem('panel_session_expires_at');
+                localStorage.removeItem('panel_active_organization');
+                localStorage.removeItem('user_role');
+                if (!window.__panelRevocationRedirected) {
+                    window.__panelRevocationRedirected = true;
+                    alert(payload.error || 'Accesul la organizație a fost revocat.');
+                    location.replace('login.html?reason=organization_revoked');
+                }
+            }
         } catch (_) {
             // Lipsa temporară a rețelei nu închide sesiunea locală.
         }
     };
 
     window.setTimeout(sendHeartbeat, 1000);
-    window.setInterval(sendHeartbeat, 30000);
+    window.setInterval(sendHeartbeat, 15000);
 }
 
 startPanelSessionHeartbeat();
