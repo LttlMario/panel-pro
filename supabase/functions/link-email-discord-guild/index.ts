@@ -2,7 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization,apikey,content-type',
+  'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json',
 };
@@ -26,11 +26,13 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const discordAccessToken = String(body.discord_access_token || '').trim();
     const guildId = String(body.guild_id || '').trim();
+    const organizationId = String(body.organization_id || '').trim();
 
     if (!serviceKey || !supabaseUrl || !botToken) throw new Error('ConfiguraÈ›ia serverului lipseÈ™te.');
     if (!jwt) return reply({ error: 'Sesiunea email lipseÈ™te sau a expirat.' }, 401);
     if (!discordAccessToken) return reply({ error: 'Sesiunea Discord lipseÈ™te.' }, 400);
     if (!/^\d{15,22}$/.test(guildId)) return reply({ error: 'Serverul Discord selectat este invalid.' }, 400);
+    if (!organizationId) return reply({ error: 'Organizatia serverului selectat lipseste.' }, 400);
 
     const db = createClient(supabaseUrl, serviceKey);
     const { data: authData, error: authError } = await db.auth.getUser(jwt);
@@ -52,6 +54,7 @@ Deno.serve(async (request) => {
       .from('organization_guilds')
       .select('guild_id,organization_id,organizations!inner(id,name,active)')
       .eq('guild_id', guildId)
+      .eq('organization_id', organizationId)
       .eq('enabled', true)
       .eq('organizations.active', true)
       .maybeSingle();
