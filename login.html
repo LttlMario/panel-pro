@@ -409,6 +409,32 @@
             document.getElementById('email-register-password-confirm')?.parentElement.insertAdjacentHTML('afterend', '<div id="email-register-password-rules" class="rounded-xl border border-slate-700/60 bg-slate-950/40 px-3 py-3"><p class="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Reguli parola</p><ul data-password-rules-list class="space-y-1"></ul></div>');
         }
         window.bindPanelPasswordRules?.('email-register-password', 'email-register-password-rules');
+        const bindPasswordVisibility = (inputId) => {
+            const input = document.getElementById(inputId);
+            if (!input || input.dataset.passwordVisibilityBound === 'true') return;
+            const holder = document.createElement('div');
+            holder.className = 'relative mt-1';
+            input.parentElement.insertBefore(holder, input);
+            holder.appendChild(input);
+            input.classList.remove('mt-1');
+            input.classList.add('pr-16');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-[11px] font-bold text-cyan-300 transition hover:bg-cyan-400/10 hover:text-cyan-100';
+            button.textContent = 'Arată';
+            button.setAttribute('aria-label', 'Arată parola');
+            button.setAttribute('aria-pressed', 'false');
+            button.addEventListener('click', () => {
+                const visible = input.type === 'text';
+                input.type = visible ? 'password' : 'text';
+                button.textContent = visible ? 'Arată' : 'Ascunde';
+                button.setAttribute('aria-label', visible ? 'Arată parola' : 'Ascunde parola');
+                button.setAttribute('aria-pressed', visible ? 'false' : 'true');
+            });
+            holder.appendChild(button);
+            input.dataset.passwordVisibilityBound = 'true';
+        };
+        ['email-login-password', 'email-register-password', 'email-register-password-confirm'].forEach(bindPasswordVisibility);
         if (registerEmailField) registerEmailField.parentElement.firstChild.textContent = 'Email pentru recuperarea parolei';
         document.querySelectorAll('[data-email-mode]').forEach((button) => button.addEventListener('click', () => setEmailMode(button.dataset.emailMode)));
         document.getElementById('email-login-form')?.addEventListener('submit', async (event) => {
