@@ -1,4 +1,24 @@
 // Navigare comună pentru panel: meniu mobil și sidebar pliabil pe desktop.
+if (document.head && !document.head.querySelector('meta[http-equiv="Content-Security-Policy"]')) {
+    const panelCsp = document.createElement('meta');
+    panelCsp.httpEquiv = 'Content-Security-Policy';
+    panelCsp.content = "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' https://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self';";
+    document.head.prepend(panelCsp);
+}
+window.panelEscapeHtml = window.panelEscapeHtml || function panelEscapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[character]));
+};
+window.panelSafeAssetUrl = window.panelSafeAssetUrl || function panelSafeAssetUrl(value, fallback = 'img/logo-192.png') {
+    const candidate = String(value || '').trim();
+    if (!candidate) return fallback;
+    try {
+        const parsed = new URL(candidate, location.href);
+        if (parsed.protocol === 'https:' || (parsed.origin === location.origin && ['http:', ''].includes(parsed.protocol))) return candidate;
+    } catch (_) {}
+    return fallback;
+};
 if (!window.__panelOnboardingLoader && !window.location.pathname.endsWith('login.html')) { window.__panelOnboardingLoader = true; const onboardingScript = document.createElement('script'); onboardingScript.src = 'js/panel-onboarding.js?v=1'; document.head.appendChild(onboardingScript); }
 if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetchFixed) { window.__organizationFetchFixed = true; const _fetch = window.fetch; window.fetch = (url, options = {}) => { if (String(url).includes('/functions/v1/manage-organizations')) options.headers = { ...(options.headers || {}), 'x-panel-session': localStorage.getItem('panel_session_token') || '' }; return _fetch(url, options); }; }
 (() => {
@@ -88,15 +108,18 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             .panel-sidebar-profile > div { grid-column:2; grid-row:1; min-width:0; }
             .panel-profile-main { min-width:0; }
             .panel-profile-menu { min-width:0; position:relative; }
-            .panel-profile-menu > summary { display:block; list-style:none; cursor:pointer; border-radius:8px; padding:2px 3px; outline:none; }
+            .panel-profile-menu > summary { display:grid; grid-template-columns:minmax(0,1fr) 30px; grid-template-rows:auto auto; align-items:center; column-gap:7px; list-style:none; cursor:pointer; border-radius:10px; padding:2px 3px; outline:none; }
             .panel-profile-menu > summary::-webkit-details-marker { display:none; }
-            .panel-profile-menu > summary::after { content:'⌄'; float:right; margin:1px 0 0 5px; color:#64748b; font-size:12px; transition:transform .18s ease; }
+            .panel-profile-menu > summary::after { display:none; }
+            .panel-profile-menu > summary > strong, .panel-profile-menu > summary > small { grid-column:1; }
+            .panel-profile-menu > summary > .panel-profile-gear { grid-column:2; grid-row:1 / span 2; }
             .panel-profile-menu[open] > summary { background:rgba(51,65,85,.28); }
-            .panel-profile-menu[open] > summary::after { transform:rotate(180deg); color:#6ee7b7; }
+            .panel-profile-gear { width:28px; height:28px; display:grid; place-items:center; border:1px solid #334155; border-radius:9px; background:#17233a; color:#94a3b8; font-size:15px; line-height:1; cursor:pointer; transition:all .18s ease; }
+            .panel-profile-gear:hover, .panel-profile-gear:focus-visible { border-color:#34d399; background:#12352f; color:#6ee7b7; outline:none; transform:rotate(18deg); }
             .panel-profile-menu strong,.panel-profile-menu small { display:block; max-width:125px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
             .panel-account-settings-link { display:flex; align-items:center; gap:7px; padding:7px 8px; color:#d1fae5; font-size:11px; font-weight:700; line-height:1.2; text-decoration:none; }
             .panel-account-settings-link:hover { background:#10273a; color:#6ee7b7; }
-            .panel-profile-dropdown { position:absolute; z-index:90; top:calc(100% + 7px); left:0; min-width:165px; overflow:hidden; border:1px solid #334155; border-radius:10px; background:#0b1628; box-shadow:0 16px 32px rgba(0,0,0,.38); }
+            .panel-profile-dropdown { position:absolute; z-index:90; top:calc(100% + 7px); left:0; min-width:185px; overflow:hidden; border:1px solid #334155; border-radius:12px; background:#0b1628; box-shadow:0 16px 32px rgba(0,0,0,.38); }
             .panel-profile-dropdown [data-sidebar-logout], .panel-profile-dropdown [data-shared-logout] { width:100%; margin:0; padding:7px 8px; border:0; border-top:1px solid rgba(51,65,85,.7); border-radius:0; background:transparent; color:#fb7185; font-size:11px; text-align:left; cursor:pointer; }
             .panel-profile-dropdown [data-sidebar-logout]:hover, .panel-profile-dropdown [data-shared-logout]:hover { background:rgba(244,63,94,.1); }
             .panel-sidebar-profile strong,.panel-sidebar-profile small { display:block; max-width:125px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -467,7 +490,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const avatarElement = document.getElementById('panel-user-avatar');
         if (roleElement) roleElement.textContent = discordRoleLabel(user);
         if (nameElement) nameElement.textContent = user?.display_name || user?.username || 'Utilizator';
-        if (avatarElement) avatarElement.src = user?.avatar || user?.avatar_url || 'img/logo-192.png';
+        if (avatarElement) avatarElement.src = window.panelSafeAssetUrl(user?.avatar || user?.avatar_url || '');
     }
 
     async function refreshRoleFromUsersTable() {
@@ -538,9 +561,19 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         heading.classList.add('panel-brand-heading');
         heading.replaceChildren();
         const organization=typeof getActiveOrganization==='function'?getActiveOrganization():null;
-        heading.innerHTML=`<img class="panel-brand-logo" src="${organization?.logo_url||'img/logo-192.png'}" alt="${organization?.name||'Organizație'}" onerror="this.src='img/logo-192.png'"><span class="panel-org-name">${organization?.name||'Organizație'}</span>`;
+        const organizationName=window.panelEscapeHtml(organization?.name||'Organizație');const organizationLogo=window.panelSafeAssetUrl(organization?.logo_url||'');
+        heading.innerHTML=`<img class="panel-brand-logo" src="${organizationLogo}" alt="${organizationName}" onerror="this.src='img/logo-192.png'"><span class="panel-org-name">${organizationName}</span>`;
         let profile=sidebar.querySelector('.panel-sidebar-profile');
-        if(!profile){const user=typeof getUser==='function'?getUser():null;profile=document.createElement('div');profile.className='panel-sidebar-profile';profile.innerHTML=`<img id="panel-user-avatar" src="${user?.avatar||user?.avatar_url||''}" alt=""><div class="panel-profile-main"><details class="panel-profile-menu"><summary><strong id="panel-user-display-name">${user?.display_name||user?.username||'Utilizator'}</strong><small id="panel-user-role">${discordRoleLabel(user)}</small></summary><div class="panel-profile-dropdown"><a class="panel-account-settings-link" href="setari-cont.html">⚙️ Setările contului</a><button type="button" id="panel-logout-btn" data-sidebar-logout>Deconectare</button></div></details></div>`;heading.after(profile);}
+        if(!profile){const user=typeof getUser==='function'?getUser():null;const displayName=window.panelEscapeHtml(user?.display_name||user?.username||'Utilizator');const role=window.panelEscapeHtml(discordRoleLabel(user));const avatar=window.panelSafeAssetUrl(user?.avatar||user?.avatar_url||'');profile=document.createElement('div');profile.className='panel-sidebar-profile';profile.innerHTML=`<img id="panel-user-avatar" src="${avatar}" alt=""><div class="panel-profile-main"><details class="panel-profile-menu"><summary><strong id="panel-user-display-name">${displayName}</strong><small id="panel-user-role">${role}</small></summary><div class="panel-profile-dropdown"><a class="panel-account-settings-link" href="setari-cont.html">⚙️ Setările contului</a><button type="button" id="panel-logout-btn" data-sidebar-logout>Deconectare</button></div></details></div>`;heading.after(profile);}
+        const profileMenu=profile?.querySelector('.panel-profile-menu');
+        if(profileMenu&&!profileMenu.querySelector('.panel-profile-gear')){
+            const summary=profileMenu.querySelector('summary');
+            const gear=document.createElement('button');
+            gear.type='button'; gear.className='panel-profile-gear'; gear.textContent='⚙'; gear.title='Setări profil'; gear.setAttribute('aria-label','Deschide setările profilului');
+            gear.addEventListener('click',(event)=>{event.preventDefault();event.stopPropagation();profileMenu.open=!profileMenu.open;});
+            gear.addEventListener('keydown',(event)=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();profileMenu.open=!profileMenu.open;}});
+            summary?.appendChild(gear);
+        }
     }
 
     function ensureSharedSidebar() {
@@ -552,7 +585,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const legacyNavigation = document.getElementById('sidebar-nav') || [...document.querySelectorAll('aside nav')]
             .find(nav => !nav.closest('#panel-mobile-menu'));
         const legacySidebar = legacyNavigation?.closest('aside') || null;
-        const user=typeof getUser==='function'?getUser():null,organization=typeof getActiveOrganization==='function'?getActiveOrganization():null,sidebar=document.createElement('aside');sidebar.id='panel-shared-sidebar';sidebar.className='panel-responsive-sidebar bg-slate-900 border-r border-slate-800 flex flex-col justify-between';sidebar.style.width='245px';sidebar.style.flex='0 0 245px';sidebar.innerHTML=`<div class="p-6 overflow-y-auto"><h1 class="text-xl font-bold"><img src="${organization?.logo_url||'img/logo-192.png'}" alt="${organization?.name||'Logo Panel'}" class="panel-brand-logo" onerror="this.src='img/logo-192.png'"></h1>${organization?.banner_url?`<img src="${organization.banner_url}" alt="" class="mt-3 h-16 w-full rounded-lg object-cover" onerror="this.remove()">`:''}<nav id="sidebar-nav" class="mt-6 space-y-1.5"></nav></div><div class="p-4 border-t border-slate-800 flex items-center justify-between gap-2"><div class="flex items-center gap-3 min-w-0"><img id="panel-user-avatar" class="w-9 h-9 rounded-full border border-slate-700 object-cover" src="${user?.avatar||user?.avatar_url||''}" alt=""><details class="panel-profile-menu min-w-0"><summary><p id="panel-user-display-name" class="font-semibold truncate">${user?.display_name||user?.username||'Utilizator'}</p><p id="panel-user-role" class="text-xs text-emerald-400 truncate">${discordRoleLabel(user)}</p></summary><div class="panel-profile-dropdown"><a class="panel-account-settings-link" href="setari-cont.html">⚙️ Setările contului</a><button type="button" data-shared-logout>Deconectare</button></div></details></div></div>`;
+        const user=typeof getUser==='function'?getUser():null,organization=typeof getActiveOrganization==='function'?getActiveOrganization():null;const organizationName=window.panelEscapeHtml(organization?.name||'Logo Panel');const organizationLogo=window.panelSafeAssetUrl(organization?.logo_url||'');const organizationBanner=window.panelSafeAssetUrl(organization?.banner_url||'');const displayName=window.panelEscapeHtml(user?.display_name||user?.username||'Utilizator');const role=window.panelEscapeHtml(discordRoleLabel(user));const avatar=window.panelSafeAssetUrl(user?.avatar||user?.avatar_url||'');const sidebar=document.createElement('aside');sidebar.id='panel-shared-sidebar';sidebar.className='panel-responsive-sidebar bg-slate-900 border-r border-slate-800 flex flex-col justify-between';sidebar.style.width='245px';sidebar.style.flex='0 0 245px';sidebar.innerHTML=`<div class="p-6 overflow-y-auto"><h1 class="text-xl font-bold"><img src="${organizationLogo}" alt="${organizationName}" class="panel-brand-logo" onerror="this.src='img/logo-192.png'"></h1>${organizationBanner?`<img src="${organizationBanner}" alt="" class="mt-3 h-16 w-full rounded-lg object-cover" onerror="this.remove()">`:''}<nav id="sidebar-nav" class="mt-6 space-y-1.5"></nav></div><div class="p-4 border-t border-slate-800 flex items-center justify-between gap-2"><div class="flex items-center gap-3 min-w-0"><img id="panel-user-avatar" class="w-9 h-9 rounded-full border border-slate-700 object-cover" src="${avatar}" alt=""><details class="panel-profile-menu min-w-0"><summary><p id="panel-user-display-name" class="font-semibold truncate">${displayName}</p><p id="panel-user-role" class="text-xs text-emerald-400 truncate">${role}</p></summary><div class="panel-profile-dropdown"><a class="panel-account-settings-link" href="setari-cont.html">⚙️ Setările contului</a><button type="button" data-shared-logout>Deconectare</button></div></details></div></div>`;
         if (legacySidebar) {
             legacySidebar.replaceWith(sidebar);
         } else if (document.getElementById('panel-sidebar-host')) {
