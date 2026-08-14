@@ -4,6 +4,7 @@
   if (!location.pathname.endsWith('organizatii.html')) return;
 
   const $ = (id) => document.getElementById(id);
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
   const config = window.PANEL_SUPABASE_CONFIG;
   const statusChannel = 'status_live';
   let communicationPermissions = { organization: { read: [], write: [] }, departments: { read: [], write: [] } };
@@ -37,7 +38,7 @@
       roles.forEach((label, id) => {
         const wrapper = document.createElement('label');
         wrapper.className = 'flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs';
-        wrapper.innerHTML = `<input type="checkbox" data-communication-audience="${audience}" data-communication-kind="${kind}" data-communication-role="${id}"><span>${label}</span>`;
+        wrapper.innerHTML = `<input type="checkbox" data-communication-audience="${escapeHtml(audience)}" data-communication-kind="${escapeHtml(kind)}" data-communication-role="${escapeHtml(id)}"><span>${escapeHtml(label)}</span>`;
         const checkbox = wrapper.querySelector('input');
         checkbox.checked = communicationRoles(audience, kind).includes(id);
         checkbox.addEventListener('change', () => {
@@ -61,7 +62,7 @@
         roles.forEach((labelValue, id) => {
           const wrapper = document.createElement('label');
           wrapper.className = 'flex items-center gap-2 rounded-lg bg-slate-900 px-2 py-1 text-[11px]';
-          wrapper.innerHTML = `<input type="checkbox"><span>${labelValue}</span>`;
+          wrapper.innerHTML = `<input type="checkbox"><span>${escapeHtml(labelValue)}</span>`;
           const checkbox = wrapper.querySelector('input');
           checkbox.checked = disciplineRoles(audience, kind).includes(id);
           checkbox.addEventListener('change', () => {
@@ -144,7 +145,7 @@
     roles.forEach((label, roleId) => {
       const wrapper = document.createElement('label');
       wrapper.className = 'flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2';
-      wrapper.innerHTML = `<input type="checkbox" data-status-live-role="${roleId}"><span>${label}</span>`;
+      wrapper.innerHTML = `<input type="checkbox" data-status-live-role="${escapeHtml(roleId)}"><span>${escapeHtml(label)}</span>`;
       const checkbox = wrapper.querySelector('input');
       checkbox.checked = Array.isArray(pagePermissions['status-live.html']) && pagePermissions['status-live.html'].includes(roleId);
       checkbox.addEventListener('change', () => {

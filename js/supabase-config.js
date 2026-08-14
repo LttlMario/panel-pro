@@ -7,6 +7,17 @@ window.PANEL_SUPABASE_CONFIG = Object.freeze({
     publishableKey: 'sb_publishable_gRM7uXmfknjfFiOg7jjqDA_y-VGPMVD'
 });
 
+// Sesiunile opace au o durată limitată. Curățăm imediat tokenul expirat,
+// ca browserul să nu-l mai trimită către funcții sau către Supabase REST.
+window.clearPanelSession = function clearPanelSession() {
+    localStorage.removeItem('panel_session_token');
+    localStorage.removeItem('panel_session_expires_at');
+};
+(() => {
+    const expires = Number(localStorage.getItem('panel_session_expires_at') || 0);
+    if (expires && expires <= Date.now()) window.clearPanelSession();
+})();
+
 // Toate cererile către tabele transmit sesiunea opacă verificată de RLS.
 window.createPanelSupabaseClient = function createPanelSupabaseClient() {
     const config = window.PANEL_SUPABASE_CONFIG;
@@ -75,6 +86,7 @@ window.panelRequest = async function panelRequest(functionName, options = {}) {
             });
 
             if (timeout) window.clearTimeout(timeout);
+            if (response.status === 401 && endpoint !== 'sync-discord-role') window.clearPanelSession();
             if (canRetry && attempt + 1 < attempts && [408, 429, 500, 502, 503, 504].includes(response.status)) {
                 await new Promise(resolve => window.setTimeout(resolve, 250));
                 continue;

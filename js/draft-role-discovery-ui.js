@@ -12,6 +12,7 @@
     button.className = 'rounded-xl bg-cyan-700 px-5 py-3 font-bold';
     button.textContent = 'Verifică serverul și citește rolurile';
     const output = document.createElement('div');
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
     output.className = 'mt-3 space-y-2 text-sm';
     box.querySelector('div').append(button, output);
     button.addEventListener('click', async () => {
@@ -29,7 +30,7 @@
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Nu s-au putut citi rolurile.');
-        output.innerHTML = (result.roles || []).map((role) => `<label class="flex items-center gap-2 rounded-lg border border-slate-700 p-2"><input type="checkbox" data-draft-role="${role.id}" data-role-name="${role.name.replace(/"/g, '&quot;')}"><span class="min-w-36">${role.name}</span></label>`).join('') || 'Nu există roluri disponibile.';
+        output.innerHTML = (result.roles || []).map((role) => `<label class="flex items-center gap-2 rounded-lg border border-slate-700 p-2"><input type="checkbox" data-draft-role="${escapeHtml(role.id)}" data-role-name="${escapeHtml(role.name)}"><span class="min-w-36">${escapeHtml(role.name)}</span></label>`).join('') || 'Nu există roluri disponibile.';
         window.draftAvailableRoles = result.roles || [];
         if (window.renderDraftPagePermissions) window.renderDraftPagePermissions(window.draftAvailableRoles);
         window.dispatchEvent(new CustomEvent('draft-roles-discovered'));

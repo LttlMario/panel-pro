@@ -2,6 +2,7 @@
 <html lang="ro" class="dark">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' https://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panou Admin - Panel</title>
     <!-- Tailwind CSS CDN -->
@@ -251,6 +252,7 @@
         const supabaseClient = window.createPanelSupabaseClient();
 
         let allUsersData = [];
+        const escapeAdminHtml = (value) => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
         document.addEventListener('DOMContentLoaded', async () => {
             // Evidențiere link activ în sidebar
             const currentPage = window.location.pathname.split("/").pop() || "index.html";
@@ -395,21 +397,22 @@
             let html = '';
             filteredUsers.forEach((u) => {
                 const currentRole = String(u.panel_role || u.role || u.default_role || 'Rol neconfigurat');
-                const uId = u.discord_id || u.id;
+                const uId = String(u.discord_id || u.id || '');
+                const userName = String(u.display_name || u.username || 'Utilizator');
                 html += `
                     <tr class="hover:bg-slate-800/40 transition">
-                        <td class="p-4 font-mono text-slate-400">${uId || 'N/A'}</td>
-                        <td class="p-4 font-semibold text-slate-200">${u.display_name || u.username || 'Utilizator'}</td>
+                        <td class="p-4 font-mono text-slate-400">${escapeAdminHtml(uId || 'N/A')}</td>
+                        <td class="p-4 font-semibold text-slate-200">${escapeAdminHtml(userName)}</td>
                         <td class="p-4">
                             <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border bg-slate-800 text-slate-300 border-slate-700">
-                                ${currentRole}
+                                ${escapeAdminHtml(currentRole)}
                             </span>
                         </td>
                         <td class="p-4 text-right space-x-2">
-                            <button onclick="kickUser('${uId}', '${u.display_name || u.username || 'Utilizator'}')" class="bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow">
+                            <button type="button" data-admin-action="kick" data-discord-id="${escapeAdminHtml(uId)}" data-user-name="${escapeAdminHtml(userName)}" class="bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow">
                                 🚪 Kick / Forțează Logout
                             </button>
-                            <button onclick="deleteWebUser('${uId}', '${u.display_name || u.username || 'Utilizator'}')" class="bg-red-700/20 hover:bg-red-700 text-red-300 hover:text-white border border-red-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow">
+                            <button type="button" data-admin-action="delete" data-discord-id="${escapeAdminHtml(uId)}" data-user-name="${escapeAdminHtml(userName)}" class="bg-red-700/20 hover:bg-red-700 text-red-300 hover:text-white border border-red-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow">
                                 🗑️ Șterge din web
                             </button>
                         </td>
@@ -418,6 +421,15 @@
             });
 
             tbody.innerHTML = html;
+            tbody.querySelectorAll('[data-admin-action]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const action = button.dataset.adminAction;
+                    const discordId = button.dataset.discordId || '';
+                    const userName = button.dataset.userName || 'Utilizator';
+                    if (action === 'kick') kickUser(discordId, userName);
+                    if (action === 'delete') deleteWebUser(discordId, userName);
+                });
+            });
         }
 
         async function kickUser(discordId, userName) {
@@ -467,7 +479,7 @@
                 const users = result.online_members || [];
                 if (badge) badge.textContent = `${users.length} online`;
                 tbody.innerHTML = users.length
-                    ? users.map(user => `<tr><td class="p-4 font-semibold text-slate-200">${user.display_name || user.username || user.discord_id}</td><td class="p-4 text-emerald-300">${user.panel_role || user.role || 'Rol neconfigurat'}</td><td class="p-4 text-slate-400">${user.last_seen_at ? new Date(user.last_seen_at).toLocaleString('ro-RO') : 'Activ acum'}</td></tr>`).join('')
+                    ? users.map(user => `<tr><td class="p-4 font-semibold text-slate-200">${escapeAdminHtml(user.display_name || user.username || user.discord_id)}</td><td class="p-4 text-emerald-300">${escapeAdminHtml(user.panel_role || user.role || 'Rol neconfigurat')}</td><td class="p-4 text-slate-400">${escapeAdminHtml(user.last_seen_at ? new Date(user.last_seen_at).toLocaleString('ro-RO') : 'Activ acum')}</td></tr>`).join('')
                     : '<tr><td colspan="3" class="p-6 text-center text-slate-500">Nu există utilizatori online momentan.</td></tr>';
             } catch (error) {
                 if (badge) badge.textContent = 'Indisponibil';

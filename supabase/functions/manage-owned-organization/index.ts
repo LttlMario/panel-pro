@@ -80,6 +80,60 @@ const sanitizeWebhookRoutes = (raw: unknown) => {
   return result;
 };
 
+const WEBHOOK_MASK = '••••••••';
+const maskWebhookRoutes = (raw: unknown) => {
+  if (!raw || typeof raw !== 'object') return {};
+  const result: Record<string, any> = {};
+  for (const [channel, route] of Object.entries(raw as Record<string, any>)) {
+    if (!webhookChannels.has(channel) || !route || typeof route !== 'object') continue;
+    result[channel] = {};
+    for (const target of ['primary', 'secondary']) {
+      const item = (route as any)[target];
+      if (!item || typeof item !== 'object') continue;
+      result[channel][target] = {
+        enabled: item.enabled === true && Boolean(item.url),
+        url: item.url ? WEBHOOK_MASK : ''
+      };
+    }
+  }
+  return result;
+};
+
+const mergeWebhookRoutes = (current: unknown, submitted: unknown) => {
+  if (!submitted || typeof submitted !== 'object') return sanitizeWebhookRoutes(current);
+  const existing = sanitizeWebhookRoutes(current);
+  const result: Record<string, any> = {};
+  for (const [channel, route] of Object.entries(submitted as Record<string, any>)) {
+    if (!webhookChannels.has(channel) || !route || typeof route !== 'object') continue;
+    const cleanTarget = (target: string) => {
+      const incoming = (route as any)[target];
+      if (!incoming || typeof incoming !== 'object' || incoming.enabled !== true) return null;
+      const incomingUrl = String(incoming.url || '').trim();
+      if (incomingUrl && incomingUrl !== WEBHOOK_MASK) {
+        if (!validWebhook(incomingUrl)) throw new Error('Unul dintre webhook-urile Discord nu este valid.');
+        return { enabled: true, url: incomingUrl };
+      }
+      const previous = (existing as any)[channel]?.[target];
+      return previous?.url ? { enabled: true, url: previous.url } : null;
+    };
+    const primary = cleanTarget('primary');
+    const secondary = cleanTarget('secondary');
+    if (primary || secondary) result[channel] = { primary, secondary };
+  }
+  return result;
+};
+
+const maskSettings = (settings: any) => {
+  const value = { ...(settings || {}) };
+  for (const key of [
+    'family_webhook_url', 'mechanics_webhook_url', 'pontaj_webhook_url',
+    'requests_webhook_url', 'contracts_webhook_url', 'marketplace_webhook_url',
+    'illegal_marketplace_webhook_url'
+  ]) value[key] = value[key] ? WEBHOOK_MASK : null;
+  value.webhook_routes = maskWebhookRoutes(value.webhook_routes);
+  return value;
+};
+
 const safeAssetUrl = (value: unknown, label: string) => {
   const url = String(value || '').trim();
   if (!url) return null;
@@ -229,7 +283,7 @@ Deno.serve(async (request) => {
         organization: owned.organization,
         guild: owned.guild,
         guilds: state.guilds,
-        settings: state.settings,
+        settings: maskSettings(state.settings),
         contract_template: state.contract_template,
         role_mappings: state.role_mappings,
         page_permissions: state.page_permissions,
@@ -256,7 +310,7 @@ Deno.serve(async (request) => {
     const settings = state.settings || {};
     const webhookRoutes = body.webhook_routes === undefined
       ? (settings.webhook_routes || {})
-      : sanitizeWebhookRoutes(body.webhook_routes);
+      : mergeWebhookRoutes(settings.webhook_routes, body.webhook_routes);
     const settingsPatch = {
       organization_id: organizationId,
       discord_client_id: String(settings.discord_client_id ?? ''),
@@ -358,7 +412,7 @@ Deno.serve(async (request) => {
       organization: updatedOrganization,
       guild: owned.guild,
       guilds: updatedState.guilds,
-      settings: updatedState.settings,
+      settings: maskSettings(updatedState.settings),
       contract_template: updatedState.contract_template,
       role_mappings: updatedState.role_mappings,
       page_permissions: updatedState.page_permissions,
