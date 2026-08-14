@@ -36,7 +36,7 @@ window.createPanelAuthClient = function createPanelAuthClient(options = {}) {
     const storage = persistSession ? window.localStorage : window.sessionStorage;
     return window.supabase.createClient(config.url, config.publishableKey, {
         auth: {
-            persistSession: true,
+            persistSession,
             autoRefreshToken: true,
             detectSessionInUrl: true,
             storage,
