@@ -110,7 +110,20 @@
     let currentSession = null;
     window.bindPanelPasswordRules?.('new-password', 'account-password-rules');
 
-    function authHeaders() { return { apikey: config.publishableKey, Authorization: `Bearer ${currentSession?.access_token || ''}`, 'Content-Type': 'application/json' }; }
+    function isJwt(value) { return String(value || '').split('.').length === 3; }
+    async function getFreshEmailSession() {
+      let { data, error } = await authClient.auth.getSession();
+      if (error || !data?.session || !isJwt(data.session.access_token)) {
+        const refreshed = await authClient.auth.refreshSession();
+        data = refreshed.data;
+        error = refreshed.error;
+      }
+      const session = data?.session || null;
+      if (error || !session || !isJwt(session.access_token)) throw new Error('Sesiunea contului a expirat. Autentifică-te din nou.');
+      currentSession = session;
+      return session;
+    }
+    function authHeaders(accessToken) { return { apikey: config.publishableKey, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }; }
     function updateLocalAvatar(avatarUrl) { try { const user = JSON.parse(localStorage.getItem('discord_user') || 'null'); if (!user) return; user.avatar = avatarUrl || fallbackAvatar; user.avatar_url = avatarUrl || fallbackAvatar; localStorage.setItem('discord_user', JSON.stringify(user)); window.dispatchEvent(new CustomEvent('panel-user-updated')); } catch (_) {} }
 
     async function loadSettings() {
@@ -139,7 +152,8 @@
       if (avatarUrl && !/^https?:\/\//i.test(avatarUrl)) return setStatus('avatar-status', 'Introdu un link care începe cu https:// sau http://.', 'error');
       setStatus('avatar-status', 'Se salvează…');
       try {
-        const response = await fetch(`${config.url}/functions/v1/update-user-account-settings`, { method: 'POST', headers: authHeaders(), body: JSON.stringify({ avatar_url: avatarUrl }) });
+        const session = await getFreshEmailSession();
+        const response = await fetch(`${config.url}/functions/v1/update-user-account-settings`, { method: 'POST', headers: authHeaders(session.access_token), body: JSON.stringify({ avatar_url: avatarUrl }) });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Poza nu a putut fi salvată.');
         byId('avatar-preview').src = payload.account?.avatar_url || fallbackAvatar;
@@ -169,10 +183,11 @@
     byId('save-preferences').addEventListener('click', () => { localStorage.setItem('panel_remember_me', byId('remember-setting').checked ? '1' : '0'); setStatus('preferences-status', 'Preferința a fost salvată. La următoarea autentificare se va aplica alegerea.', 'success'); });
     byId('logout-button').addEventListener('click', async () => { await authClient.auth.signOut(); localStorage.removeItem('panel-email-auth'); sessionStorage.removeItem('panel-email-auth-tab'); location.href = 'login.html'; });
     async function accountAction(action, confirmation) {
-      if (!currentSession || !window.confirm(confirmation)) return;
+      if (!window.confirm(confirmation)) return;
       setStatus('account-actions-status', 'Se aplică modificarea…');
       try {
-        const response = await fetch(`${config.url}/functions/v1/manage-email-account`, { method: 'POST', headers: authHeaders(), body: JSON.stringify({ action }) });
+        const session = await getFreshEmailSession();
+        const response = await fetch(`${config.url}/functions/v1/manage-email-account`, { method: 'POST', headers: authHeaders(session.access_token), body: JSON.stringify({ action }) });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Acțiunea nu a putut fi aplicată.');
         if (action === 'delete_account') {

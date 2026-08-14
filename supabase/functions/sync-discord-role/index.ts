@@ -381,7 +381,20 @@ if (!existing) {
       voucher_guild_id: voucherGuildId || null,
     }, 409);
     const requestedId = String(body.organization_id || '').trim();
-    const active = available.find((item) => item.organization_id === requestedId) || available[0];
+    let active: any;
+    if (emailLogin) {
+      const emailGuildOrganizations = available.filter((item) => item.guild_ids.includes(selectedGuildId));
+      if (requestedId) {
+        active = emailGuildOrganizations.find((item) => item.organization_id === requestedId);
+        if (!active) return reply({ error: 'Organizatia selectata nu corespunde serverului Discord ales.', code: 'ORGANIZATION_MISMATCH' }, 403);
+      } else if (emailGuildOrganizations.length === 1) {
+        active = emailGuildOrganizations[0];
+      } else {
+        return reply({ error: 'Serverul Discord este asociat cu mai multe organizatii. Selecteaza organizatia din nou.', code: 'ORGANIZATION_SELECTION_REQUIRED' }, 409);
+      }
+    } else {
+      active = available.find((item) => item.organization_id === requestedId) || available[0];
+    }
     const { data: linkedAccount, error: linkedAccountError } = await db
       .from('user_accounts')
       .select('username,auth_user_id,avatar_url')
