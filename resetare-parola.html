@@ -94,5 +94,9 @@
       setStatus('Parola a fost schimbată cu succes. Poți reveni la Login.', 'success');
     });
   </script>
+  <script>
+    document.getElementById('new-password')?.setAttribute('name', 'password');
+    document.getElementById('new-password-confirm')?.setAttribute('name', 'password_confirmation');
+  </script>
 </body>
 </html>

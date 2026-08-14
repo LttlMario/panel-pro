@@ -826,6 +826,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     </script>
+    <script>
+        [['email-login-password', 'password'], ['email-register-password', 'password'], ['email-register-password-confirm', 'password_confirmation']].forEach(([id, name]) => document.getElementById(id)?.setAttribute('name', name));
+    </script>
     <script src="js/global-footer.js"></script>
 </body>
 </html>
