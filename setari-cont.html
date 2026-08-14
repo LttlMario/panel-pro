@@ -210,5 +210,9 @@
     byId('delete-account').addEventListener('click', () => accountAction('delete_account', 'Ștergerea contului este definitivă și nu poate fi anulată. Continui?'));
     loadSettings().catch(() => { byId('login-required').classList.remove('hidden'); });
   </script>
+  <script>
+    document.getElementById('new-password')?.setAttribute('name', 'password');
+    document.getElementById('new-password-confirm')?.setAttribute('name', 'password_confirmation');
+  </script>
 </body>
 </html>
