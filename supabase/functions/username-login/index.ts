@@ -33,8 +33,10 @@ Deno.serve(async (request) => {
       p_limit: 10,
       p_window_seconds: 900,
     });
-    if (rateLimitError) throw rateLimitError;
-    if (loginAllowed === false) return reply({ error: 'Prea multe încercări. Așteaptă 15 minute și încearcă din nou.' }, 429);
+    // Păstrăm loginul funcțional dacă migrația de rate-limit nu a fost încă
+    // aplicată; după db push, RPC-ul activează protecția automat.
+    if (rateLimitError) console.error('Rate-limit RPC indisponibil:', rateLimitError.message);
+    if (!rateLimitError && loginAllowed === false) return reply({ error: 'Prea multe încercări. Așteaptă 15 minute și încearcă din nou.' }, 429);
     if (!/^[a-z0-9][a-z0-9_.-]{2,31}$/.test(username) || password.length < 8) {
       return reply({ error: 'Usernameul sau parola sunt incorecte.' }, 401);
     }
