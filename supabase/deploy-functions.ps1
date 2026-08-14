@@ -37,7 +37,13 @@ $functions = @(
     'discover-draft-roles',
     'save-draft-roles',
     'touch-panel-session',
-    'mark-tutorial-read'
+    'mark-tutorial-read',
+    'link-discord-account',
+    'link-email-discord-guild',
+    'list-email-discord-guilds',
+    'manage-email-account',
+    'update-user-account-settings',
+    'username-login'
 )
 
 foreach ($functionName in $functions) {

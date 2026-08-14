@@ -128,13 +128,15 @@
     function updateLocalAvatar(avatarUrl) { try { const user = JSON.parse(localStorage.getItem('discord_user') || 'null'); if (!user) return; user.avatar = avatarUrl || fallbackAvatar; user.avatar_url = avatarUrl || fallbackAvatar; localStorage.setItem('discord_user', JSON.stringify(user)); window.dispatchEvent(new CustomEvent('panel-user-updated')); } catch (_) {} }
 
     async function loadSettings() {
-      const { data: sessionData } = await authClient.auth.getSession();
-      currentSession = sessionData?.session || null;
-      if (!currentSession) { byId('login-required').classList.remove('hidden'); return; }
+      try { currentSession = await getFreshEmailSession(); }
+      catch (_) { byId('login-required').classList.remove('hidden'); return; }
       byId('settings-content').classList.remove('hidden');
       byId('account-email').textContent = currentSession.user?.email || '—';
       byId('remember-setting').checked = localStorage.getItem('panel_remember_me') === '1';
-      const { data: account, error } = await authClient.from('user_accounts').select('username,avatar_url,discord_id,discord_guild_id').eq('auth_user_id', currentSession.user.id).maybeSingle();
+      const accountResponse = await fetch(`${config.url}/functions/v1/manage-email-account`, { method: 'POST', headers: authHeaders(currentSession.access_token), body: JSON.stringify({ action: 'get_account' }) });
+      const accountPayload = await accountResponse.json().catch(() => ({}));
+      const account = accountPayload.account;
+      const error = accountResponse.ok && account ? null : new Error(accountPayload.error || 'Datele contului nu au putut fi încărcate.');
       if (error) { setStatus('preferences-status', 'Datele contului nu au putut fi încărcate.', 'error'); return; }
       byId('account-username').textContent = account?.username || '—';
       byId('account-title').textContent = account?.username ? `Contul lui ${account.username}` : 'Contul meu';

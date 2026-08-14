@@ -1,7 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const headers = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
   'Access-Control-Allow-Headers': 'apikey,authorization,content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json',
@@ -24,11 +24,21 @@ Deno.serve(async (request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
 
     if (!serviceKey || !anonKey || !supabaseUrl) throw new Error('Configurația Supabase lipsește.');
+    const db = createClient(supabaseUrl, serviceKey);
+    const clientAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || request.headers.get('cf-connecting-ip')
+      || 'unknown';
+    const { data: loginAllowed, error: rateLimitError } = await db.rpc('consume_username_login_attempt', {
+      p_key: `${clientAddress}:${username || 'invalid'}`,
+      p_limit: 10,
+      p_window_seconds: 900,
+    });
+    if (rateLimitError) throw rateLimitError;
+    if (loginAllowed === false) return reply({ error: 'Prea multe încercări. Așteaptă 15 minute și încearcă din nou.' }, 429);
     if (!/^[a-z0-9][a-z0-9_.-]{2,31}$/.test(username) || password.length < 8) {
       return reply({ error: 'Usernameul sau parola sunt incorecte.' }, 401);
     }
 
-    const db = createClient(supabaseUrl, serviceKey);
     const { data: account, error: accountError } = await db
       .from('user_accounts')
       .select('auth_user_id,username')

@@ -1,7 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const headers = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
   'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
   'Content-Type': 'application/json',
 };
