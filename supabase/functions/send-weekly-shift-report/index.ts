@@ -123,8 +123,8 @@ Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
 
-  const cronSecret = Deno.env.get('CRON_SECRET');
-  if (cronSecret && request.headers.get('x-cron-secret') !== cronSecret) {
+  const cronSecret = String(Deno.env.get('CRON_SECRET') || '').trim();
+  if (!cronSecret || request.headers.get('x-cron-secret') !== cronSecret) {
     return reply({ error: 'Unauthorized' }, 401);
   }
 
