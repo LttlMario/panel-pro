@@ -223,6 +223,7 @@
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let panelAuthClient = window.createPanelAuthClient({ persistSession: localStorage.getItem('panel_remember_me') === '1' });
         const EMAIL_DISCORD_FLOW_KEY = 'panel_email_discord_link_flow';
+        const REMEMBER_USERNAME_KEY = 'panel_email_login_username';
 
         const clearPanelBrowserSession = () => [
             'discord_user', 'user_role', 'discord_access_token', 'panel_session_token',
@@ -385,6 +386,8 @@
         }
         const rememberMeCheckbox = document.getElementById('email-remember-me');
         if (rememberMeCheckbox) rememberMeCheckbox.checked = localStorage.getItem('panel_remember_me') === '1';
+        const loginUsernameField = document.getElementById('email-login-username');
+        if (loginUsernameField && rememberMeCheckbox?.checked) loginUsernameField.value = localStorage.getItem(REMEMBER_USERNAME_KEY) || '';
         const backToLoginButton = modeActions?.querySelector('[data-email-mode="login"]');
         if (backToLoginButton) {
             backToLoginButton.textContent = '← Înapoi la Login';
@@ -408,7 +411,15 @@
             event.preventDefault();
             emailStatus('Se verifică datele...');
             const rememberMe = document.getElementById('email-remember-me')?.checked === true;
+            const loginUsername = document.getElementById('email-login-username').value.trim();
             localStorage.setItem('panel_remember_me', rememberMe ? '1' : '0');
+            if (rememberMe) {
+                localStorage.setItem(REMEMBER_USERNAME_KEY, loginUsername);
+                sessionStorage.removeItem('panel-email-auth-tab');
+            } else {
+                localStorage.removeItem(REMEMBER_USERNAME_KEY);
+                localStorage.removeItem('panel-email-auth');
+            }
             panelAuthClient = window.createPanelAuthClient({ persistSession: rememberMe });
             const response = await fetch(`${SUPABASE_URL}/functions/v1/username-login`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }, body: JSON.stringify({ username: document.getElementById('email-login-username').value.trim(), password: document.getElementById('email-login-password').value }) });
             const result = await response.json().catch(() => ({}));
