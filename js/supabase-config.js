@@ -1,17 +1,6 @@
 // Configurația publică de conectare. Cheia service_role NU se pune aici.
-// Logurile din browser sunt dezactivate pentru a nu expune date de sesiune,
-// identificatori sau configuratii interne in F12.
-(() => {
-    const blockedConsoleMethods = [
-        'log', 'info', 'warn', 'error', 'debug', 'trace',
-        'dir', 'dirxml', 'table', 'group', 'groupCollapsed', 'groupEnd',
-        'time', 'timeEnd', 'timeLog', 'count', 'countReset', 'clear',
-        'profile', 'profileEnd'
-    ];
-    blockedConsoleMethods.forEach(method => {
-        try { window.console[method] = () => {}; } catch (_) {}
-    });
-})();
+// Consola rămâne disponibilă pentru diagnosticarea erorilor de autentificare.
+// Nu logăm tokenuri sau date private în acest fișier.
 
 window.PANEL_SUPABASE_CONFIG = Object.freeze({
     url: 'https://vkvsabbbawyiurnaiugo.supabase.co',

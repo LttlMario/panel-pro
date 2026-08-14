@@ -2,7 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 
 const headers = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
   'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
   'Access-Control-Allow-Methods': 'POST,OPTIONS',
   'Content-Type': 'application/json',

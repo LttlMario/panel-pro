@@ -1,7 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
-const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json'};
+const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json'};
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
 Deno.serve(async request=>{
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors});

@@ -1,7 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const headers = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
   'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json',
@@ -23,7 +23,7 @@ Deno.serve(async (request) => {
 
     if (!serviceKey || !supabaseUrl) throw new Error('ConfiguraÈ›ia serverului lipseÈ™te.');
     if (!jwt) return reply({ error: 'Sesiunea contului lipseÈ™te sau a expirat.' }, 401);
-    if (!['disconnect_discord', 'clear_data', 'revoke_sessions', 'delete_account'].includes(action)) {
+    if (!['get_account', 'disconnect_discord', 'clear_data', 'revoke_sessions', 'delete_account'].includes(action)) {
       return reply({ error: 'AcÈ›iunea contului este invalidÄƒ.' }, 400);
     }
 
@@ -39,6 +39,16 @@ Deno.serve(async (request) => {
       .maybeSingle();
     if (accountError) throw accountError;
     if (!account) return reply({ error: 'Profilul contului nu existÄƒ.' }, 404);
+
+    if (action === 'get_account') {
+      const { data: profile, error: profileError } = await db
+        .from('user_accounts')
+        .select('username,avatar_url,discord_id,discord_guild_id,terms_version,terms_accepted_at')
+        .eq('auth_user_id', authData.user.id)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      return reply({ ok: true, account: profile ? { ...profile, auth_user_id: authData.user.id, email: authData.user.email } : null });
+    }
 
     const discordId = String(account.discord_id || '').trim();
     if (discordId) {

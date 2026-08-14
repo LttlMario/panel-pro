@@ -33,3 +33,19 @@ jobs:
           test -f supabase/config.toml
           test -f supabase/deploy-functions.ps1
           test -f supabase/migrations/20260813000300_shifts_history_composite_index.sql
+          test ! -f supabase/MASTER-MULTI-ORGANIZATIE.sql
+
+      - name: Validate inline JavaScript and deployment parity
+        run: node tools/validate-panel.mjs
+
+      - name: Audit npm dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Check for accidentally committed secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -RInE --exclude-dir=.git --exclude='*.map' \
+            'https://discord(app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9._-]+' .
+          ! grep -RInE --exclude-dir=.git --exclude='*.map' \
+            '-----BEGIN (RSA|OPENSSH|EC|DSA|PRIVATE) KEY-----' .
