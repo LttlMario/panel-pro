@@ -1160,7 +1160,7 @@
         // Configurare Supabase - aceeași sesiune ca în dashboard
         const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
         const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
-        const supabaseClient = window.createPanelSupabaseClient();
+        let supabaseClient = window.createPanelSupabaseClient();
 
         async function fetchUserData() {
             const cachedUser = localStorage.getItem('discord_user');
@@ -2352,6 +2352,17 @@
             fetchUserData();
 
             try {
+
+                // Revalidăm sesiunea înainte de interogarea RLS pentru locațiile globale.
+                const sessionToken = localStorage.getItem('panel_session_token');
+                const sessionExpiresAt = Number(localStorage.getItem('panel_session_expires_at') || 0);
+                if (
+                    (!sessionToken || sessionExpiresAt <= Date.now() + 30_000) &&
+                    typeof window.ensurePanelSession === 'function'
+                ) {
+                    await window.ensurePanelSession();
+                    supabaseClient = window.createPanelSupabaseClient();
+                }
 
                 // 1. Încărcăm starea actuală din baza de date.
                 await loadLocationsFromDatabase();
