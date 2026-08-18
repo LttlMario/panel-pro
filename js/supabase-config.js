@@ -19,13 +19,28 @@ window.clearPanelSession = function clearPanelSession() {
 })();
 
 // Toate cererile către tabele transmit sesiunea opacă verificată de RLS.
+// Refolosim clientul pentru a evita mai multe GoTrueClient-uri în aceeași pagină.
+let panelSupabaseClientCache = null;
+let panelSupabaseClientCacheToken = null;
+
 window.createPanelSupabaseClient = function createPanelSupabaseClient() {
     const config = window.PANEL_SUPABASE_CONFIG;
     const sessionToken = localStorage.getItem('panel_session_token') || '';
-    return window.supabase.createClient(config.url, config.publishableKey, {
+
+    if (
+        panelSupabaseClientCache &&
+        panelSupabaseClientCacheToken === sessionToken
+    ) {
+        return panelSupabaseClientCache;
+    }
+
+    panelSupabaseClientCache = window.supabase.createClient(config.url, config.publishableKey, {
         global: { headers: sessionToken ? { 'X-Panel-Session': sessionToken } : {} },
         auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
     });
+
+    panelSupabaseClientCacheToken = sessionToken;
+    return panelSupabaseClientCache;
 };
 
 // Client separat pentru conturile email. Nu îl folosim pentru permisiunile panelului;

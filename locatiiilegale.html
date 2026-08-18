@@ -2243,18 +2243,36 @@
             }, 300);
         }
 
+        // CSP-ul proiectului nu permite WebSocket-ul Supabase Realtime.
+        // Reîmprospătăm datele prin REST, fără erori în consolă.
+        let illegalLocationsPollingTimer = null;
+        let illegalLocationsPollingInFlight = false;
+
+        function startIllegalLocationsPolling() {
+            if (illegalLocationsPollingTimer) return;
+
+            illegalLocationsPollingTimer = window.setInterval(async () => {
+                if (illegalLocationsPollingInFlight || document.hidden) return;
+
+                illegalLocationsPollingInFlight = true;
+                try {
+                    await loadLocationsFromDatabase();
+                    renderMarkers();
+                } catch (_) {
+                    // Eșecurile temporare nu întrerup pagina; următoarea verificare va reîncerca.
+                } finally {
+                    illegalLocationsPollingInFlight = false;
+                }
+            }, 30_000);
+        }
+
         function setupSearch() {
             const searchInput = document.getElementById('search-input');
             const resultsBox = document.getElementById('search-results');
 
             // Header-ul global poate să nu conțină căutarea locală.
             // În acest caz nu avem nimic de inițializat.
-            if (!searchInput || !resultsBox) {
-                console.log(
-                    '[Locații Ilegale] Căutarea locală nu există în header-ul global.'
-                );
-                return;
-            }
+            if (!searchInput || !resultsBox) return;
 
             searchInput.addEventListener('input', (e) => {
                 const query = e.target.value
@@ -2389,8 +2407,8 @@
             // 2. Construim hărțile și markerele.
             initMaps();
 
-            // 3. Pornim sincronizarea live cu Supabase.
-            subscribeToIllegalLocationsRealtime();
+            // 3. Pornim sincronizarea periodică prin REST.
+            startIllegalLocationsPolling();
 
             // Aplicăm din nou drepturile după construirea interfeței.
             actualizeazaAccesAdministratorLocatii();
