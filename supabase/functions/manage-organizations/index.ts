@@ -47,8 +47,9 @@ const summarizeWebhooks=(routes:any)=>{
   }
   return {configured,missing,invalid,total:channels.length*2};
 };
-const countRows=(db:any,table:string,organizationId:string,filters:((query:any)=>any)[]=[])=
-  (async()=>{let query=db.from(table).select('id',{count:'exact',head:true}).eq('organization_id',organizationId);for(const filter of filters)query=filter(query);const {count,error}=await query;if(error)throw error;return Number(count||0);})();
+const countRows=(db:any,table:string,organizationId:string,filters:((query:any)=>any)[]=[])=>(async()=>{
+    let query=db.from(table).select('id',{count:'exact',head:true}).eq('organization_id',organizationId);for(const filter of filters)query=filter(query);const {count,error}=await query;if(error)throw error;return Number(count||0);
+  })();
 
 Deno.serve(async request=>{
   if(request.method==='OPTIONS')return new Response('ok',{headers});
