@@ -834,6 +834,16 @@ if (Array.isArray(body.roles)) {
           if(permissionError)throw permissionError;
         }
       }
+      if(code!=='full'){
+        const fullOnlyPages=new Set(['calculatorilegal.html','locatiiilegale.html','marketplace-ilegal.html']);
+        for(const key of ['page_permissions','assistant_page_permissions']){
+          const {data:existing}=await db.from('app_settings').select('value').eq('organization_id',organizationId).eq('key',key).maybeSingle();
+          if(!existing||!existing.value||typeof existing.value!=='object')continue;
+          const value=Object.fromEntries(Object.entries(existing.value).filter(([page])=>!fullOnlyPages.has(page)));
+          const {error:permissionError}=await db.from('app_settings').update({value,updated_at:nowIso()}).eq('organization_id',organizationId).eq('key',key);
+          if(permissionError)throw permissionError;
+        }
+      }
       await audit(db,session,'organization_package_changed',organizationId,{code,unlimited,expires_at:expiresAt,features});
       return reply({ok:true,package:{code,unlimited,expires_at:expiresAt,features}});
     }

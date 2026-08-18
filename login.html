@@ -224,6 +224,7 @@
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let panelAuthClient = window.createPanelAuthClient({ persistSession: localStorage.getItem('panel_remember_me') === '1' });
         const EMAIL_DISCORD_FLOW_KEY = 'panel_email_discord_link_flow';
+        const CREATE_ORGANIZATION_FLOW_KEY = 'panel_create_organization_flow';
         const REMEMBER_USERNAME_KEY = 'panel_email_login_username';
 
         const clearPanelBrowserSession = () => [
@@ -351,7 +352,7 @@
             return true;
         }
 
-        async function startDiscordOAuth(emailLink = false) {
+        async function startDiscordOAuth(emailLink = false, createOrganization = false) {
             if (window.location.protocol === 'file:') {
                 setLoginStatus('Pentru conectarea Discord deschide versiunea publică a panelului, nu fișierul local.', 'error');
                 return;
@@ -360,7 +361,11 @@
                 setLoginStatus('Conectarea Discord nu este configurată pentru această adresă.', 'error');
                 return;
             }
-            if (emailLink) {
+            if (createOrganization) {
+                sessionStorage.setItem(CREATE_ORGANIZATION_FLOW_KEY, '1');
+                sessionStorage.removeItem(EMAIL_DISCORD_FLOW_KEY);
+                sessionStorage.removeItem('panel_email_discord_guild_id');
+            } else if (emailLink) {
                 const { data: sessionData } = await panelAuthClient.auth.getSession();
                 if (!sessionData.session) {
                     setEmailMode('login');
@@ -370,6 +375,7 @@
                 sessionStorage.setItem(EMAIL_DISCORD_FLOW_KEY, '1');
             } else {
                 sessionStorage.removeItem(EMAIL_DISCORD_FLOW_KEY);
+                sessionStorage.removeItem(CREATE_ORGANIZATION_FLOW_KEY);
                 sessionStorage.removeItem('panel_email_discord_guild_id');
             }
             const oauthState = crypto.randomUUID();
@@ -524,6 +530,14 @@
             fastLabel.insertAdjacentElement('afterend', discordButton);
             const discordSubtitle = discordButton.querySelector('.text-sm');
             if (discordSubtitle) discordSubtitle.textContent = 'Conectare rapidă și securizată prin Discord';
+
+            const createOrganizationButton = document.createElement('button');
+            createOrganizationButton.type = 'button';
+            createOrganizationButton.id = 'create-organization-voucher-btn';
+            createOrganizationButton.className = 'mt-3 flex w-full items-center justify-between gap-4 rounded-2xl border border-fuchsia-400/30 bg-fuchsia-500/10 px-5 py-4 text-left transition hover:-translate-y-0.5 hover:border-fuchsia-300/60 hover:bg-fuchsia-500/20';
+            createOrganizationButton.innerHTML = '<span><span class="block text-sm font-black text-fuchsia-100">Nu ai organizație?</span><span class="mt-1 block text-xs text-fuchsia-200/75">Creează una folosind un voucher</span></span><span class="text-xl font-black text-fuchsia-200">→</span>';
+            discordButton.insertAdjacentElement('afterend', createOrganizationButton);
+            createOrganizationButton.addEventListener('click', () => startDiscordOAuth(false, true));
         }
 
         const discordConfig = window.PANEL_DISCORD_CONFIG || {};
@@ -737,6 +751,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (!discordData.id) {
                     throw new Error('Profil Discord invalid.');
+                }
+
+                if (sessionStorage.getItem(CREATE_ORGANIZATION_FLOW_KEY) === '1') {
+                    localStorage.setItem('discord_user', JSON.stringify({
+                        discord_id: discordData.id,
+                        username: discordData.username || 'utilizator',
+                        display_name: discordData.global_name || discordData.username || 'utilizator',
+                        avatar: discordData.avatar ? `https://cdn.discordapp.com/avatars/${discordData.id}/${discordData.avatar}.png` : 'img/logo-192.png',
+                        role: ''
+                    }));
+                    localStorage.setItem('discord_access_token', token);
+                    sessionStorage.removeItem(CREATE_ORGANIZATION_FLOW_KEY);
+                    window.location.href = 'organizatie-noua.html?source=login';
+                    return;
                 }
 
                 if (emailCreateOrganization) {
