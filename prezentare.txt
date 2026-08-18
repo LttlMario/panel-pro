@@ -64,13 +64,9 @@ statusuri Draft, Activă, Grație și Pauză;
 
 reactivare fără pierderea datelor.
 
-Preț pentru 30 de zile: 4.000 Gold sau 2.000.000$.
+Ofertă promoțională pentru prima lună: 2.160 Gold sau 1.080.000$.
 
-Perioade extinse:
-
-3 luni: 10.800 Gold sau 5.400.000$ (-10%);
-
-6 luni: 20.400 Gold sau 10.200.000$ (-15%).
+Începând cu luna a doua, tariful Standard este de 4.000 Gold sau 2.000.000$ pe lună.
 
 Pachetul Standard este potrivit pentru o organizație care dorește toate funcțiile importante într-o singură structură, cu o configurare simplă și eficientă.
 
@@ -114,13 +110,9 @@ configurare avansată a accesului pe roluri;
 
 funcții avansate cu acces controlat, în funcție de permisiunile organizației.
 
-Preț pentru 30 de zile: 6.000 Gold sau 3.000.000$.
+Ofertă promoțională pentru prima lună: 4.440 Gold sau 2.220.000$.
 
-Perioade extinse:
-
-3 luni: 16.200 Gold sau 8.100.000$ (-10%);
-
-6 luni: 30.600 Gold sau 15.300.000$ (-15%).
+Începând cu luna a doua, tariful Full este de 6.000 Gold sau 3.000.000$ pe lună.
 
 Pachetul Full este recomandat organizațiilor care folosesc mai multe structuri, au mai multe roluri și doresc o administrare mai complexă și mai bine automatizată.
 

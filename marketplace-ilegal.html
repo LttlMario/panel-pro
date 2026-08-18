@@ -380,7 +380,7 @@
 
                 let { data: dbUser, error: dbError } = await supabaseClient
                     .from('users')
-                    .select('discord_id,username,display_name,avatar,role,default_role,discord_role_ids')
+                    .select('discord_id,username,display_name,avatar,role,default_role')
                     .eq('discord_id', localData.discord_id)
                     .maybeSingle();
 
