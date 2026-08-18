@@ -144,6 +144,7 @@ function initDemoShell() {
     demoNav.innerHTML = `<p class="nav-label">Operațiuni</p>
       <button class="demo-nav-item is-active" data-demo="dashboard"><span class="nav-icon">▣</span> Dashboard</button>
       <button class="demo-nav-item" data-demo="anunturi"><span class="nav-icon">▰</span> Anunțuri &amp; Sondaje</button>
+      <button class="demo-nav-item" data-demo="asistent"><span class="nav-icon">✦</span> Asistent Panel</button>
       <button class="demo-nav-item" data-demo="pontaj"><span class="nav-icon">◷</span> Pontaj</button>
       <button class="demo-nav-item" data-demo="cereri"><span class="nav-icon">▱</span> Cereri / Absențe</button>
       <button class="demo-nav-item" data-demo="contracte"><span class="nav-icon">▤</span> Contracte</button>
