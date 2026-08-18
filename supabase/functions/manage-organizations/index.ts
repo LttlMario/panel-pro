@@ -607,6 +607,17 @@ if (
 }
 if (Array.isArray(body.roles)) {
 
+  const { data: organizationPackage, error: packageError } = await db
+    .from('app_settings')
+    .select('value')
+    .eq('organization_id', organizationId)
+    .eq('key', 'organization_package')
+    .maybeSingle();
+  if (packageError) throw packageError;
+  if (organizationPackage?.value?.code !== 'full' && body.roles.length > 10) {
+    throw new Error('Pachetul Standard permite maximum 10 roluri.');
+  }
+
   /*
    * Ștergem mapările vechi ale organizației.
    * Rolurile sunt reconstruite din configurația trimisă
@@ -746,104 +757,41 @@ if (Array.isArray(body.roles)) {
       const code = String(body.voucher_code || '').trim().toUpperCase();
       if (!organizationId || !code) return reply({ error: 'Organizatia si voucherul sunt obligatorii.' }, 400);
       if (organizationId !== String(session.organization_id)) return reply({ error: 'Voucherul poate fi folosit doar pentru organizatia activa.' }, 403);
+      if (!validOrganizationId(organizationId)) return reply({ error: 'ID-ul organizației este invalid.' }, 400);
 
-      const { data: voucher, error: voucherError } = await db
-        .from('organization_vouchers')
-        .select('*')
-        .eq('code', code)
-        .maybeSingle();
-      if (voucherError) throw voucherError;
-      if (!voucher || voucher.redeemed_at) return reply({ error: 'Voucher invalid sau deja folosit.' }, 400);
-
-      const durationDays = Number(voucher.duration_days);
-      if (!Number.isFinite(durationDays) || durationDays <= 0) return reply({ error: 'Durata voucherului este invalida.' }, 400);
-
-      const { data: existingAccess, error: accessError } = await db
-        .from('app_settings')
-        .select('value')
-        .eq('organization_id', organizationId)
-        .eq('key', 'organization_access')
-        .maybeSingle();
-      if (accessError) throw accessError;
-
-      const existingExpiry = String(existingAccess?.value?.expires_at || '').trim();
-      const existingExpiryMs = existingExpiry ? Date.parse(existingExpiry) : NaN;
-      const baseMs = Number.isFinite(existingExpiryMs) && existingExpiryMs > Date.now()
-        ? existingExpiryMs
-        : Date.now();
-      const expires = new Date(baseMs + durationDays * 86400000).toISOString();
-
-      const { data: organization, error: organizationError } = await db
-        .from('organizations')
-        .select('id,lifecycle_status,active')
-        .eq('id', organizationId)
-        .maybeSingle();
-      if (organizationError) throw organizationError;
-      if (!organization) return reply({ error: 'Organizatia nu exista.' }, 404);
-
-      const { data: used, error: usedError } = await db
-        .from('organization_vouchers')
-        .update({
-          redeemed_at: new Date().toISOString(),
-          redeemed_by_discord_id: session.discord_id,
-          redeemed_organization_id: organizationId,
-          organization_id: organizationId
-        })
-        .eq('id', voucher.id)
-        .is('redeemed_at', null)
-        .select('id')
-        .maybeSingle();
-      if (usedError) throw usedError;
-      if (!used) return reply({ error: 'Voucherul a fost folosit intre timp.' }, 409);
-
-      const { error: updateError } = await db
-        .from('organizations')
-        .update({
-          active: true,
-          lifecycle_status: 'active',
-          grace_until: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', organizationId);
-      if (updateError) throw updateError;
-
-      const { error: settingError } = await db
-        .from('app_settings')
-        .upsert({
-          organization_id: organizationId,
-          key: 'organization_access',
-          value: { expires_at: expires },
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'organization_id,key' });
-      if (settingError) throw settingError;
-
-      await audit(db, session, 'organization_voucher_redeemed', organizationId, {
-        voucher_id: voucher.id,
-        duration_days: durationDays,
-        previous_expires_at: existingExpiry || null,
-        expires_at: expires
+      const { data: redeemedRows, error: redeemError } = await db.rpc('redeem_voucher_reactivate_organization', {
+        p_code: code,
+        p_discord_id: session.discord_id,
+        p_organization_id: organizationId
       });
-      return reply({ ok: true, expires_at: expires, added_days: durationDays });
-    }
-     if(false && body.action==='reactivate_with_voucher'){
-       if(String(body.organization_id||'').trim()!==String(session.organization_id))return reply({error:'Voucherul poate fi folosit doar pentru organizatia activa.'},403);
-       if(String(body.organization_id||'').trim()!==String(session.organization_id))return reply({error:'Voucherul poate fi folosit doar pentru organizaÈ›ia activÄƒ.'},403);
-      const organizationId=String(body.organization_id||'').trim(),code=String(body.voucher_code||'').trim().toUpperCase();if(!organizationId||!code)return reply({error:'Organizația și voucherul sunt obligatorii.'},400);const {data:voucher,error:voucherError}=await db.from('organization_vouchers').select('*').eq('code',code).maybeSingle();if(voucherError)throw voucherError;if(!voucher||voucher.redeemed_at)return reply({error:'Voucher invalid sau deja folosit.'},400);const expires=new Date(Date.now()+Number(voucher.duration_days||30)*86400000).toISOString();const {data:used,error:usedError}=await db.from('organization_vouchers').update({redeemed_at:new Date().toISOString(),redeemed_by_discord_id:session.discord_id,redeemed_organization_id:organizationId,organization_id:organizationId}).eq('id',voucher.id).is('redeemed_at',null).select('id').maybeSingle();if(usedError)throw usedError;if(!used)return reply({error:'Voucherul a fost folosit între timp.'},409);await db.from('organizations').update({active:true,lifecycle_status:'active',grace_until:null,updated_at:new Date().toISOString()}).eq('id',organizationId);await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_access',value:{expires_at:expires},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});return reply({ok:true,expires_at:expires});
+      if (redeemError) {
+        const message = String(redeemError.message || 'Eroare la reactivarea organizației.');
+        return reply({ error: message }, redeemError.code === 'P0001' ? 409 : 500);
+      }
+      const redeemed = Array.isArray(redeemedRows) ? redeemedRows[0] : redeemedRows;
+      if (!redeemed?.access_expires_at) return reply({ error: 'Voucherul nu a putut fi aplicat.' }, 500);
+      await audit(db, session, 'organization_voucher_redeemed', organizationId, {
+        duration_days: redeemed.added_days,
+        expires_at: redeemed.access_expires_at,
+        package_code: redeemed.package_code,
+        package_features: redeemed.package_features || []
+      });
+      return reply({ ok: true, expires_at: redeemed.access_expires_at, added_days: redeemed.added_days, package_code: redeemed.package_code, package_features: redeemed.package_features || [] });
     }
     if(body.action==='set_package'){
       const organizationId=String(body.organization_id||'').trim(),code=String(body.package_code||'standard');if(!validOrganizationId(organizationId)||!['standard','full'].includes(code))return reply({error:'Organizația sau pachetul este invalid.'},400);const unlimited=body.unlimited===true;const expiresAt=unlimited?null:String(body.expires_at||'').trim()||null;if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))return reply({error:'Data expirării pachetului este invalidă.'},400);const requestedFeatures=Array.isArray(body.features)?[...new Set(body.features.map(String).filter((feature:string)=>Object.prototype.hasOwnProperty.call(PACKAGE_FEATURES,feature)))]:null;const features=code==='full'?[...FULL_PACKAGE_FEATURES]:[...new Set([...STANDARD_PACKAGE_FEATURES,...(requestedFeatures||[])])];const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_package',value:{code,unlimited,expires_at:expiresAt,features},updated_at:nowIso()},{onConflict:'organization_id,key'});if(error)throw error;await audit(db,session,'organization_package_changed',organizationId,{code,unlimited,expires_at:expiresAt,features});return reply({ok:true,package:{code,unlimited,expires_at:expiresAt,features}});
     }
     if(body.action==='list_vouchers'){
-      const {data,error}=await db.from('organization_vouchers').select('id,code,package_code,duration_days,guild_id,organization_id,redeemed_organization_id,redeemed_by_discord_id,redeemed_at,created_at').order('created_at',{ascending:false}).limit(500);if(error)throw error;return reply({ok:true,vouchers:data||[]});
+      const {data,error}=await db.from('organization_vouchers').select('id,code,package_code,features,duration_days,guild_id,organization_id,redeemed_organization_id,redeemed_by_discord_id,redeemed_at,expires_at,revoked_at,revoked_by_discord_id,revoked_reason,created_at').order('created_at',{ascending:false}).limit(500);if(error)throw error;return reply({ok:true,vouchers:data||[]});
     }
     if(body.action==='delete_voucher'){
-      const id=String(body.voucher_id||'').trim();if(!id)return reply({error:'Voucherul lipsește.'},400);const {data,error}=await db.from('organization_vouchers').delete().eq('id',id).is('redeemed_at',null).select('id,code').maybeSingle();if(error)throw error;if(!data)return reply({error:'Voucherul nu există sau a fost deja folosit.'},404);return reply({ok:true,deleted:data});
+      const id=String(body.voucher_id||'').trim();const reason=String(body.reason||'Șters de administrator').trim().slice(0,200);if(!id)return reply({error:'Voucherul lipsește.'},400);const {data,error}=await db.from('organization_vouchers').update({revoked_at:nowIso(),revoked_by_discord_id:session.discord_id,revoked_reason:reason||'Șters de administrator'}).eq('id',id).is('redeemed_at',null).is('revoked_at',null).select('id,code,revoked_at').maybeSingle();if(error)throw error;if(!data)return reply({error:'Voucherul nu există, a fost folosit sau a fost deja revocat.'},404);if(validOrganizationId(String(session.organization_id||'')))await db.from('admin_audit_log').insert({organization_id:session.organization_id,actor_discord_id:session.discord_id,action:'organization_voucher_revoked',target_type:'voucher',target_id:String(data.id),details:{code:data.code,reason,operation:'delete_voucher'}});return reply({ok:true,revoked:data});
     }
     if(body.action==='revoke_voucher'){
-      const id=String(body.voucher_id||'').trim();const {data,error}=await db.from('organization_vouchers').delete().eq('id',id).is('redeemed_at',null).select('id,code').maybeSingle();if(error)throw error;if(!data)return reply({error:'Voucherul nu există sau a fost deja folosit.'},404);return reply({ok:true,deleted:data});
+      const id=String(body.voucher_id||'').trim();const reason=String(body.reason||'Revocat de administrator').trim().slice(0,200);if(!id)return reply({error:'Voucherul lipsește.'},400);const {data,error}=await db.from('organization_vouchers').update({revoked_at:nowIso(),revoked_by_discord_id:session.discord_id,revoked_reason:reason||'Revocat de administrator'}).eq('id',id).is('redeemed_at',null).is('revoked_at',null).select('id,code,revoked_at').maybeSingle();if(error)throw error;if(!data)return reply({error:'Voucherul nu există, a fost folosit sau a fost deja revocat.'},404);if(validOrganizationId(String(session.organization_id||'')))await db.from('admin_audit_log').insert({organization_id:session.organization_id,actor_discord_id:session.discord_id,action:'organization_voucher_revoked',target_type:'voucher',target_id:String(data.id),details:{code:data.code,reason,operation:'revoke_voucher'}});return reply({ok:true,revoked:data});
     }
     if(body.action==='generate_vouchers'){
-      const packageCode=String(body.package_code||'standard');const count=Math.max(1,Math.min(100,Number(body.count)||1));const duration=Math.max(1,Math.min(3650,Number(body.duration_days)||30));const guildId=String(body.guild_id||'').trim();if(!['standard','full'].includes(packageCode))return reply({error:'Pachet invalid.'},400);if(guildId&&!/^\d{15,22}$/.test(guildId))return reply({error:'Guild ID invalid.'},400);const rows:any[]=[];for(let i=0;i<count;i++){const bytes=crypto.getRandomValues(new Uint8Array(9));const code=`${packageCode.toUpperCase()}-${Array.from(bytes).map(value=>value.toString(36).padStart(2,'0')).join('').slice(0,12).toUpperCase()}`;rows.push({code,package_code:packageCode,duration_days:duration,guild_id:guildId||null,created_by_discord_id:session.discord_id});}const {data,error}=await db.from('organization_vouchers').insert(rows).select('code,package_code,duration_days,guild_id,created_at');if(error)throw error;return reply({ok:true,vouchers:data||[]});
+      const packageCode=String(body.package_code||'standard');const count=Math.max(1,Math.min(100,Number(body.count)||1));const duration=Math.max(1,Math.min(3650,Number(body.duration_days)||30));const guildId=String(body.guild_id||'').trim();if(!['standard','full'].includes(packageCode))return reply({error:'Pachet invalid.'},400);if(guildId&&!/^\d{15,22}$/.test(guildId))return reply({error:'Guild ID invalid.'},400);const features=packageCode==='full'?[...FULL_PACKAGE_FEATURES]:[...STANDARD_PACKAGE_FEATURES];const redemptionDeadline=new Date(Date.now()+365*86400000).toISOString();const rows:any[]=[];for(let i=0;i<count;i++){const bytes=crypto.getRandomValues(new Uint8Array(9));const code=`${packageCode.toUpperCase()}-${Array.from(bytes).map(value=>value.toString(36).padStart(2,'0')).join('').slice(0,12).toUpperCase()}`;rows.push({code,package_code:packageCode,features,duration_days:duration,expires_at:redemptionDeadline,guild_id:guildId||null,created_by_discord_id:session.discord_id});}const {data,error}=await db.from('organization_vouchers').insert(rows).select('code,package_code,features,duration_days,guild_id,expires_at,created_at');if(error)throw error;if(validOrganizationId(String(session.organization_id||''))){await db.from('admin_audit_log').insert({organization_id:session.organization_id,actor_discord_id:session.discord_id,action:'organization_vouchers_generated',target_type:'voucher_batch',target_id:null,details:{package_code:packageCode,count:rows.length,duration_days:duration,guild_id:guildId||null,redemption_deadline:redemptionDeadline}});}return reply({ok:true,vouchers:data||[]});
     }
     if(body.action==='extend'){
       const organizationId=String(body.organization_id||'').trim(),expiresAt=String(body.expires_at||'').trim();if(!validOrganizationId(organizationId)||Number.isNaN(Date.parse(expiresAt))||Date.parse(expiresAt)<=Date.now())return reply({error:'Alege o dată viitoare pentru prelungire.'},400);

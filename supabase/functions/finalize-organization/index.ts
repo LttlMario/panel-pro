@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     if (!roles.length) return reply({ error: 'Configurează și salvează cel puțin un rol.' }, 400);
     const { data: packageSetting } = await db.from('app_settings').select('value').eq('organization_id', id).eq('key', 'organization_package').maybeSingle();
     const premium = packageSetting?.value?.code === 'full';
-    if (!premium && roles.length > 6) return reply({ error: 'Standard permite maximum 6 roluri.' }, 400);
+    if (!premium && roles.length > 10) return reply({ error: 'Standard permite maximum 10 roluri.' }, 400);
     const { data: guilds } = await db.from('organization_guilds').select('id').eq('organization_id', id).eq('enabled', true);
     if (!guilds?.length) return reply({ error: 'Adaugă un Guild Discord înainte de activare.' }, 400);
     if (!premium && guilds.length > 1) return reply({ error: 'Standard permite un singur server.' }, 400);

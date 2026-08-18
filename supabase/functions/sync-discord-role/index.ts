@@ -66,9 +66,10 @@ Deno.serve(async (request) => {
     if (syncAllowed === false) return reply({ error: 'Prea multe verificări. Așteaptă câteva minute și încearcă din nou.' }, 429);
 
     if (voucherCode) {
-      const { data: voucher, error: voucherError } = await db.from('organization_vouchers').select('guild_id,redeemed_at,redeemed_organization_id,expires_at').eq('code', voucherCode).maybeSingle();
+      const { data: voucher, error: voucherError } = await db.from('organization_vouchers').select('guild_id,redeemed_at,redeemed_organization_id,expires_at,revoked_at').eq('code', voucherCode).maybeSingle();
       if (voucherError) throw voucherError;
       if (!voucher) return reply({ error: 'Voucherul nu existÄƒ.' }, 400);
+      if (voucher.revoked_at) return reply({ error: 'Voucherul a fost revocat.' }, 409);
       if (voucher.redeemed_at || voucher.redeemed_organization_id) return reply({ error: 'Voucherul a fost deja folosit.' }, 409);
       if (voucher.expires_at && Date.parse(String(voucher.expires_at)) <= Date.now()) return reply({ error: 'Voucherul a expirat.' }, 400);
       const voucherGuild = String(voucher.guild_id || '').trim();
