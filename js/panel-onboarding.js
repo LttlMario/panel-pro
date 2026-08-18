@@ -84,8 +84,8 @@
             page: 'craftmecanics.html',
             selector: 'main',
             section: 'Instrumente',
-            title: 'Craft Mecanics',
-            text: 'În Craft Mecanics găsești rețete, echipamente și explicații pentru activitățile mecanicilor. Poți căuta articole și deschide detaliile atunci când rolul tău are acces la această secțiune.'
+            title: 'Craft Mecanic',
+            text: 'În Craft Mecanic găsești rețete, echipamente și explicații pentru activitățile mecanicilor. Poți căuta articole și deschide detaliile atunci când rolul tău are acces la această secțiune.'
         },
         {
             page: 'contracte.html',

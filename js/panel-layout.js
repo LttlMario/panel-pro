@@ -649,7 +649,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (currentPage === 'craftmecanics.html') {
             if (!header) return;
             header.className = 'panel-global-header';
-            header.innerHTML = '<div class="panel-global-title"><h2>🔨 Craft Mechanics</h2><p>Galerie capturi, rețete și echipamente.</p></div>';
+            header.innerHTML = '<div class="panel-global-title"><h2>🔨 Craft Mecanic</h2><p>Galerie capturi, rețete și echipamente.</p></div>';
             return;
         }
         if (currentPage === 'bucatarie.html') {
@@ -789,7 +789,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 ['marketplace.html', '🛒', 'Marketplace'],
                 ['calculator.html', '🧮', 'Calculator'],
                 ['bucatarie.html', '🍳', 'Bucătărie'],
-                ['craftmecanics.html', '🔨', 'Craft Mecanics']
+                ['craftmecanics.html', '🔨', 'Craft Mecanic']
             ]],
             ['ilegal', 'Resurse ilegale', [
                 ['calculatorilegal.html', '🧮', 'Calculator Ilegal'],

@@ -8,14 +8,14 @@
   const pages = [
     ['index.html', 'Dashboard'], ['anunturi.html', 'Anunțuri și sondaje'], ['pontaj.html', 'Pontaj'],
     ['cereri.html', 'Cereri și absențe'], ['bucatarie.html', 'Bucătărie'], ['contracte.html', 'Contracte'],
-    ['calculatorilegal.html', 'Calculator ilegal'], ['craftmecanics.html', 'Craft Mecanics'],
+    ['calculatorilegal.html', 'Calculator ilegal'], ['craftmecanics.html', 'Craft Mecanic'],
     ['locatiiilegale.html', 'Locații ilegale'], ['marketplace.html', 'Marketplace legal'],
     ['marketplace-ilegal.html', 'Marketplace ilegal'], ['rapoarte.html', 'Rapoarte'], ['asistent.html', 'Asistent']
   ];
   const assistantGroups = [
     { key: 'general', label: 'Generale', pages: [['index.html', 'Dashboard'], ['pontaj.html', 'Pontaj'], ['cereri.html', 'Cereri și absențe'], ['bucatarie.html', 'Bucătărie'], ['asistent.html', 'Asistent']] },
     { key: 'legal', label: 'Legale', pages: [['anunturi.html', 'Anunțuri și sondaje'], ['contracte.html', 'Contracte'], ['marketplace.html', 'Marketplace legal'], ['rapoarte.html', 'Rapoarte']] },
-    { key: 'illegal', label: 'Ilegale', pages: [['calculatorilegal.html', 'Calculator ilegal'], ['craftmecanics.html', 'Craft Mecanics'], ['locatiiilegale.html', 'Locații ilegale'], ['marketplace-ilegal.html', 'Marketplace ilegal']] }
+    { key: 'illegal', label: 'Ilegale', pages: [['calculatorilegal.html', 'Calculator ilegal'], ['craftmecanics.html', 'Craft Mecanic'], ['locatiiilegale.html', 'Locații ilegale'], ['marketplace-ilegal.html', 'Marketplace ilegal']] }
   ];
   const webhookDefinitions = [
     ['organization', 'Anunțuri organizație', 'Anunțurile publicate exclusiv pentru membrii organizației.'],

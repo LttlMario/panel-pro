@@ -30,7 +30,7 @@ Calculator;
 
 Bucătărie;
 
-Craft Mechanics;
+Craft Mecanic;
 
 Marketplace;
 
