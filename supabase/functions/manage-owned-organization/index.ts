@@ -15,7 +15,7 @@ const webhookChannels = new Set([
   'organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization',
   'requests_departments', 'contracts', 'marketplace', 'illegal_marketplace',
   'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments',
-  'sanctions_organization', 'sanctions_departments', 'status_live'
+  'sanctions_organization', 'sanctions_departments', 'status_live', 'organization_expiration'
 ]);
 const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
 const webhookFeature = (channel: string) => fullOnlyWebhookChannels.has(channel)

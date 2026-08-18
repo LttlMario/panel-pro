@@ -28,7 +28,8 @@
     ['illegal_marketplace', 'Marketplace ilegal', 'Anunțurile publicate în marketplace-ul ilegal.'],
     ['fines_organization', 'Amenzi organizație', 'Amenzile publicate pentru membrii organizației.'],
     ['fines_departments', 'Amenzi Birouri / Angajați', 'Amenzile publicate pentru Birouri / Angajați.'],
-    ['status_live', 'Status Live', 'Embed Discord actualizat cu turele active și angajații aflați în pauză.']
+    ['status_live', 'Status Live', 'Embed Discord actualizat cu turele active și angajații aflați în pauză.'],
+    ['organization_expiration', 'Expirare organizație', 'Alerte automate cu 7, 3 și 1 zi înainte de expirare, inclusiv linkuri pentru administrare și voucher.']
   ];
   const fullOnlyWebhookKeys = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
   const defaultTemplate = `CONTRACT INDIVIDUAL\n\nAngajator: {{COMPANY}}, reprezentată de {{MANAGER}}.\nAdresă: {{ADDRESS}}.\nAngajat: {{EMPLOYEE_NAME}}, CNP {{CNP}}, telefon {{PHONE}}.\nFuncție: {{POSITION}}.\nSalariu: {{SALARY}}.\nProgram: {{PROGRAM}}.\nData începerii: {{START_DATE}}.\nNumăr contract: {{CONTRACT_NUMBER}}.`;

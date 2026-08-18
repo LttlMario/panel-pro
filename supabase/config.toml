@@ -22,6 +22,9 @@ verify_jwt = false
 [functions.send-weekly-shift-report]
 verify_jwt = false
 
+[functions.send-organization-expiry-notifications]
+verify_jwt = false
+
 [functions.manage-admin-center]
 verify_jwt = false
 
