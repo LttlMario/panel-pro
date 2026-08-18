@@ -34,6 +34,19 @@ Deno.serve(async (request) => {
       return reply({ error: error instanceof Error ? error.message : 'Sesiunea Discord nu este validă.' }, 401);
     }
 
+    const requestIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown')
+      .split(',')[0].trim().slice(0, 120);
+    const { data: accountActionAllowed, error: accountRateError } = await db.rpc('consume_panel_rate_limit', {
+      p_key: `discord-account:${session.discord_id}:${requestIp}`,
+      p_limit: 30,
+      p_window_seconds: 900,
+    });
+    if (accountRateError) {
+      console.error('Discord account rate-limit unavailable:', accountRateError.message);
+      return reply({ error: 'Protecția anti-abuz este temporar indisponibilă. Încearcă din nou în câteva minute.' }, 503);
+    }
+    if (accountActionAllowed === false) return reply({ error: 'Prea multe acțiuni asupra contului. Așteaptă câteva minute și încearcă din nou.' }, 429);
+
     const body = await request.json().catch(() => ({}));
     const action = String(body.action || 'get_account').trim();
     if (!['get_account', 'update_avatar', 'revoke_sessions'].includes(action)) {

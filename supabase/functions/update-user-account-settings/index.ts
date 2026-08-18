@@ -48,6 +48,19 @@ Deno.serve(async (request) => {
     const { data: authData, error: authError } = await db.auth.getUser(jwt);
     if (authError || !authData.user) return reply({ error: 'Sesiunea contului nu este validă.' }, 401);
 
+    const requestIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown')
+      .split(',')[0].trim().slice(0, 120);
+    const { data: updateAllowed, error: updateRateError } = await db.rpc('consume_panel_rate_limit', {
+      p_key: `email-profile-update:${authData.user.id}:${requestIp}`,
+      p_limit: 30,
+      p_window_seconds: 900,
+    });
+    if (updateRateError) {
+      console.error('Email profile update rate-limit unavailable:', updateRateError.message);
+      return reply({ error: 'Protecția anti-abuz este temporar indisponibilă. Încearcă din nou în câteva minute.' }, 503);
+    }
+    if (updateAllowed === false) return reply({ error: 'Prea multe modificări de profil. Așteaptă câteva minute și încearcă din nou.' }, 429);
+
     const { data: account, error } = await db
       .from('user_accounts')
       .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })

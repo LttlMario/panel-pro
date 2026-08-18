@@ -259,6 +259,19 @@ if (request.method === 'OPTIONS') {
         levels[finalChannel]
       );
 
+    const requestIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown')
+      .split(',')[0].trim().slice(0, 120);
+    const { data: notificationAllowed, error: notificationRateError } = await db.rpc('consume_panel_rate_limit', {
+      p_key: `discord-notification:${session.organization_id}:${session.discord_id}:${requestIp}`,
+      p_limit: 120,
+      p_window_seconds: 900,
+    });
+    if (notificationRateError) {
+      console.error('Discord notification rate-limit unavailable:', notificationRateError.message);
+      return reply({ error: 'Protecția anti-abuz este temporar indisponibilă. Încearcă din nou în câteva minute.' }, 503);
+    }
+    if (notificationAllowed === false) return reply({ error: 'Ai atins limita temporară de notificări Discord. Încearcă din nou mai târziu.' }, 429);
+
 
     if (!session?.organization_id) {
 

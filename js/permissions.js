@@ -44,7 +44,16 @@ function getUser() {
 
 
 function isLogged() {
-    return getUser() !== null;
+    const user = getUser();
+    if (!user) return false;
+
+    // A cached profile alone must never open a protected page. The opaque
+    // server session is the actual proof that the access was issued and has
+    // not expired or been revoked locally.
+    const sessionToken = localStorage.getItem('panel_session_token') || '';
+    const expiresValue = localStorage.getItem('panel_session_expires_at') || '';
+    const expiresAt = Number(expiresValue) || Date.parse(expiresValue) || 0;
+    return Boolean(sessionToken && expiresAt > Date.now());
 }
 
 
@@ -783,7 +792,9 @@ function startPanelSessionHeartbeat() {
         }
     };
 
-    window.setTimeout(sendHeartbeat, 1000);
+    // Validate immediately on every protected page load so a deleted
+    // organization or removed Discord member is not given a stale window.
+    sendHeartbeat();
     window.setInterval(sendHeartbeat, 15000);
 }
 
