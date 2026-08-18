@@ -800,6 +800,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 ['logs.html', '🧾', 'Loguri'],
                 ['diagnostic.html', '🩺', 'Verificare sistem'],
                 ['discord-configurare.html', '⚙️', 'Configurare Discord'],
+                ['administrare-organizatii-platforma.html', '🗂️', 'Administrare organizații'],
                 ['organizatii.html', '🏢', 'Organizații platformă'],
                 ['developer.html', '🛠️', 'Developer'],
                 ['admin.html', '👑', 'Panou Admin']
