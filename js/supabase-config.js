@@ -13,6 +13,49 @@ window.clearPanelSession = function clearPanelSession() {
     localStorage.removeItem('panel_session_token');
     localStorage.removeItem('panel_session_expires_at');
 };
+
+// Discord OAuth tokens are bearer credentials. Keep them only in the current
+// tab and migrate any legacy localStorage value once, then remove it.
+window.getPanelDiscordAccessToken = function getPanelDiscordAccessToken() {
+    return window.sessionStorage.getItem('discord_access_token') || '';
+};
+window.setPanelDiscordAccessToken = function setPanelDiscordAccessToken(token) {
+    window.localStorage.removeItem('discord_access_token');
+    if (token) window.sessionStorage.setItem('discord_access_token', String(token));
+    else window.sessionStorage.removeItem('discord_access_token');
+};
+window.clearPanelDiscordAccessToken = function clearPanelDiscordAccessToken() {
+    window.localStorage.removeItem('discord_access_token');
+    window.sessionStorage.removeItem('discord_access_token');
+};
+(() => {
+    const legacyToken = window.localStorage.getItem('discord_access_token');
+    if (legacyToken) window.setPanelDiscordAccessToken(legacyToken);
+})();
+// Compatibility bridge for older page scripts: any legacy localStorage
+// access for this key is transparently redirected to sessionStorage.
+(() => {
+    const nativeGet = Storage.prototype.getItem;
+    const nativeSet = Storage.prototype.setItem;
+    const nativeRemove = Storage.prototype.removeItem;
+    Storage.prototype.getItem = function getItem(key) {
+        if (this === window.localStorage && key === 'discord_access_token') return window.sessionStorage.getItem(key);
+        return nativeGet.call(this, key);
+    };
+    Storage.prototype.setItem = function setItem(key, value) {
+        if (this === window.localStorage && key === 'discord_access_token') return window.sessionStorage.setItem(key, String(value));
+        return nativeSet.call(this, key, value);
+    };
+    Storage.prototype.removeItem = function removeItem(key) {
+        if (key === 'discord_access_token') {
+            if (this === window.localStorage) window.sessionStorage.removeItem(key);
+            else nativeRemove.call(this, key);
+            nativeRemove.call(window.localStorage, key);
+            return;
+        }
+        return nativeRemove.call(this, key);
+    };
+})();
 (() => {
     const expires = Number(localStorage.getItem('panel_session_expires_at') || 0);
     if (expires && expires <= Date.now()) window.clearPanelSession();
@@ -137,7 +180,7 @@ window.ensurePanelSession = async function ensurePanelSession() {
     if (panelSessionRefreshPromise) return panelSessionRefreshPromise;
 
     panelSessionRefreshPromise = (async () => {
-        const discordToken = localStorage.getItem('discord_access_token');
+        const discordToken = window.getPanelDiscordAccessToken();
         if (!discordToken) throw new Error('Sesiunea Discord lipsește. Autentifică-te din nou.');
         const result = await window.panelRequestJson('sync-discord-role', {
             method: 'POST',

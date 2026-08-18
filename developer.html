@@ -102,7 +102,7 @@
 
       const allowed = typeof isPlatformAdmin === "function"
         ? isPlatformAdmin()
-        : String(user?.discord_id || user?.id || user?.user_id || "") === "247012210021236738";
+        : user?.platform_admin === true || user?.is_platform_admin === true;
 
       document.getElementById(allowed ? "admin-content" : "access-denied").style.display = "block";
 

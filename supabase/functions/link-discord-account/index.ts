@@ -32,6 +32,19 @@ Deno.serve(async (request) => {
     if (authError || !authData.user) return reply({ error: 'Sesiunea email nu este validă.' }, 401);
     if (!authData.user.email_confirmed_at) return reply({ error: 'Confirmă mai întâi adresa de email.' }, 403);
 
+    const requestIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown')
+      .split(',')[0].trim().slice(0, 120);
+    const { data: linkAllowed, error: linkRateError } = await db.rpc('consume_panel_rate_limit', {
+      p_key: `discord-account-link:${authData.user.id}:${requestIp}`,
+      p_limit: 10,
+      p_window_seconds: 900,
+    });
+    if (linkRateError) {
+      console.error('Discord account link rate-limit unavailable:', linkRateError.message);
+      return reply({ error: 'Protecția anti-abuz este temporar indisponibilă. Încearcă din nou în câteva minute.' }, 503);
+    }
+    if (linkAllowed === false) return reply({ error: 'Prea multe încercări. Așteaptă 15 minute și încearcă din nou.' }, 429);
+
     const discordResponse = await fetch('https://discord.com/api/v10/users/@me', {
       headers: { Authorization: `Bearer ${discordAccessToken}` },
     });

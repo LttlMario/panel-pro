@@ -38,6 +38,19 @@ Deno.serve(async (request) => {
     if (authError || !authData.user) return reply({ error: 'Sesiunea email nu este validÄƒ.' }, 401);
     if (!authData.user.email_confirmed_at) return reply({ error: 'ConfirmÄƒ mai Ã®ntÃ¢i adresa de email.' }, 403);
 
+    const requestIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown')
+      .split(',')[0].trim().slice(0, 120);
+    const { data: linkAllowed, error: linkRateError } = await db.rpc('consume_panel_rate_limit', {
+      p_key: `email-discord-link:${authData.user.id}:${requestIp}`,
+      p_limit: 10,
+      p_window_seconds: 900,
+    });
+    if (linkRateError) {
+      console.error('Email/Discord link rate-limit unavailable:', linkRateError.message);
+      return reply({ error: 'Protecția anti-abuz este temporar indisponibilă. Încearcă din nou în câteva minute.' }, 503);
+    }
+    if (linkAllowed === false) return reply({ error: 'Prea multe încercări. Așteaptă 15 minute și încearcă din nou.' }, 429);
+
     const { data: account, error: accountError } = await db
       .from('user_accounts')
       .select('auth_user_id,username,discord_id,discord_guild_id')

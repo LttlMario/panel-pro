@@ -51,6 +51,18 @@ Deno.serve(async (request) => {
     if (!key) throw new Error('Cheia secretÄƒ Supabase lipseÈ™te.');
     if (!botToken) throw new Error('DISCORD_BOT_TOKEN lipseÈ™te. Botul comun trebuie configurat.');
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    const requestIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown')
+      .split(',')[0].trim().slice(0, 120);
+    const { data: syncAllowed, error: syncRateError } = await db.rpc('consume_panel_rate_limit', {
+      p_key: `discord-role-sync:ip:${requestIp}`,
+      p_limit: 120,
+      p_window_seconds: 900,
+    });
+    if (syncRateError) {
+      console.error('Discord role sync rate-limit unavailable:', syncRateError.message);
+      return reply({ error: 'Protecția anti-abuz este temporar indisponibilă. Încearcă din nou în câteva minute.' }, 503);
+    }
+    if (syncAllowed === false) return reply({ error: 'Prea multe verificări. Așteaptă câteva minute și încearcă din nou.' }, 429);
 
     if (voucherCode) {
       const { data: voucher, error: voucherError } = await db.from('organization_vouchers').select('guild_id,redeemed_at,redeemed_organization_id,expires_at').eq('code', voucherCode).maybeSingle();

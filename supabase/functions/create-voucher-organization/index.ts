@@ -28,16 +28,22 @@ Deno.serve(async (req) => {
     db = createClient(Deno.env.get('SUPABASE_URL')!, key);
     const requestIp = String(req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim().slice(0, 120);
     const { data: ipAllowed, error: ipRateError } = await db.rpc('consume_panel_rate_limit', { p_key: `voucher-create:ip:${requestIp}`, p_limit: 12, p_window_seconds: 900 });
-    if (ipRateError) console.warn('Voucher rate-limit migration is not available yet.', ipRateError.message);
-    if (ipRateError ? false : ipAllowed === false) return reply({ error: 'Prea multe încercări. Încearcă din nou mai târziu.' }, 429);
+    if (ipRateError) {
+      console.error('Voucher IP rate-limit unavailable:', ipRateError.message);
+      return reply({ error: 'Protecția anti-abuz este temporar indisponibilă. Încearcă din nou în câteva minute.' }, 503);
+    }
+    if (ipAllowed === false) return reply({ error: 'Prea multe încercări. Încearcă din nou mai târziu.' }, 429);
     const userResponse = await fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!userResponse.ok) return reply({ error: 'Sesiunea Discord a expirat. Revino la login.' }, 401);
     const discordUser = await userResponse.json();
     const discordId = String(discordUser.id || '');
     if (!discordId) return reply({ error: 'Profil Discord invalid.' }, 401);
     const { data: discordAllowed, error: discordRateError } = await db.rpc('consume_panel_rate_limit', { p_key: `voucher-create:discord:${discordId}`, p_limit: 5, p_window_seconds: 3600 });
-    if (discordRateError) console.warn('Voucher Discord rate-limit migration is not available yet.', discordRateError.message);
-    if (discordRateError ? false : discordAllowed === false) return reply({ error: 'Ai atins limita de creare a organizațiilor. Încearcă mai târziu.' }, 429);
+    if (discordRateError) {
+      console.error('Voucher Discord rate-limit unavailable:', discordRateError.message);
+      return reply({ error: 'Protecția anti-abuz este temporar indisponibilă. Încearcă din nou în câteva minute.' }, 503);
+    }
+    if (discordAllowed === false) return reply({ error: 'Ai atins limita de creare a organizațiilor. Încearcă mai târziu.' }, 429);
     const { data: voucher, error: voucherError } = await db.from('organization_vouchers').select('*').eq('code', code).maybeSingle();
     if (voucherError) throw voucherError;
     if (!voucher || voucher.redeemed_at) return reply({ error: 'Voucher invalid sau deja folosit.' }, 409);
