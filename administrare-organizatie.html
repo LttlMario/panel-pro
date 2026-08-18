@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="css/global-footer.css">
   <script src="js/supabase-config.js"></script>
     <script src="js/permissions.js?v=4.6.0"></script>
-    <script src="js/panel-layout.js?v=4.11.0"></script>
+    <script src="js/panel-layout.js?v=4.12.0"></script>
   <script src="js/global-footer.js"></script>
   <style>
     #organization-owner-main { width: 100%; min-height: calc(100vh - 96px); padding: 24px; }
@@ -50,7 +50,6 @@
             <label class="owner-label">Adresa organizației<input id="owner-org-address" class="owner-field" placeholder="Sediu sau punct de lucru"></label>
             <label class="owner-label md:col-span-2">Descrierea organizației<textarea id="owner-org-description" class="owner-field min-h-24" placeholder="Descriere scurtă (opțional)"></textarea></label>
             <label class="owner-label">Logo organizație (link)<input id="owner-org-logo" type="url" class="owner-field" placeholder="https://..."></label>
-            <label class="owner-label">Banner organizație (link)<input id="owner-org-banner" type="url" class="owner-field" placeholder="https://... (opțional)"></label>
             <div class="rounded-xl border border-slate-700 bg-slate-950 p-3"><span class="block text-xs font-bold text-slate-400">Server Discord principal</span><strong id="owner-guild-readonly" class="mt-1 block text-sm">Se încarcă...</strong><span class="mt-1 block text-xs text-slate-500">Guild ID-ul nu poate fi schimbat de aici.</span></div>
           </div>
 
@@ -162,7 +161,6 @@
           $('owner-org-address').value = org.address || '';
           $('owner-org-description').value = org.description || '';
           $('owner-org-logo').value = org.logo_url || '';
-          $('owner-org-banner').value = org.banner_url || '';
           const contract = data.contract_template || {};
           $('owner-contract-title').value = contract.title || '';
           $('owner-contract-salary').value = contract.defaults?.salary || '';
@@ -189,7 +187,7 @@
           const contractTemplate = title || template || salary ? { title, template, defaults: { salary } } : null;
           const roles = selectedOwnerRoles();
           if (!roles.length) throw new Error('Configurează cel puțin un rol Discord.');
-          const response = await call({ action: 'owner_update', organization_id: organizationId, organization: { name: $('owner-org-name').value.trim(), address: $('owner-org-address').value.trim(), description: $('owner-org-description').value.trim(), logo_url: $('owner-org-logo').value.trim(), banner_url: $('owner-org-banner').value.trim() }, webhook_routes: collectWebhooks(), contract_template: contractTemplate, roles, page_permissions: pagePermissions });
+          const response = await call({ action: 'owner_update', organization_id: organizationId, organization: { name: $('owner-org-name').value.trim(), address: $('owner-org-address').value.trim(), description: $('owner-org-description').value.trim(), logo_url: $('owner-org-logo').value.trim() }, webhook_routes: collectWebhooks(), contract_template: contractTemplate, roles, page_permissions: pagePermissions });
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || 'Modificările nu au putut fi salvate.');
           discoveredDiscordRoles = Array.isArray(data.discord_roles) ? data.discord_roles : discoveredDiscordRoles;

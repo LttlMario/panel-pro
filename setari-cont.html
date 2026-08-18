@@ -83,7 +83,39 @@
     async function getFreshEmailSession() { let { data, error } = await authClient.auth.getSession(); if (error || !data?.session || !isJwt(data.session.access_token)) { const refreshed = await authClient.auth.refreshSession(); data = refreshed.data; error = refreshed.error; } const session = data?.session || null; if (error || !session || !isJwt(session.access_token)) return null; currentSession = session; return session; }
     async function fetchAccount(mode, action, extra = {}) { const endpoint = mode === 'discord' ? 'manage-discord-account' : 'manage-email-account'; const headers = mode === 'discord' ? panelHeaders() : authHeaders(currentSession.access_token); const response = await fetch(`${config.url}/functions/v1/${endpoint}`, { method: 'POST', headers, body: JSON.stringify({ action, ...extra }) }); const payload = await response.json().catch(() => ({})); if (!response.ok) throw new Error(payload.error || 'Setarea contului nu a putut fi aplicată.'); return payload; }
     function fillAccount(account, mode) { currentAccount = account || {}; byId('account-username').textContent = account?.username || account?.display_name || '—'; byId('account-title').textContent = account?.username ? `Contul lui ${account.username}` : 'Contul meu'; byId('avatar-url').value = account?.avatar_url || account?.avatar || ''; byId('avatar-preview').src = account?.avatar_url || account?.avatar || fallbackAvatar; byId('account-email').textContent = mode === 'discord' ? 'Nu se folosește email pentru Fast Connect' : (currentSession?.user?.email || '—'); const connected = Boolean(account?.discord_id); byId('discord-status').textContent = mode === 'discord' ? '✓ Fast Connect Discord activ' : (connected ? `✓ Cont Discord conectat${account?.discord_guild_id ? ` · server ${account.discord_guild_id}` : ''}` : 'Cont Discord neconectat'); byId('discord-status').style.color = '#6ee7b7'; byId('disconnect-discord').disabled = !connected; byId('disconnect-discord').style.opacity = connected ? '1' : '.55'; }
-    async function loadSettings() { const emailSession = await getFreshEmailSession(); if (emailSession) { authMode = 'email'; setModeVisibility('email'); const payload = await fetchAccount('email', 'get_account'); if (!payload.account) throw new Error('Profilul contului nu există încă.'); fillAccount(payload.account, 'email'); } else if (localStorage.getItem('panel_session_token')) { authMode = 'discord'; setModeVisibility('discord'); const payload = await fetchAccount('discord', 'get_account'); fillAccount(payload.account, 'discord'); } else { byId('login-required').classList.remove('hidden'); return; } byId('settings-content').classList.remove('hidden'); byId('remember-setting').checked = localStorage.getItem('panel_remember_me') === '1'; }
+    const hasDirectDiscordSession = () => Boolean(
+      localStorage.getItem('panel_session_token') &&
+      localStorage.getItem('discord_user') &&
+      (window.getPanelDiscordAccessToken?.() || sessionStorage.getItem('discord_access_token'))
+    );
+    async function loadSettings() {
+      // Fast Connect Discord are prioritate față de o sesiune email rămasă în browser.
+      if (hasDirectDiscordSession()) {
+        authMode = 'discord';
+        setModeVisibility('discord');
+        const payload = await fetchAccount('discord', 'get_account');
+        fillAccount(payload.account, 'discord');
+      } else {
+        const emailSession = await getFreshEmailSession();
+        if (emailSession) {
+          authMode = 'email';
+          setModeVisibility('email');
+          const payload = await fetchAccount('email', 'get_account');
+          if (!payload.account) throw new Error('Profilul contului nu există încă.');
+          fillAccount(payload.account, 'email');
+        } else if (localStorage.getItem('panel_session_token')) {
+          authMode = 'discord';
+          setModeVisibility('discord');
+          const payload = await fetchAccount('discord', 'get_account');
+          fillAccount(payload.account, 'discord');
+        } else {
+          byId('login-required').classList.remove('hidden');
+          return;
+        }
+      }
+      byId('settings-content').classList.remove('hidden');
+      byId('remember-setting').checked = localStorage.getItem('panel_remember_me') === '1';
+    }
     window.bindPanelPasswordRules?.('new-password', 'account-password-rules');
     byId('avatar-url').addEventListener('input', () => { byId('avatar-preview').src = byId('avatar-url').value.trim() || fallbackAvatar; });
     byId('avatar-form').addEventListener('submit', async (event) => { event.preventDefault(); const avatarUrl = byId('avatar-url').value.trim(); if (avatarUrl && !/^https?:\/\//i.test(avatarUrl)) return setStatus('avatar-status', 'Introdu un link care începe cu https:// sau http://.', 'error'); setStatus('avatar-status', 'Se salvează…'); try { const payload = authMode === 'discord' ? await fetchAccount('discord', 'update_avatar', { avatar_url: avatarUrl }) : await fetch(`${config.url}/functions/v1/update-user-account-settings`, { method: 'POST', headers: authHeaders(currentSession.access_token), body: JSON.stringify({ avatar_url: avatarUrl }) }).then(async (response) => { const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.error || 'Poza nu a putut fi salvată.'); return body; }); const saved = payload.account?.avatar_url || payload.account?.avatar || ''; byId('avatar-preview').src = saved || fallbackAvatar; updateLocalAvatar(saved); setStatus('avatar-status', 'Poza de profil a fost salvată.', 'success'); } catch (error) { setStatus('avatar-status', error.message || 'Poza nu a putut fi salvată.', 'error'); } });
