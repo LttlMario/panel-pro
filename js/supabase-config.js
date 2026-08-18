@@ -7,6 +7,14 @@ window.PANEL_SUPABASE_CONFIG = Object.freeze({
     publishableKey: 'sb_publishable_gRM7uXmfknjfFiOg7jjqDA_y-VGPMVD'
 });
 
+// Logurile de depanare nu sunt afișate în producție. Pentru diagnostic local,
+// setează window.PANEL_DEBUG = true înainte de încărcarea acestui fișier.
+window.PANEL_DEBUG = window.PANEL_DEBUG === true;
+if (!window.PANEL_DEBUG) {
+    const quietConsole = () => {};
+    ['log', 'info', 'debug', 'warn'].forEach((method) => { console[method] = quietConsole; });
+}
+
 // Sesiunile opace au o durată limitată. Curățăm imediat tokenul expirat,
 // ca browserul să nu-l mai trimită către funcții sau către Supabase REST.
 window.clearPanelSession = function clearPanelSession() {
@@ -64,35 +72,35 @@ window.clearPanelDiscordAccessToken = function clearPanelDiscordAccessToken() {
 // Toate cererile către tabele transmit sesiunea opacă verificată de RLS.
 // Refolosim clientul pentru a evita mai multe GoTrueClient-uri în aceeași pagină.
 let panelSupabaseClientCache = null;
-let panelSupabaseClientCacheToken = null;
 
 window.createPanelSupabaseClient = function createPanelSupabaseClient() {
     const config = window.PANEL_SUPABASE_CONFIG;
-    const sessionToken = localStorage.getItem('panel_session_token') || '';
-
-    if (
-        panelSupabaseClientCache &&
-        panelSupabaseClientCacheToken === sessionToken
-    ) {
-        return panelSupabaseClientCache;
-    }
+    if (panelSupabaseClientCache) return panelSupabaseClientCache;
 
     panelSupabaseClientCache = window.supabase.createClient(config.url, config.publishableKey, {
-        global: { headers: sessionToken ? { 'X-Panel-Session': sessionToken } : {} },
+        global: {
+            fetch(input, init = {}) {
+                const headers = new Headers(init.headers || {});
+                const sessionToken = localStorage.getItem('panel_session_token') || '';
+                if (sessionToken) headers.set('X-Panel-Session', sessionToken);
+                return window.fetch(input, { ...init, headers });
+            }
+        },
         auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
     });
-
-    panelSupabaseClientCacheToken = sessionToken;
     return panelSupabaseClientCache;
 };
 
 // Client separat pentru conturile email. Nu îl folosim pentru permisiunile panelului;
 // acesta gestionează doar sesiunea Auth, confirmarea emailului și recuperarea parolei.
+const panelAuthClientCache = new Map();
 window.createPanelAuthClient = function createPanelAuthClient(options = {}) {
     const config = window.PANEL_SUPABASE_CONFIG;
     const persistSession = options.persistSession !== false;
+    const cacheKey = persistSession ? 'persistent' : 'tab';
+    if (panelAuthClientCache.has(cacheKey)) return panelAuthClientCache.get(cacheKey);
     const storage = persistSession ? window.localStorage : window.sessionStorage;
-    return window.supabase.createClient(config.url, config.publishableKey, {
+    const client = window.supabase.createClient(config.url, config.publishableKey, {
         auth: {
             persistSession,
             autoRefreshToken: true,
@@ -101,6 +109,8 @@ window.createPanelAuthClient = function createPanelAuthClient(options = {}) {
             storageKey: persistSession ? 'panel-email-auth' : 'panel-email-auth-tab'
         }
     });
+    panelAuthClientCache.set(cacheKey, client);
+    return client;
 };
 
 window.getActiveOrganization = function getActiveOrganization() {

@@ -8,9 +8,9 @@
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.js?v=20260818-console-fix"></script>
     <script src="js/permissions.js?v=4.6.0"></script>
-    <script src="js/panel-layout.js?v=4.13.0"></script>
+    <script src="js/panel-layout.js?v=4.14.0"></script>
     <style>
         .paste-zone {
             position: relative;
@@ -338,9 +338,9 @@ Semnătură:`;
                     if (custom?.template) contractTemplate = String(custom.template);
                     if (custom?.defaults?.salary) document.getElementById('salary').value = String(custom.defaults.salary);
                     if (custom?.title) {
-                        document.getElementById('contractSystemTitle').textContent = `${custom.title} — ${organization?.name || ''}`;
-                        document.getElementById('contractFormTitle').textContent = custom.title;
-                        document.getElementById('contractPreviewTitle').textContent = `Previzualizare: ${custom.title}`;
+                        document.getElementById('contractSystemTitle')?.setAttribute('data-title', `${custom.title} — ${organization?.name || ''}`);
+                        document.getElementById('contractFormTitle')?.replaceChildren(document.createTextNode(custom.title));
+                        document.getElementById('contractPreviewTitle')?.replaceChildren(document.createTextNode(`Previzualizare: ${custom.title}`));
                     } else if (organization?.name) document.getElementById('contractSystemTitle').textContent = `Contracte — ${organization.name}`;
                 }
             } catch (error) { console.warn('Șablonul contractului nu a putut fi încărcat.', error); }

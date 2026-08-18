@@ -4,6 +4,7 @@
   window.__panelOperationsLoaded = true;
 
   const SESSION_MAX_AGE = 12 * 60 * 60 * 1000;
+  const config = window.PANEL_SUPABASE_CONFIG || {};
   const user = (() => { try { return JSON.parse(localStorage.getItem('discord_user') || 'null'); } catch (_) { return null; } })();
   const client = () => window.supabaseClient || null;
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -11,7 +12,7 @@
     const accessToken=localStorage.getItem('discord_access_token');
     if(!accessToken) throw new Error('Sesiunea Discord lipsește. Autentifică-te din nou.');
     const sessionToken=await window.ensurePanelSession();
-    const response=await fetch(`${SUPABASE_URL}/functions/v1/manage-admin-center`,{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,'x-panel-session':sessionToken||''},body:JSON.stringify({action,access_token:accessToken,...payload})});
+    const response=await fetch(`${config.url}/functions/v1/manage-admin-center`,{method:'POST',headers:{'Content-Type':'application/json',apikey:config.publishableKey,Authorization:`Bearer ${config.publishableKey}`,'x-panel-session':sessionToken||''},body:JSON.stringify({action,access_token:accessToken,...payload})});
     const data=await response.json().catch(()=>({})); if(!response.ok) throw new Error(data.error||`HTTP ${response.status}`); return data;
   }
   window.panelAdminInvoke = invoke;

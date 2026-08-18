@@ -48,7 +48,7 @@
         <p class="mt-1 text-cyan-100/70">Minimum 8 caractere, o literă mare și o cifră.</p>
       </div>
 
-      <form id="password-reset-form" class="mt-6 space-y-4">
+      <form id="password-reset-form" class="mt-6 space-y-4"><input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" class="sr-only">
         <label class="block text-xs font-bold text-slate-400">Parolă nouă
           <input id="new-password" type="password" minlength="8" pattern="(?=.*[A-Z])(?=.*[0-9]).{8,}" autocomplete="new-password" required class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/70 focus:ring-4 focus:ring-cyan-400/10" placeholder="Introdu parola nouă">
         </label>
