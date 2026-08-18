@@ -15,6 +15,7 @@ const AdministrativePages = new Set([
     'diagnostic.html',
     'discord-configurare.html',
     'organizatii.html',
+    'administrare-organizatii-platforma.html',
     'vouchere.html',
     'developer.html'
 ]);
