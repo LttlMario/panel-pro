@@ -23,8 +23,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'version: "3.7.0"' js/project-version.js
-          grep -q 'id="v-3.7.0"' changelog.html
+          grep -q 'version: "3.8.0"' js/project-version.js
+          grep -q 'id="v-3.8.0"' changelog.html
 
       - name: Validate Supabase deployment manifest
         shell: bash

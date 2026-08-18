@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 import { isPlatformAdminDiscordId, PLATFORM_ADMIN_DISCORD_IDS } from '../_shared/platform-admin.ts';
+import { FULL_PACKAGE_FEATURES, PACKAGE_FEATURES, packageCatalogForClient, resolvePackageFeatures, STANDARD_PACKAGE_FEATURES } from '../_shared/package-features.ts';
 
 const headers={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers});
@@ -179,14 +180,14 @@ Deno.serve(async request=>{
         organizationsWithDetails.push({
           ...organization,
           access:{expires_at:expiresAt},
-          package:{code:['standard','full'].includes(String(packageValue.code))?String(packageValue.code):'standard',unlimited:packageValue.unlimited===true,expires_at:packageValue.expires_at||null},
+          package:{code:['standard','full'].includes(String(packageValue.code))?String(packageValue.code):'standard',unlimited:packageValue.unlimited===true,expires_at:packageValue.expires_at||null,features:resolvePackageFeatures(packageValue)},
           guilds:guilds.map((guild:any)=>({guild_id:guild.guild_id,guild_name:guild.guild_name,kind:guild.kind,enabled:guild.enabled!==false})),
           roles:roles.map((role:any)=>({guild_id:role.guild_id,discord_role_id:role.discord_role_id,discord_role_name:role.discord_role_name,panel_role:role.panel_role,enabled:role.enabled!==false})),
           metrics:{members,active_sessions:activeSessions,active_shifts:activeShifts,active_absences:activeAbsences,audit_events:auditCount,last_audit:lastAudit.data||null},
           health:{...health,issueCount,status:isActive?'active':isDraft?'draft':isExpired?'expired':'inactive'}
         });
       }
-      return reply({ok:true,generated_at:nowIso(),organizations:organizationsWithDetails});
+      return reply({ok:true,generated_at:nowIso(),feature_catalog:packageCatalogForClient(),organizations:organizationsWithDetails});
     }
     if(body.action==='health_check'){
       const organizationId=String(body.organization_id||'').trim();
@@ -440,6 +441,7 @@ if (settingsError) {
     'marketplace.html',
     'marketplace-ilegal.html',
     'rapoarte.html',
+    'status-live.html',
     'asistent.html'
   ]);
 
@@ -533,7 +535,7 @@ if(body.assistant_page_permissions && typeof body.assistant_page_permissions ===
     'index.html','anunturi.html','pontaj.html','cereri.html','bucatarie.html',
     'contracte.html','calculatorilegal.html','craftmecanics.html',
     'locatiiilegale.html','marketplace.html','marketplace-ilegal.html',
-    'rapoarte.html','asistent.html'
+    'rapoarte.html','status-live.html','asistent.html'
   ]);
   const assistantRules = Object.fromEntries(
     Object.entries(body.assistant_page_permissions)
@@ -829,7 +831,7 @@ if (Array.isArray(body.roles)) {
       const organizationId=String(body.organization_id||'').trim(),code=String(body.voucher_code||'').trim().toUpperCase();if(!organizationId||!code)return reply({error:'Organizația și voucherul sunt obligatorii.'},400);const {data:voucher,error:voucherError}=await db.from('organization_vouchers').select('*').eq('code',code).maybeSingle();if(voucherError)throw voucherError;if(!voucher||voucher.redeemed_at)return reply({error:'Voucher invalid sau deja folosit.'},400);const expires=new Date(Date.now()+Number(voucher.duration_days||30)*86400000).toISOString();const {data:used,error:usedError}=await db.from('organization_vouchers').update({redeemed_at:new Date().toISOString(),redeemed_by_discord_id:session.discord_id,redeemed_organization_id:organizationId,organization_id:organizationId}).eq('id',voucher.id).is('redeemed_at',null).select('id').maybeSingle();if(usedError)throw usedError;if(!used)return reply({error:'Voucherul a fost folosit între timp.'},409);await db.from('organizations').update({active:true,lifecycle_status:'active',grace_until:null,updated_at:new Date().toISOString()}).eq('id',organizationId);await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_access',value:{expires_at:expires},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});return reply({ok:true,expires_at:expires});
     }
     if(body.action==='set_package'){
-      const organizationId=String(body.organization_id||'').trim(),code=String(body.package_code||'standard');if(!validOrganizationId(organizationId)||!['standard','full'].includes(code))return reply({error:'Organizația sau pachetul este invalid.'},400);const unlimited=body.unlimited===true;const expiresAt=unlimited?null:String(body.expires_at||'').trim()||null;if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))return reply({error:'Data expirării pachetului este invalidă.'},400);const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_package',value:{code,unlimited,expires_at:expiresAt},updated_at:nowIso()},{onConflict:'organization_id,key'});if(error)throw error;await audit(db,session,'organization_package_changed',organizationId,{code,unlimited,expires_at:expiresAt});return reply({ok:true,package:{code,unlimited,expires_at:expiresAt}});
+      const organizationId=String(body.organization_id||'').trim(),code=String(body.package_code||'standard');if(!validOrganizationId(organizationId)||!['standard','full'].includes(code))return reply({error:'Organizația sau pachetul este invalid.'},400);const unlimited=body.unlimited===true;const expiresAt=unlimited?null:String(body.expires_at||'').trim()||null;if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))return reply({error:'Data expirării pachetului este invalidă.'},400);const requestedFeatures=Array.isArray(body.features)?[...new Set(body.features.map(String).filter((feature:string)=>Object.prototype.hasOwnProperty.call(PACKAGE_FEATURES,feature)))]:null;const features=code==='full'?[...FULL_PACKAGE_FEATURES]:[...new Set([...STANDARD_PACKAGE_FEATURES,...(requestedFeatures||[])])];const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_package',value:{code,unlimited,expires_at:expiresAt,features},updated_at:nowIso()},{onConflict:'organization_id,key'});if(error)throw error;await audit(db,session,'organization_package_changed',organizationId,{code,unlimited,expires_at:expiresAt,features});return reply({ok:true,package:{code,unlimited,expires_at:expiresAt,features}});
     }
     if(body.action==='list_vouchers'){
       const {data,error}=await db.from('organization_vouchers').select('id,code,package_code,duration_days,guild_id,organization_id,redeemed_organization_id,redeemed_by_discord_id,redeemed_at,created_at').order('created_at',{ascending:false}).limit(500);if(error)throw error;return reply({ok:true,vouchers:data||[]});

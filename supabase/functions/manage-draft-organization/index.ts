@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
     }
     if (body.assistant_page_permissions && typeof body.assistant_page_permissions === 'object') {
-      const allowedPages = new Set(['index.html', 'anunturi.html', 'pontaj.html', 'cereri.html', 'bucatarie.html', 'contracte.html', 'calculatorilegal.html', 'craftmecanics.html', 'locatiiilegale.html', 'marketplace.html', 'marketplace-ilegal.html', 'rapoarte.html', 'asistent.html']);
+      const allowedPages = new Set(['index.html', 'anunturi.html', 'pontaj.html', 'cereri.html', 'bucatarie.html', 'contracte.html', 'calculatorilegal.html', 'craftmecanics.html', 'locatiiilegale.html', 'marketplace.html', 'marketplace-ilegal.html', 'rapoarte.html', 'status-live.html', 'asistent.html']);
       const value = Object.fromEntries(Object.entries(body.assistant_page_permissions).filter(([page]) => allowedPages.has(page)).map(([page, ids]: any) => [page, [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((id) => /^\d{15,22}$/.test(id)))] ]));
       const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'assistant_page_permissions', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
       if (error) throw error;
