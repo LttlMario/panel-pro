@@ -4,16 +4,18 @@ const headers = { 'Access-Control-Allow-Origin': 'https://lttlmario.github.io', 
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const validGuild = (value: string) => /^\d{15,22}$/.test(value);
 const webhookChannels = new Set(['organization', 'departments', 'pontaj', 'requests', 'requests_organization', 'requests_departments', 'contracts', 'marketplace', 'illegal_marketplace', 'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'sanctions_organization', 'sanctions_departments', 'status_live']);
+const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
 const validWebhook = (value: unknown) => {
   try {
     const url = new URL(String(value || ''));
     return url.protocol === 'https:' && ['discord.com', 'discordapp.com'].includes(url.hostname) && url.pathname.startsWith('/api/webhooks/');
   } catch { return false; }
 };
-const sanitizeWebhookRoutes = (raw: unknown) => {
+const sanitizeWebhookRoutes = (raw: unknown, fullPackage = false) => {
   if (!raw || typeof raw !== 'object') return {};
   return Object.fromEntries(Object.entries(raw as Record<string, any>).filter(([channel, route]) => {
     if (!webhookChannels.has(channel) || !route || typeof route !== 'object') return false;
+    if (!fullPackage && fullOnlyWebhookChannels.has(channel)) return false;
     return Boolean(route.primary?.enabled && validWebhook(route.primary.url)) || Boolean(route.secondary?.enabled && validWebhook(route.secondary.url));
   }).map(([channel, route]) => [channel, {
     primary: route.primary?.enabled && validWebhook(route.primary.url) ? { enabled: true, url: String(route.primary.url).trim() } : null,
@@ -41,6 +43,8 @@ Deno.serve(async (req) => {
     if (!org || org.lifecycle_status !== 'draft') return reply({ error: 'Organizația nu este în starea Draft.' }, 400);
     const { data: voucher } = await db.from('organization_vouchers').select('redeemed_by_discord_id,redeemed_organization_id,guild_id').eq('redeemed_organization_id', id).maybeSingle();
     if (!voucher || String(voucher.redeemed_by_discord_id) !== discordId) return reply({ error: 'Nu ești creatorul acestei organizații Draft.' }, 403);
+    const { data: packageSetting } = await db.from('app_settings').select('value').eq('organization_id', id).eq('key', 'organization_package').maybeSingle();
+    const fullPackage = packageSetting?.value?.code === 'full';
 
     if (action === 'attach_guild' || action === 'attach_secondary_guild') {
       const guildId = String(body.guild_id || '').trim();
@@ -72,7 +76,7 @@ Deno.serve(async (req) => {
     }
     if (body.webhook_routes) {
       const { data: currentSettings } = await db.from('organization_settings').select('discord_client_id,panel_public_url').eq('organization_id', id).maybeSingle();
-      const { error } = await db.from('organization_settings').upsert({ organization_id: id, discord_client_id: String(body.discord_client_id || currentSettings?.discord_client_id || ''), panel_public_url: String(body.panel_public_url || currentSettings?.panel_public_url || ''), webhook_routes: sanitizeWebhookRoutes(body.webhook_routes), updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
+      const { error } = await db.from('organization_settings').upsert({ organization_id: id, discord_client_id: String(body.discord_client_id || currentSettings?.discord_client_id || ''), panel_public_url: String(body.panel_public_url || currentSettings?.panel_public_url || ''), webhook_routes: sanitizeWebhookRoutes(body.webhook_routes, fullPackage), updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
       if (error) throw error;
     }
     if (body.page_permissions) {
@@ -88,6 +92,7 @@ Deno.serve(async (req) => {
     if (body.action_permissions && typeof body.action_permissions === 'object') {
       const allowedActions = new Set(['anunturi.publish', 'cereri.organization', 'cereri.departments']);
       const value = Object.fromEntries(Object.entries(body.action_permissions).filter(([action]) => allowedActions.has(action)).map(([action, ids]: any) => [action, [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((id) => /^\d{15,22}$/.test(id)))] ]));
+      if (!fullPackage) value['cereri.organization'] = [];
       const organizationRoles = new Set(value['cereri.organization'] || []);
       if (Array.isArray(value['cereri.departments'])) value['cereri.departments'] = value['cereri.departments'].filter((id: string) => !organizationRoles.has(id));
       const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'action_permissions', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
@@ -95,14 +100,14 @@ Deno.serve(async (req) => {
     }
     if (body.communication_permissions && typeof body.communication_permissions === 'object') {
       const clean = (audience: string, kind: string) => [...new Set((Array.isArray(body.communication_permissions[audience]?.[kind]) ? body.communication_permissions[audience][kind] : []).map(String).filter((id) => /^\d{15,22}$/.test(id)))];
-      const value = { organization: { read: clean('organization', 'read'), write: clean('organization', 'write') }, departments: { read: clean('departments', 'read'), write: clean('departments', 'write') } };
+      const value = { organization: fullPackage ? { read: clean('organization', 'read'), write: clean('organization', 'write') } : { read: [], write: [] }, departments: { read: clean('departments', 'read'), write: clean('departments', 'write') } };
       const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'communication_permissions', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
       if (error) throw error;
     }
     if (body.discipline_permissions && typeof body.discipline_permissions === 'object') {
       const clean = (audience: string, kind: string) => [...new Set((Array.isArray(body.discipline_permissions[audience]?.[kind]) ? body.discipline_permissions[audience][kind] : []).map(String).filter((id) => /^\d{15,22}$/.test(id)))];
       const value = {
-        organization: { read: clean('organization', 'read'), write: clean('organization', 'write'), sanction: clean('organization', 'sanction') },
+        organization: fullPackage ? { read: clean('organization', 'read'), write: clean('organization', 'write'), sanction: clean('organization', 'sanction') } : { read: [], write: [], sanction: [] },
         departments: { read: clean('departments', 'read'), write: clean('departments', 'write'), sanction: clean('departments', 'sanction') }
       };
       const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'discipline_permissions', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });

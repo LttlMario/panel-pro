@@ -370,11 +370,14 @@ if (!existing) {
       .map(([page]) => page)
       .filter((page) => !['admin.html','logs.html','diagnostic.html','discord-configurare.html','organizatii.html','vouchere.html','developer.html','administrare-organizatie.html'].includes(page))
       .filter((page) => isPlatformAdmin || packageAllowsPage(String(page), packageValue));
+    const packageFeatures = resolvePackageFeatures(packageValue);
+    const actionPermissions = { ...(actionSettings.get(organization_id) || {}) };
+    if (!isPlatformAdmin && !packageFeatures.includes('requests_organization')) delete actionPermissions['cereri.organization'];
 
     return {
       organization_id,
       ...value,
-      action_permissions: actionSettings.get(organization_id) || {},
+      action_permissions: actionPermissions,
       package_code: String(packageValue.code || 'standard'),
       package_features: resolvePackageFeatures(packageValue),
       allowed_pages,

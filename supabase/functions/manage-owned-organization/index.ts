@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
+import { resolvePackageFeatures } from '../_shared/package-features.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -13,8 +14,16 @@ const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data)
 const webhookChannels = new Set([
   'organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization',
   'requests_departments', 'contracts', 'marketplace', 'illegal_marketplace',
-  'fines_organization', 'fines_departments', 'status_live'
+  'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments',
+  'sanctions_organization', 'sanctions_departments', 'status_live'
 ]);
+const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
+const webhookFeature = (channel: string) => fullOnlyWebhookChannels.has(channel)
+  ? (channel === 'illegal_marketplace' ? 'illegal_marketplace' : channel === 'organization' ? 'announcements_organization' : channel === 'requests_organization' ? 'requests_organization' : 'discipline_organization')
+  : channel === 'departments' ? 'announcements_departments'
+    : channel === 'requests_departments' ? 'requests_departments'
+      : ['fines_departments', 'warnings_departments', 'sanctions_departments'].includes(channel) ? 'discipline_departments' : null;
+const filterWebhookRoutesForPackage = (routes: any, features: string[]) => Object.fromEntries(Object.entries(routes && typeof routes === 'object' ? routes : {}).filter(([channel]) => { const feature = webhookFeature(channel); return !feature || features.includes(feature); }));
 const allowedContractPlaceholders = new Set([
   '{{COMPANY}}', '{{ADDRESS}}', '{{MANAGER}}', '{{EMPLOYEE_NAME}}', '{{CNP}}',
   '{{PHONE}}', '{{POSITION}}', '{{SALARY}}', '{{PROGRAM}}', '{{START_DATE}}',
@@ -321,6 +330,8 @@ Deno.serve(async (request) => {
 
     const state = await loadSettings();
     const settings = state.settings || {};
+    const { data: packageSetting } = await db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_package').maybeSingle();
+    const packageFeatures = resolvePackageFeatures(packageSetting?.value || {});
     const webhookRoutes = body.webhook_routes === undefined
       ? (settings.webhook_routes || {})
       : mergeWebhookRoutes(settings.webhook_routes, body.webhook_routes);
@@ -335,7 +346,7 @@ Deno.serve(async (request) => {
       contracts_webhook_url: settings.contracts_webhook_url || null,
       marketplace_webhook_url: settings.marketplace_webhook_url || null,
       illegal_marketplace_webhook_url: settings.illegal_marketplace_webhook_url || null,
-      webhook_routes: webhookRoutes,
+      webhook_routes: filterWebhookRoutesForPackage(webhookRoutes, packageFeatures),
       updated_by_discord_id: discordId,
       updated_at: new Date().toISOString()
     };

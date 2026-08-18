@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requirePanelSession } from '../_shared/panel-session.ts';
+import { resolvePackageFeatures } from '../_shared/package-features.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -299,6 +300,27 @@ if (request.method === 'OPTIONS') {
         'OrganizaÈ›ia solicitată nu corespunde organizaÈ›iei active.'
       );
 
+    }
+
+    const { data: packageSetting, error: packageError } = await db
+      .from('app_settings')
+      .select('value')
+      .eq('organization_id', sessionOrganizationId)
+      .eq('key', 'organization_package')
+      .maybeSingle();
+    if (packageError) throw packageError;
+    const packageFeatures = resolvePackageFeatures(packageSetting?.value || {});
+    const requiredFeature = finalChannel === 'organization'
+      ? 'announcements_organization'
+      : finalChannel === 'requests_organization'
+        ? 'requests_organization'
+        : finalChannel === 'requests_departments'
+          ? 'requests_departments'
+          : finalChannel === 'illegal_marketplace'
+            ? 'illegal_marketplace'
+            : null;
+    if (requiredFeature && !packageFeatures.includes(requiredFeature)) {
+      return reply({ error: 'Acest canal Discord nu este inclus în pachetul organizației.' }, 403);
     }
 
 
