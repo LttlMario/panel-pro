@@ -198,6 +198,19 @@ Deno.serve(async (request) => {
     const discordId = String(discordUser.id || '').trim();
     if (!discordId) return reply({ error: 'Contul Discord nu a putut fi identificat.' }, 401);
 
+    const requestIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown')
+      .split(',')[0].trim().slice(0, 120);
+    const { data: ownerActionAllowed, error: ownerRateError } = await db.rpc('consume_panel_rate_limit', {
+      p_key: `owned-organization:${discordId}:${requestIp}`,
+      p_limit: 60,
+      p_window_seconds: 900,
+    });
+    if (ownerRateError) {
+      console.error('Owned organization rate-limit unavailable:', ownerRateError.message);
+      return reply({ error: 'Protecția anti-abuz este temporar indisponibilă. Încearcă din nou în câteva minute.' }, 503);
+    }
+    if (ownerActionAllowed === false) return reply({ error: 'Prea multe modificări asupra organizației. Așteaptă câteva minute și încearcă din nou.' }, 429);
+
     const requestedOrganizationId = String(body.organization_id || '').trim();
     let candidates: any[] = [];
     if (requestedOrganizationId) {

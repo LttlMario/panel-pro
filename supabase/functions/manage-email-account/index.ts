@@ -32,6 +32,19 @@ Deno.serve(async (request) => {
     if (authError || !authData.user) return reply({ error: 'Sesiunea contului nu este validÄƒ.' }, 401);
     if (!authData.user.email_confirmed_at) return reply({ error: 'ConfirmÄƒ mai Ã®ntÃ¢i adresa de email.' }, 403);
 
+    const requestIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown')
+      .split(',')[0].trim().slice(0, 120);
+    const { data: accountActionAllowed, error: accountRateError } = await db.rpc('consume_panel_rate_limit', {
+      p_key: `email-account:${authData.user.id}:${requestIp}`,
+      p_limit: 30,
+      p_window_seconds: 900,
+    });
+    if (accountRateError) {
+      console.error('Email account rate-limit unavailable:', accountRateError.message);
+      return reply({ error: 'Protecția anti-abuz este temporar indisponibilă. Încearcă din nou în câteva minute.' }, 503);
+    }
+    if (accountActionAllowed === false) return reply({ error: 'Prea multe acțiuni asupra contului. Așteaptă câteva minute și încearcă din nou.' }, 429);
+
     const { data: account, error: accountError } = await db
       .from('user_accounts')
       .select('auth_user_id,discord_id')

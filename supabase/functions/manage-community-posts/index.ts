@@ -23,6 +23,17 @@ const du = {
 
 const organizationId = session.organization_id;
 
+const { data: requestAllowed, error: requestRateError } = await db.rpc('consume_panel_rate_limit', {
+    p_key: `community-posts:${organizationId}:${session.discord_id}`,
+    p_limit: 180,
+    p_window_seconds: 900,
+});
+if (requestRateError) {
+    console.error('Community posts rate-limit unavailable:', requestRateError.message);
+    return reply({ error: 'Protecția anti-abuz este temporar indisponibilă. Încearcă din nou în câteva minute.' }, 503);
+}
+if (requestAllowed === false) return reply({ error: 'Ai atins limita temporară pentru această secțiune. Încearcă din nou mai târziu.' }, 429);
+
 const isPlatformAdmin = isPlatformAdminDiscordId(session.discord_id);
 const { data: permissionSettings, error: permissionSettingsError } =
     await db
