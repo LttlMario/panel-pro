@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
+import { packageAllowsPage, resolvePackageFeatures } from '../_shared/package-features.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -125,7 +126,7 @@ Deno.serve(async (request) => {
     const organizationIds=[...new Set((guilds||[]).map((guild:any)=>String(guild.organization_id)))];
     const [accessResult, mappingResult] = await Promise.all([
       organizationIds.length
-        ? db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','page_permissions','assistant_page_permissions','action_permissions'])
+        ? db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','organization_package','page_permissions','assistant_page_permissions','action_permissions'])
         : Promise.resolve({ data: [], error: null }),
       db.from('organization_role_mappings').select('*').eq('enabled', true)
     ]);
@@ -133,7 +134,7 @@ Deno.serve(async (request) => {
     if(accessError)throw accessError;
     const { data: mappings, error: mappingError } = mappingResult;
     if (mappingError) throw mappingError;
-    const expiredIds=new Set((accessRows||[]).filter((row:any)=>row.key==='organization_access'&&row.value?.expires_at&&Date.parse(String(row.value.expires_at))<=Date.now()).map((row:any)=>String(row.organization_id))),pageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),assistantPageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='assistant_page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),actionSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='action_permissions').map((row:any)=>[String(row.organization_id),row.value||{}]));
+    const expiredIds=new Set((accessRows||[]).filter((row:any)=>row.key==='organization_access'&&row.value?.expires_at&&Date.parse(String(row.value.expires_at))<=Date.now()).map((row:any)=>String(row.organization_id))),packageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='organization_package').map((row:any)=>[String(row.organization_id),row.value||{}])),pageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),assistantPageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='assistant_page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),actionSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='action_permissions').map((row:any)=>[String(row.organization_id),row.value||{}]));
      if(expiredIds.size)await db.from('organizations').update({active:false,updated_at:new Date().toISOString()}).in('id',[...expiredIds]);
      const inactiveOrganizationIds=new Set((guilds||[]).filter((item:any)=>item.organizations?.active===false&&!expiredIds.has(String(item.organization_id))).map((item:any)=>String(item.organization_id)));
 
@@ -356,18 +357,25 @@ if (!existing) {
         ...new Set(['index.html', 'pontaj.html', ...allowed_pages])
       ];
     }
+    const packageValue = packageSettings.get(organization_id) || {};
+    if (!isPlatformAdmin) {
+      allowed_pages = allowed_pages.filter((page) => packageAllowsPage(String(page), packageValue));
+    }
 
     const assistantRules: any = assistantPageSettings.get(organization_id) || {};
     const assistantConfigured = Object.keys(assistantRules).length > 0;
     const assistant_allowed_pages = (assistantConfigured ? Object.entries(assistantRules) : Object.entries(rules))
       .filter(([, roleIds]: any) => Array.isArray(roleIds) && roleIds.some((roleId: string) => value.discord_role_ids.includes(String(roleId))))
       .map(([page]) => page)
-      .filter((page) => !['admin.html','logs.html','diagnostic.html','discord-configurare.html','organizatii.html','vouchere.html','developer.html','administrare-organizatie.html'].includes(page));
+      .filter((page) => !['admin.html','logs.html','diagnostic.html','discord-configurare.html','organizatii.html','vouchere.html','developer.html','administrare-organizatie.html'].includes(page))
+      .filter((page) => isPlatformAdmin || packageAllowsPage(String(page), packageValue));
 
     return {
       organization_id,
       ...value,
       action_permissions: actionSettings.get(organization_id) || {},
+      package_code: String(packageValue.code || 'standard'),
+      package_features: resolvePackageFeatures(packageValue),
       allowed_pages,
       assistant_allowed_pages,
       assistant_permissions_configured: assistantConfigured,
