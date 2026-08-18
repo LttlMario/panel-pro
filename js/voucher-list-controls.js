@@ -5,7 +5,7 @@
   const box = document.createElement('div');
   box.id = 'voucher-list';
   box.className = 'mt-6 border-t border-slate-700 pt-5';
-  box.innerHTML = '<h2 class="text-lg font-black">Vouchere generate</h2><div class="mt-3 overflow-auto"><table class="w-full text-left text-xs"><thead><tr class="border-b border-slate-800 text-slate-400"><th class="p-2">Cod</th><th class="p-2">Pachet</th><th class="p-2">Guild ID</th><th class="p-2">Status</th><th class="p-2">Acțiune</th></tr></thead><tbody id="voucher-rows"></tbody></table></div>';
+  box.innerHTML = '<h2 class="text-lg font-black">Vouchere generate</h2><div class="mt-3 overflow-auto"><table class="w-full text-left text-xs"><thead><tr class="border-b border-slate-800 text-slate-400"><th class="p-2">Cod</th><th class="p-2">Pachet</th><th class="p-2">Guild ID</th><th class="p-2">Expiră</th><th class="p-2">Status</th><th class="p-2">Acțiune</th></tr></thead><tbody id="voucher-rows"></tbody></table></div>';
   host.appendChild(box);
 
   const load = async () => {
@@ -21,12 +21,15 @@
     const rows = (payload.vouchers || []).map((voucher) => {
       const row = document.createElement('tr');
       row.className = 'border-b border-slate-800';
-      row.innerHTML = `<td class="p-2 font-mono">${escapeHtml(voucher.code)}</td><td class="p-2">${escapeHtml(voucher.package_code)}</td><td class="p-2">${escapeHtml(voucher.guild_id || 'Orice server')}</td><td class="p-2">${voucher.redeemed_at ? 'Folosit' : 'Activ'}</td><td class="p-2">${!voucher.redeemed_at ? `<button data-revoke="${escapeHtml(voucher.id)}" class="rounded bg-red-900 px-2 py-1">Revocă</button>` : '—'}</td>`;
+      const expired = voucher.expires_at && Date.parse(voucher.expires_at) <= Date.now();
+      const status = voucher.revoked_at ? 'Revocat' : voucher.redeemed_at ? 'Folosit' : expired ? 'Expirat' : 'Activ';
+      const expires = voucher.expires_at ? new Date(voucher.expires_at).toLocaleDateString('ro-RO') : '—';
+      row.innerHTML = `<td class="p-2 font-mono">${escapeHtml(voucher.code)}</td><td class="p-2">${escapeHtml(voucher.package_code)}</td><td class="p-2">${escapeHtml(voucher.guild_id || 'Orice server')}</td><td class="p-2">${escapeHtml(expires)}</td><td class="p-2">${status}</td><td class="p-2">${!voucher.redeemed_at && !voucher.revoked_at ? `<button data-revoke="${escapeHtml(voucher.id)}" class="rounded bg-red-900 px-2 py-1">Revocă</button>` : '—'}</td>`;
       return row;
     });
     const body = document.getElementById('voucher-rows');
     if (!body) return;
-    body.replaceChildren(...(rows.length ? rows : [Object.assign(document.createElement('tr'), { innerHTML: '<td colspan="5" class="p-3 text-slate-400">Nu există vouchere.</td>' })]));
+    body.replaceChildren(...(rows.length ? rows : [Object.assign(document.createElement('tr'), { innerHTML: '<td colspan="6" class="p-3 text-slate-400">Nu există vouchere.</td>' })]));
     body.querySelectorAll('[data-revoke]').forEach((button) => button.addEventListener('click', async () => {
       if (!window.confirm('Revoci voucherul?')) return;
       await fetch(`${config.url}/functions/v1/manage-organizations`, {
@@ -38,6 +41,6 @@
   };
   load().catch((error) => {
     const body = document.getElementById('voucher-rows');
-    if (body) body.replaceChildren(Object.assign(document.createElement('tr'), { innerHTML: `<td colspan="5" class="p-3 text-red-300">${escapeHtml(error.message)}</td>` }));
+    if (body) body.replaceChildren(Object.assign(document.createElement('tr'), { innerHTML: `<td colspan="6" class="p-3 text-red-300">${escapeHtml(error.message)}</td>` }));
   });
 })();

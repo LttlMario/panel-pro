@@ -360,6 +360,9 @@ Deno.serve(async (request) => {
       if (!Array.isArray(body.roles) || body.roles.length < 1) {
         return reply({ error: 'Configurează cel puțin un rol Discord pentru organizație.' }, 400);
       }
+      const { data: packageSetting, error: packageError } = await db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_package').maybeSingle();
+      if (packageError) throw packageError;
+      if (packageSetting?.value?.code !== 'full' && body.roles.length > 10) return reply({ error: 'Pachetul Standard permite maximum 10 roluri.' }, 400);
 
       const seen = new Set<string>();
       const cleanRoles = body.roles.map((rawRole: any, index: number) => {

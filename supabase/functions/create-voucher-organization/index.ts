@@ -8,7 +8,6 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers });
   if (req.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
   let db: any = null;
-  let createdOrganizationId = '';
   try {
     const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
     if (!key) throw new Error('Cheia Supabase lipsește.');
@@ -46,7 +45,7 @@ Deno.serve(async (req) => {
     if (discordAllowed === false) return reply({ error: 'Ai atins limita de creare a organizațiilor. Încearcă mai târziu.' }, 429);
     const { data: voucher, error: voucherError } = await db.from('organization_vouchers').select('*').eq('code', code).maybeSingle();
     if (voucherError) throw voucherError;
-    if (!voucher || voucher.redeemed_at) return reply({ error: 'Voucher invalid sau deja folosit.' }, 409);
+    if (!voucher || voucher.redeemed_at || voucher.revoked_at) return reply({ error: 'Voucher invalid sau deja folosit.' }, 409);
     if (voucher.expires_at && Date.parse(String(voucher.expires_at)) <= Date.now()) return reply({ error: 'Voucherul a expirat.' }, 400);
     if (voucher.guild_id && guildId && String(voucher.guild_id) !== guildId) return reply({ error: 'Guild ID-ul nu corespunde voucherului.' }, 400);
     if (!guildId && voucher.guild_id) guildId = String(voucher.guild_id).trim();
@@ -65,39 +64,33 @@ Deno.serve(async (req) => {
 
     const slug = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
     if (!slug) return reply({ error: 'Numele organizației nu poate produce un identificator valid.' }, 400);
-    const { data: organization, error: organizationError } = await db.from('organizations').insert({
-      name, slug, address: address || null,
-      logo_url: logoUrl || null,
-      banner_url: bannerUrl || null,
-      active: false, lifecycle_status: 'draft'
-    }).select('id,name,slug,address,logo_url,banner_url').single();
-    if (organizationError) throw organizationError;
-    createdOrganizationId = String(organization.id);
-
-    if (guildId) {
-      const { error } = await db.from('organization_guilds').insert({ organization_id: organization.id, guild_id: guildId, kind: 'primary', enabled: true });
-      if (error) throw error;
+    const { data: createdRows, error: createError } = await db.rpc('redeem_voucher_create_organization', {
+      p_code: code,
+      p_discord_id: discordId,
+      p_name: name,
+      p_slug: slug,
+      p_address: address || null,
+      p_logo_url: logoUrl || null,
+      p_banner_url: bannerUrl || null,
+      p_guild_id: guildId || null
+    });
+    if (createError) {
+      const message = String(createError.message || 'Eroare la activarea voucherului.');
+      return reply({ error: message }, createError.code === 'P0001' ? 409 : 500);
     }
-    const expires = new Date(Date.now() + Number(voucher.duration_days || 30) * 86400000).toISOString();
-    const { error: settingsError } = await db.from('app_settings').upsert([
-      { organization_id: organization.id, key: 'organization_package', value: { code: voucher.package_code, unlimited: false, expires_at: expires } },
-      { organization_id: organization.id, key: 'organization_access', value: { expires_at: expires } }
-    ], { onConflict: 'organization_id,key' });
-    if (settingsError) throw settingsError;
-
-    const { data: redeemed, error: redeemError } = await db.from('organization_vouchers').update({
-      redeemed_at: new Date().toISOString(), redeemed_by_discord_id: discordId,
-      redeemed_organization_id: organization.id, organization_id: organization.id
-    }).eq('id', voucher.id).is('redeemed_at', null).select('id').maybeSingle();
-    if (redeemError) throw redeemError;
-    if (!redeemed) return reply({ error: 'Voucherul a fost folosit între timp.' }, 409);
-    await db.from('organization_lifecycle_events').insert({ organization_id: organization.id, event_type: 'voucher_organization_created', actor_discord_id: discordId, details: { package_code: voucher.package_code, guild_id: guildId || null } });
-    return reply({ ok: true, requires_guild_setup: !guildId, guild_id: guildId || null, organization, package_code: voucher.package_code, expires_at: expires });
+    const created = Array.isArray(createdRows) ? createdRows[0] : createdRows;
+    if (!created?.organization_id) return reply({ error: 'Organizația nu a putut fi creată.' }, 500);
+    const organization = {
+      id: created.organization_id,
+      name: created.organization_name,
+      slug: created.organization_slug,
+      address: created.organization_address,
+      logo_url: created.organization_logo_url,
+      banner_url: created.organization_banner_url
+    };
+    return reply({ ok: true, requires_guild_setup: Boolean(created.requires_guild_setup), guild_id: guildId || null, organization, package_code: created.package_code, package_features: created.package_features || [], expires_at: created.access_expires_at });
   } catch (error) {
     console.error(error);
-    if (db && createdOrganizationId) {
-      await db.from('organizations').delete().eq('id', createdOrganizationId).catch(() => null);
-    }
     return reply({ error: error instanceof Error ? error.message : 'Eroare internă.' }, 500);
   }
 });

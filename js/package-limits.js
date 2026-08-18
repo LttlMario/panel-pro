@@ -10,7 +10,7 @@
     const update = () => {
       help.innerHTML = select.value === 'full'
         ? '<b class="text-emerald-300">Full/Premium:</b> servere multiple, roluri nelimitate, pagini și funcții configurabile, perioadă nelimitată sau cu expirare.'
-        : '<b class="text-cyan-300">Standard:</b> un singur server, maximum 6 roluri Discord, pagini configurabile și perioadă cu expirare sau nelimitată.';
+        : '<b class="text-cyan-300">Standard:</b> un singur server, maximum 10 roluri Discord, pagini configurabile și perioadă cu expirare sau nelimitată.';
     };
     select.parentElement?.appendChild(help);
     const actions = document.createElement('div');
