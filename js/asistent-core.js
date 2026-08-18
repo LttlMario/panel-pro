@@ -480,7 +480,7 @@
                     .slice(0, 4)
                     .map((entry) => entry.title)
                     .join(', ');
-                return { answer: `Nu am găsit un răspuns exact în informațiile panelului. Încearcă să reformulezi folosind numele paginii sau funcției. Exemple: ${topics || 'Pontaj, învoiri, Craft Mecanics și Marketplace'}.` };
+                return { answer: `Nu am găsit un răspuns exact în informațiile panelului. Încearcă să reformulezi folosind numele paginii sau funcției. Exemple: ${topics || 'Pontaj, învoiri, Craft Mecanic și Marketplace'}.` };
             }
 
             lastMatch = best.entry;
