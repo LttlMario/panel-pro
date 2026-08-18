@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/tailwind.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
     <script src="js/supabase-config.js"></script>
+    <script src="js/panel-operations.js?v=20260818-security"></script>
     <script src="js/permissions.js?v=4.6.0"></script>
     <script src="js/panel-layout.js?v=4.11.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
@@ -37,56 +38,20 @@
     </div>
 
     <script>
-        const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
-        const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
-        const supabaseClient = window.createPanelSupabaseClient();
         let events = [], usersMap = {};
         const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
         const dateText = value => value ? new Date(value).toLocaleString('ro-RO', {dateStyle:'medium',timeStyle:'medium'}) : 'Dată necunoscută';
 
         document.addEventListener('DOMContentLoaded', async () => {
-            const user = getUser();
-            if (!user) return;
-
-            const { data: dbUser } = await supabaseClient
-                .from('users')
-                .select('*')
-                .eq('discord_id', user.discord_id || user.id)
-                .maybeSingle();
-
-            const activeUser = dbUser ? { ...user, ...dbUser } : user;
-
             await loadLogs();
-
-            supabaseClient
-                .channel('logs-live')
-                .on('postgres_changes', {
-                    event: '*',
-                    schema: 'public',
-                    table: 'shifts'
-                }, loadLogs)
-                .on('postgres_changes', {
-                    event: '*',
-                    schema: 'public',
-                    table: 'absences'
-                }, loadLogs)
-                .on('postgres_changes', {
-                    event: '*',
-                    schema: 'public',
-                    table: 'marketplace'
-                }, loadLogs)
-                .on('postgres_changes', {
-                    event: '*',
-                    schema: 'public',
-                    table: 'marketplace_ilegal'
-                }, loadLogs)
-                .subscribe();
         });
 
-        async function safeQuery(table, limit=200) { const {data,error}=await supabaseClient.from(table).select('*').order('created_at',{ascending:false}).limit(limit); return error ? [] : (data || []); }
         async function loadLogs() {
             const list=document.getElementById('logs-list'); list.innerHTML='<p class="p-8 text-center text-slate-500">Se actualizează logurile...</p>';
-            const [users,shifts,absences,market,blackMarket,audit] = await Promise.all([safeQuery('users',500),safeQuery('shifts',350),safeQuery('absences',250),safeQuery('marketplace',150),safeQuery('marketplace_ilegal',150),safeQuery('admin_audit_log',300)]);
+            let result;
+            try { result = await window.panelAdminInvoke('logs'); }
+            catch (error) { list.innerHTML=`<p class="p-8 text-center text-rose-300">Logurile nu au putut fi încărcate: ${escapeHtml(error?.message || 'eroare necunoscută')}</p>`; return; }
+            const users=result.users||[], shifts=result.shifts||[], absences=result.absences||[], market=result.marketplace||[], blackMarket=result.marketplace_ilegal||[], audit=result.audit||[];
             usersMap=Object.fromEntries(users.map(user=>[user.discord_id,user.display_name || user.username || user.discord_id]));
             events=[
                 ...shifts.map(shift=>({type:'pontaj',at:shift.ended_at || shift.started_at || shift.created_at,person:usersMap[shift.discord_id] || shift.discord_id,title:shift.status==='active'?'Pontaj pornit':shift.status==='paused'?'Pontaj în pauză':shift.status==='auto_completed'?'Pontaj încheiat automat':'Pontaj încheiat',detail:`Tură ${(shift.shift_type||'').toUpperCase()} · ${shift.duration || '00:00:00'}${shift.stop_reason ? ' · '+shift.stop_reason : ''}`,state:shift.status})),

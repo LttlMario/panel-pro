@@ -247,10 +247,6 @@
 
     <!-- Scriptul Logicii & Setări Pagină -->
     <script>
-        const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
-        const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
-        const supabaseClient = window.createPanelSupabaseClient();
-
         let allUsersData = [];
         const escapeAdminHtml = (value) => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
         document.addEventListener('DOMContentLoaded', async () => {
@@ -277,17 +273,9 @@
                     return;
                 }
 
-                let { data: dbUser } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('discord_id', localData.discord_id)
-                    .maybeSingle();
+                const activeUser = localData;
 
-                let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
-
-                const PLATFORM_ADMIN_DISCORD_ID = '247012210021236738';
-
-                if (String(activeUser.discord_id) !== PLATFORM_ADMIN_DISCORD_ID) {
+                if (activeUser.platform_admin !== true && activeUser.is_platform_admin !== true) {
                     window.location.href = 'index.html';
                     return;
                 }
@@ -326,38 +314,12 @@
                     throw new Error('Modulul de administrare nu s-a încărcat. Reîncarcă pagina.');
                 }
                 const result = await window.panelAdminInvoke('members');
-                let data = result.members, error = null;
-
-                if (error || !data || data.length === 0) {
-                    allUsersData = [];
-                } else {
-                    allUsersData = data;
-                }
+                allUsersData = Array.isArray(result.members) ? result.members : [];
 
                 renderUsersTable();
             } catch (err) {
                 console.error('Erore preluare utilizatori:', err);
-                try {
-                    const organizationId = window.getActiveOrganizationId?.();
-                    const [usersResult, membersResult] = await Promise.all([
-                        supabaseClient.from('users').select('discord_id,username,display_name,avatar,avatar_url,role,default_role').order('display_name'),
-                        organizationId
-                            ? supabaseClient.from('organization_members').select('discord_id,panel_role,active').eq('organization_id', organizationId).eq('active', true)
-                            : Promise.resolve({ data: [], error: null })
-                    ]);
-                    if (usersResult.error) throw usersResult.error;
-                    if (membersResult.error) throw membersResult.error;
-                    const memberships = new Map((membersResult.data || []).map(member => [String(member.discord_id), member]));
-                    allUsersData = (usersResult.data || []).map(user => ({
-                        ...user,
-                        ...(memberships.get(String(user.discord_id)) || {}),
-                        role: memberships.get(String(user.discord_id))?.panel_role || user.role || user.default_role || 'Rol Discord'
-                    }));
-                    renderUsersTable();
-                } catch (fallbackError) {
-                    console.error('Erore fallback utilizatori:', fallbackError);
-                    if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-rose-300">Utilizatorii nu au putut fi încărcați: ${String(fallbackError?.message || err?.message || 'eroare necunoscută').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]))}</td></tr>`;
-                }
+                if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-rose-300">Utilizatorii nu au putut fi încărcați: ${String(err?.message || 'eroare necunoscută').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]))}</td></tr>`;
             }
         }
 
@@ -489,34 +451,18 @@
 
         async function refreshAdminOperations() {
             try {
-                const [shiftsResult, absencesResult] = await Promise.all([
-                    supabaseClient.from('shifts').select('id, status').in('status', ['active', 'paused']),
-                    supabaseClient.from('absences').select('id, end_at').gte('end_at', new Date().toISOString())
-                ]);
-                if (shiftsResult.error) throw shiftsResult.error;
-                const shifts = shiftsResult.data || [];
-                document.getElementById('admin-active-shifts').textContent = shifts.filter(shift => shift.status === 'active').length;
-                document.getElementById('admin-paused-shifts').textContent = shifts.filter(shift => shift.status === 'paused').length;
-                document.getElementById('admin-active-absences').textContent = absencesResult.data?.length ?? 0;
+                const result = await window.panelAdminInvoke('operations');
+                document.getElementById('admin-active-shifts').textContent = result.active_shifts ?? 0;
+                document.getElementById('admin-paused-shifts').textContent = result.paused_shifts ?? 0;
+                document.getElementById('admin-active-absences').textContent = result.active_absences ?? 0;
             } catch (error) { console.error('Eroare încărcare control operațional:', error); }
         }
 
         async function stopAllActiveShifts() {
             if (!confirm('Confirmi oprirea tuturor turelor active și în pauză? Acțiunea nu poate fi anulată.')) return;
             try {
-                const { data: shifts, error } = await supabaseClient.from('shifts').select('*').in('status', ['active', 'paused']);
-                if (error) throw error;
-                const now = new Date();
-                await Promise.all((shifts || []).map(async shift => {
-                    let paused = Number(shift.paused_seconds) || 0;
-                    if (shift.status === 'paused' && shift.paused_at) paused += Math.max(0, Math.floor((now - new Date(shift.paused_at)) / 1000));
-                    const seconds = Math.max(0, Math.floor((now - new Date(shift.started_at)) / 1000) - paused);
-                    const duration = `${Math.floor(seconds / 3600).toString().padStart(2, '0')}:${Math.floor((seconds % 3600) / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
-                    const endTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(now);
-                    return supabaseClient.from('shifts').update({ status: 'completed', ended_at: now.toISOString(), end_time: endTime, duration, duration_ms: seconds * 1000, stop_reason: 'Încheiere de urgență – acțiune administrator' }).eq('id', shift.id).in('status', ['active', 'paused']);
-                }));
-                alert(`${shifts?.length || 0} ture au fost închise.`);
-                await window.panelAudit?.('shifts_emergency_stop', 'shifts', null, { count: shifts?.length || 0 });
+                const result = await window.panelAdminInvoke('force_close_shifts');
+                alert(`${result.closed || 0} ture au fost închise.`);
                 refreshAdminOperations();
             } catch (error) { console.error('Eroare oprire de urgență:', error); alert('Nu s-au putut opri toate turele.'); }
         }
@@ -550,13 +496,11 @@
 
             localStorage.setItem('workforce_admin_settings', JSON.stringify(settings));
             try {
-                const { error } = await supabaseClient.from('app_settings').upsert({ organization_id:window.getActiveOrganizationId(), key:'pontaj_config', value:settings.pontajConfig, updated_at:new Date().toISOString() }, { onConflict:'organization_id,key' });
-                if (error) throw error;
-                await window.panelAudit?.('pontaj_config_update', 'app_settings', 'pontaj_config', settings.pontajConfig);
+                await window.panelAdminInvoke('save_pontaj_config', { value: settings.pontajConfig });
                 alert('Setările globale de pontaj au fost publicate pentru toți utilizatorii.');
             } catch (error) {
-                console.warn('Tabelul app_settings nu este configurat încă:', error);
-                alert('Setările au fost salvate local. Creează tabelul app_settings pentru aplicare globală.');
+                console.error('Setările globale nu au putut fi publicate:', error);
+                alert(`Setările nu au putut fi publicate: ${error?.message || 'eroare necunoscută'}`);
             }
         }
 

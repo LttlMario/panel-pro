@@ -61,6 +61,45 @@ Deno.serve(async request=>{
       const {data,error}=await db.from('panel_notifications').insert({organization_id:organizationId,title,message,level:['info','success','warning','error'].includes(body.level)?body.level:'info',recipient_discord_id:String(body.recipient||'').trim()||null,link:String(body.link||'').trim()||null}).select('id').single();if(error)throw error;
       await db.from('admin_audit_log').insert({organization_id:organizationId,actor_discord_id:discordUser.id,actor_name:actorName,action:'notification_create',target_type:'panel_notification',target_id:String(data.id),details:{recipient:body.recipient||'all'}});return reply({id:data.id});
     }
+    if(body.action==='logs'){
+      const [shiftsResult,absencesResult,marketResult,blackMarketResult,auditResult]=await Promise.all([
+        db.from('shifts').select('discord_id,status,shift_type,duration,stop_reason,started_at,ended_at,created_at').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(350),
+        db.from('absences').select('discord_id,colleague_name,notice_type,reason,notes,end_at,created_at').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(250),
+        db.from('marketplace').select('nume,display_name,tip_actiune,produse,pret,created_at').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(150),
+        db.from('marketplace_ilegal').select('nume,tip_actiune,produse,pret,created_at').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(150),
+        db.from('admin_audit_log').select('actor_name,actor_discord_id,action,target_type,target_id,created_at').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(300),
+      ]);
+      for(const result of [shiftsResult,absencesResult,marketResult,blackMarketResult,auditResult]) if(result.error) throw result.error;
+      const activityIds=[...new Set([...(shiftsResult.data||[]).map((item:any)=>String(item.discord_id||'')),...(absencesResult.data||[]).map((item:any)=>String(item.discord_id||''))].filter(Boolean))];
+      const usersResult=activityIds.length?await db.from('users').select('discord_id,username,display_name').in('discord_id',activityIds):{data:[],error:null};
+      if(usersResult.error) throw usersResult.error;
+      return reply({users:usersResult.data||[],shifts:shiftsResult.data||[],absences:absencesResult.data||[],marketplace:marketResult.data||[],marketplace_ilegal:blackMarketResult.data||[],audit:auditResult.data||[]});
+    }
+    if(body.action==='operations'){
+      const now=new Date().toISOString();
+      const [shiftsResult,absencesResult]=await Promise.all([
+        db.from('shifts').select('id,status').eq('organization_id',organizationId).in('status',['active','paused']),
+        db.from('absences').select('id').eq('organization_id',organizationId).gte('end_at',now),
+      ]);
+      if(shiftsResult.error) throw shiftsResult.error;if(absencesResult.error) throw absencesResult.error;
+      return reply({active_shifts:(shiftsResult.data||[]).filter((shift:any)=>shift.status==='active').length,paused_shifts:(shiftsResult.data||[]).filter((shift:any)=>shift.status==='paused').length,active_absences:(absencesResult.data||[]).length});
+    }
+    if(body.action==='force_close_shifts'){
+      const {data:shifts,error}=await db.from('shifts').select('id,started_at,status,paused_at,paused_seconds').eq('organization_id',organizationId).in('status',['active','paused']);
+      if(error) throw error;
+      const now=new Date(),endTime=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Bucharest',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(now);
+      let closed=0;
+      for(const shift of shifts||[]){let paused=Number(shift.paused_seconds)||0;if(shift.status==='paused'&&shift.paused_at)paused+=Math.max(0,Math.floor((now.getTime()-new Date(shift.paused_at).getTime())/1000));const seconds=Math.max(0,Math.floor((now.getTime()-new Date(shift.started_at).getTime())/1000)-paused);const duration=`${Math.floor(seconds/3600).toString().padStart(2,'0')}:${Math.floor((seconds%3600)/60).toString().padStart(2,'0')}:${(seconds%60).toString().padStart(2,'0')}`;const result=await db.from('shifts').update({status:'completed',ended_at:now.toISOString(),end_time:endTime,duration,duration_ms:seconds*1000,stop_reason:'Încheiere de urgență – acțiune administrator'}).eq('organization_id',organizationId).eq('id',shift.id).in('status',['active','paused']).select('id').maybeSingle();if(result.error)throw result.error;if(result.data)closed++;}
+      await db.from('admin_audit_log').insert({organization_id:organizationId,actor_discord_id:discordUser.id,actor_name:actorName,action:'shifts_emergency_stop',target_type:'shifts',details:{count:closed}});return reply({ok:true,closed});
+    }
+    if(body.action==='save_pontaj_config'){
+      const value=body.value;if(!value||typeof value!=='object')return reply({error:'Configurație invalidă.'},400);
+      const maxHours=Number(value.maxHours),dayEnd=String(value.dayEndTime||''),nightEnd=String(value.nightEndTime||'');
+      if(!Number.isFinite(maxHours)||maxHours<1||maxHours>24||!/^[0-2]\d:[0-5]\d$/.test(dayEnd)||!/^[0-2]\d:[0-5]\d$/.test(nightEnd))return reply({error:'Configurația pontajului este invalidă.'},400);
+      const safeValue={maxHours,mode:['normal','strict'].includes(String(value.mode))?String(value.mode):'normal',globalNotice:String(value.globalNotice||'').slice(0,500),dayEndTime:dayEnd,nightEndTime:nightEnd,excludeBreaks:Boolean(value.excludeBreaks)};
+      const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'pontaj_config',value:safeValue,updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;
+      await db.from('admin_audit_log').insert({organization_id:organizationId,actor_discord_id:discordUser.id,actor_name:actorName,action:'pontaj_config_update',target_type:'app_settings',target_id:'pontaj_config'});return reply({ok:true});
+    }
     if(body.action==='import_config'){
       const value=body.value;if(!value||typeof value!=='object')return reply({error:'Configurație invalidă.'},400);const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'pontaj_config',value,updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;await db.from('admin_audit_log').insert({organization_id:organizationId,actor_discord_id:discordUser.id,actor_name:actorName,action:'config_import',target_type:'app_settings',target_id:'pontaj_config'});return reply({ok:true});
     }
