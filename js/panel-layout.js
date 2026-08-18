@@ -504,7 +504,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                     const client = window.createPanelSupabaseClient();
                     const result = await client
                         .from('users')
-                        .select('discord_id,username,display_name,avatar,role,default_role,discord_role_ids')
+                        .select('discord_id,username,display_name,avatar,role,default_role')
                         .eq('discord_id', discordId)
                         .maybeSingle();
                     data = result.data || null;
@@ -512,7 +512,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             }
             if (!data) {
                 const response = await fetch(
-                    `${config.url}/rest/v1/users?select=discord_id,username,display_name,avatar,role,default_role,discord_role_ids&discord_id=eq.${encodeURIComponent(discordId)}&limit=1`,
+                    `${config.url}/rest/v1/users?select=discord_id,username,display_name,avatar,role,default_role&discord_id=eq.${encodeURIComponent(discordId)}&limit=1`,
                     {
                         headers: {
                             apikey: config.publishableKey,
