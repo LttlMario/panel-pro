@@ -8,7 +8,7 @@
     <!-- Leaflet CSS for Pan & Zoom map engine -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/permissions.js?v=4.6.0"></script>
     <script src="js/panel-layout.js?v=4.11.0"></script>
@@ -1451,6 +1451,37 @@
 
         let DATA = [];
 
+        function normalizeLocationImages(value) {
+            if (Array.isArray(value)) {
+                return value
+                    .map(item => String(item || '').trim())
+                    .filter(Boolean);
+            }
+
+            if (typeof value === 'string') {
+                const raw = value.trim();
+                if (!raw) return [];
+
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        return parsed
+                            .map(item => String(item || '').trim())
+                            .filter(Boolean);
+                    }
+                } catch (_) {
+                    // Compatibilitate cu înregistrările vechi salvate ca text.
+                }
+
+                return raw
+                    .split(/[,\n]/)
+                    .map(item => item.trim().replace(/^['"]|['"]$/g, ''))
+                    .filter(Boolean);
+            }
+
+            return [];
+        }
+
         function mapDatabaseLocation(row) {
             const title = row.title || '';
             const storedCategory = row.category || '';
@@ -1460,7 +1491,7 @@
                     ? 'hospitals'
                     : storedCategory;
 
-            return { id: row.id, map: row.map_key, category, title, description: row.description || '', images: Array.isArray(row.images) ? row.images : [], x: Number(row.x), y: Number(row.y), notes: row.notes || '', requirements: row.requirements || '', rewards: row.rewards || '', lastUpdated: row.last_updated };
+            return { id: row.id, map: row.map_key, category, title, description: row.description || '', images: normalizeLocationImages(row.images), x: Number(row.x), y: Number(row.y), notes: row.notes || '', requirements: row.requirements || '', rewards: row.rewards || '', lastUpdated: row.last_updated };
         }
 
         function mapLocationForDatabase(loc) {
