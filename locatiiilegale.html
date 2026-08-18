@@ -9,9 +9,9 @@
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.9.4-panel">
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.js?v=20260818-console-fix"></script>
     <script src="js/permissions.js?v=4.6.0"></script>
-    <script src="js/panel-layout.js?v=4.13.0"></script>
+    <script src="js/panel-layout.js?v=4.14.0"></script>
     <script src="js/global-header.js?v=4.4.0"></script>
     <style>
         /* ==========================================
@@ -1185,7 +1185,7 @@
 
                 const { data: dbUser, error } = await supabaseClient
                     .from('users')
-                    .select('*')
+                    .select('discord_id,username,display_name,avatar,role,default_role,discord_role_ids')
                     .eq('discord_id', localData.discord_id)
                     .maybeSingle();
 

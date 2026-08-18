@@ -8,9 +8,9 @@
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.js?v=20260818-console-fix"></script>
     <script src="js/permissions.js?v=4.6.0"></script>
-    <script src="js/panel-layout.js?v=4.13.0"></script>
+    <script src="js/panel-layout.js?v=4.14.0"></script>
     <style>
 
         /* Stiluri suplimentare pentru galerie și modal */
@@ -377,7 +377,7 @@
 
                 const { data: dbUser, error } = await supabaseClient
                     .from('users')
-                    .select('*')
+                    .select('discord_id,username,display_name,avatar,role,default_role')
                     .eq('discord_id', localData.discord_id)
                     .maybeSingle();
 
@@ -400,7 +400,7 @@
         }
 
         // Buton Logout
-        document.getElementById('logout-btn').addEventListener('click', () => {
+        document.getElementById('logout-btn')?.addEventListener('click', () => {
             localStorage.clear();
             window.location.href = 'login.html';
         });
