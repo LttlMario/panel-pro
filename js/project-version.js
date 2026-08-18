@@ -2,7 +2,7 @@
   "use strict";
 
   window.PANEL_RELEASE = Object.freeze({
-    version: "3.8.1",
+    version: "3.9.0",
     releasedAt: "2026-08-18",
     changelogUrl: "changelog.html",
     developerUrl: "developer.html"

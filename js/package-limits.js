@@ -9,8 +9,8 @@
     help.className = 'mt-3 rounded-lg border border-slate-700 bg-slate-950/70 p-3 text-xs text-slate-300';
     const update = () => {
       help.innerHTML = select.value === 'full'
-        ? '<b class="text-emerald-300">Full/Premium:</b> servere multiple, roluri nelimitate, pagini și funcții configurabile, perioadă nelimitată sau cu expirare.'
-        : '<b class="text-cyan-300">Standard:</b> un singur server, maximum 10 roluri Discord, pagini configurabile și perioadă cu expirare sau nelimitată.';
+        ? '<b class="text-emerald-300">Full/Premium:</b> include Standard, partea de organizație/mafia, modulele ilegale, servere multiple, roluri nelimitate și webhook-uri dedicate.'
+        : '<b class="text-cyan-300">Standard:</b> partea legală a firmei și angajaților, inclusiv avertismentele și sancțiunile pentru angajați, un server și maximum 10 roluri Discord.';
     };
     select.parentElement?.appendChild(help);
     const actions = document.createElement('div');

@@ -1,6 +1,7 @@
 import {createClient} from 'jsr:@supabase/supabase-js@2';
 import {requirePanelSession} from '../_shared/panel-session.ts';
 import {isPlatformAdminDiscordId} from '../_shared/platform-admin.ts';
+import {resolvePackageFeatures} from '../_shared/package-features.ts';
 const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Content-Type':'application/json'};
 
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
@@ -44,7 +45,8 @@ const { data: permissionSettings, error: permissionSettingsError } =
             'page_permissions',
             'action_permissions',
             'communication_permissions',
-            'discipline_permissions'
+            'discipline_permissions',
+            'organization_package'
         ]);
 
 if (permissionSettingsError) {
@@ -83,6 +85,12 @@ const disciplineSetting =
 const disciplinePermissions = disciplineSetting?.value && typeof disciplineSetting.value === 'object'
     ? disciplineSetting.value
     : {};
+const packageSetting = (permissionSettings || []).find(item => item.key === 'organization_package');
+const packageFeatures = resolvePackageFeatures(packageSetting?.value || {});
+const hasDisciplineFeature = (scope:string) =>
+    isPlatformAdmin || packageFeatures.includes(scope === 'organization' ? 'discipline_organization' : 'discipline_departments');
+const hasCommunicationFeature = (audience:string) =>
+    isPlatformAdmin || packageFeatures.includes(audience === 'organization' ? 'announcements_organization' : 'announcements_departments');
 
 const allowedAnnouncementRoles =
     Array.isArray(pagePermissions['anunturi.html'])
@@ -115,30 +123,30 @@ const audienceRoles = (audience:string, kind:'read'|'write') =>
         ? communicationPermissions[audience][kind].map(String)
         : [];
 const canForAudience = (audience:string, kind:'read'|'write') =>
-    isPlatformAdmin || sessionDiscordRoleIds.some(roleId => audienceRoles(audience, kind).includes(roleId));
+    hasCommunicationFeature(audience) && (isPlatformAdmin || sessionDiscordRoleIds.some(roleId => audienceRoles(audience, kind).includes(roleId)));
 const disciplineRoles = (scope:string, action:'read'|'write'|'sanction') =>
     Array.isArray(disciplinePermissions?.[scope]?.[action])
         ? disciplinePermissions[scope][action].map(String)
         : [];
 const canDiscipline = (scope:string, action:'read'|'write'|'sanction') =>
-    isPlatformAdmin || sessionDiscordRoleIds.some(roleId => disciplineRoles(scope, action).includes(roleId));
+    hasDisciplineFeature(scope) && (isPlatformAdmin || sessionDiscordRoleIds.some(roleId => disciplineRoles(scope, action).includes(roleId)));
 const disciplineVisible = (scope:string, targetDiscordId:string|null) =>
-    scope === 'departments'
+    hasDisciplineFeature(scope) && (scope === 'departments'
         ? String(targetDiscordId || '') === String(session.discord_id) || canDiscipline(scope, 'read') || canDiscipline(scope, 'write') || canDiscipline(scope, 'sanction')
-        : canDiscipline(scope, 'read') || canDiscipline(scope, 'write') || canDiscipline(scope, 'sanction');
+        : canDiscipline(scope, 'read') || canDiscipline(scope, 'write') || canDiscipline(scope, 'sanction'));
 const disciplineScopeLabel = (scope:string) => scope === 'departments' ? 'Birouri / Angajați' : 'Organizație';
 const readAudiences = isPlatformAdmin
     ? ['organization','departments']
-    : ['organization','departments'].filter(audience => canForAudience(audience,'read'));
+    : ['organization','departments'].filter(audience => hasCommunicationFeature(audience) && canForAudience(audience,'read'));
 const writeAudiences = isPlatformAdmin
     ? ['organization','departments']
-    : ['organization','departments'].filter(audience => canForAudience(audience,'write'));
+    : ['organization','departments'].filter(audience => hasCommunicationFeature(audience) && canForAudience(audience,'write'));
 if (body.action === 'announcement_access') {
     return reply({
         read: communicationSetting ? readAudiences.length > 0 : hasAnnouncementPageAccess,
         write: communicationSetting ? writeAudiences.length > 0 : canPublishAnnouncements,
-        read_audiences: communicationSetting ? readAudiences : (hasAnnouncementPageAccess ? ['organization','departments'] : []),
-        write_audiences: communicationSetting ? writeAudiences : (canPublishAnnouncements ? ['organization','departments'] : []),
+        read_audiences: communicationSetting ? readAudiences : (hasAnnouncementPageAccess ? ['organization','departments'].filter(hasCommunicationFeature) : []),
+        write_audiences: communicationSetting ? writeAudiences : (canPublishAnnouncements ? ['organization','departments'].filter(hasCommunicationFeature) : []),
         platform_admin: isPlatformAdmin
     });
 }
@@ -146,8 +154,17 @@ if (body.action === 'discipline_access') {
     return reply({
         employee: { read: canDiscipline('departments', 'read'), write: canDiscipline('departments', 'write'), sanction: canDiscipline('departments', 'sanction'), own: true },
         organization: { read: canDiscipline('organization', 'read'), write: canDiscipline('organization', 'write'), sanction: canDiscipline('organization', 'sanction'), own: false },
-        platform_admin: isPlatformAdmin
+        platform_admin: isPlatformAdmin,
+        package_code: String(packageSetting?.value?.code || 'standard'),
+        package_features: packageFeatures,
+        organization_module_enabled: hasDisciplineFeature('organization')
     });
+}
+if (
+    body.action === 'create' &&
+    !hasCommunicationFeature(String(body.audience || ''))
+) {
+    return reply({ error: 'Această audiență este disponibilă numai în pachetul Full.' }, 403);
 }
 if (
     body.action === 'create' &&
@@ -321,6 +338,7 @@ if (body.action === 'discipline_delete') {
     if (!item) return reply({ error: 'Înregistrarea disciplinară nu există.' }, 404);
     const configuredDelete = canDiscipline(item.target_scope, kind === 'sanction' ? 'sanction' : 'write');
     const isAuthor = String(item.issued_by_discord_id || '') === String(du.id);
+    if (!hasDisciplineFeature(item.target_scope)) return reply({ error: 'Această categorie disciplinară nu este inclusă în pachetul organizației.' }, 403);
     if (!isPlatformAdmin && !isAuthor && !configuredDelete) return reply({ error: 'Nu ai dreptul să ștergi această înregistrare.' }, 403);
 
     const { data: settings } = await db.from('organization_settings').select('webhook_routes').eq('organization_id', organizationId).maybeSingle();

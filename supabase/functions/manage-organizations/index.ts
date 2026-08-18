@@ -31,6 +31,17 @@ const organizationIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-
 const validOrganizationId=(value:unknown)=>organizationIdPattern.test(String(value||'').trim());
 const nowIso=()=>new Date().toISOString();
 const getClientIp=(request:Request)=>String(request.headers.get('cf-connecting-ip')||request.headers.get('x-forwarded-for')?.split(',')[0]||'unknown').trim().slice(0,120);
+const webhookFeature=(channel:string)=>{
+  if(channel==='organization')return 'announcements_organization';
+  if(channel==='departments')return 'announcements_departments';
+  if(channel==='requests_organization')return 'requests_organization';
+  if(channel==='requests_departments')return 'requests_departments';
+  if(['warnings_organization','sanctions_organization','fines_organization'].includes(channel))return 'discipline_organization';
+  if(['warnings_departments','sanctions_departments','fines_departments'].includes(channel))return 'discipline_departments';
+  if(channel==='illegal_marketplace')return 'illegal_marketplace';
+  return null;
+};
+const filterWebhookRoutesForPackage=(routes:any,features:string[])=>Object.fromEntries(Object.entries(routes&&typeof routes==='object'?routes:{}).filter(([channel])=>{const feature=webhookFeature(channel);return !feature||features.includes(feature);}));
 const summarizeWebhooks=(routes:any)=>{
   const source=routes&&typeof routes==='object'?routes:{};
   const channels=[...webhookChannels];
@@ -405,6 +416,15 @@ const webhook_routes = {
   ...existingWebhookRoutes,
   ...submittedWebhookRoutes
 };
+const { data: routePackageSetting, error: routePackageError } = await db
+  .from('app_settings')
+  .select('value')
+  .eq('organization_id', organizationId)
+  .eq('key', 'organization_package')
+  .maybeSingle();
+if (routePackageError) throw routePackageError;
+const routePackageFeatures = resolvePackageFeatures(routePackageSetting?.value || {});
+const filteredWebhookRoutes = filterWebhookRoutesForPackage(webhook_routes, routePackageFeatures);
 
 const { error: settingsError } =
   await db
@@ -413,7 +433,7 @@ const { error: settingsError } =
       organization_id: organizationId,
       discord_client_id: clientId,
       panel_public_url: publicUrl,
-      webhook_routes,
+      webhook_routes: filteredWebhookRoutes,
       updated_by_discord_id: session.discord_id,
       updated_at: new Date().toISOString()
     }, {
@@ -475,6 +495,15 @@ if (settingsError) {
 
   if(error) throw error;
 }
+const { data: policyPackageSetting, error: policyPackageError } = await db
+  .from('app_settings')
+  .select('value')
+  .eq('organization_id', organizationId)
+  .eq('key', 'organization_package')
+  .maybeSingle();
+if (policyPackageError) throw policyPackageError;
+const policyPackageFeatures = resolvePackageFeatures(policyPackageSetting?.value || {});
+
 if(
   body.action_permissions &&
   typeof body.action_permissions === 'object'
@@ -506,6 +535,7 @@ if(
         ]
       ])
   );
+  if (!policyPackageFeatures.includes('requests_organization')) actionRules['cereri.organization'] = [];
 
   // Un rol de cereri poate avea o singură destinație. Păstrăm aceeași
   // regulă și server-side, chiar dacă formularul din browser a fost ocolit.
@@ -569,7 +599,7 @@ if(
     )
   ];
   const communicationPermissions = {
-    organization: { read: clean('organization','read'), write: clean('organization','write') },
+    organization: policyPackageFeatures.includes('announcements_organization') ? { read: clean('organization','read'), write: clean('organization','write') } : { read: [], write: [] },
     departments: { read: clean('departments','read'), write: clean('departments','write') }
   };
   const { error } = await db.from('app_settings').upsert({
@@ -594,7 +624,7 @@ if (
     )
   ];
   const disciplinePermissions = {
-    organization: { read: clean('organization','read'), write: clean('organization','write'), sanction: clean('organization','sanction') },
+    organization: policyPackageFeatures.includes('discipline_organization') ? { read: clean('organization','read'), write: clean('organization','write'), sanction: clean('organization','sanction') } : { read: [], write: [], sanction: [] },
     departments: { read: clean('departments','read'), write: clean('departments','write'), sanction: clean('departments','sanction') }
   };
   const { error } = await db.from('app_settings').upsert({
@@ -777,6 +807,34 @@ if (Array.isArray(body.roles)) {
         package_features: redeemed.package_features || []
       });
       return reply({ ok: true, expires_at: redeemed.access_expires_at, added_days: redeemed.added_days, package_code: redeemed.package_code, package_features: redeemed.package_features || [] });
+    }
+    if(false && body.action==='set_package'){
+      const organizationId=String(body.organization_id||'').trim();
+      const code=String(body.package_code||'standard');
+      if(!validOrganizationId(organizationId)||!['standard','full'].includes(code))return reply({error:'Organizația sau pachetul este invalidă.'},400);
+      const unlimited=body.unlimited===true;
+      const expiresAt=unlimited?null:String(body.expires_at||'').trim()||null;
+      if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))return reply({error:'Data expirării pachetului este invalidă.'},400);
+      const features=code==='full'?[...FULL_PACKAGE_FEATURES]:[...STANDARD_PACKAGE_FEATURES];
+      const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_package',value:{code,unlimited,expires_at:expiresAt,features},updated_at:nowIso()},{onConflict:'organization_id,key'});
+      if(error)throw error;
+      const {data:organizationSettings}=await db.from('organization_settings').select('webhook_routes').eq('organization_id',organizationId).maybeSingle();
+      if(organizationSettings?.webhook_routes){
+        const {error:routeError}=await db.from('organization_settings').update({webhook_routes:filterWebhookRoutesForPackage(organizationSettings.webhook_routes,features),updated_at:nowIso()}).eq('organization_id',organizationId);
+        if(routeError)throw routeError;
+      }
+      if(code!=='full'){
+        const restricted=[['action_permissions',{...(body.action_permissions||{}),'cereri.organization':[]}],['communication_permissions',{organization:{read:[],write:[]}}],['discipline_permissions',{organization:{read:[],write:[],sanction:[]}}]] as any[];
+        for(const [key,value] of restricted){
+          const {data:existing}=await db.from('app_settings').select('value').eq('organization_id',organizationId).eq('key',key).maybeSingle();
+          if(!existing)continue;
+          const next=key==='action_permissions'?{...(existing.value||{}),'cereri.organization':[]}:{...(existing.value||{}),organization:value.organization};
+          const {error:permissionError}=await db.from('app_settings').update({value:next,updated_at:nowIso()}).eq('organization_id',organizationId).eq('key',key);
+          if(permissionError)throw permissionError;
+        }
+      }
+      await audit(db,session,'organization_package_changed',organizationId,{code,unlimited,expires_at:expiresAt,features});
+      return reply({ok:true,package:{code,unlimited,expires_at:expiresAt,features}});
     }
     if(body.action==='set_package'){
       const organizationId=String(body.organization_id||'').trim(),code=String(body.package_code||'standard');if(!validOrganizationId(organizationId)||!['standard','full'].includes(code))return reply({error:'Organizația sau pachetul este invalid.'},400);const unlimited=body.unlimited===true;const expiresAt=unlimited?null:String(body.expires_at||'').trim()||null;if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))return reply({error:'Data expirării pachetului este invalidă.'},400);const requestedFeatures=Array.isArray(body.features)?[...new Set(body.features.map(String).filter((feature:string)=>Object.prototype.hasOwnProperty.call(PACKAGE_FEATURES,feature)))]:null;const features=code==='full'?[...FULL_PACKAGE_FEATURES]:[...new Set([...STANDARD_PACKAGE_FEATURES,...(requestedFeatures||[])])];const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_package',value:{code,unlimited,expires_at:expiresAt,features},updated_at:nowIso()},{onConflict:'organization_id,key'});if(error)throw error;await audit(db,session,'organization_package_changed',organizationId,{code,unlimited,expires_at:expiresAt,features});return reply({ok:true,package:{code,unlimited,expires_at:expiresAt,features}});

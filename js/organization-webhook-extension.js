@@ -9,6 +9,9 @@
   const statusChannel = 'status_live';
   let communicationPermissions = { organization: { read: [], write: [] }, departments: { read: [], write: [] } };
   let disciplinePermissions = { organization: { read: [], write: [], sanction: [] }, departments: { read: [], write: [], sanction: [] } };
+  let packageCode = 'standard';
+  const fullOnlyWebhookKeys = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
+  const organizationScopeEnabled = () => packageCode === 'full';
 
   function communicationRoles(audience, kind) {
     return Array.isArray(communicationPermissions[audience]?.[kind]) ? communicationPermissions[audience][kind].map(String) : [];
@@ -16,6 +19,14 @@
 
   function disciplineRoles(audience, kind) {
     return Array.isArray(disciplinePermissions[audience]?.[kind]) ? disciplinePermissions[audience][kind].map(String) : [];
+  }
+
+  function applyPackageVisibility() {
+    document.querySelectorAll('[id^="wh_primary_url_"], [id^="wh_secondary_url_"]').forEach((input) => {
+      const key = input.id.replace(/^wh_(?:primary|secondary)_url_/, '');
+      const fieldset = input.closest('fieldset');
+      if (fieldset) fieldset.hidden = !organizationScopeEnabled() && fullOnlyWebhookKeys.has(key);
+    });
   }
 
   function addAnnouncementPermissions() {
@@ -32,8 +43,9 @@
     const card = document.createElement('div');
     card.dataset.communicationPermission = 'true';
     card.className = 'rounded-xl border border-amber-700/60 bg-amber-950/10 p-3';
-    card.innerHTML = '<b class="text-sm">Anunțuri și disciplină</b><p class="mt-1 text-xs text-slate-400">Anunțurile, sondajele, avertismentele și sancțiunile sunt configurate separat pentru Organizație și Birouri / Angajați.</p><div class="mt-3 grid gap-3 md:grid-cols-2">' + ['organization','departments'].map(audience => `<div class="rounded-lg border border-slate-700 p-3"><b class="text-xs">${audience === 'organization' ? 'Organizație' : 'Birouri / Angajați'}</b><div class="mt-2 text-[11px] text-slate-400">Cine poate citi comunicările</div><div data-communication-audience="${audience}" data-communication-kind="read" class="mt-1 flex flex-wrap gap-2"></div><div class="mt-2 text-[11px] text-slate-400">Cine poate scrie comunicări</div><div data-communication-audience="${audience}" data-communication-kind="write" class="mt-1 flex flex-wrap gap-2"></div></div>`).join('') + '</div><div class="mt-4 rounded-lg border border-amber-700/40 bg-amber-950/10 p-3"><b class="text-xs text-amber-200">Disciplină</b><p class="mt-1 text-[11px] text-slate-400">Angajații și organizația au evidențe separate. Un rol selectat aici poate vedea sau administra doar categoria aleasă.</p><div data-discipline-permissions class="mt-3 grid gap-3 md:grid-cols-2"></div></div>';
-    ['organization','departments'].forEach((audience) => ['read', 'write'].forEach((kind) => {
+    const audiences = organizationScopeEnabled() ? ['organization', 'departments'] : ['departments'];
+    card.innerHTML = '<b class="text-sm">Anunțuri și disciplină</b><p class="mt-1 text-xs text-slate-400">Standard: partea firmei și angajaților. Full: adaugă separat partea organizației/mafiei.</p><div class="mt-3 grid gap-3 md:grid-cols-2">' + audiences.map(audience => `<div class="rounded-lg border border-slate-700 p-3"><b class="text-xs">${audience === 'organization' ? 'Organizație / Mafia · Full' : 'Birouri / Angajați · Standard'}</b><div class="mt-2 text-[11px] text-slate-400">Cine poate citi comunicările</div><div data-communication-audience="${audience}" data-communication-kind="read" class="mt-1 flex flex-wrap gap-2"></div><div class="mt-2 text-[11px] text-slate-400">Cine poate scrie comunicări</div><div data-communication-audience="${audience}" data-communication-kind="write" class="mt-1 flex flex-wrap gap-2"></div></div>`).join('') + '</div><div class="mt-4 rounded-lg border border-amber-700/40 bg-amber-950/10 p-3"><b class="text-xs text-amber-200">Disciplină pe pachet</b><p class="mt-1 text-[11px] text-slate-400">Avertismentele și sancțiunile pentru angajați sunt Standard; cele pentru organizație/mafia apar numai la Full.</p><div data-discipline-permissions class="mt-3 grid gap-3 md:grid-cols-2"></div></div>';
+    audiences.forEach((audience) => ['read', 'write'].forEach((kind) => {
       const target = card.querySelector(`[data-communication-audience="${audience}"][data-communication-kind="${kind}"]`);
       roles.forEach((label, id) => {
         const wrapper = document.createElement('label');
@@ -50,7 +62,8 @@
       });
     }));
     const disciplineHost = card.querySelector('[data-discipline-permissions]');
-    [['organization', 'Organizație'], ['departments', 'Birouri / Angajați']].forEach(([audience, label]) => {
+    audiences.forEach((audience) => {
+      const label = audience === 'organization' ? 'Organizație / Mafia · Full' : 'Birouri / Angajați · Standard';
       const block = document.createElement('div');
       block.className = 'rounded-lg border border-slate-700 p-3';
       block.innerHTML = `<b class="text-xs">${label}</b>`;
@@ -196,6 +209,8 @@
   editOrganization = async (...args) => {
     await originalEditOrganization(...args);
     const organization = (typeof organizations !== 'undefined' ? organizations : []).find((item) => item.id === args[0]);
+    packageCode = organization?.package?.code === 'full' || organization?.platform_settings?.organization_package?.code === 'full' ? 'full' : 'standard';
+    applyPackageVisibility();
     const saved = organization?.platform_settings?.communication_permissions || {};
     const savedDiscipline = organization?.platform_settings?.discipline_permissions || {};
     const legacyRead = Array.isArray(pagePermissions?.['anunturi.html']) ? pagePermissions['anunturi.html'].map(String) : [];
@@ -216,16 +231,20 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     $('new')?.addEventListener('click', () => {
+      packageCode = $('package-code')?.value === 'full' ? 'full' : 'standard';
+      applyPackageVisibility();
       communicationPermissions = { organization: { read: [], write: [] }, departments: { read: [], write: [] } };
       disciplinePermissions = { organization: { read: [], write: [], sanction: [] }, departments: { read: [], write: [], sanction: [] } };
       if (typeof renderActionPermissions === 'function') renderActionPermissions();
     });
+    $('package-code')?.addEventListener('change', () => { packageCode = $('package-code').value === 'full' ? 'full' : 'standard'; applyPackageVisibility(); document.querySelector('[data-communication-permission]')?.remove(); addAnnouncementPermissions(); });
     document.addEventListener('click', (event) => {
       document.querySelectorAll('#list details[open]').forEach((details) => {
         if (!details.contains(event.target)) details.open = false;
       });
     });
     injectStatusWebhookFields();
+    applyPackageVisibility();
     addStatusLivePagePermission();
     addAnnouncementPermissions();
     const observer = new MutationObserver(() => { injectStatusWebhookFields(); addStatusLivePagePermission(); addAnnouncementPermissions(); });

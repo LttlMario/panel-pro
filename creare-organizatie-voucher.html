@@ -98,6 +98,7 @@
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Crearea a eșuat.');
+        window.draftPackageCode = result.package_code || 'standard';
         window.draftOrganizationId = result.organization?.id || '';
         const showDraftConfiguration = () => typeof window.setDraftOrganizationId === 'function'
           ? window.setDraftOrganizationId(window.draftOrganizationId)
