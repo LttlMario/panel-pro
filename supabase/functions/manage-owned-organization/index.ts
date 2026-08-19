@@ -40,6 +40,8 @@ const allowedPages = new Map([
   ['status-live.html', 'Status Live'],
   ['asistent.html', 'Asistent Panel']
 ]);
+const allowedAssistantPages = new Set([...allowedPages.keys()]);
+const allowedActionKeys = new Set(['anunturi.publish', 'cereri.organization', 'cereri.departments']);
 
 const normalizeContract = (raw: unknown) => {
   if (raw === undefined) return undefined;
@@ -283,14 +285,18 @@ Deno.serve(async (request) => {
 
     const organizationId = String(owned.organization.id);
     const loadSettings = async () => {
-      const [{ data: settings }, { data: contractSetting }, { data: roleMappings }, { data: pageSetting }, { data: guilds }, { data: accessSetting }, { data: packageSetting }] = await Promise.all([
+      const [{ data: settings }, { data: contractSetting }, { data: roleMappings }, { data: pageSetting }, { data: guilds }, { data: accessSetting }, { data: packageSetting }, { data: actionSetting }, { data: assistantPageSetting }, { data: communicationSetting }, { data: disciplineSetting }] = await Promise.all([
         db.from('organization_settings').select('*').eq('organization_id', organizationId).maybeSingle(),
         db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'contract_template').maybeSingle(),
         db.from('organization_role_mappings').select('guild_id,discord_role_id,discord_role_name,panel_role,permission_level,priority,enabled').eq('organization_id', organizationId).order('priority', { ascending: false }),
         db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'page_permissions').maybeSingle(),
         db.from('organization_guilds').select('guild_id,guild_name,kind,enabled').eq('organization_id', organizationId).eq('enabled', true).order('kind'),
         db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_access').maybeSingle(),
-        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_package').maybeSingle()
+        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_package').maybeSingle(),
+        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'action_permissions').maybeSingle(),
+        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'assistant_page_permissions').maybeSingle(),
+        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'communication_permissions').maybeSingle(),
+        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'discipline_permissions').maybeSingle()
       ]);
       return {
         settings: settings || {},
@@ -299,7 +305,11 @@ Deno.serve(async (request) => {
         page_permissions: pageSetting?.value || {},
         guilds: guilds || [],
         access: accessSetting?.value || {},
-        package: packageSetting?.value || {}
+        package: packageSetting?.value || {},
+        action_permissions: actionSetting?.value || {},
+        assistant_page_permissions: assistantPageSetting?.value || {},
+        communication_permissions: communicationSetting?.value || {},
+        discipline_permissions: disciplineSetting?.value || {}
       };
     };
 
@@ -324,6 +334,10 @@ Deno.serve(async (request) => {
         page_permissions: state.page_permissions,
         access: state.access,
         package: state.package,
+        action_permissions: state.action_permissions,
+        assistant_page_permissions: state.assistant_page_permissions,
+        communication_permissions: state.communication_permissions,
+        discipline_permissions: state.discipline_permissions,
         discord_roles: discordRoles
       });
     }
@@ -442,6 +456,54 @@ Deno.serve(async (request) => {
       if (pagePermissionError) throw pagePermissionError;
     }
 
+    const cleanRoleIds = (value: unknown, validRoleIds: Set<string>) => [
+      ...new Set((Array.isArray(value) ? value : []).map(String).filter((id) => validRoleIds.has(id)))
+    ];
+    if (body.action_permissions !== undefined) {
+      const actionRules = Object.fromEntries(
+        Object.entries(body.action_permissions && typeof body.action_permissions === 'object' ? body.action_permissions : {})
+          .filter(([action]) => allowedActionKeys.has(action))
+          .map(([action, ids]) => [action, cleanRoleIds(ids, savedRoleIds)])
+      ) as Record<string, string[]>;
+      if (!(currentState.package?.code === 'full' || currentState.package?.features?.includes?.('requests_organization'))) {
+        actionRules['cereri.organization'] = [];
+      }
+      const organizationRequestRoles = new Set(actionRules['cereri.organization'] || []);
+      actionRules['cereri.departments'] = (actionRules['cereri.departments'] || []).filter((id) => !organizationRequestRoles.has(id));
+      const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'action_permissions', value: actionRules, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+      if (error) throw error;
+    }
+    if (body.assistant_page_permissions !== undefined) {
+      const assistantRules = Object.fromEntries(
+        Object.entries(body.assistant_page_permissions && typeof body.assistant_page_permissions === 'object' ? body.assistant_page_permissions : {})
+          .filter(([page]) => allowedAssistantPages.has(page))
+          .map(([page, ids]) => [page, cleanRoleIds(ids, savedRoleIds)])
+      );
+      const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'assistant_page_permissions', value: assistantRules, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+      if (error) throw error;
+    }
+    if (body.communication_permissions !== undefined) {
+      const input = body.communication_permissions && typeof body.communication_permissions === 'object' ? body.communication_permissions as Record<string, any> : {};
+      const communicationRules = Object.fromEntries(['organization', 'departments'].map((audience) => [audience, {
+        read: cleanRoleIds(input[audience]?.read, savedRoleIds),
+        write: cleanRoleIds(input[audience]?.write, savedRoleIds)
+      }]));
+      if (!(currentState.package?.code === 'full' || currentState.package?.features?.includes?.('announcements_organization'))) communicationRules.organization = { read: [], write: [] };
+      const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'communication_permissions', value: communicationRules, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+      if (error) throw error;
+    }
+    if (body.discipline_permissions !== undefined) {
+      const input = body.discipline_permissions && typeof body.discipline_permissions === 'object' ? body.discipline_permissions as Record<string, any> : {};
+      const disciplineRules = Object.fromEntries(['organization', 'departments'].map((audience) => [audience, {
+        read: cleanRoleIds(input[audience]?.read, savedRoleIds),
+        write: cleanRoleIds(input[audience]?.write, savedRoleIds),
+        sanction: cleanRoleIds(input[audience]?.sanction, savedRoleIds)
+      }]));
+      if (!(currentState.package?.code === 'full' || currentState.package?.features?.includes?.('discipline_organization'))) disciplineRules.organization = { read: [], write: [], sanction: [] };
+      const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'discipline_permissions', value: disciplineRules, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+      if (error) throw error;
+    }
+
     const { data: updatedOrganization, error: updatedError } = await db.from('organizations')
       .select('id,name,slug,address,description,logo_url,banner_url,active,lifecycle_status')
       .eq('id', organizationId).single();
@@ -458,6 +520,10 @@ Deno.serve(async (request) => {
       page_permissions: updatedState.page_permissions,
       access: updatedState.access,
       package: updatedState.package,
+      action_permissions: updatedState.action_permissions,
+      assistant_page_permissions: updatedState.assistant_page_permissions,
+      communication_permissions: updatedState.communication_permissions,
+      discipline_permissions: updatedState.discipline_permissions,
       discord_roles: availableDiscordRoles
     });
   } catch (error) {

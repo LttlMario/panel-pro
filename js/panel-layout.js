@@ -743,8 +743,9 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         link.style.display = 'none';
 
         const token = window.getPanelDiscordAccessToken?.() || '';
+        const panelSession = localStorage.getItem('panel_session_token') || '';
         const config = window.PANEL_SUPABASE_CONFIG;
-        if (!token || !config?.url || !config?.publishableKey) {
+        if (!token && !panelSession || !config?.url || !config?.publishableKey) {
             link.remove();
             refreshNavigationSections(navigation);
             return;
@@ -756,11 +757,12 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 headers: {
                     'Content-Type': 'application/json',
                     apikey: config.publishableKey,
-                    Authorization: `Bearer ${config.publishableKey}`
+                    Authorization: `Bearer ${config.publishableKey}`,
+                    'x-panel-session': panelSession
                 },
                 body: JSON.stringify({
                     action: 'owner_get',
-                    access_token: token,
+                    ...(token ? { access_token: token } : {}),
                     organization_id: window.getActiveOrganizationId?.() || ''
                 })
             });
@@ -788,7 +790,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const sections = [
             ['management', 'Operațiuni', [
                 ['index.html', '📊', 'Dashboard'],
-                ['prelungire-voucher.html', '🎟️', 'Prelungire prin voucher'],
                 ['anunturi.html', '📣', 'Anunțuri & Sondaje'],
                 ['pontaj.html', '⏱️', 'Pontaj'],
                 ['cereri.html', '📋', 'Cereri / Absențe'],
@@ -813,7 +814,9 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 ['administrare-organizatii-platforma.html', '🗂️', 'Administrare organizații'],
                 ['organizatii.html', '🏢', 'Organizații platformă'],
                 ['developer.html', '🛠️', 'Developer'],
-                ['admin.html', '👑', 'Panou Admin']
+                ['admin.html', '👑', 'Panou Admin'],
+                ['administrare-organizatie.html', '🏢', 'Administrare organizație'],
+                ['prelungire-voucher.html', '🎟️', 'Prelungire prin voucher']
             ]]
         ];
         const renderLink = ([href, icon, label]) => {
