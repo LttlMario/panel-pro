@@ -19,7 +19,8 @@
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const error = new Error(result.error || `Operația a eșuat (${response.status}).`);
+      const errorText = [result.error, result.details, result.hint].filter(Boolean).join(' — ') || `Operația a eșuat (${response.status}).`;
+      const error = new Error(errorText);
       error.status = response.status;
       error.code = result.code || '';
       throw error;
