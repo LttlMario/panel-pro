@@ -4,6 +4,8 @@
 DO $$
 DECLARE
   id_udt text;
+  notification_count bigint;
+  read_count bigint;
 BEGIN
   SELECT c.udt_name
     INTO id_udt
@@ -15,6 +17,37 @@ BEGIN
   IF id_udt = 'uuid' THEN
     ALTER TABLE public.panel_notifications
       ALTER COLUMN id SET DEFAULT gen_random_uuid();
+  ELSIF id_udt IN ('int2', 'int4', 'int8') THEN
+    SELECT count(*) INTO notification_count FROM public.panel_notifications;
+    SELECT count(*) INTO read_count FROM public.panel_notification_reads;
+
+    -- Backup-ul vechi are ambele tabele goale, deci putem repara tipurile
+    -- fără să pierdem mapări existente și fără să schimbăm anunțurile reale.
+    IF notification_count = 0 AND read_count = 0 THEN
+      ALTER TABLE public.panel_notification_reads
+        DROP CONSTRAINT IF EXISTS panel_notification_reads_notification_id_fkey,
+        DROP CONSTRAINT IF EXISTS panel_notification_reads_pkey;
+      ALTER TABLE public.panel_notifications
+        DROP CONSTRAINT IF EXISTS panel_notifications_pkey,
+        ALTER COLUMN id DROP IDENTITY IF EXISTS,
+        ALTER COLUMN id DROP DEFAULT;
+
+      ALTER TABLE public.panel_notifications
+        ALTER COLUMN id TYPE uuid USING gen_random_uuid();
+      ALTER TABLE public.panel_notifications
+        ALTER COLUMN id SET DEFAULT gen_random_uuid();
+      ALTER TABLE public.panel_notifications
+        ADD CONSTRAINT panel_notifications_pkey PRIMARY KEY (id);
+
+      ALTER TABLE public.panel_notification_reads
+        ALTER COLUMN notification_id TYPE uuid USING gen_random_uuid();
+      ALTER TABLE public.panel_notification_reads
+        ADD CONSTRAINT panel_notification_reads_pkey PRIMARY KEY (notification_id, discord_id),
+        ADD CONSTRAINT panel_notification_reads_notification_id_fkey
+          FOREIGN KEY (notification_id) REFERENCES public.panel_notifications(id) ON DELETE CASCADE;
+
+      DROP SEQUENCE IF EXISTS public.panel_notifications_id_seq;
+    END IF;
   END IF;
 
   SELECT c.udt_name
