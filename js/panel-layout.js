@@ -1173,7 +1173,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (document.getElementById('panel-operations-script')) return;
         const script = document.createElement('script');
         script.id = 'panel-operations-script';
-        script.src = 'js/panel-operations.js';
+        script.src = 'js/panel-operations.js?v=20260819-notifications';
         script.defer = true;
         document.head.appendChild(script);
     }
