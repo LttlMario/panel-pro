@@ -6,7 +6,8 @@ const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-
 
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
 const normalizeBlackMarketName=(value:unknown)=>String(value??'').replace(/^\s*\d{1,12}\s+/,'').replace(/^\s*\d{1,12}\s*[|:/#-]\s*/,'').replace(/\s*[|:/#-]\s*\d{1,12}\s*$/,'').replace(/\s+\d{1,12}\s*$/,'').replace(/\s*[[(]\s*\d{1,12}\s*[\])]\s*$/,'').replace(/\s{2,}/g,' ').trim();
-Deno.serve(async(req)=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return reply({error:'Method not allowed'},405);try{
+Deno.serve(async(req)=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return reply({error:'Method not allowed'},405);let stage='request';try{
+ stage='parse_body';
  const body=await req.json();
 if (body.action === 'create') {
     if (!['organization', 'departments'].includes(String(body.audience || ''))) {
@@ -16,6 +17,7 @@ if (body.action === 'create') {
     }
 }
  const keys=JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS')??'{}'),key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||keys.default;const db=createClient(Deno.env.get('SUPABASE_URL')!,key);
+stage='load_panel_session';
 const session = await requirePanelSession(db, req);
 
 const du = {
@@ -36,6 +38,7 @@ if (requestRateError) {
 if (requestAllowed === false) return reply({ error: 'Ai atins limita temporară pentru această secțiune. Încearcă din nou mai târziu.' }, 429);
 
 const isPlatformAdmin = isPlatformAdminDiscordId(session.discord_id);
+stage='load_permission_settings';
 const { data: permissionSettings, error: permissionSettingsError } =
     await db
         .from('app_settings')
@@ -174,6 +177,7 @@ if (
         error: 'Rolul tău nu are permisiunea de a publica sau administra anunțuri și sondaje.'
     }, 403);
 }
+  stage='load_panel_user';
   const {data:user}=await db.from('users').select('*').eq('discord_id',du.id).single();if(!user)return reply({error:'Utilizatorul nu există în panel.'},403);
 
 const resolveDisciplineTarget = async (scope:string, targetDiscordId:string|null) => {
@@ -397,6 +401,7 @@ const own = async (id:string) => {
     }
 
     const audience = body.audience;
+    stage='insert_community_post';
     const {data:post,error}=await db.from('community_posts').insert({
         organization_id: organizationId,
         audience: audience,
@@ -408,10 +413,15 @@ const own = async (id:string) => {
     }).select().single();
     if (error) throw error;
     if (!post) throw new Error('Postarea nu a putut fi salvată.');
-    if(body.post_type==='poll'){const options=(body.options||[]).map((x:string,i:number)=>({organization_id:organizationId,post_id:post.id,option_text:x,position:i}));const {error:e}=await db.from('community_poll_options').insert(options);if(e)throw e}
+    if(body.post_type==='poll'){
+      stage='insert_poll_options';
+      const options=(body.options||[]).map((x:string,i:number)=>({organization_id:organizationId,post_id:post.id,option_text:x,position:i}));
+      const {error:e}=await db.from('community_poll_options').insert(options);if(e)throw e
+    }
     let discordMessageId = null;
     let discordDeliveryWarning = '';
     try {
+        stage='notify_discord_webhook';
         discordMessageId = await notifyDiscord(post, body.options || [], post.audience);
     } catch (error) {
         discordDeliveryWarning = error instanceof Error ? error.message : 'Webhook-ul Discord nu a putut fi contactat.';
@@ -756,6 +766,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
      error: error?.message || error?.error_description || error?.details || 'Eroare necunoscută.',
      code: error?.code || null,
      details: error?.details || null,
-     hint: error?.hint || null
+     hint: error?.hint || null,
+     stage
    },400);
  }});
