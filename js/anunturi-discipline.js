@@ -41,6 +41,11 @@
     element.innerHTML = `<div class="discipline-notice ${tone}">${esc(message)}</div>`;
   }
 
+  function closeModal() {
+    const modal = $('discipline-modal');
+    if (modal) modal.hidden = true;
+  }
+
   function visibleScopeRecords(kind) {
     const rows = kind === 'warnings' ? state.warnings : state.sanctions;
     return rows.filter((row) => row.target_scope === 'departments' || row.target_scope === 'organization');
@@ -131,6 +136,11 @@
   async function openModal() {
     configureScopeOptions();
     $('discipline-form').reset();
+    const formError = $('discipline-form-error');
+    if (formError) {
+      formError.textContent = '';
+      formError.hidden = true;
+    }
     $('discipline-kind').value = hasWrite('departments') || hasWrite('organization') ? 'warning' : 'sanction';
     $('discipline-currency').value = 'USD';
     $('sanction-fields').hidden = true;
@@ -184,7 +194,16 @@
       if (state.filter) showCommunity();
     }));
     $('discipline-create-button')?.addEventListener('click', openModal);
-    $('[data-discipline-close]')?.addEventListener('click', () => { if ($('discipline-modal')) $('discipline-modal').hidden = true; });
+    document.addEventListener('click', (event) => {
+      const closeButton = event.target?.closest?.('[data-discipline-close]');
+      if (!closeButton) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeModal();
+    }, true);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !$('discipline-modal')?.hidden) closeModal();
+    });
     $('discipline-kind')?.addEventListener('change', () => { if ($('sanction-fields')) $('sanction-fields').hidden = $('discipline-kind').value !== 'sanction'; });
     $('discipline-scope')?.addEventListener('change', loadTargets);
     $('discipline-form')?.addEventListener('submit', async (event) => {
@@ -210,6 +229,11 @@
         await load();
         if (state.filter) render();
       } catch (error) {
+        const formError = $('discipline-form-error');
+        if (formError) {
+          formError.textContent = error.message || 'Operația nu a putut fi finalizată.';
+          formError.hidden = false;
+        }
         if (kind === 'sanction' && error.status === 409) {
           notice(error.message || 'Sancțiunea poate fi emisă după 3 avertismente active pentru aceeași persoană.', 'error');
         } else {

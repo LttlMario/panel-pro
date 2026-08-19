@@ -774,4 +774,9 @@ async function notifyDiscord(post:any, options:string[], audience:string){
     });
 
 }
- }catch(e){console.error(e);return reply({error:e instanceof Error?e.message:'Eroare necunoscută.'},400)}});
+ }catch(e){
+   console.error(e);
+   const message=e instanceof Error?e.message:'Eroare necunoscută.';
+   const isSessionError=/sesiunea securizată|sesiunea panelului a expirat|autentifică-te din nou/i.test(message);
+   return reply({error:message},isSessionError?401:400)
+ }});
