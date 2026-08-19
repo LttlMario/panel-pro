@@ -9,6 +9,7 @@ const headers = {
 };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}').default;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const avatarUrl = (id: string, avatar?: string | null) => avatar ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png` : 'https://panel-management.netlify.app//img/logo-192.png';
 const normalizeId = (value: unknown) => String(value ?? '').trim();
 const discordBotHeaders = (bot: string) => ({ Authorization: `Bot ${bot}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)' });
@@ -41,6 +42,10 @@ Deno.serve(async (request) => {
   try {
     const body = await request.json();
     const emailLogin = body.email_login === true;
+    const requestedOrganizationId = String(body.organization_id || '').trim();
+    if (requestedOrganizationId && !UUID_RE.test(requestedOrganizationId)) {
+      return reply({ error: 'Organizația activă este veche sau invalidă. Selectează din nou organizația.', code: 'ORGANIZATION_ID_INVALID' }, 400);
+    }
     const voucherCode = String(body.voucher_code || '').trim().toUpperCase();
     let voucherGuildId = String(body.voucher_guild_id || '').trim();
     if (voucherCode && voucherGuildId && !/^\d{15,22}$/.test(voucherGuildId)) return reply({ error: 'Guild ID-ul voucherului este invalid.' }, 400);
@@ -124,7 +129,18 @@ Deno.serve(async (request) => {
 
     const { data: guilds, error: guildError } = await guildsPromise;
     if (guildError) throw guildError;
-    const organizationIds=[...new Set((guilds||[]).map((guild:any)=>String(guild.organization_id)))];
+    // Folosim ID-ul din relația organizations, nu valoarea istorică din
+    // organization_guilds, pentru a nu propaga ID-uri numerice vechi.
+    const normalizedGuilds=(guilds||[]).map((guild:any)=>({
+      ...guild,
+      organization_id: UUID_RE.test(String(guild.organizations?.id||''))
+        ? String(guild.organizations.id)
+        : String(guild.organization_id||''),
+    })).filter((guild:any)=>UUID_RE.test(String(guild.organization_id||'')));
+    const scopedGuilds = requestedOrganizationId
+      ? normalizedGuilds.filter((guild:any)=>String(guild.organization_id) === requestedOrganizationId)
+      : normalizedGuilds;
+    const organizationIds=[...new Set(scopedGuilds.map((guild:any)=>String(guild.organization_id)))];
     const [accessResult, mappingResult] = await Promise.all([
       organizationIds.length
         ? db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','organization_package','page_permissions','assistant_page_permissions','action_permissions'])
@@ -137,7 +153,7 @@ Deno.serve(async (request) => {
     if (mappingError) throw mappingError;
     const expiredIds=new Set((accessRows||[]).filter((row:any)=>row.key==='organization_access'&&row.value?.expires_at&&Date.parse(String(row.value.expires_at))<=Date.now()).map((row:any)=>String(row.organization_id))),packageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='organization_package').map((row:any)=>[String(row.organization_id),row.value||{}])),pageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),assistantPageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='assistant_page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),actionSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='action_permissions').map((row:any)=>[String(row.organization_id),row.value||{}]));
      if(expiredIds.size)await db.from('organizations').update({active:false,updated_at:new Date().toISOString()}).in('id',[...expiredIds]);
-     const inactiveOrganizationIds=new Set((guilds||[]).filter((item:any)=>item.organizations?.active===false&&!expiredIds.has(String(item.organization_id))).map((item:any)=>String(item.organization_id)));
+     const inactiveOrganizationIds=new Set(scopedGuilds.filter((item:any)=>item.organizations?.active===false&&!expiredIds.has(String(item.organization_id))).map((item:any)=>String(item.organization_id)));
 
     const matches = new Map<string, {
       organization: any;
@@ -149,7 +165,7 @@ Deno.serve(async (request) => {
     const liveRoles = new Map<string, Map<string, { name: string; position: number }>>();
     let platformRoleLabel = '';
     let platformRolePosition = -1;
-    const guildsToProcess = (guilds || []).filter((item:any)=>!inactiveOrganizationIds.has(String(item.organization_id))&&(!voucherCode || String(item.guild_id) === voucherGuildId)&&(!emailLogin || String(item.guild_id) === selectedGuildId));
+    const guildsToProcess = scopedGuilds.filter((item:any)=>!inactiveOrganizationIds.has(String(item.organization_id))&&(!voucherCode || String(item.guild_id) === voucherGuildId)&&(!emailLogin || String(item.guild_id) === selectedGuildId));
     const guildSnapshots = new Map<string, Promise<{ memberResponse: Response; member: any; roles: Map<string, { name: string; position: number }> }>>();
     const getGuildSnapshot = (guildId: string) => {
       if (!guildSnapshots.has(guildId)) guildSnapshots.set(guildId, fetchGuildSnapshot(guildId, String(discordUser.id), accessToken, botToken));
@@ -404,7 +420,7 @@ if (!existing) {
       voucher_code: voucherCode,
       voucher_guild_id: voucherGuildId || null,
     }, 409);
-    const requestedId = String(body.organization_id || '').trim();
+    const requestedId = requestedOrganizationId;
     let active: any;
     if (emailLogin) {
       const emailGuildOrganizations = available.filter((item) => item.guild_ids.includes(selectedGuildId));

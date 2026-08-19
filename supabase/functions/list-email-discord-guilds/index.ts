@@ -8,6 +8,7 @@ const headers = {
 };
 
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const botHeaders = (token: string) => ({
   Authorization: `Bot ${token}`,
   'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)',
@@ -73,13 +74,15 @@ Deno.serve(async (request) => {
 
     const guilds = await Promise.all((rows || []).map(async (row: any) => {
       const guildId = String(row.guild_id || '').trim();
+      const organizationId = String(row.organizations?.id || row.organization_id || '').trim();
+      if (!UUID_RE.test(organizationId)) return null;
       if (!memberGuildIds.has(guildId)) return null;
       const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}`, { headers: botHeaders(botToken) });
       return {
         guild_id: guildId,
         guild_name: String(row.guild_name || row.organizations?.name || 'Server Discord'),
         kind: String(row.kind || 'primary'),
-        organization_id: String(row.organization_id || row.organizations?.id || ''),
+        organization_id: organizationId,
         organization_name: String(row.organizations?.name || ''),
         bot_available: response.ok,
       };

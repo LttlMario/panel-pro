@@ -115,9 +115,11 @@ Deno.serve(async request=>{
               'organization_access',
               'contract_template',
               'page_permissions',
+              'assistant_page_permissions',
               'action_permissions',
               'communication_permissions',
-              'discipline_permissions'
+              'discipline_permissions',
+              'organization_package'
             ])
         : {
             data: [],
@@ -417,16 +419,6 @@ const webhook_routes = {
   ...existingWebhookRoutes,
   ...submittedWebhookRoutes
 };
-const { data: routePackageSetting, error: routePackageError } = await db
-  .from('app_settings')
-  .select('value')
-  .eq('organization_id', organizationId)
-  .eq('key', 'organization_package')
-  .maybeSingle();
-if (routePackageError) throw routePackageError;
-const routePackageFeatures = resolvePackageFeatures(routePackageSetting?.value || {});
-const filteredWebhookRoutes = filterWebhookRoutesForPackage(webhook_routes, routePackageFeatures);
-
 const { error: settingsError } =
   await db
     .from('organization_settings')
@@ -434,7 +426,9 @@ const { error: settingsError } =
       organization_id: organizationId,
       discord_client_id: clientId,
       panel_public_url: publicUrl,
-      webhook_routes: filteredWebhookRoutes,
+      // Pachetul controlează accesul la canale, nu șterge configurația
+      // webhook-urilor când formularul este salvat sau pachetul se schimbă.
+      webhook_routes,
       updated_by_discord_id: session.discord_id,
       updated_at: new Date().toISOString()
     }, {
@@ -819,11 +813,6 @@ if (Array.isArray(body.roles)) {
       const features=code==='full'?[...FULL_PACKAGE_FEATURES]:[...STANDARD_PACKAGE_FEATURES];
       const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_package',value:{code,unlimited,expires_at:expiresAt,features},updated_at:nowIso()},{onConflict:'organization_id,key'});
       if(error)throw error;
-      const {data:organizationSettings}=await db.from('organization_settings').select('webhook_routes').eq('organization_id',organizationId).maybeSingle();
-      if(organizationSettings?.webhook_routes){
-        const {error:routeError}=await db.from('organization_settings').update({webhook_routes:filterWebhookRoutesForPackage(organizationSettings.webhook_routes,features),updated_at:nowIso()}).eq('organization_id',organizationId);
-        if(routeError)throw routeError;
-      }
       if(code!=='full'){
         const restricted=[['action_permissions',{...(body.action_permissions||{}),'cereri.organization':[]}],['communication_permissions',{organization:{read:[],write:[]}}],['discipline_permissions',{organization:{read:[],write:[],sanction:[]}}]] as any[];
         for(const [key,value] of restricted){

@@ -19,19 +19,9 @@
         if (!panelSessionToken) throw new Error('Sesiunea securizată a panelului lipsește. Reautentifică-te.');
 
         // Identificăm organizația activă a utilizatorului.
-        const cachedUser = localStorage.getItem('discord_user');
-        let organizationId = window.PANEL_ACTIVE_ORGANIZATION_ID || window.getActiveOrganizationId?.() || null;
+        const organizationId = window.PANEL_ACTIVE_ORGANIZATION_ID || window.getActiveOrganizationId?.() || null;
 
-        if (!organizationId) {
-            try {
-                const userData = cachedUser ? JSON.parse(cachedUser) : null;
-                organizationId = userData?.organization_id || null;
-            } catch (_) {
-                organizationId = null;
-            }
-        }
-
-        if (!organizationId) {
+        if (!window.isPanelOrganizationId?.(organizationId)) {
             throw new Error('Organizația activă nu a fost identificată.');
         }
 
