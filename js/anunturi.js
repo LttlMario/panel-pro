@@ -15,7 +15,7 @@
     user.active_organization_id ||
     null;
   const $=s=>document.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const invoke=async(body)=>{const token=localStorage.getItem('discord_access_token');if(!token){requestFreshLogin();throw new Error('Sesiunea Discord lipsește. Se redeschide autentificarea.')}const res=await fetch(`${URL}/functions/v1/manage-community-posts`,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:`Bearer ${KEY}`},body:JSON.stringify({...body,access_token:token})});let json={};try{json=await res.json()}catch{json={}}if(res.status===401){requestFreshLogin();throw new Error('Sesiunea Discord a expirat. Se redeschide autentificarea.')}if(!res.ok){
+  const invoke=async(body)=>{const token=localStorage.getItem('discord_access_token'),panelSession=localStorage.getItem('panel_session_token')||'';if(!token||!panelSession){requestFreshLogin();throw new Error('Sesiunea securizată a panelului lipsește. Autentifică-te din nou.')}const res=await fetch(`${URL}/functions/v1/manage-community-posts`,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:`Bearer ${KEY}`,'x-panel-session':panelSession},body:JSON.stringify({...body,access_token:token})});let json={};try{json=await res.json()}catch{json={}}if(res.status===401){requestFreshLogin();throw new Error('Sesiunea Discord a expirat. Se redeschide autentificarea.')}if(!res.ok){
     console.error("EDGE ERROR RESPONSE:", json);
     throw new Error(
         json.error ||
@@ -205,7 +205,10 @@ async function load() {
 }
   function option(value=''){const row=document.createElement('div');row.className='poll-option-row';row.innerHTML=`<input class="poll-input" maxlength="120" value="${esc(value)}" placeholder="Opțiune"><button type="button" class="text-action danger">×</button>`;row.querySelector('button').onclick=()=>row.remove();$('#poll-options').appendChild(row)}
   function openEdit(id){const p=posts.find(x=>String(x.id)===String(id));editing=p.id;$('#form-heading').textContent='Editează postarea';$('#post-type').value=p.post_type;$('#post-type').disabled=true;$('#post-title').value=p.title;$('#post-content').value=p.content;$('#poll-wrap').hidden=p.post_type!=='poll';$('#poll-options').innerHTML='';(p.community_poll_options||[]).sort((a,b)=>a.position-b.position).forEach(o=>option(o.option_text));$('#post-modal').hidden=false}
+ function closePostComposer(){ $('#post-modal').hidden=true; $('#audience-modal').hidden=true; draft=null; editing=null; }
  document.addEventListener('DOMContentLoaded', async () => {
+    $('[data-close]')?.addEventListener('click', closePostComposer);
+    $('[data-back]')?.addEventListener('click', () => { $('#audience-modal').hidden=true; $('#post-modal').hidden=false; });
 
 
     const announcementAccess =
@@ -230,7 +233,7 @@ async function load() {
 
     $('#post-modal').hidden = false;
 };
-$('#post-type').onchange=e=>{$('#poll-wrap').hidden=e.target.value!=='poll';if(e.target.value==='poll'&&!$('#poll-options').children.length){option();option()}};$('#add-option').onclick=()=>option();$('[data-close]').onclick=()=>$('#post-modal').hidden=true;$('[data-back]').onclick=()=>{$('#audience-modal').hidden=true;$('#post-modal').hidden=false};$('#post-form').onsubmit=e=>{e.preventDefault();const options=$$('.poll-input').map(x=>x.value.trim()).filter(Boolean);if($('#post-type').value==='poll'&&options.length<2)return alert('Adaugă minimum două opțiuni.');draft={post_type:$('#post-type').value,title:$('#post-title').value.trim(),content:$('#post-content').value.trim(),options};if(editing)return act('update',{post_id:editing,...draft}).then(()=>$('#post-modal').hidden=true);$('#post-modal').hidden=true;$('#audience-modal').hidden=false};$$('[data-audience]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await act('create',{...draft,audience:b.dataset.audience});$('#audience-modal').hidden=true}catch(e){alert(e.message)}finally{b.disabled=false}});$$('[data-filter]').forEach(b=>b.onclick=()=>{$$('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
+$('#post-type').onchange=e=>{$('#poll-wrap').hidden=e.target.value!=='poll';if(e.target.value==='poll'&&!$('#poll-options').children.length){option();option()}};$('#add-option').onclick=()=>option();$('#post-form').onsubmit=e=>{e.preventDefault();const options=$$('.poll-input').map(x=>x.value.trim()).filter(Boolean);if($('#post-type').value==='poll'&&options.length<2)return alert('Adaugă minimum două opțiuni.');draft={post_type:$('#post-type').value,title:$('#post-title').value.trim(),content:$('#post-content').value.trim(),options};if(editing)return act('update',{post_id:editing,...draft}).then(()=>$('#post-modal').hidden=true);$('#post-modal').hidden=true;$('#audience-modal').hidden=false};$$('[data-audience]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await act('create',{...draft,audience:b.dataset.audience});$('#audience-modal').hidden=true}catch(e){alert(e.message)}finally{b.disabled=false}});$$('[data-filter]').forEach(b=>b.onclick=()=>{$$('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
     load();
 
     db
