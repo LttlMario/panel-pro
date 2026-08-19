@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const panelSession = localStorage.getItem('panel_session_token');
             const expiresAt = new Date(localStorage.getItem('panel_session_expires_at') || 0).getTime();
             if(parsed && parsed.discord_id && panelSession && expiresAt > Date.now()){
-                window.location.href = getLoginDestination(parsed);
+                window.location.href = getSafeReturnDestination(parsed);
                 return;
             }
             clearPanelBrowserSession();

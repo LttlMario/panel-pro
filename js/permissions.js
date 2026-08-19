@@ -424,7 +424,7 @@ function getDefaultAllowedPage() {
         );
 
         window.location.replace(
-            'login.html'
+            'login.html?v=20260819-session-return-fix'
         );
 
         return;
