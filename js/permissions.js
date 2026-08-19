@@ -416,6 +416,13 @@ function getDefaultAllowedPage() {
 
     if (!isLogged()) {
 
+        // Păstrăm pagina exactă de unde a pornit relogarea, inclusiv
+        // query string-ul ?post=... folosit de linkurile Discord.
+        sessionStorage.setItem(
+            'panel_return_after_login',
+            `${window.location.pathname}${window.location.search}${window.location.hash}`
+        );
+
         window.location.replace(
             'login.html'
         );
