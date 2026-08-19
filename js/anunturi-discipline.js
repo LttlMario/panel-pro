@@ -201,9 +201,12 @@
       };
       if (kind === 'sanction') Object.assign(payload, { amount: $('discipline-amount').value, currency: $('discipline-currency').value.trim(), due_at: $('discipline-due').value || null });
       try {
-        await call(payload);
+        const result = await call(payload);
         $('discipline-modal').hidden = true;
-        notice(`${typeLabel(kind)} a fost salvat(ă) și va fi vizibil(ă) doar audienței permise.`, 'success');
+        const discordNotice = result.discord_warning
+          ? ` Înregistrarea a fost salvată, dar notificarea Discord nu a putut fi trimisă: ${result.discord_warning}`
+          : '';
+        notice(`${typeLabel(kind)} a fost salvat(ă) și va fi vizibil(ă) doar audienței permise.${discordNotice}`, result.discord_warning ? 'info' : 'success');
         await load();
         if (state.filter) render();
       } catch (error) {

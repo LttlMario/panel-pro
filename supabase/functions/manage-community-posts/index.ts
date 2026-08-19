@@ -225,9 +225,20 @@ const notifyDisciplineDiscord = async (kind:'warning'|'sanction', record:any) =>
     const route = settings?.webhook_routes?.[routeKey] || settings?.webhook_routes?.[fallbackKey] || {};
     const url = route?.primary?.url || route?.secondary?.url;
     if (!url) return null;
+    let webhookUrl: URL;
+    try {
+        webhookUrl = new URL(String(url));
+    } catch (_) {
+        console.warn('Webhook disciplinar invalid, notificarea Discord a fost omisă.');
+        return null;
+    }
+    if (webhookUrl.protocol !== 'https:' || !['discord.com', 'discordapp.com'].includes(webhookUrl.hostname) || !webhookUrl.pathname.startsWith('/api/webhooks/')) {
+        console.warn('Webhook disciplinar neacceptat, notificarea Discord a fost omisă.');
+        return null;
+    }
     const site = String(settings?.panel_public_url || 'https://lttlmario.github.io/panel-pro').replace(/\/$/, '');
     const detailUrl = `${site}/anunturi.html?discipline=${kind}&id=${record.id}`;
-    const response = await fetch(`${url}?wait=true`, {
+    const response = await fetch(`${webhookUrl.toString().replace(/\/$/, '')}?wait=true`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ embeds: [{
@@ -290,9 +301,16 @@ if (body.action === 'discipline_create_warning') {
         issued_by_discord_id: du.id, issued_by_name: user.display_name || user.username || du.id
     }).select('*').single();
     if (error) throw error;
-    const messageId = await notifyDisciplineDiscord('warning', warning);
+    let messageId = null;
+    let discordWarning = null;
+    try {
+        messageId = await notifyDisciplineDiscord('warning', warning);
+    } catch (error) {
+        discordWarning = error instanceof Error ? error.message : 'Webhook-ul Discord nu a putut fi contactat.';
+        console.error('Avertismentul a fost salvat, dar livrarea Discord a eșuat:', discordWarning);
+    }
     if (messageId) await db.from('disciplinary_warnings').update({ discord_message_id: messageId }).eq('id', warning.id).eq('organization_id', organizationId);
-    return reply({ ok: true, warning: { ...warning, discord_message_id: messageId }, active_warning_count: count + 1 });
+    return reply({ ok: true, warning: { ...warning, discord_message_id: messageId }, active_warning_count: count + 1, discord_delivery: messageId ? 'sent' : 'unavailable', discord_warning: discordWarning });
 }
 
 if (body.action === 'discipline_create_sanction') {
@@ -313,9 +331,16 @@ if (body.action === 'discipline_create_sanction') {
         issued_by_discord_id: du.id, issued_by_name: user.display_name || user.username || du.id
     }).select('*').single();
     if (error) throw error;
-    const messageId = await notifyDisciplineDiscord('sanction', sanction);
+    let messageId = null;
+    let discordWarning = null;
+    try {
+        messageId = await notifyDisciplineDiscord('sanction', sanction);
+    } catch (error) {
+        discordWarning = error instanceof Error ? error.message : 'Webhook-ul Discord nu a putut fi contactat.';
+        console.error('Sancțiunea a fost salvată, dar livrarea Discord a eșuat:', discordWarning);
+    }
     if (messageId) await db.from('disciplinary_sanctions').update({ discord_message_id: messageId }).eq('id', sanction.id).eq('organization_id', organizationId);
-    return reply({ ok: true, sanction: { ...sanction, discord_message_id: messageId } });
+    return reply({ ok: true, sanction: { ...sanction, discord_message_id: messageId }, discord_delivery: messageId ? 'sent' : 'unavailable', discord_warning: discordWarning });
 }
 
 if (body.action === 'discipline_resolve') {
