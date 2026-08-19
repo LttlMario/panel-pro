@@ -5,19 +5,6 @@ import {resolvePackageFeatures} from '../_shared/package-features.ts';
 const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Content-Type':'application/json'};
 
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
-const describeError=(error:unknown)=>{
-  if (error instanceof Error) return { message: error.message, code: null, details: null, hint: null };
-  if (error && typeof error === 'object') {
-    const value = error as Record<string, unknown>;
-    return {
-      message: String(value.message || value.error_description || value.details || value.hint || value.code || 'Eroare necunoscută.'),
-      code: value.code ? String(value.code) : null,
-      details: value.details ? String(value.details) : null,
-      hint: value.hint ? String(value.hint) : null
-    };
-  }
-  return { message: String(error || 'Eroare necunoscută.'), code: null, details: null, hint: null };
-};
 const normalizeBlackMarketName=(value:unknown)=>String(value??'').replace(/^\s*\d{1,12}\s+/,'').replace(/^\s*\d{1,12}\s*[|:/#-]\s*/,'').replace(/\s*[|:/#-]\s*\d{1,12}\s*$/,'').replace(/\s+\d{1,12}\s*$/,'').replace(/\s*[[(]\s*\d{1,12}\s*[\])]\s*$/,'').replace(/\s{2,}/g,' ').trim();
 Deno.serve(async(req)=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return reply({error:'Method not allowed'},405);try{
  const body=await req.json();
@@ -762,4 +749,4 @@ async function notifyDiscord(post:any, options:string[], audience:string){
     });
 
 }
- }catch(e){const detail=describeError(e);console.error('manage-community-posts failed',detail);return reply({error:detail.message,code:detail.code,details:detail.details,hint:detail.hint},400)}});
+ }catch(e){console.error(e);return reply({error:e instanceof Error?e.message:'Eroare necunoscută.'},400)}});
