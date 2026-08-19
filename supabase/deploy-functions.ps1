@@ -30,6 +30,7 @@ $functions = @(
     'manage-admin-center',
     'manage-organizations',
     'manage-owned-organization',
+    'redeem-organization-voucher',
     'status-live-sync',
     'create-voucher-organization',
     'get-organization-status',
