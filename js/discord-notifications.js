@@ -18,9 +18,18 @@
         const panelSessionToken = localStorage.getItem('panel_session_token');
         if (!panelSessionToken) throw new Error('Sesiunea securizată a panelului lipsește. Reautentifică-te.');
 
-        // Sursa de adevăr este sesiunea server-side. Trimitem organizația
-        // numai când browserul are un UUID valid, niciodată un ID numeric vechi.
-        const organizationId = window.getActiveOrganizationId?.() || null;
+        // Identificăm organizația activă a utilizatorului.
+        const cachedUser = localStorage.getItem('discord_user');
+        let organizationId = window.PANEL_ACTIVE_ORGANIZATION_ID || window.getActiveOrganizationId?.() || null;
+
+        if (!organizationId) {
+            try {
+                const userData = cachedUser ? JSON.parse(cachedUser) : null;
+                organizationId = userData?.organization_id || null;
+            } catch (_) {
+                organizationId = null;
+            }
+        }
 
         if (!organizationId) {
             throw new Error('Organizația activă nu a fost identificată.');
@@ -40,7 +49,7 @@
 
             body.append('_panel_channel', channel);
             body.append('_panel_access_token', accessToken);
-            if (organizationId) body.append('_panel_organization_id', organizationId);
+            body.append('_panel_organization_id', organizationId);
         } else {
             // Pentru notificările JSON normale.
             headers['Content-Type'] = 'application/json';
@@ -49,7 +58,7 @@
                 channel,
                 payload,
                 access_token: accessToken,
-                ...(organizationId ? { organization_id: organizationId } : {})
+                organization_id: organizationId
             });
         }
 

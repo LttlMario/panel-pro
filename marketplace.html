@@ -12,7 +12,7 @@
     <script src="js/permissions.js?v=4.6.0"></script>
     <script src="js/panel-layout.js?v=4.15.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
-    <script src="js/project-version.js?v=3.13.0"></script>
+    <script src="js/project-version.js?v=3.11.0"></script>
     <link rel="icon" href="img/favicon.ico">
     <link rel="apple-touch-icon" href="img/logo-180.png">
 </head>
@@ -248,13 +248,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
-            } catch (_) {
-                window.clearPanelSession?.();
-                window.location.href = 'login.html';
-                return;
-            }
             const currentPage = window.location.pathname.split("/").pop() || "index.html";
             document.querySelectorAll('.nav-link').forEach(link => {
                 const linkHref = link.getAttribute('href');
@@ -288,10 +281,11 @@
                 currentUser.discord_id = activeUser.discord_id;
                 currentUser.display_name = activeUser.display_name || activeUser.username || 'Utilizator Discord';
                 currentUser.role = activeUser.role || activeUser.default_role || '';
-                currentUser.organization_id = window.getActiveOrganizationId?.() || '';
-                if (!window.isPanelOrganizationId?.(currentUser.organization_id)) {
-                    throw new Error('Organizația activă nu a fost identificată.');
-                }
+                currentUser.organization_id =
+                    window.getActiveOrganizationId?.() ||
+                    activeUser.organization_id ||
+                    localData.organization_id ||
+                    '';
                 activeUser.organization_id = currentUser.organization_id;
                 window.PANEL_ACTIVE_ORGANIZATION_ID = currentUser.organization_id;
 

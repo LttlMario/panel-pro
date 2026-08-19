@@ -11,7 +11,7 @@
     <script src="js/permissions.js?v=4.6.0"></script>
     <script src="js/panel-layout.js?v=4.15.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
-    <script src="js/project-version.js?v=3.13.0"></script>
+    <script src="js/project-version.js?v=3.11.0"></script>
     <link rel="icon" href="img/favicon.ico">
     <link rel="apple-touch-icon" href="img/logo-180.png">
 </head>
@@ -125,10 +125,7 @@
             }
 
             try {
-                if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
-                activeOrganization = typeof window.getActiveOrganization === 'function'
-                    ? window.getActiveOrganization()
-                    : JSON.parse(cachedActiveOrganization);
+                activeOrganization = JSON.parse(cachedActiveOrganization);
             } catch (error) {
                 console.error(
                     'Status Live: datele organizației active sunt invalide.',
@@ -143,9 +140,12 @@
                 return;
             }
 
-            activeOrganizationId = window.getActiveOrganizationId?.() || null;
+            activeOrganizationId =
+                activeOrganization?.id ||
+                activeOrganization?.organization_id ||
+                null;
 
-            if (!window.isPanelOrganizationId?.(activeOrganizationId)) {
+            if (!activeOrganizationId) {
                 console.error(
                     'Status Live: organizația activă nu conține un ID valid.',
                     activeOrganization

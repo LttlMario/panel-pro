@@ -12,7 +12,7 @@
     <script src="js/supabase-config.js?v=20260818-console-fix"></script>
     <script src="js/permissions.js?v=4.6.0"></script>
     <script src="js/panel-layout.js?v=4.15.0"></script>
-    <script src="js/project-version.js?v=3.13.0"></script>
+    <script src="js/project-version.js?v=3.11.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <link rel="icon" href="img/favicon.ico">
     <link rel="apple-touch-icon" href="img/logo-180.png">
@@ -156,9 +156,10 @@
                     return;
                 }
 
-                const activeOrganizationId = window.getActiveOrganizationId?.() || null;
+                const activeOrganizationId =
+                    window.getActiveOrganizationId?.() || localData.organization_id || null;
 
-                if (!window.isPanelOrganizationId?.(activeOrganizationId)) {
+                if (!activeOrganizationId) {
                     window.location.href = 'guest.html';
                     return;
                 }
@@ -354,8 +355,11 @@
         async function ensurePontajOrganization() {
             if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
 
-            const organizationId = window.getActiveOrganizationId?.() || null;
-            if (!window.isPanelOrganizationId?.(organizationId)) throw new Error('Organizația activă nu a fost identificată. Autentifică-te din nou.');
+            let organizationId = window.getActiveOrganizationId?.() || currentUser.organization_id || null;
+            if (!organizationId) {
+                try { organizationId = JSON.parse(localStorage.getItem('discord_user') || '{}')?.organization_id || null; } catch (_) {}
+            }
+            if (!organizationId) throw new Error('Organizația activă nu a fost identificată.');
             currentUser.organization_id = organizationId;
             supabaseClient = window.createPanelSupabaseClient();
             return organizationId;

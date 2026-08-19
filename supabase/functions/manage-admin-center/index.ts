@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
-import { isPlatformAdminDiscordIdAsync } from '../_shared/platform-admin.ts';
+import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
 const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json'};
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
 Deno.serve(async request=>{
@@ -15,7 +15,7 @@ Deno.serve(async request=>{
     const {data:user}=await db.from('users').select('display_name,username').eq('discord_id',discordUser.id).maybeSingle();
     if(!user)return reply({error:'Utilizatorul nu este înregistrat în panel.'},403);
     const organizationId=session.organization_id,actorName=user.display_name||user.username||discordUser.id;
-    const isPlatformAdmin=await isPlatformAdminDiscordIdAsync(db, discordUser.id);
+    const isPlatformAdmin=isPlatformAdminDiscordId(discordUser.id);
 
     if(['notifications','mark_read'].includes(String(body.action||''))){
       const {data:permissionRows,error:permissionError}=await db.from('app_settings').select('key,value').eq('organization_id',organizationId).in('key',['page_permissions','communication_permissions','discipline_permissions']);

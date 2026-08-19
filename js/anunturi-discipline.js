@@ -19,13 +19,7 @@
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
-      if (response.status === 401) {
-        window.clearPanelSession?.();
-        sessionStorage.setItem('panel_return_after_login', location.href);
-        window.location.href = 'login.html';
-      }
-      const errorText = [result.error, result.details, result.hint].filter(Boolean).join(' — ') || `Operația a eșuat (${response.status}).`;
-      const error = new Error(errorText);
+      const error = new Error(result.error || `Operația a eșuat (${response.status}).`);
       error.status = response.status;
       error.code = result.code || '';
       throw error;
@@ -45,11 +39,6 @@
     const element = $('discipline-summary');
     if (!element) return;
     element.innerHTML = `<div class="discipline-notice ${tone}">${esc(message)}</div>`;
-  }
-
-  function closeModal() {
-    const modal = $('discipline-modal');
-    if (modal) modal.hidden = true;
   }
 
   function visibleScopeRecords(kind) {
@@ -142,11 +131,6 @@
   async function openModal() {
     configureScopeOptions();
     $('discipline-form').reset();
-    const formError = $('discipline-form-error');
-    if (formError) {
-      formError.textContent = '';
-      formError.hidden = true;
-    }
     $('discipline-kind').value = hasWrite('departments') || hasWrite('organization') ? 'warning' : 'sanction';
     $('discipline-currency').value = 'USD';
     $('sanction-fields').hidden = true;
@@ -200,16 +184,7 @@
       if (state.filter) showCommunity();
     }));
     $('discipline-create-button')?.addEventListener('click', openModal);
-    document.addEventListener('click', (event) => {
-      const closeButton = event.target?.closest?.('[data-discipline-close]');
-      if (!closeButton) return;
-      event.preventDefault();
-      event.stopPropagation();
-      closeModal();
-    }, true);
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && !$('discipline-modal')?.hidden) closeModal();
-    });
+    $('[data-discipline-close]')?.addEventListener('click', () => { if ($('discipline-modal')) $('discipline-modal').hidden = true; });
     $('discipline-kind')?.addEventListener('change', () => { if ($('sanction-fields')) $('sanction-fields').hidden = $('discipline-kind').value !== 'sanction'; });
     $('discipline-scope')?.addEventListener('change', loadTargets);
     $('discipline-form')?.addEventListener('submit', async (event) => {
@@ -226,20 +201,12 @@
       };
       if (kind === 'sanction') Object.assign(payload, { amount: $('discipline-amount').value, currency: $('discipline-currency').value.trim(), due_at: $('discipline-due').value || null });
       try {
-        const result = await call(payload);
+        await call(payload);
         $('discipline-modal').hidden = true;
-        const discordNotice = result.discord_warning
-          ? ` Înregistrarea a fost salvată, dar notificarea Discord nu a putut fi trimisă: ${result.discord_warning}`
-          : '';
-        notice(`${typeLabel(kind)} a fost salvat(ă) și va fi vizibil(ă) doar audienței permise.${discordNotice}`, result.discord_warning ? 'info' : 'success');
+        notice(`${typeLabel(kind)} a fost salvat(ă) și va fi vizibil(ă) doar audienței permise.`, 'success');
         await load();
         if (state.filter) render();
       } catch (error) {
-        const formError = $('discipline-form-error');
-        if (formError) {
-          formError.textContent = error.message || 'Operația nu a putut fi finalizată.';
-          formError.hidden = false;
-        }
         if (kind === 'sanction' && error.status === 409) {
           notice(error.message || 'Sancțiunea poate fi emisă după 3 avertismente active pentru aceeași persoană.', 'error');
         } else {
