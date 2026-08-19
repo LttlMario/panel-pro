@@ -42,6 +42,21 @@ const allowedPages = new Map([
 ]);
 const allowedAssistantPages = new Set([...allowedPages.keys()]);
 const allowedActionKeys = new Set(['anunturi.publish', 'cereri.organization', 'cereri.departments']);
+const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
+const fullOnlyPageFeatures = new Map([
+  ['calculatorilegal.html', 'illegal_calculator'],
+  ['locatiiilegale.html', 'illegal_locations'],
+  ['marketplace-ilegal.html', 'illegal_marketplace']
+]);
+const standardPackageFeatures = new Set([
+  'core', 'announcements', 'requests', 'contracts', 'reports', 'legal_marketplace',
+  'legal_tools', 'assistant', 'status_live', 'announcements_departments',
+  'requests_departments', 'discipline_departments'
+]);
+
+const packageAllowsFeature = (packageValue: any, feature: string) =>
+  String(packageValue?.code || 'standard').toLowerCase() === 'full'
+  || standardPackageFeatures.has(feature);
 
 const normalizeContract = (raw: unknown) => {
   if (raw === undefined) return undefined;
@@ -362,6 +377,9 @@ Deno.serve(async (request) => {
     const webhookRoutes = body.webhook_routes === undefined
       ? (settings.webhook_routes || {})
       : mergeWebhookRoutes(settings.webhook_routes, body.webhook_routes);
+    const packageWebhookRoutes = String(state.package?.code || 'standard').toLowerCase() === 'full'
+      ? webhookRoutes
+      : Object.fromEntries(Object.entries(webhookRoutes).filter(([channel]) => !fullOnlyWebhookChannels.has(channel)));
     const settingsPatch = {
       organization_id: organizationId,
       discord_client_id: String(settings.discord_client_id ?? ''),
@@ -373,7 +391,7 @@ Deno.serve(async (request) => {
       contracts_webhook_url: settings.contracts_webhook_url || null,
       marketplace_webhook_url: settings.marketplace_webhook_url || null,
       illegal_marketplace_webhook_url: settings.illegal_marketplace_webhook_url || null,
-      webhook_routes: webhookRoutes,
+      webhook_routes: packageWebhookRoutes,
       updated_by_discord_id: discordId,
       updated_at: new Date().toISOString()
     };
@@ -439,7 +457,7 @@ Deno.serve(async (request) => {
       }
       const pageRules = Object.fromEntries(
         Object.entries(body.page_permissions)
-          .filter(([page]) => allowedPages.has(page))
+          .filter(([page]) => allowedPages.has(page) && (!fullOnlyPageFeatures.has(page) || packageAllowsFeature(currentState.package, fullOnlyPageFeatures.get(page)!)))
           .map(([page, ids]: any) => [
             page,
             [...new Set((Array.isArray(ids) ? ids : [])
@@ -476,7 +494,7 @@ Deno.serve(async (request) => {
     if (body.assistant_page_permissions !== undefined) {
       const assistantRules = Object.fromEntries(
         Object.entries(body.assistant_page_permissions && typeof body.assistant_page_permissions === 'object' ? body.assistant_page_permissions : {})
-          .filter(([page]) => allowedAssistantPages.has(page))
+          .filter(([page]) => allowedAssistantPages.has(page) && (!fullOnlyPageFeatures.has(page) || packageAllowsFeature(currentState.package, fullOnlyPageFeatures.get(page)!)))
           .map(([page, ids]) => [page, cleanRoleIds(ids, savedRoleIds)])
       );
       const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'assistant_page_permissions', value: assistantRules, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
