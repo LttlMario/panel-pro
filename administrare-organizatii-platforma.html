@@ -10,7 +10,7 @@
   <script src="js/supabase-config.js?v=20260818-console-fix"></script>
   <script src="js/permissions.js?v=4.6.0"></script>
   <script src="js/panel-layout.js?v=4.15.0"></script>
-  <script src="js/project-version.js?v=3.11.0"></script>
+  <script src="js/project-version.js?v=3.13.0"></script>
   <link rel="stylesheet" href="css/global-footer.css">
   <link rel="icon" href="img/favicon.ico">
   <link rel="apple-touch-icon" href="img/logo-180.png">
@@ -26,6 +26,18 @@
     </section>
     <p id="organization-admin-status" class="admin-status" role="status">Se verifică accesul administratorului platformei…</p>
     <section id="organization-admin-kpis" class="kpis" aria-label="Indicatori organizații"></section>
+    <section id="platform-admin-management" class="panel-card" hidden>
+      <div class="panel-card-head"><div><h2>Administratori platformă</h2><p>Doar proprietarul platformei poate acorda sau revoca accesul administrativ global.</p></div><span class="badge active">Acces server-side</span></div>
+      <div class="detail-body">
+        <p id="platform-admin-management-status" class="text-xs text-slate-400">Se verifică drepturile…</p>
+        <form id="platform-admin-form" class="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]" hidden>
+          <label class="text-xs font-bold text-slate-300">Discord ID<input id="platform-admin-discord-id" class="field mt-2" inputmode="numeric" pattern="[0-9]{15,22}" maxlength="22" placeholder="ID-ul Discord al administratorului" required></label>
+          <label class="text-xs font-bold text-slate-300">Nume intern (opțional)<input id="platform-admin-display-name" class="field mt-2" maxlength="100" placeholder="Ex: Administrator secundar"></label>
+          <button class="button primary self-end" type="submit">＋ Acordă acces</button>
+        </form>
+        <div id="platform-admin-list" class="mt-4 grid gap-2"><div class="empty-state">Se încarcă administratorii…</div></div>
+      </div>
+    </section>
     <section class="panel-card">
       <div class="panel-card-head"><div><h2>Toate organizațiile</h2><p>Caută după nume, slug, cod sau Guild ID și filtrează rapid problemele.</p></div><span id="organization-count" class="badge active">0 rezultate</span></div>
       <div class="filters"><input id="organization-search" class="field search" type="search" autocomplete="off" placeholder="Caută organizație, slug, cod sau Guild ID…"><select id="organization-status-filter" class="field"><option value="all">Toate statusurile</option><option value="active">Active</option><option value="draft">Drafturi</option><option value="expired">Expirate</option><option value="inactive">Inactive</option></select><select id="organization-package-filter" class="field"><option value="all">Toate pachetele</option><option value="standard">Standard</option><option value="full">Full</option></select><select id="organization-sort" class="field"><option value="name">Nume A–Z</option><option value="updated">Actualizate recent</option><option value="expiry">Expirare apropiată</option><option value="activity">Activitate</option></select><label class="check-field"><input id="organization-issues-only" type="checkbox"> Doar probleme</label><button id="organization-reset-filters" class="button small" type="button">Reset</button></div>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self';">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prelungire organizație · Panel</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/global-footer.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js?v=20260818-console-fix"></script>
+  <script src="js/permissions.js?v=4.6.0"></script>
+  <script src="js/panel-layout.js?v=4.15.0"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+  <main class="mx-auto w-full max-w-3xl px-4 py-8 md:px-8">
+    <section class="rounded-3xl border border-amber-400/25 bg-gradient-to-br from-amber-500/10 via-slate-900 to-cyan-500/10 p-6 shadow-2xl shadow-amber-950/20 md:p-8">
+      <p class="text-xs font-black uppercase tracking-[0.24em] text-amber-300">Administrare acces</p>
+      <h1 class="mt-3 text-3xl font-black text-white">Prelungește organizația</h1>
+      <p class="mt-3 max-w-2xl text-sm leading-7 text-slate-400">Orice membru al organizației poate aplica un voucher valid pentru serverul său. Configurarea organizației, rolurile, webhook-urile și celelalte setări rămân accesibile doar proprietarului serverului Discord și administratorului platformei.</p>
+
+      <div id="renew-status-card" class="mt-6 grid gap-3 sm:grid-cols-3" aria-live="polite">
+        <div class="rounded-2xl border border-slate-700 bg-slate-950/60 p-4"><span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Organizație</span><strong id="renew-org-name" class="mt-2 block text-sm text-slate-100">Se verifică...</strong></div>
+        <div class="rounded-2xl border border-slate-700 bg-slate-950/60 p-4"><span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Pachet</span><strong id="renew-package" class="mt-2 block text-sm text-cyan-300">—</strong></div>
+        <div class="rounded-2xl border border-slate-700 bg-slate-950/60 p-4"><span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Valabil până la</span><strong id="renew-expires" class="mt-2 block text-sm text-amber-300">—</strong></div>
+      </div>
+
+      <form id="renew-form" class="mt-6 rounded-2xl border border-slate-700 bg-slate-950/45 p-4 md:p-5">
+        <label for="renew-voucher" class="block text-sm font-bold text-slate-200">Cod voucher de prelungire</label>
+        <div class="mt-2 flex flex-col gap-3 sm:flex-row"><input id="renew-voucher" name="voucher_code" class="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono text-sm uppercase tracking-wider text-slate-100 outline-none transition focus:border-amber-400" autocomplete="off" spellcheck="false" maxlength="80" placeholder="Ex: STANDARD-XXXXXX" required><button id="renew-submit" type="submit" class="rounded-xl bg-amber-600 px-5 py-3 text-sm font-black text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-60">Aplică voucherul</button></div>
+        <p id="renew-message" class="mt-3 min-h-5 text-sm text-slate-400" role="status"></p>
+      </form>
+
+      <div class="mt-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4 text-xs leading-6 text-slate-300"><strong class="text-cyan-200">Important:</strong> folosirea unui voucher este înregistrată în auditul organizației. Nu poți modifica de aici roluri, pagini, servere Discord sau webhook-uri.</div>
+    </section>
+  </main>
+  <script src="js/organization-renewal.js?v=3.13.0"></script>
+  <script src="js/global-footer.js?v=3.13.0"></script>
+</body>
+</html>
