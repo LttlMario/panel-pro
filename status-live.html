@@ -125,7 +125,10 @@
             }
 
             try {
-                activeOrganization = JSON.parse(cachedActiveOrganization);
+                if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
+                activeOrganization = typeof window.getActiveOrganization === 'function'
+                    ? window.getActiveOrganization()
+                    : JSON.parse(cachedActiveOrganization);
             } catch (error) {
                 console.error(
                     'Status Live: datele organizației active sunt invalide.',
@@ -140,12 +143,9 @@
                 return;
             }
 
-            activeOrganizationId =
-                activeOrganization?.id ||
-                activeOrganization?.organization_id ||
-                null;
+            activeOrganizationId = window.getActiveOrganizationId?.() || null;
 
-            if (!activeOrganizationId) {
+            if (!window.isPanelOrganizationId?.(activeOrganizationId)) {
                 console.error(
                     'Status Live: organizația activă nu conține un ID valid.',
                     activeOrganization

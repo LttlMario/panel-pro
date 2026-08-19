@@ -136,10 +136,30 @@
       $('owner-username').textContent = user?.username ? '@' + user.username : 'Sesiune Discord';
       $('owner-avatar').src = user?.avatar || user?.avatar_url || 'img/logo-192.png';
       $('owner-logout').onclick = () => { localStorage.clear(); sessionStorage.clear(); location.replace('login.html'); };
-      $('owner-webhooks').innerHTML = webhookDefinitions.map(([key, label]) => `<fieldset class="rounded-xl border border-slate-700 p-3"><legend class="px-1 text-xs font-bold text-slate-200">${label}</legend><label class="mt-1 flex items-center gap-2 text-xs"><input id="webhook-${key}-primary-enabled" name="webhook_${key}_primary_enabled" type="checkbox" data-owner-webhook-enabled="${key}" data-target="primary"> Discord principal</label><input id="webhook-${key}-primary" name="webhook_${key}_primary" data-owner-webhook="${key}" data-target="primary" type="url" class="owner-field" placeholder="Webhook Discord principal"><label class="mt-2 flex items-center gap-2 text-xs"><input id="webhook-${key}-secondary-enabled" name="webhook_${key}_secondary_enabled" type="checkbox" data-owner-webhook-enabled="${key}" data-target="secondary"> Discord secundar</label><input id="webhook-${key}-secondary" name="webhook_${key}_secondary" data-owner-webhook="${key}" data-target="secondary" type="url" class="owner-field" placeholder="Webhook Discord secundar"></fieldset>`).join('');
+      $('owner-webhooks').innerHTML = webhookDefinitions.map(([key, label]) => `<fieldset class="rounded-xl border border-slate-700 p-3"><legend class="px-1 text-xs font-bold text-slate-200">${label}</legend><label class="mt-1 flex items-center gap-2 text-xs"><input id="webhook-${key}-primary-enabled" name="webhook_${key}_primary_enabled" type="checkbox" data-owner-webhook-enabled="${key}" data-target="primary"> Discord principal</label><input id="webhook-${key}-primary" name="webhook_${key}_primary" data-owner-webhook="${key}" data-target="primary" type="url" class="owner-field" placeholder="Webhook Discord principal"><button type="button" class="mt-2 rounded-lg border border-cyan-700 px-3 py-1 text-xs font-bold text-cyan-200" data-owner-webhook-test="${key}" data-target="primary">Testează webhookul</button><span class="ml-2 text-xs text-slate-400" data-owner-webhook-test-result="${key}-primary"></span><label class="mt-2 flex items-center gap-2 text-xs"><input id="webhook-${key}-secondary-enabled" name="webhook_${key}_secondary_enabled" type="checkbox" data-owner-webhook-enabled="${key}" data-target="secondary"> Discord secundar</label><input id="webhook-${key}-secondary" name="webhook_${key}_secondary" data-owner-webhook="${key}" data-target="secondary" type="url" class="owner-field" placeholder="Webhook Discord secundar"><button type="button" class="mt-2 rounded-lg border border-cyan-700 px-3 py-1 text-xs font-bold text-cyan-200" data-owner-webhook-test="${key}" data-target="secondary">Testează webhookul</button><span class="ml-2 text-xs text-slate-400" data-owner-webhook-test-result="${key}-secondary"></span></fieldset>`).join('');
+      document.querySelectorAll('[data-owner-webhook-test]').forEach((button) => {
+        button.onclick = async () => {
+          const key = button.dataset.ownerWebhookTest;
+          const target = button.dataset.target;
+          const input = document.querySelector(`[data-owner-webhook="${key}"][data-target="${target}"]`);
+          const result = document.querySelector(`[data-owner-webhook-test-result="${key}-${target}"]`);
+          const url = input?.value.trim() || '';
+          if (!url || url === '••••••••') { if (result) result.textContent = 'Introdu URL-ul webhookului pentru test.'; return; }
+          button.disabled = true;
+          if (result) result.textContent = 'Se testează...';
+          try {
+            const response = await call({ action: 'test_webhook', url, organization_id: organizationId || window.getActiveOrganizationId?.() || '' });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Testul a eșuat.');
+            if (result) { result.textContent = 'Trimis cu succes.'; result.className = 'ml-2 text-xs text-emerald-300'; }
+          } catch (error) {
+            if (result) { result.textContent = error.message || 'Testul a eșuat.'; result.className = 'ml-2 text-xs text-rose-300'; }
+          } finally { button.disabled = false; }
+        };
+      });
 
       let organizationId = '';
-      const call = (body) => fetch(`${config.url}/functions/v1/manage-owned-organization`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}` }, body: JSON.stringify({ ...body, access_token: window.getPanelDiscordAccessToken?.() || '', organization_id: body.organization_id || organizationId || JSON.parse(localStorage.getItem('panel_active_organization') || 'null')?.id || '' }) });
+      const call = (body) => fetch(`${config.url}/functions/v1/manage-owned-organization`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}` }, body: JSON.stringify({ ...body, access_token: window.getPanelDiscordAccessToken?.() || '', organization_id: body.organization_id || organizationId || window.getActiveOrganizationId?.() || '' }) });
       const collectWebhooks = () => { const routes = {}; document.querySelectorAll('[data-owner-webhook]').forEach((input) => { const key = input.dataset.ownerWebhook, target = input.dataset.target, url = input.value.trim(), enabled = document.querySelector(`[data-owner-webhook-enabled="${key}"][data-target="${target}"]`)?.checked === true; routes[key] ||= {}; routes[key][target] = { enabled, url }; }); return routes; };
       const fillWebhooks = (routes) => { document.querySelectorAll('[data-owner-webhook]').forEach((input) => { const route = routes?.[input.dataset.ownerWebhook]?.[input.dataset.target] || {}; input.value = route.url || ''; const checkbox = document.querySelector(`[data-owner-webhook-enabled="${input.dataset.ownerWebhook}"][data-target="${input.dataset.target}"]`); if (checkbox) checkbox.checked = route.enabled === true && Boolean(route.url); }); };
       const selectedOwnerRoles = () => ownerRoleRows.filter((row) => row.discord_role_id).map((row) => ({ guild_id: String(row.guild_id || ''), discord_role_id: String(row.discord_role_id || ''), panel_role: String(row.panel_role || '').trim() }));

@@ -248,6 +248,13 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
+            } catch (_) {
+                window.clearPanelSession?.();
+                window.location.href = 'login.html';
+                return;
+            }
             const currentPage = window.location.pathname.split("/").pop() || "index.html";
             document.querySelectorAll('.nav-link').forEach(link => {
                 const linkHref = link.getAttribute('href');
@@ -281,11 +288,10 @@
                 currentUser.discord_id = activeUser.discord_id;
                 currentUser.display_name = activeUser.display_name || activeUser.username || 'Utilizator Discord';
                 currentUser.role = activeUser.role || activeUser.default_role || '';
-                currentUser.organization_id =
-                    window.getActiveOrganizationId?.() ||
-                    activeUser.organization_id ||
-                    localData.organization_id ||
-                    '';
+                currentUser.organization_id = window.getActiveOrganizationId?.() || '';
+                if (!window.isPanelOrganizationId?.(currentUser.organization_id)) {
+                    throw new Error('Organizația activă nu a fost identificată.');
+                }
                 activeUser.organization_id = currentUser.organization_id;
                 window.PANEL_ACTIVE_ORGANIZATION_ID = currentUser.organization_id;
 
