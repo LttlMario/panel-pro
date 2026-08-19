@@ -1,3 +1,5 @@
+import { isPlatformAdminDiscordIdAsync } from './platform-admin.ts';
+
 export type PanelSession = {
   organization_id: string;
   discord_id: string;
@@ -16,6 +18,10 @@ export async function requirePanelSession(db: any, request: Request, minimumLeve
     .eq('token_hash', await sha256(token)).maybeSingle();
   if (error) throw error;
   if (!data || data.revoked_at || new Date(data.expires_at).getTime() <= Date.now()) throw new Error('Sesiunea panelului a expirat. Autentifică-te din nou.');
+  const currentPlatformAdmin = await isPlatformAdminDiscordIdAsync(db, data.discord_id);
+  if (Boolean(data.is_platform_admin) !== currentPlatformAdmin) {
+    await db.from('panel_sessions').update({ is_platform_admin: currentPlatformAdmin }).eq('token_hash', await sha256(token));
+  }
   const { data: organization } = await db.from('organizations').select('active').eq('id', data.organization_id).maybeSingle();
   if (!allowInactiveOrganization && !organization?.active) throw new Error('Organizația este dezactivată sau a expirat. Contactează administratorul platformei.');
   const { data: access } = await db.from('app_settings').select('value').eq('organization_id', data.organization_id).eq('key', 'organization_access').maybeSingle();
@@ -30,6 +36,6 @@ export async function requirePanelSession(db: any, request: Request, minimumLeve
     discord_id: String(data.discord_id),
     permission_level: Number(data.permission_level),
     discord_role_ids: Array.isArray(data.discord_role_ids) ? data.discord_role_ids.map(String) : [],
-    is_platform_admin: data.is_platform_admin === true
+    is_platform_admin: currentPlatformAdmin
   };
 }

@@ -1,5 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
-import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
+import { isPlatformAdminDiscordIdAsync } from '../_shared/platform-admin.ts';
 import { packageAllowsPage, resolvePackageFeatures } from '../_shared/package-features.ts';
 
 const headers = {
@@ -110,7 +110,7 @@ Deno.serve(async (request) => {
     const guildsPromise = db.from('organization_guilds')
       .select('guild_id,guild_name,kind,organization_id,organizations!inner(id,name,slug,address,logo_url,banner_url,active)')
       .eq('enabled', true);
-    const isPlatformAdmin=isPlatformAdminDiscordId(discordUser.id);
+    const isPlatformAdmin=await isPlatformAdminDiscordIdAsync(db, discordUser.id);
 
     if (voucherCode) {
       return reply({
