@@ -5,6 +5,7 @@
     revolutUrl: "https://revolut.me/mariomihail",
     androidUrl: "descarca-android.html",
     changelogUrl: "changelog.html",
+    termsUrl: "termeni.html#cookie-uri-si-stocare",
     thankYouUrl: "thank-you.html",
     iosUrl: "instalare-ios.html"
   });
@@ -100,6 +101,8 @@
                   title="Vezi noutățile și actualizările">
                     v${getReleaseVersion()}
                 </a>
+                <span aria-hidden="true"> • </span>
+                <a class="pgf-version" href="${CONFIG.termsUrl}">Confidențialitate</a>
             </p>
         </div>
 
