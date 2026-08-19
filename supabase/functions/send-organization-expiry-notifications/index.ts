@@ -50,7 +50,7 @@ function links(settings: any) {
   const base = panelBaseUrl(settings);
   return {
     administration: `${base}/administrare-organizatie.html`,
-    voucher: `${base}/creare-organizatie-voucher.html`,
+    voucher: `${base}/prelungire-voucher.html`,
   };
 }
 

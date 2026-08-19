@@ -34,6 +34,9 @@ verify_jwt = false
 [functions.manage-owned-organization]
 verify_jwt = false
 
+[functions.redeem-organization-voucher]
+verify_jwt = false
+
 [functions.status-live-sync]
 verify_jwt = false
 

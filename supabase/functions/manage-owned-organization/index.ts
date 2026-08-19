@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
+import { requirePanelSession } from '../_shared/panel-session.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -10,6 +11,7 @@ const headers = {
 };
 
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const webhookChannels = new Set([
   'organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization',
   'requests_departments', 'contracts', 'marketplace', 'illegal_marketplace',
@@ -35,6 +37,7 @@ const allowedPages = new Map([
   ['marketplace.html', 'Marketplace'],
   ['marketplace-ilegal.html', 'Marketplace ilegal'],
   ['rapoarte.html', 'Rapoarte'],
+  ['status-live.html', 'Status Live'],
   ['asistent.html', 'Asistent Panel']
 ]);
 
@@ -190,13 +193,24 @@ Deno.serve(async (request) => {
     if (!['owner_get', 'owner_update'].includes(action)) return reply({ error: 'Acțiune necunoscută.' }, 400);
 
     const accessToken = String(body.access_token || '').trim();
-    if (!accessToken) return reply({ error: 'Sesiunea Discord lipsește sau a expirat.' }, 401);
-    const userResponse = await fetch('https://discord.com/api/v10/users/@me', {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    if (!userResponse.ok) return reply({ error: 'Sesiunea Discord a expirat.' }, 401);
-    const discordUser = await userResponse.json();
-    const discordId = String(discordUser.id || '').trim();
+    let discordId = '';
+    if (accessToken) {
+      const userResponse = await fetch('https://discord.com/api/v10/users/@me', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (userResponse.ok) {
+        const discordUser = await userResponse.json();
+        discordId = String(discordUser.id || '').trim();
+      }
+    }
+    if (!discordId) {
+      try {
+        const panelSession = await requirePanelSession(db, request, 0, true);
+        discordId = panelSession.discord_id;
+      } catch (error) {
+        return reply({ error: accessToken ? 'Sesiunea Discord a expirat.' : (error instanceof Error ? error.message : 'Sesiunea panelului lipsește sau a expirat.') }, 401);
+      }
+    }
     if (!discordId) return reply({ error: 'Contul Discord nu a putut fi identificat.' }, 401);
 
     const requestIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown')
@@ -213,6 +227,9 @@ Deno.serve(async (request) => {
     if (ownerActionAllowed === false) return reply({ error: 'Prea multe modificări asupra organizației. Așteaptă câteva minute și încearcă din nou.' }, 429);
 
     const requestedOrganizationId = String(body.organization_id || '').trim();
+    if (requestedOrganizationId && !UUID_RE.test(requestedOrganizationId)) {
+      return reply({ error: 'ID-ul organizației este vechi sau invalid. Selectează din nou organizația.' }, 400);
+    }
     let candidates: any[] = [];
     if (requestedOrganizationId) {
       const [{ data: organization }, { data: guild }] = await Promise.all([
@@ -266,19 +283,23 @@ Deno.serve(async (request) => {
 
     const organizationId = String(owned.organization.id);
     const loadSettings = async () => {
-      const [{ data: settings }, { data: contractSetting }, { data: roleMappings }, { data: pageSetting }, { data: guilds }] = await Promise.all([
+      const [{ data: settings }, { data: contractSetting }, { data: roleMappings }, { data: pageSetting }, { data: guilds }, { data: accessSetting }, { data: packageSetting }] = await Promise.all([
         db.from('organization_settings').select('*').eq('organization_id', organizationId).maybeSingle(),
         db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'contract_template').maybeSingle(),
         db.from('organization_role_mappings').select('guild_id,discord_role_id,discord_role_name,panel_role,permission_level,priority,enabled').eq('organization_id', organizationId).order('priority', { ascending: false }),
         db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'page_permissions').maybeSingle(),
-        db.from('organization_guilds').select('guild_id,guild_name,kind,enabled').eq('organization_id', organizationId).eq('enabled', true).order('kind')
+        db.from('organization_guilds').select('guild_id,guild_name,kind,enabled').eq('organization_id', organizationId).eq('enabled', true).order('kind'),
+        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_access').maybeSingle(),
+        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_package').maybeSingle()
       ]);
       return {
         settings: settings || {},
         contract_template: contractSetting?.value || {},
         role_mappings: roleMappings || [],
         page_permissions: pageSetting?.value || {},
-        guilds: guilds || []
+        guilds: guilds || [],
+        access: accessSetting?.value || {},
+        package: packageSetting?.value || {}
       };
     };
 
@@ -301,6 +322,8 @@ Deno.serve(async (request) => {
         contract_template: state.contract_template,
         role_mappings: state.role_mappings,
         page_permissions: state.page_permissions,
+        access: state.access,
+        package: state.package,
         discord_roles: discordRoles
       });
     }
@@ -433,6 +456,8 @@ Deno.serve(async (request) => {
       contract_template: updatedState.contract_template,
       role_mappings: updatedState.role_mappings,
       page_permissions: updatedState.page_permissions,
+      access: updatedState.access,
+      package: updatedState.package,
       discord_roles: availableDiscordRoles
     });
   } catch (error) {

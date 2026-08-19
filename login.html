@@ -541,6 +541,12 @@
             createOrganizationButton.innerHTML = '<span><span class="block text-sm font-black text-fuchsia-100">Nu ai organizație?</span><span class="mt-1 block text-xs text-fuchsia-200/75">Creează una folosind un voucher</span></span><span class="text-xl font-black text-fuchsia-200">→</span>';
             discordButton.insertAdjacentElement('afterend', createOrganizationButton);
             createOrganizationButton.addEventListener('click', () => startDiscordOAuth(false, true));
+
+            const extendOrganizationLink = document.createElement('a');
+            extendOrganizationLink.href = 'prelungire-voucher.html';
+            extendOrganizationLink.className = 'mt-3 block text-center text-xs font-bold text-emerald-300 hover:text-emerald-200';
+            extendOrganizationLink.textContent = 'Ai deja un voucher? Prelungește o organizație →';
+            createOrganizationButton.insertAdjacentElement('afterend', extendOrganizationLink);
         }
 
         const discordConfig = window.PANEL_DISCORD_CONFIG || {};
@@ -562,11 +568,20 @@
 
         function getSafeReturnDestination(user) {
             const fallback = getLoginDestination(user);
+            const savedDestination = sessionStorage.getItem('panel_return_after_login');
+            sessionStorage.removeItem('panel_return_after_login');
+            if (savedDestination) {
+                try {
+                    const destination = new URL(savedDestination, window.location.href);
+                    if (destination.origin === window.location.origin) {
+                        const page = destination.pathname.split('/').pop() || 'index.html';
+                        if (page === 'prelungire-voucher.html') return `${page}${destination.search}${destination.hash}`;
+                    }
+                } catch (_) {}
+            }
             if (user?.organization_access_expired === true) {
                 return 'administrare-organizatie.html';
             }
-            const savedDestination = sessionStorage.getItem('panel_return_after_login');
-            sessionStorage.removeItem('panel_return_after_login');
             if (!savedDestination) return fallback;
 
             try {
@@ -830,6 +845,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 const syncResult = await syncResponse.json();
                 if (!syncResponse.ok || !syncResult.user) {
+                    const savedReturn = sessionStorage.getItem('panel_return_after_login') || '';
+                    let voucherExtensionReturn = false;
+                    try { voucherExtensionReturn = new URL(savedReturn, window.location.href).pathname.endsWith('/prelungire-voucher.html') || new URL(savedReturn, window.location.href).pathname.endsWith('prelungire-voucher.html'); } catch (_) {}
+                    if (voucherExtensionReturn && ['NO_ORGANIZATION', 'ROLE_NOT_CONFIGURED'].includes(String(syncResult.code || ''))) {
+                        const publicUser = {
+                            discord_id: discordData.id,
+                            username: discordData.username || 'utilizator',
+                            display_name: discordData.global_name || discordData.username || 'utilizator',
+                            avatar: discordData.avatar ? `https://cdn.discordapp.com/avatars/${discordData.id}/${discordData.avatar}.png` : 'img/logo-192.png',
+                            role: '',
+                            allowed_pages: []
+                        };
+                        localStorage.setItem('discord_user', JSON.stringify(publicUser));
+                        window.setPanelDiscordAccessToken(token);
+                        setTimeout(() => { window.location.href = getSafeReturnDestination(publicUser); }, 250);
+                        return;
+                    }
                     if (['NO_ORGANIZATION', 'ROLE_NOT_CONFIGURED'].includes(String(syncResult.code || ''))) {
                         throw new Error('Nu ai niciun rol Discord configurat pentru această organizație. Contactează administratorul organizației.');
                     }
