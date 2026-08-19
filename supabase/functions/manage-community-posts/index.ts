@@ -5,6 +5,15 @@ import {resolvePackageFeatures} from '../_shared/package-features.ts';
 const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Content-Type':'application/json'};
 
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
+const errorDetails=(value:unknown)=>{
+  if(value instanceof Error)return {message:value.message||'Eroare necunoscută.'};
+  if(value&&typeof value==='object'){
+    const item=value as Record<string,unknown>;
+    const message=String(item.message||item.details||item.hint||item.code||'Eroare necunoscută.');
+    return {message,code:item.code?String(item.code):undefined,details:item.details?String(item.details):undefined,hint:item.hint?String(item.hint):undefined};
+  }
+  return {message:String(value||'Eroare necunoscută.')};
+};
 const normalizeBlackMarketName=(value:unknown)=>String(value??'').replace(/^\s*\d{1,12}\s+/,'').replace(/^\s*\d{1,12}\s*[|:/#-]\s*/,'').replace(/\s*[|:/#-]\s*\d{1,12}\s*$/,'').replace(/\s+\d{1,12}\s*$/,'').replace(/\s*[[(]\s*\d{1,12}\s*[\])]\s*$/,'').replace(/\s{2,}/g,' ').trim();
 Deno.serve(async(req)=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return reply({error:'Method not allowed'},405);try{
  const body=await req.json();
@@ -776,7 +785,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
 }
  }catch(e){
    console.error(e);
-   const message=e instanceof Error?e.message:'Eroare necunoscută.';
-   const isSessionError=/sesiunea securizată|sesiunea panelului a expirat|autentifică-te din nou/i.test(message);
-   return reply({error:message},isSessionError?401:400)
+   const details=errorDetails(e);
+   const isSessionError=/sesiunea securizată|sesiunea panelului a expirat|autentifică-te din nou/i.test(details.message);
+   return reply({error:details.message,code:details.code,details:details.details,hint:details.hint},isSessionError?401:400)
  }});
