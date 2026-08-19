@@ -87,7 +87,10 @@
         const asset = release?.assets?.find(item => item.name.endsWith('.apk'));
         if (!asset) return;
         button.href = asset.browser_download_url;
-        version.innerHTML = `<i aria-hidden="true">✓</i> Versiunea ${release.tag_name.replace(/^v/, '')}`;
+        const versionIcon = document.createElement('i');
+        versionIcon.setAttribute('aria-hidden', 'true');
+        versionIcon.textContent = '✓';
+        version.replaceChildren(versionIcon, document.createTextNode(` Versiunea ${String(release.tag_name || '').replace(/^v/, '')}`));
       } catch (_) {}
     })();
   </script>

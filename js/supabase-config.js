@@ -20,6 +20,7 @@ if (!window.PANEL_DEBUG) {
 window.clearPanelSession = function clearPanelSession() {
     localStorage.removeItem('panel_session_token');
     localStorage.removeItem('panel_session_expires_at');
+    window.clearPanelDiscordAccessToken?.();
 };
 
 // Discord OAuth tokens are bearer credentials. Keep them only in the current
@@ -39,30 +40,6 @@ window.clearPanelDiscordAccessToken = function clearPanelDiscordAccessToken() {
 (() => {
     const legacyToken = window.localStorage.getItem('discord_access_token');
     if (legacyToken) window.setPanelDiscordAccessToken(legacyToken);
-})();
-// Compatibility bridge for older page scripts: any legacy localStorage
-// access for this key is transparently redirected to sessionStorage.
-(() => {
-    const nativeGet = Storage.prototype.getItem;
-    const nativeSet = Storage.prototype.setItem;
-    const nativeRemove = Storage.prototype.removeItem;
-    Storage.prototype.getItem = function getItem(key) {
-        if (this === window.localStorage && key === 'discord_access_token') return window.sessionStorage.getItem(key);
-        return nativeGet.call(this, key);
-    };
-    Storage.prototype.setItem = function setItem(key, value) {
-        if (this === window.localStorage && key === 'discord_access_token') return window.sessionStorage.setItem(key, String(value));
-        return nativeSet.call(this, key, value);
-    };
-    Storage.prototype.removeItem = function removeItem(key) {
-        if (key === 'discord_access_token') {
-            if (this === window.localStorage) window.sessionStorage.removeItem(key);
-            else nativeRemove.call(this, key);
-            nativeRemove.call(window.localStorage, key);
-            return;
-        }
-        return nativeRemove.call(this, key);
-    };
 })();
 (() => {
     const expires = Number(localStorage.getItem('panel_session_expires_at') || 0);

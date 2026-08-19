@@ -1,4 +1,4 @@
-import {createClient} from 'jsr:@supabase/supabase-js@2';
+import {createClient} from 'jsr:@supabase/supabase-js@2.112.3';
 import {requirePanelSession} from '../_shared/panel-session.ts';
 import {isPlatformAdminDiscordId} from '../_shared/platform-admin.ts';
 import {resolvePackageFeatures} from '../_shared/package-features.ts';
@@ -406,12 +406,17 @@ const own = async (id:string) => {
         author_discord_id: du.id,
         author_name: user.display_name || user.username
     }).select().single();
+    if (error) throw error;
+    if (!post) throw new Error('Postarea nu a putut fi salvată.');
     if(body.post_type==='poll'){const options=(body.options||[]).map((x:string,i:number)=>({organization_id:organizationId,post_id:post.id,option_text:x,position:i}));const {error:e}=await db.from('community_poll_options').insert(options);if(e)throw e}
-    const discordMessageId = await notifyDiscord(
-        post,
-        body.options || [],
-        post.audience
-    );
+    let discordMessageId = null;
+    let discordDeliveryWarning = '';
+    try {
+        discordMessageId = await notifyDiscord(post, body.options || [], post.audience);
+    } catch (error) {
+        discordDeliveryWarning = error instanceof Error ? error.message : 'Webhook-ul Discord nu a putut fi contactat.';
+        console.error('Postarea a fost salvată, dar livrarea Discord a eșuat:', discordDeliveryWarning);
+    }
 
     if (discordMessageId) {
         await db
@@ -423,7 +428,7 @@ const own = async (id:string) => {
             .eq('id', post.id);
     }
 
-    return reply({ post });
+    return reply({ post, discord_delivery: discordMessageId ? 'sent' : 'unavailable', discord_warning: discordDeliveryWarning || null });
  }
  if(body.action==='update'){const post=await own(body.post_id);if(communicationSetting&&!canForAudience(String(post.audience||'organization'),'write'))return reply({error:'Rolul tău nu poate modifica această audiență.'},403);const {error}=await db.from('community_posts').update({title:body.title,content:body.content,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',body.post_id);if(error)throw error;if(post.post_type==='poll'&&Array.isArray(body.options)){if(body.options.length<2)throw new Error('Sondajul trebuie să aibă minimum două opțiuni.');const {data:existing}=await db.from('community_poll_options').select('option_text').eq('organization_id',organizationId).eq('post_id',body.post_id).order('position');const changed=JSON.stringify((existing||[]).map((x:any)=>x.option_text))!==JSON.stringify(body.options);if(changed){const {error:deleteOptionsError}=await db.from('community_poll_options').delete().eq('organization_id',organizationId).eq('post_id',body.post_id);if(deleteOptionsError)throw deleteOptionsError;const {error:insertOptionsError}=await db.from('community_poll_options').insert(body.options.map((text:string,position:number)=>({organization_id:organizationId,post_id:body.post_id,option_text:text,position})));if(insertOptionsError)throw insertOptionsError}}return reply({ok:true})}
  if (body.action === 'delete') {

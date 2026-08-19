@@ -13,7 +13,7 @@
   if (avatar) avatar.src = user.avatar || user.avatar_url || '';
 
   async function invokeDiagnostics() {
-    const token = localStorage.getItem('discord_access_token');
+    const token = window.getPanelDiscordAccessToken?.() || '';
     const sessionToken = await window.ensurePanelSession();
     if (!token) throw new Error('Sesiunea Discord lipsește. Autentifică-te din nou.');
     const response = await fetch(`${config.url}/functions/v1/manage-discord-config`, {

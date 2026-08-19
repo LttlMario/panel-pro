@@ -8,7 +8,7 @@
     <!-- Tailwind CSS CDN -->
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
     <script src="js/supabase-config.js?v=20260818-console-fix"></script>
     <script src="js/permissions.js?v=4.6.0"></script>
     <script src="js/panel-layout.js?v=4.15.0"></script>
@@ -445,7 +445,7 @@
                     : '<tr><td colspan="3" class="p-6 text-center text-slate-500">Nu există utilizatori online momentan.</td></tr>';
             } catch (error) {
                 if (badge) badge.textContent = 'Indisponibil';
-                tbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-rose-300">Lista online nu a putut fi încărcată: ${String(error?.message || 'eroare necunoscută')}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-rose-300">Lista online nu a putut fi încărcată: ${escapeAdminHtml(error?.message || 'eroare necunoscută')}</td></tr>`;
             }
         }
 
