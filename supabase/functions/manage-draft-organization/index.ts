@@ -4,18 +4,16 @@ const headers = { 'Access-Control-Allow-Origin': 'https://lttlmario.github.io', 
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const validGuild = (value: string) => /^\d{15,22}$/.test(value);
 const webhookChannels = new Set(['organization', 'departments', 'pontaj', 'requests', 'requests_organization', 'requests_departments', 'contracts', 'marketplace', 'illegal_marketplace', 'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'sanctions_organization', 'sanctions_departments', 'status_live', 'organization_expiration']);
-const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
 const validWebhook = (value: unknown) => {
   try {
     const url = new URL(String(value || ''));
     return url.protocol === 'https:' && ['discord.com', 'discordapp.com'].includes(url.hostname) && url.pathname.startsWith('/api/webhooks/');
   } catch { return false; }
 };
-const sanitizeWebhookRoutes = (raw: unknown, fullPackage = false) => {
+const sanitizeWebhookRoutes = (raw: unknown) => {
   if (!raw || typeof raw !== 'object') return {};
   return Object.fromEntries(Object.entries(raw as Record<string, any>).filter(([channel, route]) => {
     if (!webhookChannels.has(channel) || !route || typeof route !== 'object') return false;
-    if (!fullPackage && fullOnlyWebhookChannels.has(channel)) return false;
     return Boolean(route.primary?.enabled && validWebhook(route.primary.url)) || Boolean(route.secondary?.enabled && validWebhook(route.secondary.url));
   }).map(([channel, route]) => [channel, {
     primary: route.primary?.enabled && validWebhook(route.primary.url) ? { enabled: true, url: String(route.primary.url).trim() } : null,
@@ -43,9 +41,6 @@ Deno.serve(async (req) => {
     if (!org || org.lifecycle_status !== 'draft') return reply({ error: 'Organizația nu este în starea Draft.' }, 400);
     const { data: voucher } = await db.from('organization_vouchers').select('redeemed_by_discord_id,redeemed_organization_id,guild_id').eq('redeemed_organization_id', id).maybeSingle();
     if (!voucher || String(voucher.redeemed_by_discord_id) !== discordId) return reply({ error: 'Nu ești creatorul acestei organizații Draft.' }, 403);
-    const { data: packageSetting } = await db.from('app_settings').select('value').eq('organization_id', id).eq('key', 'organization_package').maybeSingle();
-    const fullPackage = packageSetting?.value?.code === 'full';
-
     if (action === 'attach_guild' || action === 'attach_secondary_guild') {
       const guildId = String(body.guild_id || '').trim();
       if (!validGuild(guildId)) return reply({ error: 'Guild ID invalid.' }, 400);
@@ -76,7 +71,7 @@ Deno.serve(async (req) => {
     }
     if (body.webhook_routes) {
       const { data: currentSettings } = await db.from('organization_settings').select('discord_client_id,panel_public_url').eq('organization_id', id).maybeSingle();
-      const { error } = await db.from('organization_settings').upsert({ organization_id: id, discord_client_id: String(body.discord_client_id || currentSettings?.discord_client_id || ''), panel_public_url: String(body.panel_public_url || currentSettings?.panel_public_url || ''), webhook_routes: sanitizeWebhookRoutes(body.webhook_routes, fullPackage), updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
+      const { error } = await db.from('organization_settings').upsert({ organization_id: id, discord_client_id: String(body.discord_client_id || currentSettings?.discord_client_id || ''), panel_public_url: String(body.panel_public_url || currentSettings?.panel_public_url || ''), webhook_routes: sanitizeWebhookRoutes(body.webhook_routes), updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
       if (error) throw error;
     }
     if (body.page_permissions) {

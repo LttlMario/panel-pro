@@ -90,13 +90,29 @@ window.createPanelAuthClient = function createPanelAuthClient(options = {}) {
     return client;
 };
 
+window.isPanelOrganizationId = function isPanelOrganizationId(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+};
+
 window.getActiveOrganization = function getActiveOrganization() {
-    try { return JSON.parse(localStorage.getItem('panel_active_organization') || 'null'); }
-    catch (_) { return null; }
+    try {
+        const value = JSON.parse(localStorage.getItem('panel_active_organization') || 'null');
+        const id = value?.id || value?.organization_id || '';
+        if (!window.isPanelOrganizationId(id)) return null;
+        return { ...value, id: String(id).trim() };
+    } catch (_) {
+        return null;
+    }
 };
 
 window.getActiveOrganizationId = function getActiveOrganizationId() {
-    return window.getActiveOrganization()?.id || JSON.parse(localStorage.getItem('discord_user') || 'null')?.organization_id || null;
+    let candidate = window.getActiveOrganization()?.id || null;
+    if (!candidate) {
+        try { candidate = JSON.parse(localStorage.getItem('discord_user') || 'null')?.organization_id || null; }
+        catch (_) { candidate = null; }
+    }
+    const value = String(candidate || '').trim();
+    return window.isPanelOrganizationId(value) ? value : null;
 };
 
 let panelSessionRefreshPromise = null;
@@ -167,6 +183,9 @@ window.ensurePanelSession = async function ensurePanelSession() {
     if (panelSessionRefreshPromise) return panelSessionRefreshPromise;
 
     panelSessionRefreshPromise = (async () => {
+        // Versiunile vechi puteau lăsa un ID numeric în browser. Nu îl
+        // reutilizăm pentru sesiune, pagini sau webhook-uri.
+        if (!activeOrganizationId) localStorage.removeItem('panel_active_organization');
         const discordToken = window.getPanelDiscordAccessToken();
         if (!discordToken) throw new Error('Sesiunea Discord lipsește. Autentifică-te din nou.');
         const result = await window.panelRequestJson('sync-discord-role', {

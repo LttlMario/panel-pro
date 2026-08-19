@@ -8,6 +8,7 @@ const headers = {
 };
 
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const botHeaders = (token: string) => ({
   Authorization: `Bot ${token}`,
   'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)',
@@ -32,6 +33,9 @@ Deno.serve(async (request) => {
     if (!jwt) return reply({ error: 'Sesiunea email lipseÈ™te sau a expirat.' }, 401);
     if (!discordAccessToken) return reply({ error: 'Sesiunea Discord lipseÈ™te.' }, 400);
     if (!/^\d{15,22}$/.test(guildId)) return reply({ error: 'Serverul Discord selectat este invalid.' }, 400);
+    if (organizationId && !UUID_RE.test(organizationId)) {
+      return reply({ error: 'Organizația selectată este veche sau invalidă.', code: 'ORGANIZATION_ID_INVALID' }, 400);
+    }
 
     const db = createClient(supabaseUrl, serviceKey);
     const { data: authData, error: authError } = await db.auth.getUser(jwt);
@@ -74,7 +78,7 @@ Deno.serve(async (request) => {
     const { data: configuredGuildRows, error: guildError } = await guildQuery;
     if (guildError) throw guildError;
     const configuredOrganizations = Array.from(new Map(
-      (configuredGuildRows || []).map((row: any) => [String(row.organization_id || row.organizations?.id || ''), row]),
+      (configuredGuildRows || []).map((row: any) => [String(row.organizations?.id || row.organization_id || ''), row]),
     ).values()).filter((row: any) => String(row.organization_id || row.organizations?.id || '').trim());
     if (!configuredOrganizations.length) {
       return reply({
@@ -91,7 +95,8 @@ Deno.serve(async (request) => {
       }, 409);
     }
     const configuredGuild = configuredOrganizations[0] as any;
-    const configuredOrganizationId = String(configuredGuild.organization_id || configuredGuild.organizations?.id || '').trim();
+    const configuredOrganizationId = String(configuredGuild.organizations?.id || configuredGuild.organization_id || '').trim();
+    if (!UUID_RE.test(configuredOrganizationId)) return reply({ error: 'Configurația organizației este invalidă.', code: 'ORGANIZATION_DATA_INVALID' }, 500);
     if (!configuredGuild) return reply({ error: 'Serverul Discord selectat nu este configurat pentru nicio organizaÈ›ie.', code: 'GUILD_NOT_CONFIGURED' }, 404);
 
     const discordResponse = await fetch('https://discord.com/api/v10/users/@me', {
