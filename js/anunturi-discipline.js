@@ -14,6 +14,7 @@
     'x-panel-session': localStorage.getItem('panel_session_token') || ''
   });
   const call = async (body) => {
+    await window.ensurePanelSession?.();
     const response = await fetch(`${config.url}/functions/v1/manage-community-posts`, {
       method: 'POST', headers: sessionHeaders(), body: JSON.stringify(body)
     });
