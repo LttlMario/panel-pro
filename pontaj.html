@@ -156,10 +156,9 @@
                     return;
                 }
 
-                const activeOrganizationId =
-                    window.getActiveOrganizationId?.() || localData.organization_id || null;
+                const activeOrganizationId = window.getActiveOrganizationId?.() || null;
 
-                if (!activeOrganizationId) {
+                if (!window.isPanelOrganizationId?.(activeOrganizationId)) {
                     window.location.href = 'guest.html';
                     return;
                 }
@@ -355,11 +354,8 @@
         async function ensurePontajOrganization() {
             if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
 
-            let organizationId = window.getActiveOrganizationId?.() || currentUser.organization_id || null;
-            if (!organizationId) {
-                try { organizationId = JSON.parse(localStorage.getItem('discord_user') || '{}')?.organization_id || null; } catch (_) {}
-            }
-            if (!organizationId) throw new Error('Organizația activă nu a fost identificată.');
+            const organizationId = window.getActiveOrganizationId?.() || null;
+            if (!window.isPanelOrganizationId?.(organizationId)) throw new Error('Organizația activă nu a fost identificată. Autentifică-te din nou.');
             currentUser.organization_id = organizationId;
             supabaseClient = window.createPanelSupabaseClient();
             return organizationId;

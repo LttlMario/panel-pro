@@ -303,6 +303,13 @@
         let activeShiftsData = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
+            } catch (_) {
+                window.clearPanelSession?.();
+                window.location.href = 'login.html';
+                return;
+            }
             ['admin-absence-start', 'admin-absence-end'].forEach(id => {
                 const input = document.getElementById(id);
                 if (input) input.type = 'date';
@@ -353,14 +360,10 @@
                 const activeOrganizationId = typeof getActiveOrganizationId === 'function'
                     ? getActiveOrganizationId()
                     : (typeof getActiveOrganization === 'function' ? getActiveOrganization()?.id : '');
-                currentUser.organization_id =
-                    activeOrganizationId ||
-                    activeUser.active_organization?.id ||
-                    activeUser.organization?.id ||
-                    localData.active_organization?.id ||
-                    activeUser.organization_id ||
-                    localData.organization_id ||
-                    '';
+                currentUser.organization_id = activeOrganizationId || '';
+                if (!window.isPanelOrganizationId?.(currentUser.organization_id)) {
+                    throw new Error('Organizația activă nu a fost identificată.');
+                }
                 if (currentUser.organization_id && !activeUser.organization_id) {
                     activeUser.organization_id = currentUser.organization_id;
                 }

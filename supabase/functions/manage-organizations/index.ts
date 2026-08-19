@@ -32,17 +32,6 @@ const organizationIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-
 const validOrganizationId=(value:unknown)=>organizationIdPattern.test(String(value||'').trim());
 const nowIso=()=>new Date().toISOString();
 const getClientIp=(request:Request)=>String(request.headers.get('cf-connecting-ip')||request.headers.get('x-forwarded-for')?.split(',')[0]||'unknown').trim().slice(0,120);
-const webhookFeature=(channel:string)=>{
-  if(channel==='organization')return 'announcements_organization';
-  if(channel==='departments')return 'announcements_departments';
-  if(channel==='requests_organization')return 'requests_organization';
-  if(channel==='requests_departments')return 'requests_departments';
-  if(['warnings_organization','sanctions_organization','fines_organization'].includes(channel))return 'discipline_organization';
-  if(['warnings_departments','sanctions_departments','fines_departments'].includes(channel))return 'discipline_departments';
-  if(channel==='illegal_marketplace')return 'illegal_marketplace';
-  return null;
-};
-const filterWebhookRoutesForPackage=(routes:any,features:string[])=>Object.fromEntries(Object.entries(routes&&typeof routes==='object'?routes:{}).filter(([channel])=>{const feature=webhookFeature(channel);return !feature||features.includes(feature);}));
 const summarizeWebhooks=(routes:any)=>{
   const source=routes&&typeof routes==='object'?routes:{};
   const channels=[...webhookChannels];
@@ -82,7 +71,7 @@ Deno.serve(async request=>{
     if(body.action==='test_webhook'){
       const webhookUrl=String(body.url||'').trim();
       const organizationId=String(body.organization_id||'').trim();
-      if(!organizationId)return reply({error:'Organizația selectată lipsește.'},400);
+       if(!validOrganizationId(organizationId))return reply({error:'Organizația selectată are un ID invalid.'},400);
       let parsedWebhook:URL;
       try{parsedWebhook=new URL(webhookUrl);}catch{return reply({error:'Adresa webhookului este invalidă.'},400);}
       if(parsedWebhook.protocol!=='https:'||!['discord.com','discordapp.com'].includes(parsedWebhook.hostname)||!parsedWebhook.pathname.startsWith('/api/webhooks/'))return reply({error:'Adresa trebuie să fie un webhook Discord valid.'},400);
@@ -417,16 +406,6 @@ const webhook_routes = {
   ...existingWebhookRoutes,
   ...submittedWebhookRoutes
 };
-const { data: routePackageSetting, error: routePackageError } = await db
-  .from('app_settings')
-  .select('value')
-  .eq('organization_id', organizationId)
-  .eq('key', 'organization_package')
-  .maybeSingle();
-if (routePackageError) throw routePackageError;
-const routePackageFeatures = resolvePackageFeatures(routePackageSetting?.value || {});
-const filteredWebhookRoutes = filterWebhookRoutesForPackage(webhook_routes, routePackageFeatures);
-
 const { error: settingsError } =
   await db
     .from('organization_settings')
@@ -434,7 +413,10 @@ const { error: settingsError } =
       organization_id: organizationId,
       discord_client_id: clientId,
       panel_public_url: publicUrl,
-      webhook_routes: filteredWebhookRoutes,
+       // Nu ștergem webhook-urile când se schimbă pachetul. Accesul la canal
+       // este verificat la trimitere, iar configurația rămâne disponibilă la
+       // un eventual upgrade ulterior.
+       webhook_routes,
       updated_by_discord_id: session.discord_id,
       updated_at: new Date().toISOString()
     }, {
@@ -819,11 +801,6 @@ if (Array.isArray(body.roles)) {
       const features=code==='full'?[...FULL_PACKAGE_FEATURES]:[...STANDARD_PACKAGE_FEATURES];
       const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_package',value:{code,unlimited,expires_at:expiresAt,features},updated_at:nowIso()},{onConflict:'organization_id,key'});
       if(error)throw error;
-      const {data:organizationSettings}=await db.from('organization_settings').select('webhook_routes').eq('organization_id',organizationId).maybeSingle();
-      if(organizationSettings?.webhook_routes){
-        const {error:routeError}=await db.from('organization_settings').update({webhook_routes:filterWebhookRoutesForPackage(organizationSettings.webhook_routes,features),updated_at:nowIso()}).eq('organization_id',organizationId);
-        if(routeError)throw routeError;
-      }
       if(code!=='full'){
         const restricted=[['action_permissions',{...(body.action_permissions||{}),'cereri.organization':[]}],['communication_permissions',{organization:{read:[],write:[]}}],['discipline_permissions',{organization:{read:[],write:[],sanction:[]}}]] as any[];
         for(const [key,value] of restricted){

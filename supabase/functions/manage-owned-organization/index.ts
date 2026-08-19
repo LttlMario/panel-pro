@@ -1,6 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { isPlatformAdminDiscordIdAsync } from '../_shared/platform-admin.ts';
-import { resolvePackageFeatures } from '../_shared/package-features.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -10,6 +9,8 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const webhookChannels = new Set([
   'organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization',
@@ -17,13 +18,6 @@ const webhookChannels = new Set([
   'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments',
   'sanctions_organization', 'sanctions_departments', 'status_live', 'organization_expiration'
 ]);
-const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
-const webhookFeature = (channel: string) => fullOnlyWebhookChannels.has(channel)
-  ? (channel === 'illegal_marketplace' ? 'illegal_marketplace' : channel === 'organization' ? 'announcements_organization' : channel === 'requests_organization' ? 'requests_organization' : 'discipline_organization')
-  : channel === 'departments' ? 'announcements_departments'
-    : channel === 'requests_departments' ? 'requests_departments'
-      : ['fines_departments', 'warnings_departments', 'sanctions_departments'].includes(channel) ? 'discipline_departments' : null;
-const filterWebhookRoutesForPackage = (routes: any, features: string[]) => Object.fromEntries(Object.entries(routes && typeof routes === 'object' ? routes : {}).filter(([channel]) => { const feature = webhookFeature(channel); return !feature || features.includes(feature); }));
 const allowedContractPlaceholders = new Set([
   '{{COMPANY}}', '{{ADDRESS}}', '{{MANAGER}}', '{{EMPLOYEE_NAME}}', '{{CNP}}',
   '{{PHONE}}', '{{POSITION}}', '{{SALARY}}', '{{PROGRAM}}', '{{START_DATE}}',
@@ -195,7 +189,7 @@ Deno.serve(async (request) => {
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
     const body = await request.json();
     const action = String(body.action || 'owner_get').trim();
-    if (!['owner_get', 'owner_update'].includes(action)) return reply({ error: 'Acțiune necunoscută.' }, 400);
+    if (!['owner_get', 'owner_update', 'test_webhook'].includes(action)) return reply({ error: 'Acțiune necunoscută.' }, 400);
 
     const accessToken = String(body.access_token || '').trim();
     if (!accessToken) return reply({ error: 'Sesiunea Discord lipsește sau a expirat.' }, 401);
@@ -221,6 +215,9 @@ Deno.serve(async (request) => {
     if (ownerActionAllowed === false) return reply({ error: 'Prea multe modificări asupra organizației. Așteaptă câteva minute și încearcă din nou.' }, 429);
 
     const requestedOrganizationId = String(body.organization_id || '').trim();
+    if (requestedOrganizationId && !UUID_RE.test(requestedOrganizationId)) {
+      return reply({ error: 'Organizația selectată are un ID invalid. Reautentifică-te pentru a reface sesiunea.' }, 400);
+    }
     let candidates: any[] = [];
     if (requestedOrganizationId) {
       const [{ data: organization }, { data: guild }] = await Promise.all([
@@ -274,6 +271,17 @@ Deno.serve(async (request) => {
     if (!owned) return reply({ error: 'Organizația nu a putut fi identificată.' }, 404);
 
     const organizationId = String(owned.organization.id);
+    if (action === 'test_webhook') {
+      const webhookUrl = String(body.url || '').trim();
+      if (!validWebhook(webhookUrl)) return reply({ error: 'Adresa trebuie să fie un webhook Discord valid.' }, 400);
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: '✅ Test webhook Panel — conexiunea funcționează.', allowed_mentions: { parse: [] } })
+      });
+      if (!response.ok) return reply({ error: `Discord a răspuns cu HTTP ${response.status}.` }, 400);
+      return reply({ ok: true, message: 'Webhookul a răspuns cu succes.' });
+    }
     const loadSettings = async () => {
       const [{ data: settings }, { data: contractSetting }, { data: roleMappings }, { data: pageSetting }, { data: guilds }, { data: accessSetting }, { data: packageSetting }, { data: actionSetting }, { data: communicationSetting }, { data: disciplineSetting }] = await Promise.all([
         db.from('organization_settings').select('*').eq('organization_id', organizationId).maybeSingle(),
@@ -347,7 +355,6 @@ Deno.serve(async (request) => {
     const state = await loadSettings();
     const settings = state.settings || {};
     const { data: packageSetting } = await db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_package').maybeSingle();
-    const packageFeatures = resolvePackageFeatures(packageSetting?.value || {});
     const webhookRoutes = body.webhook_routes === undefined
       ? (settings.webhook_routes || {})
       : mergeWebhookRoutes(settings.webhook_routes, body.webhook_routes);
@@ -362,7 +369,9 @@ Deno.serve(async (request) => {
       contracts_webhook_url: settings.contracts_webhook_url || null,
       marketplace_webhook_url: settings.marketplace_webhook_url || null,
       illegal_marketplace_webhook_url: settings.illegal_marketplace_webhook_url || null,
-      webhook_routes: filterWebhookRoutesForPackage(webhookRoutes, packageFeatures),
+      // Păstrăm rutele configurate și la schimbarea pachetului. Pachetul
+      // controlează trimiterea server-side, nu ștergerea configurației.
+      webhook_routes: webhookRoutes,
       updated_by_discord_id: discordId,
       updated_at: new Date().toISOString()
     };

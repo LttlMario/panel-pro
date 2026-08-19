@@ -179,13 +179,15 @@
                 }
 
                 activeOrganization =
-                    JSON.parse(storedOrganization);
+                    typeof window.getActiveOrganization === 'function'
+                        ? window.getActiveOrganization()
+                        : JSON.parse(storedOrganization);
                     console.log(
                     'ACTIVE ORGANIZATION FULL:',
                     activeOrganization
                 );
 
-                if (!activeOrganization?.id) {
+                if (!activeOrganization?.id || !window.isPanelOrganizationId?.(activeOrganization.id)) {
                     throw new Error(
                         'Organizația activă nu are un ID valid.'
                     );
@@ -401,7 +403,10 @@ console.log(
             try {
                 await ensurePanelSession();
             } catch (error) {
-                console.warn('Sesiunea nu a putut fi reîmprospătată:', error);
+                console.error('Sesiunea panelului nu a putut fi reîmprospătată:', error);
+                window.clearPanelSession?.();
+                window.location.href = 'login.html';
+                return;
             }
 
             // 4. Încărcare context organizație activă
@@ -547,8 +552,9 @@ console.log(
             const activeName = currentUser.display_name || currentUser.username || 'Utilizator Discord';
             const activeRole = currentUser.role || currentUser.default_role || 'Rol Discord';
 
-            if (!activeOrganization?.id) {
-                alert('Nu există o organizație activă.');
+            const activeOrganizationId = window.getActiveOrganizationId?.() || '';
+            if (!window.isPanelOrganizationId?.(activeOrganizationId) || activeOrganization?.id !== activeOrganizationId) {
+                alert('Organizația activă nu mai este validă. Reautentifică-te pentru a reface sesiunea.');
                 return;
             }
 
@@ -557,7 +563,7 @@ console.log(
                 return;
             }
             const newAbsence = {
-                organization_id: activeOrganization.id,
+                organization_id: activeOrganizationId,
                 discord_id: currentUser.discord_id,
                 colleague_name: `${activeName} [${activeRole}]`,
                 notice_type: noticeType,

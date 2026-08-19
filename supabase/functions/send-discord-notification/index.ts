@@ -15,6 +15,8 @@ const reply = (data: unknown, status = 200) =>
     headers: cors
   });
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const levels: Record<string, number> = {
   organization: 1,
   pontaj: 1,
@@ -29,6 +31,8 @@ const levels: Record<string, number> = {
   contracts: 1,
   marketplace: 1,
   illegal_marketplace: 1,
+  status_live: 1,
+  // compatibilitate pentru versiunile vechi ale paginii Status Live
   live_status: 1
 };
 
@@ -293,6 +297,7 @@ if (request.method === 'OPTIONS') {
 
     if (
       requestedOrganizationId &&
+      UUID_RE.test(requestedOrganizationId) &&
       requestedOrganizationId !== sessionOrganizationId
     ) {
 
