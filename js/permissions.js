@@ -174,6 +174,12 @@ function canAccessPage(page) {
         return isLogged();
     }
 
+    // Orice membru autentificat poate deschide pagina de prelungire;
+    // funcția Supabase verifică apartenența la organizație și voucherul.
+    if (page === 'prelungire-voucher.html') {
+        return isLogged();
+    }
+
     /*
      * Paginile administrative NU pot fi acordate
      * prin rolurile unei organizații.
