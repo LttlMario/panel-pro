@@ -788,6 +788,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const sections = [
             ['management', 'Operațiuni', [
                 ['index.html', '📊', 'Dashboard'],
+                ['prelungire-voucher.html', '🎟️', 'Prelungire prin voucher'],
                 ['anunturi.html', '📣', 'Anunțuri & Sondaje'],
                 ['pontaj.html', '⏱️', 'Pontaj'],
                 ['cereri.html', '📋', 'Cereri / Absențe'],
