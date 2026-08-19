@@ -18,6 +18,9 @@ export async function requirePanelSession(db: any, request: Request, minimumLeve
     .eq('token_hash', await sha256(token)).maybeSingle();
   if (error) throw error;
   if (!data || data.revoked_at || new Date(data.expires_at).getTime() <= Date.now()) throw new Error('Sesiunea panelului a expirat. Autentifică-te din nou.');
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(data.organization_id || ''))) {
+    throw new Error('Sesiunea panelului este veche. Autentifică-te din nou.');
+  }
   const currentPlatformAdmin = await isPlatformAdminDiscordIdAsync(db, data.discord_id);
   if (Boolean(data.is_platform_admin) !== currentPlatformAdmin) {
     await db.from('panel_sessions').update({ is_platform_admin: currentPlatformAdmin }).eq('token_hash', await sha256(token));
