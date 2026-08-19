@@ -19,6 +19,11 @@
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
+      if (response.status === 401) {
+        window.clearPanelSession?.();
+        sessionStorage.setItem('panel_return_after_login', location.href);
+        window.location.href = 'login.html';
+      }
       const errorText = [result.error, result.details, result.hint].filter(Boolean).join(' — ') || `Operația a eșuat (${response.status}).`;
       const error = new Error(errorText);
       error.status = response.status;
