@@ -47,11 +47,13 @@
         <form id="owner-form" class="mt-5 hidden space-y-5">
           <div class="grid gap-3 md:grid-cols-2">
             <label class="owner-label">Numele organizației<input id="owner-org-name" required class="owner-field" placeholder="Numele organizației"></label>
+            <label class="owner-label">Numele organizației ilegale (opțional)<input id="owner-org-illegal-name" class="owner-field" placeholder="Ex: Los Santos Cartel / Royal Family"></label>
+            <label class="owner-label">Codul organizației (opțional)<input id="owner-org-code" class="owner-field" placeholder="Ex: TEST"></label>
             <label class="owner-label">Adresa organizației<input id="owner-org-address" class="owner-field" placeholder="Sediu sau punct de lucru"></label>
             <label class="owner-label md:col-span-2">Descrierea organizației<textarea id="owner-org-description" class="owner-field min-h-24" placeholder="Descriere scurtă (opțional)"></textarea></label>
-            <label class="owner-label">Logo organizație (link)<input id="owner-org-logo" type="url" class="owner-field" placeholder="https://..."></label>
-            <label class="owner-label">Banner organizație (link)<input id="owner-org-banner" type="url" class="owner-field" placeholder="https://..."></label>
-            <div class="rounded-xl border border-slate-700 bg-slate-950 p-3"><span class="block text-xs font-bold text-slate-400">Server Discord principal</span><strong id="owner-guild-readonly" class="mt-1 block text-sm">Se încarcă...</strong><span class="mt-1 block text-xs text-slate-500">Guild ID-ul nu poate fi schimbat de aici.</span></div>
+            <label class="owner-label">Adresa publică a panelului<input id="owner-panel-url" type="url" required class="owner-field" placeholder="https://panel.example/"></label>
+            <label class="owner-label">Logo organizație (link PNG/JPG/WebP)<input id="owner-org-logo" type="url" class="owner-field" placeholder="https://..."></label>
+            <div class="rounded-xl border border-slate-700 bg-slate-950 p-3 md:col-span-2"><span class="block text-xs font-bold text-slate-400">Serverele Discord ale organizației</span><div id="owner-guilds-readonly" class="mt-1 space-y-1 text-sm">Se încarcă...</div><span class="mt-1 block text-xs text-slate-500">Guild ID-urile sunt gestionate administrativ și nu pot fi schimbate de aici.</span></div>
           </div>
 
           <section class="rounded-2xl border border-emerald-700/50 bg-emerald-950/15 p-4">
@@ -266,12 +268,15 @@
           organizationId = org.id || '';
           $('owner-permission').textContent = 'Proprietar Guild';
           $('owner-guild').textContent = data.guild?.name || data.guild?.id || '';
-          $('owner-guild-readonly').textContent = `${data.guild?.name || 'Server Discord'} · ${data.guild?.id || ''}`;
+          const readonlyGuilds = Array.isArray(data.guilds) && data.guilds.length ? data.guilds : (data.guild ? [data.guild] : []);
+          $('owner-guilds-readonly').innerHTML = readonlyGuilds.length ? readonlyGuilds.map((guild) => `<div><span class="font-bold text-slate-200">${String(guild.kind || 'primary') === 'secondary' ? 'Secundar' : 'Principal'}:</span> ${String(guild.guild_name || guild.name || 'Server Discord')} · ${String(guild.guild_id || guild.id || '')}</div>`).join('') : '<div class="text-slate-500">Nu există un Guild configurat.</div>';
           $('owner-org-name').value = org.name || '';
+          $('owner-org-illegal-name').value = org.illegal_name || '';
+          $('owner-org-code').value = org.code || '';
           $('owner-org-address').value = org.address || '';
           $('owner-org-description').value = org.description || '';
+          $('owner-panel-url').value = data.settings?.panel_public_url || '';
           $('owner-org-logo').value = org.logo_url || '';
-          $('owner-org-banner').value = org.banner_url || '';
           renderAccess(data.access, data.package, org.active);
           const contract = data.contract_template || {};
           $('owner-contract-title').value = contract.title || '';
@@ -304,7 +309,7 @@
           const contractTemplate = title || template || salary ? { title, template, defaults: { salary } } : null;
           const roles = selectedOwnerRoles();
           if (!roles.length) throw new Error('Configurează cel puțin un rol Discord.');
-           const response = await call({ action: 'owner_update', organization_id: organizationId, organization: { name: $('owner-org-name').value.trim(), address: $('owner-org-address').value.trim(), description: $('owner-org-description').value.trim(), logo_url: $('owner-org-logo').value.trim(), banner_url: $('owner-org-banner').value.trim() }, webhook_routes: collectWebhooks(), contract_template: contractTemplate, roles, page_permissions: pagePermissions, action_permissions: actionPermissions, assistant_page_permissions: assistantPagePermissions, communication_permissions: communicationPermissions, discipline_permissions: disciplinePermissions });
+           const response = await call({ action: 'owner_update', organization_id: organizationId, organization: { name: $('owner-org-name').value.trim(), illegal_name: $('owner-org-illegal-name').value.trim(), code: $('owner-org-code').value.trim(), address: $('owner-org-address').value.trim(), description: $('owner-org-description').value.trim(), panel_public_url: $('owner-panel-url').value.trim(), logo_url: $('owner-org-logo').value.trim() }, webhook_routes: collectWebhooks(), contract_template: contractTemplate, roles, page_permissions: pagePermissions, action_permissions: actionPermissions, assistant_page_permissions: assistantPagePermissions, communication_permissions: communicationPermissions, discipline_permissions: disciplinePermissions });
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || 'Modificările nu au putut fi salvate.');
           discoveredDiscordRoles = Array.isArray(data.discord_roles) ? data.discord_roles : discoveredDiscordRoles;

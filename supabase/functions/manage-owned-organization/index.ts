@@ -250,7 +250,7 @@ Deno.serve(async (request) => {
     let candidates: any[] = [];
     if (requestedOrganizationId) {
       const [{ data: organization }, { data: guild }] = await Promise.all([
-        db.from('organizations').select('id,name,slug,address,description,logo_url,banner_url,active,lifecycle_status').eq('id', requestedOrganizationId).maybeSingle(),
+        db.from('organizations').select('id,name,slug,code,illegal_name,address,description,logo_url,active,lifecycle_status').eq('id', requestedOrganizationId).maybeSingle(),
         db.from('organization_guilds').select('organization_id,guild_id,guild_name,kind,enabled').eq('organization_id', requestedOrganizationId).eq('kind', 'primary').eq('enabled', true).maybeSingle()
       ]);
       if (organization && guild) candidates = [{ organization, guild }];
@@ -262,7 +262,7 @@ Deno.serve(async (request) => {
       const ids = [...new Set((guilds || []).map((item: any) => String(item.organization_id)).filter(Boolean))];
       if (ids.length) {
         const { data: organizations, error: organizationError } = await db.from('organizations')
-          .select('id,name,slug,address,description,logo_url,banner_url,active,lifecycle_status')
+          .select('id,name,slug,code,illegal_name,address,description,logo_url,active,lifecycle_status')
           .in('id', ids);
         if (organizationError) throw organizationError;
         candidates = (guilds || []).map((guild: any) => ({
@@ -286,7 +286,7 @@ Deno.serve(async (request) => {
       const fallbackOrganizationId = requestedOrganizationId;
       if (!fallbackOrganizationId) return reply({ error: 'Administratorul platformei trebuie să selecteze o organizație.' }, 400);
       const { data: fallbackOrganization, error: fallbackError } = await db.from('organizations')
-        .select('id,name,slug,address,description,logo_url,banner_url,active,lifecycle_status')
+        .select('id,name,slug,code,illegal_name,address,description,logo_url,active,lifecycle_status')
         .eq('id', fallbackOrganizationId).maybeSingle();
       if (fallbackError) throw fallbackError;
       if (!fallbackOrganization) return reply({ error: 'Organizația selectată nu există.' }, 404);
@@ -360,20 +360,33 @@ Deno.serve(async (request) => {
     const input = body.organization && typeof body.organization === 'object' ? body.organization : {};
     const name = String(input.name ?? owned.organization.name ?? '').trim();
     if (name.length < 2 || name.length > 100) return reply({ error: 'Numele organizației trebuie să aibă între 2 și 100 de caractere.' }, 400);
+    const illegalName = String(input.illegal_name ?? owned.organization.illegal_name ?? '').trim();
+    if (illegalName.length > 120) return reply({ error: 'Numele organizației ilegale nu poate depăși 120 de caractere.' }, 400);
+    const organizationCode = String(input.code ?? owned.organization.code ?? '').trim();
+    if (organizationCode.length > 50) return reply({ error: 'Codul organizației nu poate depăși 50 de caractere.' }, 400);
+    const state = await loadSettings();
+    const settings = state.settings || {};
+    const publicUrl = String(input.panel_public_url ?? settings.panel_public_url ?? '').trim().replace(/\/$/, '');
+    if (!publicUrl) return reply({ error: 'Adresa publică a panelului este obligatorie.' }, 400);
+    try {
+      const parsedPublicUrl = new URL(publicUrl);
+      if (!['http:', 'https:'].includes(parsedPublicUrl.protocol)) throw new Error();
+    } catch {
+      return reply({ error: 'Adresa publică a panelului trebuie să fie un URL valid.' }, 400);
+    }
     const organizationPatch = {
       name,
+      code: organizationCode || null,
+      illegal_name: illegalName || null,
       address: String(input.address ?? '').trim() || null,
       description: String(input.description ?? '').trim() || null,
       logo_url: safeAssetUrl(input.logo_url, 'Logo-ul'),
-      banner_url: safeAssetUrl(input.banner_url, 'Bannerul'),
       updated_at: new Date().toISOString()
     };
     const contract = normalizeContract(body.contract_template);
     const { error: organizationError } = await db.from('organizations').update(organizationPatch).eq('id', organizationId);
     if (organizationError) throw organizationError;
 
-    const state = await loadSettings();
-    const settings = state.settings || {};
     const webhookRoutes = body.webhook_routes === undefined
       ? (settings.webhook_routes || {})
       : mergeWebhookRoutes(settings.webhook_routes, body.webhook_routes);
@@ -383,7 +396,7 @@ Deno.serve(async (request) => {
     const settingsPatch = {
       organization_id: organizationId,
       discord_client_id: String(settings.discord_client_id ?? ''),
-      panel_public_url: String(settings.panel_public_url ?? ''),
+      panel_public_url: publicUrl,
       family_webhook_url: settings.family_webhook_url || null,
       mechanics_webhook_url: settings.mechanics_webhook_url || null,
       pontaj_webhook_url: settings.pontaj_webhook_url || null,
@@ -523,7 +536,7 @@ Deno.serve(async (request) => {
     }
 
     const { data: updatedOrganization, error: updatedError } = await db.from('organizations')
-      .select('id,name,slug,address,description,logo_url,banner_url,active,lifecycle_status')
+      .select('id,name,slug,code,illegal_name,address,description,logo_url,active,lifecycle_status')
       .eq('id', organizationId).single();
     if (updatedError) throw updatedError;
     const updatedState = await loadSettings();
