@@ -9,10 +9,10 @@
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
-    <script src="js/supabase-config.js?v=20260819-rollback-compat"></script>
+    <script src="js/supabase-config.js?v=20260818-console-fix"></script>
     <script src="js/permissions.js?v=4.6.0"></script>
     <script src="js/panel-layout.js?v=4.15.0"></script>
-    <script src="js/project-version.js?v=3.11.0"></script>
+    <script src="js/project-version.js?v=3.10.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <link rel="icon" href="img/favicon.ico">
     <link rel="apple-touch-icon" href="img/logo-180.png">
@@ -503,14 +503,13 @@
         }
 
         async function startShift() {
-            const shiftType = selectedShiftType === 'noapte' ? 'noapte' : selectedShiftType === 'zi' ? 'zi' : null;
-            if (isActionProcessing || !shiftType) { if (!shiftType) alert('Te rog selectează mai întâi o tură validă!'); return; }
+            if (isActionProcessing || !selectedShiftType) { if (!selectedShiftType) alert('Te rog selectează mai întâi o tură validă!'); return; }
             isActionProcessing = true;
             try {
                 const existing = await findActiveShift();
                 if (existing) { activeShiftRecord = existing; syncActiveShiftUI(); startTimer(); alert('Există deja o tură activă pentru acest cont.'); return; }
                 const now = getRomanianNowDateTime();
-                const autoStopAt = getShiftDeadline(shiftType, now);
+                const autoStopAt = getShiftDeadline(selectedShiftType, now);
                 const newShift = {
                     organization_id: currentUser.organization_id,
 
@@ -525,7 +524,7 @@
                     duration: '00:00:00',
                     duration_ms: 0,
 
-                    shift_type: shiftType,
+                    shift_type: selectedShiftType,
 
                     status: 'active',
 
@@ -544,7 +543,7 @@
                 if (error) throw error;
                 activeShiftRecord = data;
                 syncActiveShiftUI(); startTimer();
-                await sendGeneralDiscordWebhook('▶️ Pontaj Start', `Angajatul **${currentUser.display_name}** a pornit tura de **${shiftType.toUpperCase()}**.`, 3066993);
+                await sendGeneralDiscordWebhook('▶️ Pontaj Start', `Angajatul **${currentUser.display_name}** a pornit tura de **${selectedShiftType.toUpperCase()}**.`, 3066993);
             } catch (error) {
                 console.error('Eroare pornire pontaj:', error);
                 alert(`Pontajul nu a putut fi pornit: ${error?.message || 'eroare necunoscută'}`);

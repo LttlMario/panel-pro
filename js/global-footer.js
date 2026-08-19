@@ -5,13 +5,12 @@
     revolutUrl: "https://revolut.me/mariomihail",
     androidUrl: "descarca-android.html",
     changelogUrl: "changelog.html",
-    termsUrl: "termeni.html#cookie-uri-si-stocare",
     thankYouUrl: "thank-you.html",
     iosUrl: "instalare-ios.html"
   });
 
   function getReleaseVersion() {
-    return window.PANEL_RELEASE?.version || "3.11.0";
+    return window.PANEL_RELEASE?.version || "3.10.0";
   }
 
   function removeLegacySupportElements() {
@@ -101,8 +100,6 @@
                   title="Vezi noutățile și actualizările">
                     v${getReleaseVersion()}
                 </a>
-                <span aria-hidden="true"> • </span>
-                <a class="pgf-version" href="${CONFIG.termsUrl}">Confidențialitate</a>
             </p>
         </div>
 

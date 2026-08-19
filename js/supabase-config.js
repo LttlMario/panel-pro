@@ -161,10 +161,9 @@ window.ensurePanelSession = async function ensurePanelSession() {
     const current = localStorage.getItem('panel_session_token');
     const expires = Number(localStorage.getItem('panel_session_expires_at') || 0);
     const activeOrganizationId = window.getActiveOrganizationId?.();
-    const isUuid = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
     // Un token valid nu este suficient: paginile au nevoie și de organizația
     // activă salvată pentru filtrarea datelor și rutarea notificărilor.
-    if (current && expires > Date.now() + 30_000 && isUuid(activeOrganizationId)) return current;
+    if (current && expires > Date.now() + 30_000 && activeOrganizationId) return current;
     if (panelSessionRefreshPromise) return panelSessionRefreshPromise;
 
     panelSessionRefreshPromise = (async () => {
