@@ -9,7 +9,7 @@
   const client = () => window.supabaseClient || null;
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   async function invoke(action, payload = {}) {
-    const accessToken=localStorage.getItem('discord_access_token');
+    const accessToken=window.getPanelDiscordAccessToken?.() || '';
     if(!accessToken) throw new Error('Sesiunea Discord lipsește. Autentifică-te din nou.');
     const sessionToken=await window.ensurePanelSession();
     const response=await fetch(`${config.url}/functions/v1/manage-admin-center`,{method:'POST',headers:{'Content-Type':'application/json',apikey:config.publishableKey,Authorization:`Bearer ${config.publishableKey}`,'x-panel-session':sessionToken||''},body:JSON.stringify({action,access_token:accessToken,...payload})});
@@ -63,7 +63,7 @@
         const active = notes.filter(n => !n.expires_at || new Date(n.expires_at) > new Date());
         const unread = active.filter(n => !readIds.has(String(n.id)));
         const badge = button.querySelector('b'); badge.textContent = unread.length; badge.hidden = !unread.length;
-        drawer.querySelector('.panel-notification-list').innerHTML = active.length ? active.map(n => `<article class="${readIds.has(String(n.id))?'':'unread'} level-${escapeHtml(n.level || 'info')}"><div><strong>${escapeHtml(n.title)}</strong><time>${new Date(n.created_at).toLocaleString('ro-RO')}</time></div><p>${escapeHtml(n.message)}</p>${n.link?`<a href="${encodeURI(n.link)}">Deschide</a>`:''}</article>`).join('') : '<p class="panel-empty">Nu există notificări.</p>';
+        drawer.querySelector('.panel-notification-list').innerHTML = active.length ? active.map(n => { const link = window.panelSafeLink?.(n.link); return `<article class="${readIds.has(String(n.id))?'':'unread'} level-${escapeHtml(n.level || 'info')}"><div><strong>${escapeHtml(n.title)}</strong><time>${new Date(n.created_at).toLocaleString('ro-RO')}</time></div><p>${escapeHtml(n.message)}</p>${link?`<a href="${escapeHtml(link)}">Deschide</a>`:''}</article>`; }).join('') : '<p class="panel-empty">Nu există notificări.</p>';
         if (unread.length && !drawer.hidden) await invoke('mark_read',{ids:unread.map(n=>n.id)});
       } catch(error) {
         drawer.querySelector('.panel-notification-list').innerHTML=`<p class="panel-empty">${escapeHtml(error.message)}</p>`;

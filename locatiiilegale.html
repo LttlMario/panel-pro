@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self'; manifest-src 'self'; worker-src 'self' blob:;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <title>Hărți & Locații Ilegale - Panel</title>
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Leaflet CSS for Pan & Zoom map engine -->
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.9.4-panel">
     <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
     <script src="js/supabase-config.js?v=20260818-console-fix"></script>
     <script src="js/permissions.js?v=4.6.0"></script>
     <script src="js/panel-layout.js?v=4.15.0"></script>

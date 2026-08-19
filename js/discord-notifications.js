@@ -5,7 +5,7 @@
     const PENDING_KEY = 'panel_pending_discord_notification';
 
     window.sendPanelDiscord = async (channel, payload) => {
-        const accessToken = localStorage.getItem('discord_access_token');
+        const accessToken = window.getPanelDiscordAccessToken?.() || '';
 
         if (!accessToken) {
             throw new Error('Sesiunea Discord lipsește. Autentifică-te din nou.');
@@ -119,7 +119,7 @@
 
         if (
             !saved ||
-            !localStorage.getItem('discord_access_token')
+            !(window.getPanelDiscordAccessToken?.() || '')
         ) {
             return;
         }

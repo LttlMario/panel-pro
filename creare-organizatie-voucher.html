@@ -77,7 +77,7 @@
       const voucher = document.getElementById('voucher').value.trim().toUpperCase();
       const guild = document.getElementById('guild').value.trim();
       const name = document.getElementById('name').value.trim();
-      const accessToken = localStorage.getItem('discord_access_token') || '';
+      const accessToken = window.getPanelDiscordAccessToken?.() || '';
       const discordUser = JSON.parse(localStorage.getItem('discord_user') || '{}');
       if (guild && !/^\d{15,22}$/.test(guild)) { status.textContent = 'Guild ID invalid.'; return; }
       if (!accessToken || !discordUser.discord_id) { status.textContent = 'Sesiunea Discord lipsește. Revino la login și încearcă din nou.'; return; }

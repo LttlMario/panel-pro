@@ -92,7 +92,7 @@
       <p class="discipline-reason">${esc(row.reason)}</p>
       ${row.notes ? `<p class="discipline-notes">${esc(row.notes)}</p>` : ''}
       <div class="meta">Emis de ${esc(row.issued_by_name)} · ${new Date(row.created_at).toLocaleString('ro-RO')}</div>
-      ${row.evidence_url ? `<a class="discipline-evidence" href="${esc(row.evidence_url)}" target="_blank" rel="noopener">Deschide dovada</a>` : ''}
+      ${(() => { const evidenceUrl = window.panelSafeAssetUrl?.(row.evidence_url, '') || ''; return evidenceUrl ? `<a class="discipline-evidence" href="${esc(evidenceUrl)}" target="_blank" rel="noopener noreferrer">Deschide dovada</a>` : ''; })()}
       ${(canResolve && isActive) || canDelete ? `<div class="owner-actions">${canResolve && isActive ? `<button class="text-action" data-discipline-resolve="${esc(row.id)}" data-kind="${kind}">${kind === 'sanction' ? 'Marchează plătită' : 'Marchează rezolvat'}</button>` : ''}${canDelete ? `<button class="text-action danger" data-discipline-delete="${esc(row.id)}" data-kind="${kind}">Șterge</button>` : ''}</div>` : ''}
     </article>`;
   }

@@ -1,4 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 import { isPlatformAdminDiscordId, PLATFORM_ADMIN_DISCORD_IDS } from '../_shared/platform-admin.ts';
 import { FULL_PACKAGE_FEATURES, PACKAGE_FEATURES, packageCatalogForClient, resolvePackageFeatures, STANDARD_PACKAGE_FEATURES } from '../_shared/package-features.ts';

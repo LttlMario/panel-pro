@@ -92,7 +92,7 @@
 
   <script>
     (() => {
-      const token = localStorage.getItem('discord_access_token') || '';
+      const token = window.getPanelDiscordAccessToken?.() || '';
       const user = JSON.parse(localStorage.getItem('discord_user') || 'null');
       const config = window.PANEL_SUPABASE_CONFIG;
       const identity = document.getElementById('identity');

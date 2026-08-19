@@ -49,7 +49,7 @@
 
     </style>
     <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <script src="js/project-version.js?v=3.10.0"></script>
     <script src="js/discord-config.js"></script>
@@ -227,11 +227,14 @@
         const CREATE_ORGANIZATION_FLOW_KEY = 'panel_create_organization_flow';
         const REMEMBER_USERNAME_KEY = 'panel_email_login_username';
 
-        const clearPanelBrowserSession = () => [
-            'discord_user', 'user_role', 'discord_access_token', 'panel_session_token',
+        const clearPanelBrowserSession = () => {
+            [
+            'discord_user', 'user_role', 'panel_session_token',
             'panel_session_expires_at', 'panel_active_organization', 'panel_organizations',
             'panel_role_synced_at'
-        ].forEach((key) => localStorage.removeItem(key));
+            ].forEach((key) => localStorage.removeItem(key));
+            window.clearPanelDiscordAccessToken?.();
+        };
 
         const emailStatus = (message, tone = 'info') => {
             const element = document.getElementById('email-auth-status');
@@ -341,7 +344,7 @@
             const syncedUser = result.user;
             localStorage.setItem('discord_user', JSON.stringify(syncedUser));
             localStorage.setItem('user_role', syncedUser.role || '');
-            localStorage.removeItem('discord_access_token');
+            window.clearPanelDiscordAccessToken?.();
             localStorage.setItem('panel_session_token', result.session_token);
             localStorage.setItem('panel_session_expires_at', result.expires_at);
             localStorage.setItem('panel_active_organization', JSON.stringify(result.active_organization));
@@ -761,7 +764,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         avatar: discordData.avatar ? `https://cdn.discordapp.com/avatars/${discordData.id}/${discordData.avatar}.png` : 'img/logo-192.png',
                         role: ''
                     }));
-                    localStorage.setItem('discord_access_token', token);
+                    window.setPanelDiscordAccessToken(token);
                     sessionStorage.removeItem(CREATE_ORGANIZATION_FLOW_KEY);
                     window.location.href = 'organizatie-noua.html?source=login';
                     return;
@@ -782,7 +785,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         avatar: discordData.avatar ? `https://cdn.discordapp.com/avatars/${discordData.id}/${discordData.avatar}.png` : 'img/logo-192.png',
                         role: ''
                     }));
-                    localStorage.setItem('discord_access_token', token);
+                    window.setPanelDiscordAccessToken(token);
                     sessionStorage.removeItem(EMAIL_DISCORD_FLOW_KEY);
                     sessionStorage.setItem('panel_email_onboarding_source', 'email');
                     window.location.href = 'organizatie-bun-venit.html?source=email&create=1';
@@ -807,7 +810,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         role: ''
                     };
                     localStorage.setItem('discord_user', JSON.stringify(onboardingUser));
-                    localStorage.setItem('discord_access_token', token);
+                    window.setPanelDiscordAccessToken(token);
                     sessionStorage.removeItem('panel_email_onboarding_flow');
                     sessionStorage.removeItem('panel_email_onboarding_source');
                     window.location.href = 'organizatie-bun-venit.html?source=email';
@@ -836,8 +839,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const syncedUser = syncResult.user;
                 localStorage.setItem('discord_user', JSON.stringify(syncedUser));
                 localStorage.setItem('user_role', syncedUser.role);
-                if (!emailLinkFlow) localStorage.setItem('discord_access_token', token);
-                else localStorage.removeItem('discord_access_token');
+                if (!emailLinkFlow) window.setPanelDiscordAccessToken(token);
+                else window.clearPanelDiscordAccessToken();
                 localStorage.setItem('panel_session_token', syncResult.session_token);
                 localStorage.setItem('panel_session_expires_at', syncResult.expires_at);
                 localStorage.setItem('panel_active_organization', JSON.stringify(syncResult.active_organization));

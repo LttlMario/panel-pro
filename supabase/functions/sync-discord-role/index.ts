@@ -1,4 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
 import { packageAllowsPage, resolvePackageFeatures } from '../_shared/package-features.ts';
 

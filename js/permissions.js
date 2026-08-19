@@ -214,7 +214,7 @@ function logout() {
 async function refreshLegacyPlatformAdmin(force = false) {
 
     const token =
-        localStorage.getItem('discord_access_token');
+        window.getPanelDiscordAccessToken?.() || '';
 
     const config =
         window.PANEL_SUPABASE_CONFIG;
@@ -463,10 +463,8 @@ function getDefaultAllowedPage() {
         !isPlatformAdmin()
     ) {
 
-        const token =
-            localStorage.getItem(
-                'discord_access_token'
-            );
+            const token =
+                window.getPanelDiscordAccessToken?.() || '';
 
         /*
          * Facem o resincronizare înainte să refuzăm accesul,
@@ -544,10 +542,8 @@ function getDefaultAllowedPage() {
             return;
         }
 
-        const token =
-            localStorage.getItem(
-                'discord_access_token'
-            );
+            const token =
+                window.getPanelDiscordAccessToken?.() || '';
 
         /*
          * Înainte să considerăm utilizatorul Guest,
@@ -640,9 +636,7 @@ function getDefaultAllowedPage() {
 
                     if (
                         document.visibilityState === 'hidden' ||
-                        !localStorage.getItem(
-                            'discord_access_token'
-                        ) ||
+                        !(window.getPanelDiscordAccessToken?.() || '') ||
                         window.location.pathname.endsWith(
                             'organizatii.html'
                         )

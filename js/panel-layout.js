@@ -2,7 +2,7 @@
 if (document.head && !document.head.querySelector('meta[http-equiv="Content-Security-Policy"]')) {
     const panelCsp = document.createElement('meta');
     panelCsp.httpEquiv = 'Content-Security-Policy';
-    panelCsp.content = "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self';";
+    panelCsp.content = "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self'; manifest-src 'self'; worker-src 'self' blob:;";
     document.head.prepend(panelCsp);
 }
 window.panelEscapeHtml = window.panelEscapeHtml || function panelEscapeHtml(value) {
@@ -15,9 +15,18 @@ window.panelSafeAssetUrl = window.panelSafeAssetUrl || function panelSafeAssetUr
     if (!candidate) return fallback;
     try {
         const parsed = new URL(candidate, location.href);
-        if (parsed.protocol === 'https:' || (parsed.origin === location.origin && ['http:', ''].includes(parsed.protocol))) return candidate;
+        if (parsed.protocol === 'https:' || (parsed.origin === location.origin && ['http:', ''].includes(parsed.protocol))) return parsed.href;
     } catch (_) {}
     return fallback;
+};
+window.panelSafeLink = window.panelSafeLink || function panelSafeLink(value) {
+    const candidate = String(value || '').trim();
+    if (!candidate) return '';
+    try {
+        const parsed = new URL(candidate, location.href);
+        if (parsed.origin !== location.origin || !/^\/(?:[^/]|$)/.test(parsed.pathname)) return '';
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch (_) { return ''; }
 };
 if (!window.__panelOnboardingLoader && !window.location.pathname.endsWith('login.html')) { window.__panelOnboardingLoader = true; const onboardingScript = document.createElement('script'); onboardingScript.src = 'js/panel-onboarding.js?v=1'; document.head.appendChild(onboardingScript); }
 if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetchFixed) { window.__organizationFetchFixed = true; const _fetch = window.fetch; window.fetch = (url, options = {}) => { if (String(url).includes('/functions/v1/manage-organizations')) options.headers = { ...(options.headers || {}), 'x-panel-session': localStorage.getItem('panel_session_token') || '' }; return _fetch(url, options); }; }
@@ -733,7 +742,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         link.hidden = true;
         link.style.display = 'none';
 
-        const token = localStorage.getItem('discord_access_token');
+        const token = window.getPanelDiscordAccessToken?.() || '';
         const config = window.PANEL_SUPABASE_CONFIG;
         if (!token || !config?.url || !config?.publishableKey) {
             link.remove();
@@ -1235,7 +1244,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const config = window.PANEL_SUPABASE_CONFIG;
                 const response = await fetch(`${config.url}/functions/v1/sync-discord-role`, {
                     method:'POST', headers:{'Content-Type':'application/json',apikey:config.publishableKey,Authorization:`Bearer ${config.publishableKey}`},
-                    body:JSON.stringify({access_token:localStorage.getItem('discord_access_token'),organization_id:select.value})
+                    body:JSON.stringify({access_token:window.getPanelDiscordAccessToken?.() || '',organization_id:select.value})
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Organizația nu poate fi activată.');

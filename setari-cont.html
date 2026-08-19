@@ -7,7 +7,7 @@
   <title>Setări cont · Panel Pro</title>
   <link rel="icon" href="img/favicon.ico">
   <link rel="stylesheet" href="css/tailwind.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
   <script src="js/supabase-config.js?v=20260813-authfix"></script>
   <script src="js/password-rules.js"></script>
   <script src="js/password-visibility.js"></script>
@@ -69,13 +69,13 @@
     const authClient = window.createPanelAuthClient({ persistSession: localStorage.getItem('panel_remember_me') === '1' });
     const byId = (id) => document.getElementById(id);
     const fallbackAvatar = 'img/logo-192.png';
-    const panelKeys = ['discord_user','user_role','discord_access_token','panel_session_token','panel_session_expires_at','panel_active_organization','panel_organizations'];
+    const panelKeys = ['discord_user','user_role','panel_session_token','panel_session_expires_at','panel_active_organization','panel_organizations'];
     let authMode = null;
     let currentSession = null;
     let currentAccount = null;
     const setStatus = (id, message, tone = 'info') => { const element = byId(id); if (!element) return; element.textContent = message; element.style.color = tone === 'error' ? '#fda4af' : tone === 'success' ? '#6ee7b7' : '#67e8f9'; };
     const isJwt = (value) => String(value || '').split('.').length === 3;
-    const clearPanelSession = () => panelKeys.forEach((key) => localStorage.removeItem(key));
+    const clearPanelSession = () => { panelKeys.forEach((key) => localStorage.removeItem(key)); window.clearPanelDiscordAccessToken?.(); };
     const authHeaders = (token) => ({ apikey: config.publishableKey, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' });
     const panelHeaders = () => ({ apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'Content-Type': 'application/json', 'X-Panel-Session': localStorage.getItem('panel_session_token') || '' });
     const setModeVisibility = (mode) => { const emailOnly = ['password','email-form','disconnect-discord','clear-account-data','delete-account']; emailOnly.forEach((id) => { const element = byId(id); if (element) element.classList.toggle('hidden', mode === 'discord'); }); byId('account-mode').textContent = mode === 'discord' ? 'Fast Connect Discord: avatarul și sesiunile pot fi administrate aici; parola și emailul nu se aplică.' : 'Alege o imagine publică pentru profilul tău.'; byId('data-description').textContent = mode === 'discord' ? 'Fast Connect folosește Discord pentru autentificare. Pentru siguranță, nu există parolă sau email de modificat aici.' : 'Ai control asupra legăturii cu Discord și asupra datelor opționale ale contului.'; };
