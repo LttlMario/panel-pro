@@ -15,15 +15,50 @@ Deno.serve(async request=>{
     const {data:user}=await db.from('users').select('display_name,username').eq('discord_id',discordUser.id).maybeSingle();
     if(!user)return reply({error:'Utilizatorul nu este înregistrat în panel.'},403);
     const organizationId=session.organization_id,actorName=user.display_name||user.username||discordUser.id;
-    if(!isPlatformAdminDiscordId(discordUser.id))return reply({error:'Această funcție este rezervată administratorului platformei.'},403);
-    if(body.action==='notifications'){
-      const {data:notes,error}=await db.from('panel_notifications').select('*').eq('organization_id',organizationId).or(`recipient_discord_id.is.null,recipient_discord_id.eq.${discordUser.id}`).order('created_at',{ascending:false}).limit(40);if(error)throw error;
-      const {data:reads}=await db.from('panel_notification_reads').select('notification_id').eq('organization_id',organizationId).eq('discord_id',discordUser.id);
-      return reply({notifications:notes||[],read_ids:(reads||[]).map(x=>x.notification_id)});
+    const isPlatformAdmin=isPlatformAdminDiscordId(discordUser.id);
+
+    if(['notifications','mark_read'].includes(String(body.action||''))){
+      const {data:permissionRows,error:permissionError}=await db.from('app_settings').select('key,value').eq('organization_id',organizationId).in('key',['page_permissions','communication_permissions','discipline_permissions']);
+      if(permissionError)throw permissionError;
+      const settings=new Map((permissionRows||[]).map((item:any)=>[item.key,item.value&&typeof item.value==='object'?item.value:{}]));
+      const pagePermissions:any=settings.get('page_permissions')||{};
+      const roleIds=(session.discord_role_ids||[]).map(String);
+      const hasRole=(value:unknown)=>Array.isArray(value)&&value.map(String).some((roleId:string)=>roleIds.includes(roleId));
+      const hasPageAccess=(page:string)=>isPlatformAdmin||(Array.isArray(pagePermissions[page])&&hasRole(pagePermissions[page]));
+      const hasScopedAccess=(key:string,page:string)=>{
+        if(isPlatformAdmin)return true;
+        if(key.startsWith('page:'))return hasPageAccess(page);
+        const [group,scope]=key.split(':');
+        const settingKey=group==='communication'?'communication_permissions':group==='discipline'?'discipline_permissions':group;
+        const setting=settings.get(settingKey);
+        if(!setting)return hasPageAccess(page);
+        const permissions=setting?.[scope];
+        return hasRole(permissions?.read)||hasRole(permissions?.write)||hasRole(permissions?.sanction);
+      };
+      const visible=(note:any)=>{
+        const recipient=String(note.recipient_discord_id||'');
+        if(recipient===String(discordUser.id))return true;
+        const page=String(note.required_page||'');
+        if(page&&!hasPageAccess(page))return false;
+        const accessKey=String(note.access_key||'');
+        if(accessKey&&!hasScopedAccess(accessKey,page))return false;
+        return true;
+      };
+      if(body.action==='notifications'){
+        const {data:notes,error}=await db.from('panel_notifications').select('*').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(100);if(error)throw error;
+        const active=(notes||[]).filter((note:any)=>!note.expires_at||new Date(note.expires_at).getTime()>Date.now()).filter(visible);
+        const {data:reads}=await db.from('panel_notification_reads').select('notification_id').eq('organization_id',organizationId).eq('discord_id',discordUser.id);
+        return reply({notifications:active,read_ids:(reads||[]).map((item:any)=>item.notification_id)});
+      }
+      const ids=(Array.isArray(body.ids)?body.ids:[]).map(String).slice(0,100);
+      if(ids.length){
+        const {data:owned,error:ownedError}=await db.from('panel_notifications').select('id').eq('organization_id',organizationId).in('id',ids);if(ownedError)throw ownedError;
+        await db.from('panel_notification_reads').upsert((owned||[]).map((item:any)=>({organization_id:organizationId,notification_id:item.id,discord_id:discordUser.id})),{onConflict:'notification_id,discord_id'});
+      }
+      return reply({ok:true});
     }
-    if(body.action==='mark_read'){
-      const ids=(Array.isArray(body.ids)?body.ids:[]).slice(0,100);if(ids.length)await db.from('panel_notification_reads').upsert(ids.map((id:unknown)=>({organization_id:organizationId,notification_id:id,discord_id:discordUser.id})),{onConflict:'notification_id,discord_id'});return reply({ok:true});
-    }
+
+    if(!isPlatformAdmin)return reply({error:'Această funcție este rezervată administratorului platformei.'},403);
     if(body.action==='members'){
       const {data:members,error}=await db.from('organization_members').select('organization_id,discord_id,panel_role,active,last_verified_at,created_at').eq('organization_id',organizationId).eq('active',true).order('created_at',{ascending:true});if(error)throw error;
       const ids=(members||[]).map((m:any)=>m.discord_id),{data:users}=ids.length?await db.from('users').select('discord_id,username,display_name,avatar,avatar_url').in('discord_id',ids):{data:[]};

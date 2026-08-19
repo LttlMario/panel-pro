@@ -53,19 +53,29 @@
     const drawer = document.createElement('section'); drawer.id = 'panel-notification-drawer'; drawer.hidden = true;
     drawer.innerHTML = '<header><strong>Notificări</strong><button type="button" aria-label="Închide">×</button></header><div class="panel-notification-list"><p>Se încarcă…</p></div>';
     document.body.append(button, drawer);
-    const discordId = String(user.discord_id || user.id);
+    let loading = false;
     async function load() {
-      let result; try { result=await invoke('notifications'); } catch(error) { drawer.querySelector('.panel-notification-list').innerHTML=`<p class="panel-empty">${escapeHtml(error.message)}</p>`; return; }
-      const notes=result.notifications||[], readIds = new Set((result.read_ids || []).map(x => String(x)));
-      const active = (notes || []).filter(n => !n.expires_at || new Date(n.expires_at) > new Date());
-      const unread = active.filter(n => !readIds.has(String(n.id)));
-      const badge = button.querySelector('b'); badge.textContent = unread.length; badge.hidden = !unread.length;
-      drawer.querySelector('.panel-notification-list').innerHTML = active.length ? active.map(n => `<article class="${readIds.has(String(n.id))?'':'unread'}"><div><strong>${escapeHtml(n.title)}</strong><time>${new Date(n.created_at).toLocaleString('ro-RO')}</time></div><p>${escapeHtml(n.message)}</p>${n.link?`<a href="${encodeURI(n.link)}">Deschide</a>`:''}</article>`).join('') : '<p class="panel-empty">Nu există notificări.</p>';
-      if (unread.length && !drawer.hidden) await invoke('mark_read',{ids:unread.map(n=>n.id)});
+      if (loading) return;
+      loading = true;
+      try {
+        const result=await invoke('notifications');
+        const notes=result.notifications||[], readIds = new Set((result.read_ids || []).map(x => String(x)));
+        const active = notes.filter(n => !n.expires_at || new Date(n.expires_at) > new Date());
+        const unread = active.filter(n => !readIds.has(String(n.id)));
+        const badge = button.querySelector('b'); badge.textContent = unread.length; badge.hidden = !unread.length;
+        drawer.querySelector('.panel-notification-list').innerHTML = active.length ? active.map(n => `<article class="${readIds.has(String(n.id))?'':'unread'} level-${escapeHtml(n.level || 'info')}"><div><strong>${escapeHtml(n.title)}</strong><time>${new Date(n.created_at).toLocaleString('ro-RO')}</time></div><p>${escapeHtml(n.message)}</p>${n.link?`<a href="${encodeURI(n.link)}">Deschide</a>`:''}</article>`).join('') : '<p class="panel-empty">Nu există notificări.</p>';
+        if (unread.length && !drawer.hidden) await invoke('mark_read',{ids:unread.map(n=>n.id)});
+      } catch(error) {
+        drawer.querySelector('.panel-notification-list').innerHTML=`<p class="panel-empty">${escapeHtml(error.message)}</p>`;
+      } finally {
+        loading = false;
+      }
     }
     button.onclick = async () => { drawer.hidden = !drawer.hidden; if (!drawer.hidden) await load(); };
     drawer.querySelector('header button').onclick = () => { drawer.hidden = true; };
     await load();
+    window.addEventListener('focus', () => load());
+    window.setInterval(() => { if (document.visibilityState !== 'hidden') load(); }, 30000);
   }
 
   function setupAdminBackup() {
@@ -99,7 +109,7 @@
   }
 
   const style = document.createElement('style'); style.textContent = `
-    .panel-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.panel-field{width:100%;padding:10px 12px;border:1px solid #334155;border-radius:12px;background:#020617;color:#e2e8f0;font-size:12px}.panel-notification-button{position:fixed;right:20px;top:76px;z-index:3900;width:44px;height:44px;border:1px solid #334155;border-radius:14px;background:#0f172a;color:#fff;box-shadow:0 10px 30px #02061788}.panel-notification-button b{position:absolute;right:-5px;top:-5px;min-width:19px;padding:2px 5px;border-radius:999px;background:#ef4444;font-size:10px}#panel-notification-drawer{position:fixed;right:18px;top:128px;z-index:3900;width:min(390px,calc(100vw - 24px));max-height:65vh;overflow:auto;border:1px solid #334155;border-radius:18px;background:#0f172a;color:#e2e8f0;box-shadow:0 22px 60px #020617cc}#panel-notification-drawer header{position:sticky;top:0;display:flex;justify-content:space-between;padding:14px 16px;background:#111827;border-bottom:1px solid #334155}#panel-notification-drawer header button{font-size:22px}.panel-notification-list article{padding:13px 16px;border-bottom:1px solid #1e293b}.panel-notification-list article.unread{background:#064e3b33}.panel-notification-list article div{display:flex;justify-content:space-between;gap:12px}.panel-notification-list time{font-size:10px;color:#64748b}.panel-notification-list p{margin-top:5px;font-size:12px;color:#94a3b8}.panel-notification-list a{display:inline-block;margin-top:7px;color:#34d399;font-size:12px}.panel-empty{padding:24px;text-align:center}.panel-action{display:inline-flex;align-items:center;padding:10px 14px;border-radius:12px;background:#1e293b;color:#e2e8f0;font-size:12px;font-weight:700;cursor:pointer}@media(max-width:640px){.panel-notification-button{right:12px;top:auto;bottom:84px}#panel-notification-drawer{right:12px;top:auto;bottom:136px;max-height:58vh}main{min-width:0}table{min-width:680px}.p-8{padding:1rem!important}}
+    .panel-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.panel-field{width:100%;padding:10px 12px;border:1px solid #334155;border-radius:12px;background:#020617;color:#e2e8f0;font-size:12px}.panel-notification-button{position:fixed;right:20px;top:76px;z-index:3900;width:44px;height:44px;border:1px solid #334155;border-radius:14px;background:#0f172a;color:#fff;box-shadow:0 10px 30px #02061788;transition:transform .18s ease,box-shadow .18s ease}.panel-notification-button:hover{transform:translateY(-2px);box-shadow:0 14px 34px #020617cc}.panel-notification-button b{position:absolute;right:-5px;top:-5px;min-width:19px;padding:2px 5px;border-radius:999px;background:#ef4444;font-size:10px}#panel-notification-drawer{position:fixed;right:18px;top:128px;z-index:3900;width:min(390px,calc(100vw - 24px));max-height:65vh;overflow:auto;border:1px solid #334155;border-radius:18px;background:#0f172a;color:#e2e8f0;box-shadow:0 22px 60px #020617cc}#panel-notification-drawer header{position:sticky;top:0;display:flex;justify-content:space-between;padding:14px 16px;background:#111827;border-bottom:1px solid #334155}#panel-notification-drawer header button{font-size:22px}.panel-notification-list article{padding:13px 16px;border-bottom:1px solid #1e293b}.panel-notification-list article.unread{background:#064e3b33}.panel-notification-list article.level-warning{border-left:3px solid #f59e0b}.panel-notification-list article.level-error{border-left:3px solid #ef4444}.panel-notification-list article.level-success{border-left:3px solid #10b981}.panel-notification-list article div{display:flex;justify-content:space-between;gap:12px}.panel-notification-list time{font-size:10px;color:#64748b}.panel-notification-list p{margin-top:5px;font-size:12px;color:#94a3b8}.panel-notification-list a{display:inline-block;margin-top:7px;color:#34d399;font-size:12px}.panel-empty{padding:24px;text-align:center}.panel-action{display:inline-flex;align-items:center;padding:10px 14px;border-radius:12px;background:#1e293b;color:#e2e8f0;font-size:12px;font-weight:700;cursor:pointer}@media(max-width:640px){.panel-notification-button{right:12px;top:auto;bottom:84px}#panel-notification-drawer{right:12px;top:auto;bottom:136px;max-height:58vh}main{min-width:0}table{min-width:680px}.p-8{padding:1rem!important}}
   `; document.head.appendChild(style);
 
   enforceSession();
