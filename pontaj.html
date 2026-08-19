@@ -156,8 +156,7 @@
                     return;
                 }
 
-                const activeOrganizationId =
-                    window.getActiveOrganizationId?.() || localData.organization_id || null;
+                const activeOrganizationId = window.getActiveOrganizationId?.() || null;
 
                 if (!activeOrganizationId) {
                     window.location.href = 'guest.html';
@@ -355,10 +354,7 @@
         async function ensurePontajOrganization() {
             if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
 
-            let organizationId = window.getActiveOrganizationId?.() || currentUser.organization_id || null;
-            if (!organizationId) {
-                try { organizationId = JSON.parse(localStorage.getItem('discord_user') || '{}')?.organization_id || null; } catch (_) {}
-            }
+            const organizationId = window.getActiveOrganizationId?.() || null;
             if (!organizationId) throw new Error('Organizația activă nu a fost identificată.');
             currentUser.organization_id = organizationId;
             supabaseClient = window.createPanelSupabaseClient();

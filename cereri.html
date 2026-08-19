@@ -180,6 +180,11 @@
 
                 activeOrganization =
                     JSON.parse(storedOrganization);
+                const activeId = window.getActiveOrganizationId?.();
+                if (!activeId || activeId !== String(activeOrganization?.id || activeOrganization?.organization_id || '').trim()) {
+                    throw new Error('Organizația activă nu are un UUID valid.');
+                }
+                activeOrganization = { ...activeOrganization, id: activeId };
                     console.log(
                     'ACTIVE ORGANIZATION FULL:',
                     activeOrganization
@@ -206,7 +211,7 @@
                 organizationActionPermissions =
                     activeOrganization.platform_settings?.action_permissions ||
                     activeOrganization.action_permissions ||
-                    (cachedUser.organization_id === activeOrganization.id
+                    (window.isPanelOrganizationId?.(cachedUser.organization_id) && cachedUser.organization_id === activeOrganization.id
                         ? cachedUser.action_permissions
                         : null) ||
                     {};

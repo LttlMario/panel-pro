@@ -264,6 +264,7 @@
             }
 
             try {
+                if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
                 const localData = JSON.parse(cachedUser);
                 if (!localData || !localData.discord_id) {
                     window.location.href = 'login.html';
@@ -281,11 +282,8 @@
                 currentUser.discord_id = activeUser.discord_id;
                 currentUser.display_name = activeUser.display_name || activeUser.username || 'Utilizator Discord';
                 currentUser.role = activeUser.role || activeUser.default_role || '';
-                currentUser.organization_id =
-                    window.getActiveOrganizationId?.() ||
-                    activeUser.organization_id ||
-                    localData.organization_id ||
-                    '';
+                currentUser.organization_id = window.getActiveOrganizationId?.() || '';
+                if (!currentUser.organization_id) throw new Error('Organizația activă nu are un UUID valid.');
                 activeUser.organization_id = currentUser.organization_id;
                 window.PANEL_ACTIVE_ORGANIZATION_ID = currentUser.organization_id;
 
