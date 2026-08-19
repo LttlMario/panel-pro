@@ -97,7 +97,9 @@ window.isPanelOrganizationId = function isPanelOrganizationId(value) {
 window.getActiveOrganization = function getActiveOrganization() {
     try {
         const value = JSON.parse(localStorage.getItem('panel_active_organization') || 'null');
-        const id = value?.id || value?.organization_id || '';
+        const id = [value?.id, value?.organization_id]
+            .map(candidate => String(candidate || '').trim())
+            .find(candidate => window.isPanelOrganizationId(candidate)) || '';
         if (!window.isPanelOrganizationId(id)) return null;
         return { ...value, id: String(id).trim() };
     } catch (_) {
@@ -185,7 +187,16 @@ window.ensurePanelSession = async function ensurePanelSession() {
     panelSessionRefreshPromise = (async () => {
         // Versiunile vechi puteau lăsa un ID numeric în browser. Nu îl
         // reutilizăm pentru sesiune, pagini sau webhook-uri.
-        if (!activeOrganizationId) localStorage.removeItem('panel_active_organization');
+        if (!activeOrganizationId) {
+            localStorage.removeItem('panel_active_organization');
+            try {
+                const cachedUser = JSON.parse(localStorage.getItem('discord_user') || 'null');
+                if (cachedUser && cachedUser.organization_id && !window.isPanelOrganizationId(cachedUser.organization_id)) {
+                    delete cachedUser.organization_id;
+                    localStorage.setItem('discord_user', JSON.stringify(cachedUser));
+                }
+            } catch (_) {}
+        }
         const discordToken = window.getPanelDiscordAccessToken();
         if (!discordToken) throw new Error('Sesiunea Discord lipsește. Autentifică-te din nou.');
         const result = await window.panelRequestJson('sync-discord-role', {

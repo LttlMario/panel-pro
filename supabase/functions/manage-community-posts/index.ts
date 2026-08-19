@@ -749,4 +749,13 @@ async function notifyDiscord(post:any, options:string[], audience:string){
     });
 
 }
- }catch(e){console.error(e);return reply({error:e instanceof Error?e.message:'Eroare necunoscută.'},400)}});
+ }catch(e){
+   console.error(e);
+   const error = e as any;
+   return reply({
+     error: error?.message || error?.error_description || error?.details || 'Eroare necunoscută.',
+     code: error?.code || null,
+     details: error?.details || null,
+     hint: error?.hint || null
+   },400);
+ }});

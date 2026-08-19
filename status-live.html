@@ -109,23 +109,11 @@
                 window.location.href = 'login.html';
                 return;
             }
-            const cachedActiveOrganization = localStorage.getItem('panel_active_organization');
-
-            if (!cachedActiveOrganization) {
-                console.error(
-                    'Status Live: organizația activă nu există în localStorage.'
-                );
-
-                alert(
-                    'Organizația activă nu a putut fi identificată. Autentifică-te din nou.'
-                );
-
-                window.location.href = 'login.html';
-                return;
-            }
-
             try {
-                activeOrganization = JSON.parse(cachedActiveOrganization);
+                if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
+                const refreshedActiveOrganization = localStorage.getItem('panel_active_organization');
+                if (!refreshedActiveOrganization) throw new Error('Organizația activă nu există în sesiune.');
+                activeOrganization = JSON.parse(refreshedActiveOrganization);
             } catch (error) {
                 console.error(
                     'Status Live: datele organizației active sunt invalide.',
@@ -140,10 +128,7 @@
                 return;
             }
 
-            activeOrganizationId =
-                activeOrganization?.id ||
-                activeOrganization?.organization_id ||
-                null;
+            activeOrganizationId = window.getActiveOrganizationId?.() || null;
 
             if (!activeOrganizationId) {
                 console.error(

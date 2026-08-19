@@ -323,6 +323,7 @@
             }
 
             try {
+                if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
                 const localData = JSON.parse(cachedUser);
                 if (!localData || (!localData.discord_id && !localData.id)) {
                     window.location.href = 'login.html';
@@ -353,17 +354,9 @@
                 const activeOrganizationId = typeof getActiveOrganizationId === 'function'
                     ? getActiveOrganizationId()
                     : (typeof getActiveOrganization === 'function' ? getActiveOrganization()?.id : '');
-                currentUser.organization_id =
-                    activeOrganizationId ||
-                    activeUser.active_organization?.id ||
-                    activeUser.organization?.id ||
-                    localData.active_organization?.id ||
-                    activeUser.organization_id ||
-                    localData.organization_id ||
-                    '';
-                if (currentUser.organization_id && !activeUser.organization_id) {
-                    activeUser.organization_id = currentUser.organization_id;
-                }
+                currentUser.organization_id = activeOrganizationId || '';
+                if (!currentUser.organization_id) throw new Error('Organizația activă nu are un UUID valid.');
+                activeUser.organization_id = currentUser.organization_id;
 
                 currentUser.platform_admin =
                     activeUser.platform_admin === true ||
