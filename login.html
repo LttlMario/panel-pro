@@ -51,12 +51,11 @@
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="css/global-footer.css">
-    <script src="js/project-version.js?v=3.13.0"></script>
+    <script src="js/project-version.js?v=3.11.0"></script>
     <script src="js/discord-config.js"></script>
     <script src="js/supabase-config.js?v=20260813-authfix"></script>
     <script src="js/password-rules.js"></script>
     <script src="js/panel-privacy-notice.js?v=1.0.1"></script>
-    <script src="js/panel-terms-gate.js?v=1.0.0"></script>
     <link rel="icon" href="img/favicon.ico">
     <link rel="apple-touch-icon" href="img/logo-180.png">
 </head>
@@ -353,7 +352,6 @@
             localStorage.setItem('panel_organizations', JSON.stringify(result.organizations || []));
             localStorage.setItem('panel_role_synced_at', String(Date.now()));
             emailStatus(`Acces confirmat: ${result.active_organization?.name || 'organizație'} • ${syncedUser.role}`, 'success');
-            await window.requirePanelTermsAcceptance({ identity: syncedUser.discord_id ? `discord:${syncedUser.discord_id}` : `email:${sessionData.session.user.id}` });
             setTimeout(() => { window.location.href = getSafeReturnDestination(syncedUser); }, 350);
             return true;
         }
@@ -669,7 +667,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const panelSession = localStorage.getItem('panel_session_token');
             const expiresAt = new Date(localStorage.getItem('panel_session_expires_at') || 0).getTime();
             if(parsed && parsed.discord_id && panelSession && expiresAt > Date.now()){
-                await window.requirePanelTermsAcceptance({ identity: `discord:${parsed.discord_id}` });
                 window.location.href = getLoginDestination(parsed);
                 return;
             }
@@ -855,7 +852,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 setLoginStatus(`${syncResult.active_organization?.name || 'Organizație'} • ${syncedUser.role}`);
 
-                await window.requirePanelTermsAcceptance({ identity: `discord:${syncedUser.discord_id || discordData.id}` });
                 setTimeout(() => {
                     window.location.href = getSafeReturnDestination(syncedUser);
                 }, 400);

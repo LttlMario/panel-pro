@@ -1,19 +1,10 @@
 import {createClient} from 'jsr:@supabase/supabase-js@2.112.3';
 import {requirePanelSession} from '../_shared/panel-session.ts';
-import {isPlatformAdminDiscordIdAsync} from '../_shared/platform-admin.ts';
+import {isPlatformAdminDiscordId} from '../_shared/platform-admin.ts';
 import {resolvePackageFeatures} from '../_shared/package-features.ts';
 const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Content-Type':'application/json'};
 
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
-const errorDetails=(value:unknown)=>{
-  if(value instanceof Error)return {message:value.message||'Eroare necunoscută.'};
-  if(value&&typeof value==='object'){
-    const item=value as Record<string,unknown>;
-    const message=String(item.message||item.details||item.hint||item.code||'Eroare necunoscută.');
-    return {message,code:item.code?String(item.code):undefined,details:item.details?String(item.details):undefined,hint:item.hint?String(item.hint):undefined};
-  }
-  return {message:String(value||'Eroare necunoscută.')};
-};
 const normalizeBlackMarketName=(value:unknown)=>String(value??'').replace(/^\s*\d{1,12}\s+/,'').replace(/^\s*\d{1,12}\s*[|:/#-]\s*/,'').replace(/\s*[|:/#-]\s*\d{1,12}\s*$/,'').replace(/\s+\d{1,12}\s*$/,'').replace(/\s*[[(]\s*\d{1,12}\s*[\])]\s*$/,'').replace(/\s{2,}/g,' ').trim();
 Deno.serve(async(req)=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return reply({error:'Method not allowed'},405);try{
  const body=await req.json();
@@ -44,7 +35,7 @@ if (requestRateError) {
 }
 if (requestAllowed === false) return reply({ error: 'Ai atins limita temporară pentru această secțiune. Încearcă din nou mai târziu.' }, 429);
 
-const isPlatformAdmin = await isPlatformAdminDiscordIdAsync(db, session.discord_id);
+const isPlatformAdmin = isPlatformAdminDiscordId(session.discord_id);
 const { data: permissionSettings, error: permissionSettingsError } =
     await db
         .from('app_settings')
@@ -234,20 +225,9 @@ const notifyDisciplineDiscord = async (kind:'warning'|'sanction', record:any) =>
     const route = settings?.webhook_routes?.[routeKey] || settings?.webhook_routes?.[fallbackKey] || {};
     const url = route?.primary?.url || route?.secondary?.url;
     if (!url) return null;
-    let webhookUrl: URL;
-    try {
-        webhookUrl = new URL(String(url));
-    } catch (_) {
-        console.warn('Webhook disciplinar invalid, notificarea Discord a fost omisă.');
-        return null;
-    }
-    if (webhookUrl.protocol !== 'https:' || !['discord.com', 'discordapp.com'].includes(webhookUrl.hostname) || !webhookUrl.pathname.startsWith('/api/webhooks/')) {
-        console.warn('Webhook disciplinar neacceptat, notificarea Discord a fost omisă.');
-        return null;
-    }
     const site = String(settings?.panel_public_url || 'https://lttlmario.github.io/panel-pro').replace(/\/$/, '');
     const detailUrl = `${site}/anunturi.html?discipline=${kind}&id=${record.id}`;
-    const response = await fetch(`${webhookUrl.toString().replace(/\/$/, '')}?wait=true`, {
+    const response = await fetch(`${url}?wait=true`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ embeds: [{
@@ -310,16 +290,9 @@ if (body.action === 'discipline_create_warning') {
         issued_by_discord_id: du.id, issued_by_name: user.display_name || user.username || du.id
     }).select('*').single();
     if (error) throw error;
-    let messageId = null;
-    let discordWarning = null;
-    try {
-        messageId = await notifyDisciplineDiscord('warning', warning);
-    } catch (error) {
-        discordWarning = error instanceof Error ? error.message : 'Webhook-ul Discord nu a putut fi contactat.';
-        console.error('Avertismentul a fost salvat, dar livrarea Discord a eșuat:', discordWarning);
-    }
+    const messageId = await notifyDisciplineDiscord('warning', warning);
     if (messageId) await db.from('disciplinary_warnings').update({ discord_message_id: messageId }).eq('id', warning.id).eq('organization_id', organizationId);
-    return reply({ ok: true, warning: { ...warning, discord_message_id: messageId }, active_warning_count: count + 1, discord_delivery: messageId ? 'sent' : 'unavailable', discord_warning: discordWarning });
+    return reply({ ok: true, warning: { ...warning, discord_message_id: messageId }, active_warning_count: count + 1 });
 }
 
 if (body.action === 'discipline_create_sanction') {
@@ -340,16 +313,9 @@ if (body.action === 'discipline_create_sanction') {
         issued_by_discord_id: du.id, issued_by_name: user.display_name || user.username || du.id
     }).select('*').single();
     if (error) throw error;
-    let messageId = null;
-    let discordWarning = null;
-    try {
-        messageId = await notifyDisciplineDiscord('sanction', sanction);
-    } catch (error) {
-        discordWarning = error instanceof Error ? error.message : 'Webhook-ul Discord nu a putut fi contactat.';
-        console.error('Sancțiunea a fost salvată, dar livrarea Discord a eșuat:', discordWarning);
-    }
+    const messageId = await notifyDisciplineDiscord('sanction', sanction);
     if (messageId) await db.from('disciplinary_sanctions').update({ discord_message_id: messageId }).eq('id', sanction.id).eq('organization_id', organizationId);
-    return reply({ ok: true, sanction: { ...sanction, discord_message_id: messageId }, discord_delivery: messageId ? 'sent' : 'unavailable', discord_warning: discordWarning });
+    return reply({ ok: true, sanction: { ...sanction, discord_message_id: messageId } });
 }
 
 if (body.action === 'discipline_resolve') {
@@ -783,9 +749,4 @@ async function notifyDiscord(post:any, options:string[], audience:string){
     });
 
 }
- }catch(e){
-   console.error(e);
-   const details=errorDetails(e);
-   const isSessionError=/sesiunea securizată|sesiunea panelului a expirat|autentifică-te din nou/i.test(details.message);
-   return reply({error:details.message,code:details.code,details:details.details,hint:details.hint},isSessionError?401:400)
- }});
+ }catch(e){console.error(e);return reply({error:e instanceof Error?e.message:'Eroare necunoscută.'},400)}});

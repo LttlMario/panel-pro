@@ -12,7 +12,7 @@
     <script src="js/permissions.js?v=4.6.0"></script>
     <script src="js/panel-layout.js?v=4.15.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
-    <script src="js/project-version.js?v=3.13.0"></script>
+    <script src="js/project-version.js?v=3.11.0"></script>
     <link rel="icon" href="img/favicon.ico">
     <link rel="apple-touch-icon" href="img/logo-180.png">
 </head>
@@ -303,13 +303,6 @@
         let activeShiftsData = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
-            } catch (_) {
-                window.clearPanelSession?.();
-                window.location.href = 'login.html';
-                return;
-            }
             ['admin-absence-start', 'admin-absence-end'].forEach(id => {
                 const input = document.getElementById(id);
                 if (input) input.type = 'date';
@@ -360,10 +353,14 @@
                 const activeOrganizationId = typeof getActiveOrganizationId === 'function'
                     ? getActiveOrganizationId()
                     : (typeof getActiveOrganization === 'function' ? getActiveOrganization()?.id : '');
-                currentUser.organization_id = activeOrganizationId || '';
-                if (!window.isPanelOrganizationId?.(currentUser.organization_id)) {
-                    throw new Error('Organizația activă nu a fost identificată.');
-                }
+                currentUser.organization_id =
+                    activeOrganizationId ||
+                    activeUser.active_organization?.id ||
+                    activeUser.organization?.id ||
+                    localData.active_organization?.id ||
+                    activeUser.organization_id ||
+                    localData.organization_id ||
+                    '';
                 if (currentUser.organization_id && !activeUser.organization_id) {
                     activeUser.organization_id = currentUser.organization_id;
                 }
@@ -816,22 +813,7 @@ async function forceStopActiveShift(shiftId) {
                 if (error) throw error;
                 adminAbsences = data || [];
                 if (!adminAbsences.length) { tbody.innerHTML = '<tr><td colspan="4" class="p-5 text-center text-slate-500">Nu există înștiințări.</td></tr>'; return; }
-                tbody.innerHTML = adminAbsences.map(item => {
-                    const formatDate = (value) => value ? new Date(value).toLocaleDateString('ro-RO') : '';
-                    const startDate = formatDate(item.start_at) || String(item.start_date || '');
-                    let endValue = item.end_at || item.end_date || '';
-                    if (!endValue && (item.start_at || item.start_date)) {
-                        const start = new Date(item.start_at || `${item.start_date}T00:00:00`);
-                        const days = Math.max(1, Number(item.days) || 1);
-                        if (!Number.isNaN(start.getTime())) {
-                            start.setDate(start.getDate() + days - 1);
-                            endValue = start.toISOString();
-                        }
-                    }
-                    const endDate = formatDate(endValue) || startDate;
-                    const interval = startDate ? `Începe: ${escapeHtml(startDate)}<br><span class="text-[10px] text-slate-500">Se termină: ${escapeHtml(endDate)}</span>` : 'Interval neconfigurat';
-                    return `<tr class="hover:bg-slate-800/40"><td class="p-3 font-medium text-slate-200">${escapeHtml(item.colleague_name || usersMap[item.discord_id] || 'Membru necunoscut')}</td><td class="p-3 text-slate-300">${escapeHtml(item.notice_type || 'Înștiințare')}<br><span class="text-[10px] text-slate-400">${interval}</span></td><td class="p-3 text-slate-400 max-w-xs truncate">${escapeHtml(item.reason || item.notes || '')}</td><td class="p-3 text-right whitespace-nowrap"><button onclick="openAdminAbsenceModal('${escapeHtml(item.id)}')" class="text-amber-400 hover:text-amber-300 mr-3">Editează</button><button onclick="deleteAdminAbsence('${escapeHtml(item.id)}')" class="text-rose-400 hover:text-rose-300">Șterge</button></td></tr>`;
-                }).join('');
+                tbody.innerHTML = adminAbsences.map(item => `<tr class="hover:bg-slate-800/40"><td class="p-3 font-medium text-slate-200">${escapeHtml(item.colleague_name || usersMap[item.discord_id] || 'Membru necunoscut')}</td><td class="p-3 text-slate-300">${escapeHtml(item.notice_type || 'Înștiințare')}<br><span class="text-[10px] text-slate-500">${item.start_at ? new Date(item.start_at).toLocaleDateString('ro-RO') : escapeHtml(item.start_date || '')}</span></td><td class="p-3 text-slate-400 max-w-xs truncate">${escapeHtml(item.reason || item.notes || '')}</td><td class="p-3 text-right whitespace-nowrap"><button onclick="openAdminAbsenceModal('${escapeHtml(item.id)}')" class="text-amber-400 hover:text-amber-300 mr-3">Editează</button><button onclick="deleteAdminAbsence('${escapeHtml(item.id)}')" class="text-rose-400 hover:text-rose-300">Șterge</button></td></tr>`).join('');
             } catch (err) { console.error('Eroare la preluarea învoirilor:', err); tbody.innerHTML = '<tr><td colspan="4" class="p-5 text-center text-rose-400">Nu s-au putut încărca înștiințările.</td></tr>'; }
         }
 

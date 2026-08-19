@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
-import { isPlatformAdminDiscordIdAsync } from '../_shared/platform-admin.ts';
+import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
+import { resolvePackageFeatures } from '../_shared/package-features.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -9,8 +10,6 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const webhookChannels = new Set([
   'organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization',
@@ -18,6 +17,13 @@ const webhookChannels = new Set([
   'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments',
   'sanctions_organization', 'sanctions_departments', 'status_live', 'organization_expiration'
 ]);
+const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
+const webhookFeature = (channel: string) => fullOnlyWebhookChannels.has(channel)
+  ? (channel === 'illegal_marketplace' ? 'illegal_marketplace' : channel === 'organization' ? 'announcements_organization' : channel === 'requests_organization' ? 'requests_organization' : 'discipline_organization')
+  : channel === 'departments' ? 'announcements_departments'
+    : channel === 'requests_departments' ? 'requests_departments'
+      : ['fines_departments', 'warnings_departments', 'sanctions_departments'].includes(channel) ? 'discipline_departments' : null;
+const filterWebhookRoutesForPackage = (routes: any, features: string[]) => Object.fromEntries(Object.entries(routes && typeof routes === 'object' ? routes : {}).filter(([channel]) => { const feature = webhookFeature(channel); return !feature || features.includes(feature); }));
 const allowedContractPlaceholders = new Set([
   '{{COMPANY}}', '{{ADDRESS}}', '{{MANAGER}}', '{{EMPLOYEE_NAME}}', '{{CNP}}',
   '{{PHONE}}', '{{POSITION}}', '{{SALARY}}', '{{PROGRAM}}', '{{START_DATE}}',
@@ -189,7 +195,7 @@ Deno.serve(async (request) => {
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
     const body = await request.json();
     const action = String(body.action || 'owner_get').trim();
-    if (!['owner_get', 'owner_update', 'test_webhook'].includes(action)) return reply({ error: 'Acțiune necunoscută.' }, 400);
+    if (!['owner_get', 'owner_update'].includes(action)) return reply({ error: 'Acțiune necunoscută.' }, 400);
 
     const accessToken = String(body.access_token || '').trim();
     if (!accessToken) return reply({ error: 'Sesiunea Discord lipsește sau a expirat.' }, 401);
@@ -215,9 +221,6 @@ Deno.serve(async (request) => {
     if (ownerActionAllowed === false) return reply({ error: 'Prea multe modificări asupra organizației. Așteaptă câteva minute și încearcă din nou.' }, 429);
 
     const requestedOrganizationId = String(body.organization_id || '').trim();
-    if (requestedOrganizationId && !UUID_RE.test(requestedOrganizationId)) {
-      return reply({ error: 'Organizația selectată are un ID invalid. Reautentifică-te pentru a reface sesiunea.' }, 400);
-    }
     let candidates: any[] = [];
     if (requestedOrganizationId) {
       const [{ data: organization }, { data: guild }] = await Promise.all([
@@ -251,10 +254,9 @@ Deno.serve(async (request) => {
         break;
       }
     }
-    const platformAdmin = await isPlatformAdminDiscordIdAsync(db, discordId);
-    if (!owned && !platformAdmin) return reply({ error: 'Acces refuzat. Doar proprietarul serverului Discord sau administratorul platformei poate administra această organizație.' }, 403);
+    if (!owned && !isPlatformAdminDiscordId(discordId)) return reply({ error: 'Acces refuzat. Doar proprietarul serverului Discord sau administratorul platformei poate administra această organizație.' }, 403);
 
-    if (!owned && platformAdmin) {
+    if (!owned && isPlatformAdminDiscordId(discordId)) {
       const fallbackOrganizationId = requestedOrganizationId;
       if (!fallbackOrganizationId) return reply({ error: 'Administratorul platformei trebuie să selecteze o organizație.' }, 400);
       const { data: fallbackOrganization, error: fallbackError } = await db.from('organizations')
@@ -271,41 +273,20 @@ Deno.serve(async (request) => {
     if (!owned) return reply({ error: 'Organizația nu a putut fi identificată.' }, 404);
 
     const organizationId = String(owned.organization.id);
-    if (action === 'test_webhook') {
-      const webhookUrl = String(body.url || '').trim();
-      if (!validWebhook(webhookUrl)) return reply({ error: 'Adresa trebuie să fie un webhook Discord valid.' }, 400);
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: '✅ Test webhook Panel — conexiunea funcționează.', allowed_mentions: { parse: [] } })
-      });
-      if (!response.ok) return reply({ error: `Discord a răspuns cu HTTP ${response.status}.` }, 400);
-      return reply({ ok: true, message: 'Webhookul a răspuns cu succes.' });
-    }
     const loadSettings = async () => {
-      const [{ data: settings }, { data: contractSetting }, { data: roleMappings }, { data: pageSetting }, { data: guilds }, { data: accessSetting }, { data: packageSetting }, { data: actionSetting }, { data: communicationSetting }, { data: disciplineSetting }] = await Promise.all([
+      const [{ data: settings }, { data: contractSetting }, { data: roleMappings }, { data: pageSetting }, { data: guilds }] = await Promise.all([
         db.from('organization_settings').select('*').eq('organization_id', organizationId).maybeSingle(),
         db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'contract_template').maybeSingle(),
         db.from('organization_role_mappings').select('guild_id,discord_role_id,discord_role_name,panel_role,permission_level,priority,enabled').eq('organization_id', organizationId).order('priority', { ascending: false }),
         db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'page_permissions').maybeSingle(),
-        db.from('organization_guilds').select('guild_id,guild_name,kind,enabled').eq('organization_id', organizationId).eq('enabled', true).order('kind'),
-        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_access').maybeSingle(),
-        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_package').maybeSingle(),
-        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'action_permissions').maybeSingle(),
-        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'communication_permissions').maybeSingle(),
-        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'discipline_permissions').maybeSingle()
+        db.from('organization_guilds').select('guild_id,guild_name,kind,enabled').eq('organization_id', organizationId).eq('enabled', true).order('kind')
       ]);
       return {
         settings: settings || {},
         contract_template: contractSetting?.value || {},
         role_mappings: roleMappings || [],
         page_permissions: pageSetting?.value || {},
-        guilds: guilds || [],
-        access: accessSetting?.value || {},
-        package: packageSetting?.value || {},
-        action_permissions: actionSetting?.value || {},
-        communication_permissions: communicationSetting?.value || {},
-        discipline_permissions: disciplineSetting?.value || {}
+        guilds: guilds || []
       };
     };
 
@@ -328,11 +309,6 @@ Deno.serve(async (request) => {
         contract_template: state.contract_template,
         role_mappings: state.role_mappings,
         page_permissions: state.page_permissions,
-        access: state.access,
-        package: state.package,
-        action_permissions: state.action_permissions,
-        communication_permissions: state.communication_permissions,
-        discipline_permissions: state.discipline_permissions,
         discord_roles: discordRoles
       });
     }
@@ -355,6 +331,7 @@ Deno.serve(async (request) => {
     const state = await loadSettings();
     const settings = state.settings || {};
     const { data: packageSetting } = await db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_package').maybeSingle();
+    const packageFeatures = resolvePackageFeatures(packageSetting?.value || {});
     const webhookRoutes = body.webhook_routes === undefined
       ? (settings.webhook_routes || {})
       : mergeWebhookRoutes(settings.webhook_routes, body.webhook_routes);
@@ -369,9 +346,7 @@ Deno.serve(async (request) => {
       contracts_webhook_url: settings.contracts_webhook_url || null,
       marketplace_webhook_url: settings.marketplace_webhook_url || null,
       illegal_marketplace_webhook_url: settings.illegal_marketplace_webhook_url || null,
-      // Păstrăm rutele configurate și la schimbarea pachetului. Pachetul
-      // controlează trimiterea server-side, nu ștergerea configurației.
-      webhook_routes: webhookRoutes,
+      webhook_routes: filterWebhookRoutesForPackage(webhookRoutes, packageFeatures),
       updated_by_discord_id: discordId,
       updated_at: new Date().toISOString()
     };
@@ -454,61 +429,6 @@ Deno.serve(async (request) => {
       if (pagePermissionError) throw pagePermissionError;
     }
 
-    const cleanPermissionRoleIds = (value: unknown) => [...new Set(
-      (Array.isArray(value) ? value : [])
-        .map(String)
-        .filter((id) => savedRoleIds.has(id))
-    )];
-
-    if (body.action_permissions && typeof body.action_permissions === 'object') {
-      const actionRules: Record<string, string[]> = {
-        'anunturi.publish': cleanPermissionRoleIds(body.action_permissions['anunturi.publish']),
-        'cereri.organization': packageFeatures.includes('requests_organization')
-          ? cleanPermissionRoleIds(body.action_permissions['cereri.organization'])
-          : [],
-        'cereri.departments': cleanPermissionRoleIds(body.action_permissions['cereri.departments'])
-      };
-      const organizationRequestRoles = new Set(actionRules['cereri.organization']);
-      actionRules['cereri.departments'] = actionRules['cereri.departments'].filter((id) => !organizationRequestRoles.has(id));
-      const { error } = await db.from('app_settings').upsert({
-        organization_id: organizationId,
-        key: 'action_permissions',
-        value: actionRules,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'organization_id,key' });
-      if (error) throw error;
-    }
-
-    const cleanScopedPermissions = (input: any, includeOrganization: boolean, discipline = false) => {
-      const empty = discipline ? { read: [], write: [], sanction: [] } : { read: [], write: [] };
-      const departments = input?.departments && typeof input.departments === 'object' ? input.departments : {};
-      const organization = input?.organization && typeof input.organization === 'object' ? input.organization : {};
-      return {
-        organization: includeOrganization ? {
-          read: cleanPermissionRoleIds(organization.read),
-          write: cleanPermissionRoleIds(organization.write),
-          ...(discipline ? { sanction: cleanPermissionRoleIds(organization.sanction) } : {})
-        } : { ...empty },
-        departments: {
-          read: cleanPermissionRoleIds(departments.read),
-          write: cleanPermissionRoleIds(departments.write),
-          ...(discipline ? { sanction: cleanPermissionRoleIds(departments.sanction) } : {})
-        }
-      };
-    };
-
-    if (body.communication_permissions && typeof body.communication_permissions === 'object') {
-      const value = cleanScopedPermissions(body.communication_permissions, packageFeatures.includes('announcements_organization'));
-      const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'communication_permissions', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
-      if (error) throw error;
-    }
-
-    if (body.discipline_permissions && typeof body.discipline_permissions === 'object') {
-      const value = cleanScopedPermissions(body.discipline_permissions, packageFeatures.includes('discipline_organization'), true);
-      const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'discipline_permissions', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
-      if (error) throw error;
-    }
-
     const { data: updatedOrganization, error: updatedError } = await db.from('organizations')
       .select('id,name,slug,address,description,logo_url,banner_url,active,lifecycle_status')
       .eq('id', organizationId).single();
@@ -523,11 +443,6 @@ Deno.serve(async (request) => {
       contract_template: updatedState.contract_template,
       role_mappings: updatedState.role_mappings,
       page_permissions: updatedState.page_permissions,
-      access: updatedState.access,
-      package: updatedState.package,
-      action_permissions: updatedState.action_permissions,
-      communication_permissions: updatedState.communication_permissions,
-      discipline_permissions: updatedState.discipline_permissions,
       discord_roles: availableDiscordRoles
     });
   } catch (error) {

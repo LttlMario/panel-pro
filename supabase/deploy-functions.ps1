@@ -30,8 +30,6 @@ $functions = @(
     'manage-admin-center',
     'manage-organizations',
     'manage-owned-organization',
-    'manage-platform-administrators',
-    'renew-organization',
     'status-live-sync',
     'create-voucher-organization',
     'get-organization-status',

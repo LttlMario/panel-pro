@@ -174,13 +174,6 @@ function canAccessPage(page) {
         return isLogged();
     }
 
-    // Prelungirea prin voucher este disponibilă tuturor membrilor cu sesiune
-    // validă. Funcția Edge verifică organizația sesiunii și voucherul; nu este
-    // o pagină de configurare și nu poate acorda drepturi administrative.
-    if (page === 'prelungire-organizatie.html') {
-        return isLogged();
-    }
-
     /*
      * Paginile administrative NU pot fi acordate
      * prin rolurile unei organizații.
@@ -545,7 +538,7 @@ function getDefaultAllowedPage() {
         !hasSelectedPages()
     ) {
 
-        if (currentPage === 'administrare-organizatie.html' || currentPage === 'prelungire-organizatie.html') {
+        if (currentPage === 'administrare-organizatie.html') {
             return;
         }
 

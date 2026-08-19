@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const state = { organizations: [], selectedId: '', audit: [], health: null, catalog: {}, administrators: [], canManageAdministrators: false, busy: false };
+  const state = { organizations: [], selectedId: '', audit: [], health: null, catalog: {}, busy: false };
   const $ = (selector) => document.querySelector(selector);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   const date = (value) => value ? new Date(value).toLocaleString('ro-RO', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
@@ -17,10 +17,6 @@
   const api = async (body) => {
     if (!localStorage.getItem('panel_session_token') && typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
     return window.panelRequestJson('manage-organizations', { method: 'POST', timeoutMs: 30000, body: JSON.stringify(body) });
-  };
-  const administratorApi = async (body) => {
-    if (!localStorage.getItem('panel_session_token') && typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
-    return window.panelRequestJson('manage-platform-administrators', { method: 'POST', timeoutMs: 30000, body: JSON.stringify(body) });
   };
   const statusFor = (organization) => organization?.health?.status || 'inactive';
   const statusLabel = (value) => ({ active: 'Activă', draft: 'Draft', expired: 'Expirată', inactive: 'Inactivă' }[value] || value);
@@ -56,32 +52,6 @@
     const cards = [['Total', organizations.length, ''], ['Active', active, ''], ['Drafturi', drafts, 'warning'], ['Expirate', expired, 'danger'], ['Probleme', issues, issues ? 'warning' : ''], ['Membri / sesiuni', `${members} / ${sessions}`, '']];
     $('#organization-admin-kpis').innerHTML = cards.map(([label, value, className]) => `<div class="kpi ${className}"><span>${label}</span><strong>${esc(value)}</strong></div>`).join('');
   };
-  const renderPlatformAdministrators = () => {
-    const section = $('#platform-admin-management');
-    const list = $('#platform-admin-list');
-    const status = $('#platform-admin-management-status');
-    const form = $('#platform-admin-form');
-    if (!section || !list || !status) return;
-    section.hidden = false;
-    form.hidden = !state.canManageAdministrators;
-    status.textContent = state.canManageAdministrators
-      ? 'Ești proprietarul platformei. Poți acorda sau revoca accesul administratorilor delegați.'
-      : 'Ai acces de administrator delegat. Lista este vizibilă, însă acordarea și revocarea rămân rezervate proprietarului platformei.';
-    list.innerHTML = state.administrators.length
-      ? state.administrators.map((administrator) => `<div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-950 p-3"><div><strong class="block text-sm text-slate-100">${esc(administrator.display_name || 'Administrator delegat')}</strong><span class="text-xs text-slate-400">Discord ID: ${esc(administrator.discord_id)} · adăugat ${esc(date(administrator.created_at))}</span></div><div class="flex items-center gap-2"><span class="badge ${administrator.active ? 'active' : 'inactive'}">${administrator.active ? 'Activ' : 'Revocat'}</span>${state.canManageAdministrators && administrator.active ? `<button type="button" class="button small danger" data-platform-admin-revoke="${esc(administrator.discord_id)}">Revocă accesul</button>` : ''}</div></div>`).join('')
-      : '<div class="empty-state">Nu există administratori delegați.</div>';
-  };
-  const loadPlatformAdministrators = async () => {
-    try {
-      const result = await administratorApi({ action: 'list' });
-      state.administrators = Array.isArray(result.administrators) ? result.administrators : [];
-      state.canManageAdministrators = result.can_manage === true;
-      renderPlatformAdministrators();
-    } catch (error) {
-      const section = $('#platform-admin-management');
-      if (section) section.hidden = true;
-    }
-  };
   const renderList = () => {
     const list = filteredOrganizations(); $('#organization-count').textContent = `${list.length} rezultat${list.length === 1 ? '' : 'e'}`;
     $('#organization-list').innerHTML = list.length ? list.map((organization) => {
@@ -100,7 +70,7 @@
   };
   const load = async (keepSelection = true) => {
     if (state.busy) return; state.busy = true; setStatus('Se încarcă registrul securizat…');
-    try { const result = await api({ action: 'platform_overview' }); state.catalog = result.feature_catalog || state.catalog; state.organizations = Array.isArray(result.organizations) ? result.organizations : []; if (!keepSelection || !selected()) state.selectedId = state.organizations[0]?.id || ''; renderKpis(); renderList(); renderDetail(); setStatus(`Actualizat la ${date(result.generated_at)} · ${state.organizations.length} organizații`, 'ok'); loadPlatformAdministrators(); }
+    try { const result = await api({ action: 'platform_overview' }); state.catalog = result.feature_catalog || state.catalog; state.organizations = Array.isArray(result.organizations) ? result.organizations : []; if (!keepSelection || !selected()) state.selectedId = state.organizations[0]?.id || ''; renderKpis(); renderList(); renderDetail(); setStatus(`Actualizat la ${date(result.generated_at)} · ${state.organizations.length} organizații`, 'ok'); }
     catch (error) { setStatus(error.message || 'Registrul nu a putut fi încărcat.', 'error'); $('#organization-list').innerHTML = `<div class="empty-state">${esc(error.message || 'Eroare de încărcare.')}</div>`; }
     finally { state.busy = false; }
   };
@@ -118,30 +88,5 @@
   $('#organization-reset-filters')?.addEventListener('click', () => { $('#organization-search').value = ''; $('#organization-status-filter').value = 'all'; $('#organization-package-filter').value = 'all'; $('#organization-sort').value = 'name'; $('#organization-issues-only').checked = false; renderList(); });
   $('#refresh-organizations')?.addEventListener('click', () => load(true));
   $('#export-organizations')?.addEventListener('click', exportOrganizations);
-  $('#platform-admin-form')?.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const button = event.currentTarget.querySelector('button[type="submit"]');
-    const discordId = $('#platform-admin-discord-id').value.trim();
-    const displayName = $('#platform-admin-display-name').value.trim();
-    button.disabled = true;
-    try {
-      await administratorApi({ action: 'grant', discord_id: discordId, display_name: displayName });
-      $('#platform-admin-discord-id').value = '';
-      $('#platform-admin-display-name').value = '';
-      toast('Administratorul delegat a primit acces. La următoarea autentificare va fi recunoscut automat.');
-      await loadPlatformAdministrators();
-    } catch (error) { toast(error.message || 'Administratorul nu a putut fi adăugat.', true); }
-    finally { button.disabled = false; }
-  });
-  document.addEventListener('click', async (event) => {
-    const button = event.target.closest('[data-platform-admin-revoke]');
-    if (!button) return;
-    const discordId = button.dataset.platformAdminRevoke;
-    if (!window.confirm(`Revoci accesul de administrator pentru Discord ID ${discordId}?`)) return;
-    button.disabled = true;
-    try { await administratorApi({ action: 'revoke', discord_id: discordId }); toast('Accesul administratorului a fost revocat.'); await loadPlatformAdministrators(); }
-    catch (error) { toast(error.message || 'Accesul nu a putut fi revocat.', true); }
-    finally { button.disabled = false; }
-  });
   load(false);
 })();

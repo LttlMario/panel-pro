@@ -12,7 +12,7 @@
     <script src="js/permissions.js?v=4.6.0"></script>
     <script src="js/panel-layout.js?v=4.15.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
-    <script src="js/project-version.js?v=3.13.0"></script>
+    <script src="js/project-version.js?v=3.11.0"></script>
     <link rel="icon" href="img/favicon.ico">
     <link rel="apple-touch-icon" href="img/logo-180.png">
 </head>
@@ -179,15 +179,13 @@
                 }
 
                 activeOrganization =
-                    typeof window.getActiveOrganization === 'function'
-                        ? window.getActiveOrganization()
-                        : JSON.parse(storedOrganization);
+                    JSON.parse(storedOrganization);
                     console.log(
                     'ACTIVE ORGANIZATION FULL:',
                     activeOrganization
                 );
 
-                if (!activeOrganization?.id || !window.isPanelOrganizationId?.(activeOrganization.id)) {
+                if (!activeOrganization?.id) {
                     throw new Error(
                         'Organizația activă nu are un ID valid.'
                     );
@@ -403,10 +401,7 @@ console.log(
             try {
                 await ensurePanelSession();
             } catch (error) {
-                console.error('Sesiunea panelului nu a putut fi reîmprospătată:', error);
-                window.clearPanelSession?.();
-                window.location.href = 'login.html';
-                return;
+                console.warn('Sesiunea nu a putut fi reîmprospătată:', error);
             }
 
             // 4. Încărcare context organizație activă
@@ -552,9 +547,8 @@ console.log(
             const activeName = currentUser.display_name || currentUser.username || 'Utilizator Discord';
             const activeRole = currentUser.role || currentUser.default_role || 'Rol Discord';
 
-            const activeOrganizationId = window.getActiveOrganizationId?.() || '';
-            if (!window.isPanelOrganizationId?.(activeOrganizationId) || activeOrganization?.id !== activeOrganizationId) {
-                alert('Organizația activă nu mai este validă. Reautentifică-te pentru a reface sesiunea.');
+            if (!activeOrganization?.id) {
+                alert('Nu există o organizație activă.');
                 return;
             }
 
@@ -563,7 +557,7 @@ console.log(
                 return;
             }
             const newAbsence = {
-                organization_id: activeOrganizationId,
+                organization_id: activeOrganization.id,
                 discord_id: currentUser.discord_id,
                 colleague_name: `${activeName} [${activeRole}]`,
                 notice_type: noticeType,

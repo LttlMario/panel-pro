@@ -1444,7 +1444,7 @@ roles.push({
     discord_role_name: role.name,
     panel_role: panelRole
 });
-}if(new Set(roles.map(role=>role.discord_role_id)).size!==roles.length)throw new Error('Același rol Discord nu poate fi adăugat de două ori.');const settings={discord_client_id:$('client').value,panel_public_url:$('url').value,webhook_routes:Object.fromEntries(fields.map(x=>[x,{primary:{enabled:$(`wh_primary_enabled_${x}`).checked,url:$(`wh_primary_url_${x}`).value.trim()},secondary:{enabled:$(`wh_secondary_enabled_${x}`).checked,url:$(`wh_secondary_url_${x}`).value.trim()}}]))},guilds=[{guild_id:guildId,guild_name:$('guild-status').textContent.split(':')[0],kind:'primary'}];if(secondaryId)guilds.push({guild_id:secondaryId,guild_name:$('guild-secondary-status').textContent.split(':')[0],kind:'secondary'});
+}if(new Set(roles.map(role=>role.discord_role_id)).size!==roles.length)throw new Error('Același rol Discord nu poate fi adăugat de două ori.');const settings={discord_client_id:$('client').value,panel_public_url:$('url').value,webhook_routes:Object.fromEntries(fields.map(x=>[x,{primary:{enabled:$(`wh_primary_enabled_${x}`).checked,url:$(`wh_primary_url_${x}`).value.trim()},secondary:{enabled:$(`wh_secondary_enabled_${x}`).checked,url:$(`wh_secondary_url_${x}`).value.trim()}}]).filter(([,route])=>route.primary.enabled&&route.primary.url||route.secondary.enabled&&route.secondary.url))},guilds=[{guild_id:guildId,guild_name:$('guild-status').textContent.split(':')[0],kind:'primary'}];if(secondaryId)guilds.push({guild_id:secondaryId,guild_name:$('guild-secondary-status').textContent.split(':')[0],kind:'secondary'});
 await invoke({
     action:'save',
 
@@ -1585,7 +1585,7 @@ renderRoles = () => {
       const url = input.value.trim();
       if (!url) { status.textContent = 'Lipește mai întâi adresa webhookului.'; status.className = 'ml-2 text-xs text-amber-300'; return; }
       button.disabled = true; status.textContent = 'Se testează...'; status.className = 'ml-2 text-xs text-slate-400';
-      try { await invoke({action:'test_webhook', url, organization_id:$('id').value, channel:channel}); status.textContent = 'Trimis cu succes. Apasă „Salvează” pentru a păstra modificarea.'; status.className = 'ml-2 text-xs text-emerald-300'; }
+      try { await invoke({action:'test_webhook', url, organization_id:$('id').value, channel:channel}); status.textContent = 'Trimis cu succes și salvat pentru organizație.'; status.className = 'ml-2 text-xs text-emerald-300'; }
       catch (error) { status.textContent = error.message; status.className = 'ml-2 text-xs text-red-300'; }
       finally { button.disabled = false; }
     };
@@ -1857,5 +1857,5 @@ renderRoles = () => {
     salary.value = organization?.platform_settings?.contract_template?.defaults?.salary || '';
   };
 })();
-</script><script src="js/organization-packages.js?v=3.13.0"></script><script src="js/organization-webhook-extension.js?v=3.13.0"></script><script src="js/global-footer.js?v=3.13.0"></script></body></html>
+</script><script src="js/organization-packages.js?v=3.11.0"></script><script src="js/organization-webhook-extension.js?v=3.11.0"></script><script src="js/global-footer.js?v=3.11.0"></script></body></html>
 

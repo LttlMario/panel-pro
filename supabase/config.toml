@@ -34,12 +34,6 @@ verify_jwt = false
 [functions.manage-owned-organization]
 verify_jwt = false
 
-[functions.manage-platform-administrators]
-verify_jwt = false
-
-[functions.renew-organization]
-verify_jwt = false
-
 [functions.status-live-sync]
 verify_jwt = false
 
