@@ -53,11 +53,11 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     }
 
     if (window.location.pathname.endsWith('vouchere.html')) {
-        const script = document.createElement('script'); script.src = 'js/voucher-admin-controls.js?v=3.11.0'; document.head.appendChild(script);
-        const listScript = document.createElement('script'); listScript.src = 'js/voucher-list-controls.js?v=3.11.0'; document.head.appendChild(listScript);
-        const enhancementScript = document.createElement('script'); enhancementScript.src = 'js/voucher-enhancements.js?v=3.11.0'; document.head.appendChild(enhancementScript);
+        const script = document.createElement('script'); script.src = 'js/voucher-admin-controls.js?v=3.10.0'; document.head.appendChild(script);
+        const listScript = document.createElement('script'); listScript.src = 'js/voucher-list-controls.js?v=3.10.0'; document.head.appendChild(listScript);
+        const enhancementScript = document.createElement('script'); enhancementScript.src = 'js/voucher-enhancements.js?v=3.10.0'; document.head.appendChild(enhancementScript);
     }
-    if (window.location.pathname.endsWith('organizatii.html')) { const requestScript=document.createElement('script');requestScript.src='js/organization-request-fix.js?v=3.11.0';document.head.appendChild(requestScript); const script=document.createElement('script');script.src='js/package-limits.js?v=3.11.0';document.head.appendChild(script); }
+    if (window.location.pathname.endsWith('organizatii.html')) { const requestScript=document.createElement('script');requestScript.src='js/organization-request-fix.js?v=3.10.0';document.head.appendChild(requestScript); const script=document.createElement('script');script.src='js/package-limits.js?v=3.10.0';document.head.appendChild(script); }
     if (window.location.pathname.endsWith('admin.html')) { const script=document.createElement('script');script.src='js/admin-organization-center.js';document.head.appendChild(script); }
     if (window.location.pathname.endsWith('anunturi.html')) { const script=document.createElement('script');script.src='js/anunturi-permissions.js';document.head.appendChild(script); }
     const COLLAPSE_KEY = 'panel_sidebar_collapsed';
