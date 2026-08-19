@@ -5,7 +5,7 @@
     window.__panelOnboardingLoaded = true;
 
     const page = window.location.pathname.split('/').pop() || 'index.html';
-    if (['login.html', '403.html', 'guest.html', 'organizatie-noua.html', 'creare-organizatie-voucher.html'].includes(page)) return;
+    if (['login.html', '403.html', 'guest.html', 'organizatie-noua.html', 'creare-organizatie-voucher.html', 'prelungire-voucher.html'].includes(page)) return;
     // Nu prelua navigările profunde venite din Discord (de ex. ?post=UUID).
     // Tutorialul nu trebuie să le mute pe Dashboard.
     if (window.location.search || window.location.hash) return;
