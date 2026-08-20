@@ -1,5 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
-import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
+import { isPlatformAdminAccount, isPlatformUserBanned } from '../_shared/platform-admin.ts';
 import { packageAllowsPage, resolvePackageFeatures } from '../_shared/package-features.ts';
 
 const headers = {
@@ -115,7 +115,9 @@ Deno.serve(async (request) => {
     const guildsPromise = db.from('organization_guilds')
       .select('guild_id,guild_name,kind,organization_id,organizations!inner(id,name,slug,address,logo_url,banner_url,active)')
       .eq('enabled', true);
-    const isPlatformAdmin=isPlatformAdminDiscordId(discordUser.id);
+    const isPlatformAdmin=await isPlatformAdminAccount(db,discordUser.id);
+    const platformBan=await isPlatformUserBanned(db,discordUser.id);
+    if(platformBan&&!isPlatformAdmin)return reply({error:`Contul este blocat în platformă. Motiv: ${String(platformBan.reason||'nespecificat')}`,code:'PLATFORM_BANNED'},403);
 
     if (voucherCode) {
       return reply({
