@@ -60,7 +60,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     if (window.location.pathname.endsWith('organizatii.html')) { const requestScript=document.createElement('script');requestScript.src='js/organization-request-fix.js?v=3.10.0';document.head.appendChild(requestScript); const script=document.createElement('script');script.src='js/package-limits.js?v=3.10.0';document.head.appendChild(script); }
     if (window.location.pathname.endsWith('admin.html')) { const script=document.createElement('script');script.src='js/admin-organization-center.js';document.head.appendChild(script); }
     if (window.location.pathname.endsWith('anunturi.html')) { const script=document.createElement('script');script.src='js/anunturi-permissions.js';document.head.appendChild(script); }
-    const COLLAPSE_KEY = 'panel_sidebar_collapsed';
     let globalSearchTimer = null;
     let globalSearchRequest = 0;
 
@@ -231,8 +230,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             html[data-panel-theme="dark"] .bg-slate-800 { background-color:#111c2e !important; }
             html[data-panel-theme="dark"] .border-slate-800, html[data-panel-theme="dark"] .border-slate-700, html[data-panel-theme="dark"] .post, html[data-panel-theme="dark"] .dialog { border-color:#223047 !important; }
 
-            .panel-sidebar-toggle { position:absolute; top:18px; right:-14px; z-index:70; width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:1px solid #334155; border-radius:999px; background:#0f172a; color:#cbd5e1; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.3); }
-            .panel-sidebar-toggle:hover { background:#1e293b; color:#fff; }
             #panel-mobile-backdrop { display:none; position:fixed; inset:0; z-index:4000; background:rgba(2,6,23,.78); backdrop-filter:blur(3px); }
             #panel-mobile-menu { position:fixed; inset:0 auto 0 0; z-index:4001; width:min(288px,86vw); background:#0f172a; border-right:1px solid #1e293b; transform:translateX(-102%); transition:transform .2s ease; box-shadow:16px 0 40px rgba(0,0,0,.45); overflow:auto; }
             #panel-mobile-menu.is-open { transform:translateX(0); }
@@ -251,7 +248,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 body { min-height:100dvh; }
                 body.panel-shared-sidebar-page { padding-left:0; }
                 .panel-responsive-sidebar { display:none !important; }
-                .panel-sidebar-toggle { display:none !important; }
                 .panel-mobile-toggle { display:flex; }
                 .panel-global-header { min-height:88px !important; padding:12px 14px !important; display:flex !important; flex-wrap:wrap !important; align-content:center; }
                 .panel-global-header > div:not(.panel-header-tools) { flex:1; min-width:calc(100% - 58px); }
@@ -379,48 +375,38 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const originalMainMargin = main?.style.marginLeft || '';
         const originalSidebarWidth = sidebar.style.width || '';
 
-        const toggle = document.createElement('button');
-        toggle.type = 'button';
-        toggle.className = 'panel-sidebar-toggle';
-        toggle.setAttribute('aria-label', 'Micșorează meniul');
-        sidebar.appendChild(toggle);
-
-         const applyCollapsedState = (collapsed) => {
-             const sidebarWidth = collapsed ? '5.25rem' : (originalSidebarWidth || '245px');
-             sidebar.style.width = sidebarWidth;
-             sidebar.style.flexBasis = sidebarWidth;
-             sidebar.classList.toggle('is-collapsed', collapsed);
-            if (main?.classList.contains('ml-72')) main.style.marginLeft = collapsed ? '5.25rem' : originalMainMargin;
+        const applyCollapsedState = (collapsed) => {
+            const isMobile = window.innerWidth <= 767;
+            const effectiveCollapsed = !isMobile && collapsed;
+            const sidebarWidth = effectiveCollapsed ? '5.25rem' : (originalSidebarWidth || '245px');
+            sidebar.style.width = isMobile ? '' : sidebarWidth;
+            sidebar.style.flexBasis = isMobile ? '' : sidebarWidth;
+            sidebar.classList.toggle('is-collapsed', effectiveCollapsed);
+            if (main?.classList.contains('ml-72')) main.style.marginLeft = effectiveCollapsed ? '5.25rem' : originalMainMargin;
             if (document.body.classList.contains('panel-shared-sidebar-page')) {
-                document.body.style.paddingLeft = collapsed ? '5.25rem' : '245px';
+                document.body.style.paddingLeft = isMobile ? '' : (effectiveCollapsed ? '5.25rem' : '245px');
             }
             const mapApp = document.getElementById('app');
             if (mapApp && document.getElementById('map-container-wrapper')) {
-                mapApp.style.gridTemplateColumns = collapsed ? '5.25rem 1fr' : '245px 1fr';
+                mapApp.style.gridTemplateColumns = isMobile ? '' : (effectiveCollapsed ? '5.25rem 1fr' : '245px 1fr');
             }
 
             navigation.querySelectorAll('a').forEach((link) => {
                 const label = link.querySelector('span:nth-child(2)');
-                if (label) label.classList.toggle('hidden', collapsed);
-                link.classList.toggle('justify-center', collapsed);
-                link.classList.toggle('px-3', collapsed);
-                link.classList.toggle('space-x-3', !collapsed);
-                link.title = collapsed ? (label?.textContent || '').trim() : '';
+                if (label) label.classList.toggle('hidden', effectiveCollapsed);
+                link.classList.toggle('justify-center', effectiveCollapsed);
+                link.classList.toggle('px-3', effectiveCollapsed);
+                link.classList.toggle('space-x-3', !effectiveCollapsed);
+                link.title = effectiveCollapsed ? (label?.textContent || '').trim() : '';
             });
             const title = sidebar.querySelector('h1');
-            if (title) title.classList.toggle('hidden', collapsed);
-            sidebar.querySelectorAll('#panel-user-display-name, #panel-user-role').forEach((element) => element.classList.toggle('hidden', collapsed));
-            toggle.textContent = collapsed ? '›' : '‹';
-        toggle.setAttribute('aria-label', collapsed ? 'Extinde meniul' : 'Micșorează meniul');
+            if (title) title.classList.toggle('hidden', effectiveCollapsed);
+            sidebar.querySelectorAll('#panel-user-display-name, #panel-user-role').forEach((element) => element.classList.toggle('hidden', effectiveCollapsed));
         };
 
-        const savedState = localStorage.getItem(COLLAPSE_KEY) === 'true';
-        applyCollapsedState(savedState);
-        toggle.addEventListener('click', () => {
-            const nextState = !sidebar.querySelector('.nav-link span:nth-child(2)')?.classList.contains('hidden');
-            localStorage.setItem(COLLAPSE_KEY, String(nextState));
-            applyCollapsedState(nextState);
-        });
+        const syncResponsiveSidebar = () => applyCollapsedState(window.innerWidth < 1100);
+        syncResponsiveSidebar();
+        window.addEventListener('resize', syncResponsiveSidebar);
 
         // Dashboard are deja propriul meniu mobil, păstrat pentru compatibilitate.
         if (document.getElementById('mobile-menu')) {
