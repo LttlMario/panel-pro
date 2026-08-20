@@ -97,7 +97,7 @@
     host.innerHTML = items.length ? items.map(item => `
       <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3">
         <div><span class="font-mono text-xs text-slate-200">${escapeHtml(item.discord_id)}</span><span class="ml-3 text-xs text-slate-400">${escapeHtml(item.display_name || 'Administrator')}</span>${item.root ? '<span class="ml-3 text-[10px] uppercase tracking-wider text-emerald-300">principal</span>' : ''}${item.active === false ? '<span class="ml-3 text-[10px] uppercase tracking-wider text-rose-300">inactiv</span>' : ''}</div>
-        ${item.root || item.active === false ? '' : `<button type="button" data-remove-admin="${escapeHtml(item.discord_id)}" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 px-3 py-1.5 rounded-lg text-xs font-semibold">Elimină accesul</button>`}
+        ${item.root ? '<span class="text-[10px] uppercase tracking-wider text-slate-500">protejat</span>' : item.active === false ? '' : `<button type="button" data-remove-admin="${escapeHtml(item.discord_id)}" title="Revocă administratorul și deloghează sesiunile active" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 px-3 py-1.5 rounded-lg text-xs font-semibold">⛔ Remove admin + Kick</button>`}
       </div>`).join('') : '<p class="text-xs text-slate-500">Nu există administratori suplimentari.</p>';
     host.querySelectorAll('[data-remove-admin]').forEach(button => button.addEventListener('click', () => removePlatformAdmin(button.dataset.removeAdmin)));
   }
@@ -127,8 +127,8 @@
   }
 
   async function removePlatformAdmin(discordId) {
-    if (!confirm(`Elimini accesul de administrator platformă pentru ${discordId}?`)) return;
-    try { await window.panelAdminInvoke('platform_admin_remove', { discord_id: discordId }); await loadPlatformAdminData(); alert('Accesul de administrator a fost eliminat.'); }
+    if (!confirm(`Revoci administratorul ${discordId} și îi deloghezi sesiunile active?`)) return;
+    try { await window.panelAdminInvoke('platform_admin_remove', { discord_id: discordId }); await loadPlatformAdminData(); alert('Administratorul a fost eliminat și sesiunile active au fost închise.'); }
     catch (error) { alert(`Accesul nu a putut fi eliminat: ${error.message}`); }
   }
 

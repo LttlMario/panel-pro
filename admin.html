@@ -119,68 +119,33 @@
                     </div>
                 </div>
 
-                <!-- Secțiunea 2: Setări Dedicate pentru Fiecare Pagină în Parte -->
-                <div id="legacy-page-settings" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-6">
-                    <div>
-                        <h3 class="text-base font-bold text-slate-100">Configurare Pagini Web</h3>
-                        <p class="text-xs text-slate-400 mt-0.5">Activează sau dezactivează funcționalități specifice pentru fiecare pagină a aplicației.</p>
+                <!-- Secțiunea 2: Configurarea reală a paginilor pe organizație și rol Discord -->
+                <div id="page-settings-center" class="bg-slate-900 border border-indigo-800/60 rounded-2xl p-6 shadow-lg space-y-5">
+                    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-100">Configurare Pagini Web</h3>
+                            <p class="text-xs text-slate-400 mt-1 max-w-3xl">Accesul nu se mai configurează prin bifări locale. Fiecare pagină este controlată server-side, pentru organizația aleasă și rolurile Discord selectate.</p>
+                        </div>
+                        <a href="organizatii.html" class="shrink-0 inline-flex items-center justify-center rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 text-xs font-bold transition">Deschide configurarea organizațiilor</a>
                     </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Dashboard -->
-                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="font-semibold text-slate-200 text-sm">📊 Dashboard</span>
-                                <input type="checkbox" id="page-setting-dashboard" class="w-4 h-4 accent-emerald-600 rounded cursor-pointer" checked>
-                            </div>
-                            <p class="text-[11px] text-slate-400">Afișează widget-urile de statistici generale și starea rapidă a turelor.</p>
-                        </div>
-
-                        <!-- Pontaj -->
-                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="font-semibold text-slate-200 text-sm">⏱️ Pontaj</span>
-                                <input type="checkbox" id="page-setting-pontaj" class="w-4 h-4 accent-emerald-600 rounded cursor-pointer" checked>
-                            </div>
-                            <p class="text-[11px] text-slate-400">Permite utilizatorilor să pornească/oprească cronometrul de tură.</p>
-                        </div>
-
-                        <!-- Cereri / Absențe -->
-                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="font-semibold text-slate-200 text-sm">📋 Cereri / Absențe</span>
-                                <input type="checkbox" id="page-setting-cereri" class="w-4 h-4 accent-emerald-600 rounded cursor-pointer" checked>
-                            </div>
-                            <p class="text-[11px] text-slate-400">Permite trimiterea și gestionarea cererilor de învoire/demisie.</p>
-                        </div>
-
-                        <!-- Rapoarte -->
-                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="font-semibold text-slate-200 text-sm">📈 Rapoarte & CSV</span>
-                                <input type="checkbox" id="page-setting-rapoarte" class="w-4 h-4 accent-emerald-600 rounded cursor-pointer" checked>
-                            </div>
-                            <p class="text-[11px] text-slate-400">Activează centralizatorul de ture, filtrele rapide și exportul CSV.</p>
-                        </div>
-
-                        <!-- Contracte -->
-                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="font-semibold text-slate-200 text-sm">📜 Contracte</span>
-                                <input type="checkbox" id="page-setting-contracte" class="w-4 h-4 accent-emerald-600 rounded cursor-pointer" checked>
-                            </div>
-                            <p class="text-[11px] text-slate-400">Activează generatorul de contracte pentru clienți și istoric.</p>
-                        </div>
-
-                        <!-- Marketplace -->
-                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="font-semibold text-slate-200 text-sm">🛒 Marketplace</span>
-                                <input type="checkbox" id="page-setting-marketplace" class="w-4 h-4 accent-emerald-600 rounded cursor-pointer" checked>
-                            </div>
-                            <p class="text-[11px] text-slate-400">Activează secțiunea de comerț și anunțuri publice.</p>
-                        </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-xs">
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Dashboard</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Anunțuri</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Pontaj</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Cereri</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Bucătărie</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Contracte</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Calculator legal</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Calculator ilegal</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Craft Mechanics</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Locații ilegale</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Marketplace</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Marketplace ilegal</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Rapoarte</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Status live</span>
+                        <span class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-300">Asistent</span>
                     </div>
+                    <p class="text-[11px] text-indigo-200/80">Modificările se salvează în configurația organizației și se aplică la următoarea sincronizare a sesiunii Discord.</p>
                 </div>
 
                 <!-- Secțiunea 3: Setări Foarte Bine Structurate pentru Pontaje -->
@@ -495,14 +460,6 @@
                 return;
             }
             const settings = {
-                pages: {
-                    dashboard: document.getElementById('page-setting-dashboard').checked,
-                    pontaj: document.getElementById('page-setting-pontaj').checked,
-                    cereri: document.getElementById('page-setting-cereri').checked,
-                    rapoarte: document.getElementById('page-setting-rapoarte').checked,
-                    contracte: document.getElementById('page-setting-contracte').checked,
-                    marketplace: document.getElementById('page-setting-marketplace').checked,
-                },
                 pontajConfig: {
                     maxHours: maxHoursValue,
                     mode: document.getElementById('pontaj-mode').value,
@@ -526,16 +483,6 @@
         function loadSavedSettings() {
             const saved = JSON.parse(localStorage.getItem('workforce_admin_settings'));
             if (!saved) return;
-
-            if (saved.pages) {
-                document.getElementById('page-setting-dashboard').checked = saved.pages.dashboard ?? true;
-                document.getElementById('page-setting-pontaj').checked = saved.pages.pontaj ?? true;
-                document.getElementById('page-setting-cereri').checked = saved.pages.cereri ?? true;
-                document.getElementById('page-setting-rapoarte').checked = saved.pages.rapoarte ?? true;
-                document.getElementById('page-setting-contracte').checked = saved.pages.contracte ?? true;
-                const mkElem = document.getElementById('page-setting-marketplace');
-                if (mkElem) mkElem.checked = saved.pages.marketplace ?? true;
-            }
 
             if (saved.pontajConfig) {
                 document.getElementById('pontaj-max-hours').value = saved.pontajConfig.maxHours || 12;

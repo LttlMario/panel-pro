@@ -54,11 +54,11 @@ function getWeeklyPeriod(now = new Date()) {
 }
 
 function getWeeklyReportWebhookUrls(settings: Record<string, any> | null) {
+  // Rapoartele folosesc configurarea organizației; nu depind de un fallback global opțional.
   const route = settings?.webhook_routes?.weekly_reports || {};
   return [...new Set([
     route?.primary?.url,
     route?.secondary?.url,
-    Deno.env.get('DISCORD_WEEKLY_REPORT_WEBHOOK_URL'),
   ].map((value) => String(value || '').trim()).filter(Boolean))];
 }
 

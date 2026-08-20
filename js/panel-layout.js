@@ -161,6 +161,10 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             .panel-global-header p { white-space:normal; line-height:1.35; }
             .panel-global-header { width:100% !important; max-width:none !important; min-height:76px !important; margin:0 !important; padding:12px 32px !important; display:flex !important; align-items:center !important; flex-wrap:wrap; gap:12px; flex:none; position:sticky !important; top:0; z-index:20; border-bottom:1px solid #1e293b; background:rgba(15,23,42,.72); backdrop-filter:blur(10px); text-align:left !important; }
             .panel-global-header .panel-global-title { display:flex; flex-direction:column; justify-content:center; min-width:0; flex:none; }
+            body[data-panel-page="calculator.html"] .panel-global-header,
+            body[data-panel-page="calculatorilegal.html"] .panel-global-header { display:flex !important; align-items:center; }
+            body[data-panel-page="calculator.html"] .panel-global-header .panel-global-search-host,
+            body[data-panel-page="calculatorilegal.html"] .panel-global-header .panel-global-search-host { flex:0 1 min(448px,45vw); width:min(448px,45vw); max-width:448px; margin-left:auto !important; min-width:0; }
             .panel-global-header h1,.panel-global-header h2 { margin:0 !important; color:#f1f5f9; font-size:1.125rem !important; font-weight:700; }
             .panel-global-header p { margin:3px 0 0 !important; color:#94a3b8; font-size:11px; }
             .community-toolbar { justify-content:flex-end !important; margin-bottom:18px !important; }
@@ -221,6 +225,10 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 .panel-global-header > div:not(.panel-header-tools) { flex:1; min-width:calc(100% - 58px); }
                 .panel-global-header h1,.panel-global-header h2 { font-size:1.08rem !important; }
                 .panel-global-header { min-height:76px !important; padding:12px 14px !important; }
+                body[data-panel-page="calculator.html"] .panel-global-header,
+                body[data-panel-page="calculatorilegal.html"] .panel-global-header { display:flex !important; }
+                body[data-panel-page="calculator.html"] .panel-global-header .panel-global-search-host,
+                body[data-panel-page="calculatorilegal.html"] .panel-global-header .panel-global-search-host { flex:1 0 100%; width:100%; max-width:none; margin:0; }
                 .panel-header-tools { position:static; order:20; width:100%; gap:10px; pointer-events:auto; inset:auto; }
                 .panel-header-tools .panel-search-host { position:static; transform:none; width:calc(100% - 48px); }
                 .panel-global-header:has(.panel-header-tools) { padding-right:14px !important; }

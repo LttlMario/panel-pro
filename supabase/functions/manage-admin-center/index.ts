@@ -66,7 +66,7 @@ Deno.serve(async request=>{
       if(error)throw error;
     };
     if(body.action==='platform_admins'){
-      const {data,error}=await db.from('platform_administrators').select('discord_id,display_name,active,added_by_discord_id,created_at,updated_at').order('created_at',{ascending:true});
+      const {data,error}=await db.from('platform_administrators').select('discord_id,display_name,active,created_at,updated_at').order('created_at',{ascending:true});
       if(error)throw error;
       const roots=PLATFORM_ADMIN_DISCORD_IDS.map(discord_id=>({discord_id,display_name:'Administrator principal',active:true,root:true}));
       const configured=(data||[]).map((item:any)=>({...item,root:false}));
@@ -76,7 +76,7 @@ Deno.serve(async request=>{
       const target=String(body.discord_id||'').trim(),displayName=String(body.display_name||'').trim().slice(0,120)||null;
       if(!snowflake(target))return reply({error:'Discord ID invalid. Introdu un ID numeric valid.'},400);
       if(PLATFORM_ADMIN_DISCORD_IDS.includes(target))return reply({error:'Acest ID este deja administrator principal.'},409);
-      const {error}=await db.from('platform_administrators').upsert({discord_id:target,display_name:displayName,active:true,added_by_discord_id:discordUser.id,updated_at:now()},{onConflict:'discord_id'});
+      const {error}=await db.from('platform_administrators').upsert({discord_id:target,display_name:displayName,active:true,updated_at:now()},{onConflict:'discord_id'});
       if(error)throw error;
       await audit('platform_admin_added',target,{display_name:displayName});
       return reply({ok:true});
@@ -134,9 +134,16 @@ Deno.serve(async request=>{
       return reply({online_members:(sessions||[]).filter((session:any,index:number,array:any[])=>index===array.findIndex((item:any)=>String(item.discord_id)===String(session.discord_id))).map((session:any)=>({...profiles.get(String(session.discord_id)),discord_id:String(session.discord_id),panel_role:roles.get(String(session.discord_id))||profiles.get(String(session.discord_id))?.role||profiles.get(String(session.discord_id))?.default_role||'Rol neconfigurat'}))});
     }
     if(body.action==='member_kick'){
-      const target=String(body.discord_id||'');if(!target)return reply({error:'Discord ID lipsește.'},400);
-      await db.from('organization_members').update({active:false}).eq('organization_id',organizationId).eq('discord_id',target);
-      await db.from('panel_sessions').update({revoked_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('discord_id',target).is('revoked_at',null);return reply({ok:true});
+      const target=String(body.discord_id||'').trim();
+      if(!snowflake(target))return reply({error:'Discord ID invalid.'},400);
+      if(target===String(discordUser.id))return reply({error:'Nu îți poți da singur kick.'},400);
+      if(PLATFORM_ADMIN_DISCORD_IDS.includes(target)||await isPlatformAdminAccount(db,target))return reply({error:'Un administrator al platformei nu poate fi dat kick.'},400);
+      const {error:memberError}=await db.from('organization_members').update({active:false}).eq('organization_id',organizationId).eq('discord_id',target);
+      if(memberError)throw memberError;
+      const {error:sessionError}=await db.from('panel_sessions').update({revoked_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('discord_id',target).is('revoked_at',null);
+      if(sessionError)throw sessionError;
+      await audit('member_kicked',target,{organization_id:organizationId});
+      return reply({ok:true});
     }
     if(body.action==='member_ban'){
       const target=String(body.discord_id||'').trim(),reason=String(body.reason||'Blocat de administrator').trim().slice(0,500)||'Blocat de administrator';
@@ -149,10 +156,18 @@ Deno.serve(async request=>{
       return reply({ok:true});
     }
     if(body.action==='member_delete'){
-      const target=String(body.discord_id||'');if(!target)return reply({error:'Discord ID lipsește.'},400);if(target===String(discordUser.id))return reply({error:'Nu îți poți șterge propriul cont de administrator.'},400);
-      await db.from('panel_sessions').delete().eq('discord_id',target);
-      await db.from('organization_members').delete().eq('organization_id',organizationId).eq('discord_id',target);
-      const {error}=await db.from('users').delete().eq('discord_id',target);if(error)throw error;return reply({ok:true});
+      const target=String(body.discord_id||'').trim();
+      if(!snowflake(target))return reply({error:'Discord ID invalid.'},400);
+      if(target===String(discordUser.id))return reply({error:'Nu îți poți șterge propriul cont de administrator.'},400);
+      if(PLATFORM_ADMIN_DISCORD_IDS.includes(target)||await isPlatformAdminAccount(db,target))return reply({error:'Un administrator al platformei nu poate fi șters din organizație.'},400);
+      const {error:sessionError}=await db.from('panel_sessions').delete().eq('discord_id',target);
+      if(sessionError)throw sessionError;
+      const {error:memberError}=await db.from('organization_members').delete().eq('organization_id',organizationId).eq('discord_id',target);
+      if(memberError)throw memberError;
+      const {error:userError}=await db.from('users').delete().eq('discord_id',target);
+      if(userError)throw userError;
+      await audit('member_deleted',target,{organization_id:organizationId});
+      return reply({ok:true});
     }
     if(body.action==='audit'){
       const {error}=await db.from('admin_audit_log').insert({organization_id:organizationId,actor_discord_id:discordUser.id,actor_name:actorName,action:String(body.event||'admin_action').slice(0,120),target_type:body.target_type||null,target_id:body.target_id==null?null:String(body.target_id),details:body.details||{}});if(error)throw error;return reply({ok:true});
@@ -205,5 +220,10 @@ Deno.serve(async request=>{
       const value=body.value;if(!value||typeof value!=='object')return reply({error:'Configurație invalidă.'},400);const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'pontaj_config',value,updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;await db.from('admin_audit_log').insert({organization_id:organizationId,actor_discord_id:discordUser.id,actor_name:actorName,action:'config_import',target_type:'app_settings',target_id:'pontaj_config'});return reply({ok:true});
     }
     return reply({error:'Acțiune necunoscută.'},400);
-  }catch(error){return reply({error:error instanceof Error?error.message:'Eroare internă.'},500)}
+  }catch(error){
+    const details=error&&typeof error==='object'?(error as {message?:unknown;status?:unknown}):null;
+    const message=error instanceof Error?error.message:String(details?.message||'Eroare internă.');
+    const status=Number(details?.status)||(/^Sesiunea|^Utilizatorul nu este înregistrat/.test(message)?401:500);
+    return reply({error:message},status);
+  }
 });
