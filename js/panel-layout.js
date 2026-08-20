@@ -127,7 +127,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             .panel-profile-menu strong,.panel-profile-menu small { display:block; max-width:125px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
             .panel-account-settings-link { display:flex; align-items:center; gap:7px; padding:7px 8px; color:#d1fae5; font-size:11px; font-weight:700; line-height:1.2; text-decoration:none; }
             .panel-account-settings-link:hover { background:#10273a; color:#6ee7b7; }
-            .panel-profile-dropdown { position:absolute; z-index:90; top:calc(100% + 7px); left:0; width:290px; max-width:min(290px,calc(100vw - 32px)); overflow:hidden; border:1px solid #334155; border-radius:16px; background:linear-gradient(180deg,#101d32 0%,#0b1628 100%); box-shadow:0 18px 42px rgba(0,0,0,.46); }
+            .panel-profile-dropdown { position:fixed; z-index:3901; top:12px; left:12px; width:290px; max-width:calc(100vw - 24px); max-height:calc(100vh - 24px); overflow-y:auto; overflow-x:hidden; border:1px solid #334155; border-radius:16px; background:linear-gradient(180deg,#101d32 0%,#0b1628 100%); box-shadow:0 18px 42px rgba(0,0,0,.46); }
             .panel-profile-dropdown-header { padding:12px 14px 10px; border-bottom:1px solid rgba(51,65,85,.75); }
             .panel-profile-dropdown-header strong { display:block; color:#f8fafc; font-size:12px; font-weight:800; }
             .panel-profile-dropdown-header small { display:block; margin-top:3px; color:#64748b; font-size:10px; }
@@ -661,6 +661,28 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         });
     }
 
+    function positionProfileDropdown(profileMenu) {
+        const dropdown = profileMenu?.querySelector('.panel-profile-dropdown');
+        const summary = profileMenu?.querySelector('summary');
+        if (!dropdown || !summary || !profileMenu.open) return;
+        const anchor = summary.getBoundingClientRect();
+        const viewportPadding = 12;
+        const dropdownWidth = Math.min(290, Math.max(220, window.innerWidth - viewportPadding * 2));
+        const dropdownHeight = Math.min(dropdown.scrollHeight || 0, Math.max(220, window.innerHeight - viewportPadding * 2));
+        let left = anchor.right + 10;
+        if (left + dropdownWidth > window.innerWidth - viewportPadding) {
+            left = anchor.left;
+        }
+        left = Math.max(viewportPadding, Math.min(left, window.innerWidth - dropdownWidth - viewportPadding));
+        let top = anchor.bottom + 7;
+        if (top + dropdownHeight > window.innerHeight - viewportPadding) {
+            top = Math.max(viewportPadding, window.innerHeight - dropdownHeight - viewportPadding);
+        }
+        dropdown.style.width = `${dropdownWidth}px`;
+        dropdown.style.left = `${left}px`;
+        dropdown.style.top = `${top}px`;
+    }
+
     function renderProfileActivity(items = []) {
         document.querySelectorAll('[data-profile-activity-list]').forEach((list) => {
             list.replaceChildren();
@@ -933,9 +955,15 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             const summary=profileMenu.querySelector('summary');
             const gear=document.createElement('button');
             gear.type='button'; gear.className='panel-profile-gear'; gear.textContent='⚙'; gear.title='Setări profil'; gear.setAttribute('aria-label','Deschide setările profilului');
-            gear.addEventListener('click',(event)=>{event.preventDefault();event.stopPropagation();profileMenu.open=!profileMenu.open;});
-            gear.addEventListener('keydown',(event)=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();profileMenu.open=!profileMenu.open;}});
+            gear.addEventListener('click',(event)=>{event.preventDefault();event.stopPropagation();profileMenu.open=!profileMenu.open;positionProfileDropdown(profileMenu);});
+            gear.addEventListener('keydown',(event)=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();profileMenu.open=!profileMenu.open;positionProfileDropdown(profileMenu);}});
             summary?.appendChild(gear);
+        }
+        if(profileMenu && profileMenu.dataset.positionBound !== 'true'){
+            profileMenu.dataset.positionBound='true';
+            profileMenu.addEventListener('toggle',()=>positionProfileDropdown(profileMenu));
+            window.addEventListener('resize',()=>positionProfileDropdown(profileMenu));
+            window.addEventListener('scroll',()=>positionProfileDropdown(profileMenu),true);
         }
         if(profileMenu && profileMenu.dataset.dismissBound !== 'true'){
             profileMenu.dataset.dismissBound='true';
