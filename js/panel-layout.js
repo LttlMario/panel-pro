@@ -634,7 +634,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         document.querySelectorAll('[data-profile-organization]').forEach((element) => {
             element.textContent = String(organizationName);
         });
-        const expiresAt = Number(localStorage.getItem('panel_session_expires_at') || 0);
+        const expiresAt = window.getPanelSessionExpiresAt?.() || 0;
         const sessionLabel = expiresAt > Date.now()
             ? `Activă · până la ${new Date(expiresAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}`
             : 'Reautentificare necesară';

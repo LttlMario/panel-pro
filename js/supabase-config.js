@@ -23,6 +23,17 @@ window.clearPanelSession = function clearPanelSession() {
     window.clearPanelDiscordAccessToken?.();
 };
 
+// Expirarea poate veni din Edge Functions ca ISO string sau, pentru sesiuni
+// mai vechi, ca timestamp numeric. Normalizăm ambele formate într-un singur
+// timestamp pentru toate verificările din panou.
+window.getPanelSessionExpiresAt = function getPanelSessionExpiresAt() {
+    const value = localStorage.getItem('panel_session_expires_at') || '';
+    const numeric = Number(value);
+    if (Number.isFinite(numeric) && numeric > 0) return numeric;
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
 // Discord OAuth tokens are bearer credentials. Keep them only in the current
 // tab and migrate any legacy localStorage value once, then remove it.
 window.getPanelDiscordAccessToken = function getPanelDiscordAccessToken() {
@@ -42,7 +53,7 @@ window.clearPanelDiscordAccessToken = function clearPanelDiscordAccessToken() {
     if (legacyToken) window.setPanelDiscordAccessToken(legacyToken);
 })();
 (() => {
-    const expires = Number(localStorage.getItem('panel_session_expires_at') || 0);
+    const expires = window.getPanelSessionExpiresAt();
     if (expires && expires <= Date.now()) window.clearPanelSession();
 })();
 
@@ -206,7 +217,7 @@ window.panelRequestJson = async function panelRequestJson(functionName, options 
 
 window.ensurePanelSession = async function ensurePanelSession() {
     const current = localStorage.getItem('panel_session_token');
-    const expires = Number(localStorage.getItem('panel_session_expires_at') || 0);
+    const expires = window.getPanelSessionExpiresAt();
     const activeOrganizationId = window.getActiveOrganizationId?.();
     // Un token valid nu este suficient: paginile au nevoie și de organizația
     // activă salvată pentru filtrarea datelor și rutarea notificărilor.
