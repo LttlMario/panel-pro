@@ -504,20 +504,29 @@
                     <div class="category-group" id="cat-smeltery">
                         <div class="category-header" onclick="toggleCategory('cat-smeltery')">🏭 Topitorie</div>
                         <div class="category-content" id="smelteryForm">
-                            <div class="item-row recipe-row"><span class="recipe-equation">1 Cărbune = 4 Minereu cărbune</span></div>
-                            <div class="item-row recipe-row"><span class="recipe-equation">1 Cărbune = 1 Mesteacăn</span></div>
-                            <div class="item-row recipe-row"><span class="recipe-equation">1 Sulf = 4 Minereu de sulf</span></div>
-                            <div class="item-row recipe-row"><span class="recipe-equation">1 Cupru = 4 Minereu de cupru</span></div>
-                            <div class="item-row recipe-row"><span class="recipe-equation">1 Fier = 4 Minereu de fier</span></div>
-                            <div class="item-row recipe-row"><span class="recipe-equation">1 Aur = 4 Minereu de aur</span></div>
-                            <div class="item-row recipe-row"><span class="recipe-equation">1 Aluminiu = 4 Minereu de aluminiu</span></div>
-                            <div class="item-row recipe-row"><span class="recipe-equation">1 Plumb = 4 Minereu de plumb</span></div>
-                            <div class="item-row recipe-row"><span class="recipe-equation">1 Oțel = 1 Fier + 1 Cărbune</span></div>
-                            <div class="item-row recipe-row"><span class="recipe-equation">1 Arc = 1 Aluminiu</span></div>
-                            <div class="item-row recipe-row"><span class="recipe-equation">Tavă x2 = 1 Oțel</span></div>
-                            <div class="item-row recipe-row"><span class="recipe-equation">Cărbune x2 = 1 Stejar</span></div>
-                            <div class="item-row recipe-row"><span class="recipe-equation">Cărbune x3 = 1 Cedru</span></div>
-                            <div class="item-row recipe-row"><span class="recipe-equation">1 Jantă aluminiu = 10 Aluminiu</span></div>
+                            <div class="item-row" style="margin-bottom: 10px;">
+                                <span class="item-name">Produs</span>
+                                <select id="smelteryResource" onchange="calculateAll()" style="width: 100%;">
+                                    <option value="minereu_carbune">Minereu cărbune</option>
+                                    <option value="mesteacan">Mesteacăn</option>
+                                    <option value="minereu_sulf">Minereu de sulf</option>
+                                    <option value="minereu_cupru">Minereu de cupru</option>
+                                    <option value="minereu_fier">Minereu de fier</option>
+                                    <option value="minereu_aur">Minereu de aur</option>
+                                    <option value="minereu_aluminiu">Minereu de aluminiu</option>
+                                    <option value="minereu_plumb">Minereu de plumb</option>
+                                    <option value="otel">Oțel</option>
+                                    <option value="arc">Arc</option>
+                                    <option value="tava_x2">Tavă x2</option>
+                                    <option value="stejar">Stejar</option>
+                                    <option value="cedru">Cedru</option>
+                                    <option value="janta_aluminiu">Jantă aluminiu</option>
+                                </select>
+                            </div>
+                            <div class="item-row">
+                                <span class="item-name">Cantitate dorită</span>
+                                <input type="number" id="smelteryQty" min="0" step="1" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
                         </div>
                     </div>
 
@@ -609,6 +618,12 @@
                             <div class="result-card"><div class="item-title">Plicuri Goale</div><div class="item-value" id="mush_res_plicuri_goale">0 buc</div></div>
                             <div class="result-card"><div class="item-title">Total Greutate</div><div class="item-value" id="mush_res_kg">0.0 KG</div></div>
                         </div>
+                    </div>
+
+                    <!-- Box 6: Necesar Materiale Topitorie -->
+                    <div class="result-box" id="box_smeltery">
+                        <h3>Necesar Materiale Topitorie</h3>
+                        <div class="grid-results" id="smelteryResultsGrid"></div>
                     </div>
 
 
@@ -857,6 +872,23 @@
 
         };
 
+        const smelteryRecipes = {
+            minereu_carbune: { name: 'Minereu cărbune', produces: 4, base: { 'Cărbune': 1 } },
+            mesteacan: { name: 'Mesteacăn', produces: 1, base: { 'Cărbune': 1 } },
+            minereu_sulf: { name: 'Minereu de sulf', produces: 4, base: { 'Sulf': 1 } },
+            minereu_cupru: { name: 'Minereu de cupru', produces: 4, base: { 'Cupru': 1 } },
+            minereu_fier: { name: 'Minereu de fier', produces: 4, base: { 'Fier': 1 } },
+            minereu_aur: { name: 'Minereu de aur', produces: 4, base: { 'Aur': 1 } },
+            minereu_aluminiu: { name: 'Minereu de aluminiu', produces: 4, base: { 'Aluminiu': 1 } },
+            minereu_plumb: { name: 'Minereu de plumb', produces: 4, base: { 'Plumb': 1 } },
+            otel: { name: 'Oțel', produces: 1, base: { 'Fier': 1, 'Cărbune': 1 } },
+            arc: { name: 'Arc', produces: 1, base: { 'Aluminiu': 1 } },
+            tava_x2: { name: 'Tavă x2', produces: 2, base: { 'Oțel': 1 } },
+            stejar: { name: 'Stejar', produces: 1, base: { 'Cărbune': 2 } },
+            cedru: { name: 'Cedru', produces: 1, base: { 'Cărbune': 3 } },
+            janta_aluminiu: { name: 'Jantă aluminiu', produces: 1, base: { 'Aluminiu': 10 } }
+        };
+
         function toggleCategory(catId) {
             const currentElement = document.getElementById(catId);
             const isOpen = currentElement.classList.contains('active');
@@ -930,6 +962,7 @@
             document.getElementById('plicuriResource').selectedIndex = 0;
             document.getElementById('weedResource').selectedIndex = 0;
             document.getElementById('mushroomsResource').selectedIndex = 0;
+            document.getElementById('smelteryResource').selectedIndex = 0;
             calculateAll();
         }
 
@@ -1191,12 +1224,31 @@
             const totalMushroomsCount = mushPinkLight + mushOysterRosu + mushAmanitaRosie + mushBlueLight + mushOysterGalben + mushAmanitaVerde + mushPurpleLight + mushOysterAlbastru + mushPsilocybe;
             const mushTotalKg = (mushAcetona * 2) + ((totalMushroomsCount + mushPlicuriGoale) * 0.10);
 
+            const smelteryResource = document.getElementById('smelteryResource').value;
+            const smelteryQtyVal = document.getElementById('smelteryQty').value;
+            let hasSmeltery = false;
+            let smelteryQty = 0;
+            let smelteryCrafts = 0;
+            let smelteryRecipe = smelteryRecipes[smelteryResource];
+            let smelteryMaterials = {};
+
+            if (smelteryQtyVal !== '' && !isNaN(smelteryQtyVal) && parseFloat(smelteryQtyVal) > 0 && smelteryRecipe) {
+                hasSmeltery = true;
+                smelteryQty = parseFloat(smelteryQtyVal);
+                smelteryCrafts = Math.ceil(smelteryQty / smelteryRecipe.produces);
+
+                for (const material in smelteryRecipe.base) {
+                    smelteryMaterials[material] = smelteryRecipe.base[material] * smelteryCrafts;
+                }
+            }
+
             const boxWeaponTotal = document.getElementById('box_weapon_total');
             const boxWeapons = document.getElementById('box_weapons');
             const boxWeaponParts = document.getElementById('box_weapon_parts');
             const boxPlicuri = document.getElementById('box_plicuri');
             const boxWeed = document.getElementById('box_weed');
             const boxMushrooms = document.getElementById('box_mushrooms');
+            const boxSmeltery = document.getElementById('box_smeltery');
             const boxRawMaterials = document.getElementById('box_raw_materials');
 
 
@@ -1269,6 +1321,31 @@
                 document.getElementById('mush_res_kg').innerText = mushTotalKg.toFixed(2) + " KG";
             } else {
                 boxMushrooms.classList.remove('active');
+            }
+
+            if (hasSmeltery) {
+                boxSmeltery.classList.add('active');
+                const smelteryGrid = document.getElementById('smelteryResultsGrid');
+                smelteryGrid.innerHTML = '';
+
+                const addSmelteryCard = (title, value) => {
+                    const card = document.createElement('div');
+                    card.className = 'result-card';
+                    card.innerHTML = `<div class="item-title">${title}</div><div class="item-value">${value}</div>`;
+                    smelteryGrid.appendChild(card);
+                };
+
+                addSmelteryCard('Produs', smelteryRecipe.name);
+                addSmelteryCard('Cantitate dorită', formatNr(smelteryQty));
+                addSmelteryCard('Loturi necesare', smelteryCrafts);
+                addSmelteryCard('Cantitate produsă', smelteryCrafts * smelteryRecipe.produces);
+
+                for (const material in smelteryMaterials) {
+                    addSmelteryCard(material, formatNr(smelteryMaterials[material]));
+                }
+            } else {
+                boxSmeltery.classList.remove('active');
+                document.getElementById('smelteryResultsGrid').innerHTML = '';
             }
 
             if (hasWeapons || hasAmmo || hasIndependentParts) {
