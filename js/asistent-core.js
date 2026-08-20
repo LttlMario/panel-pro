@@ -127,7 +127,7 @@
         // Robotul moștenește exclusiv accesul normal al organizației.
         // Nu există o listă separată de pagini pentru asistent.
         return selectedPages().filter((page) => ![
-            'admin.html', 'logs.html', 'diagnostic.html', 'discord-configurare.html',
+            'admin.html', 'logs.html', 'diagnostic.html', 'secrete-platforma.html', 'discord-configurare.html',
             'organizatii.html', 'vouchere.html', 'developer.html', 'administrare-organizatie.html'
         ].includes(page));
     }

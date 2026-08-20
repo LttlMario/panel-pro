@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
+import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -69,10 +70,7 @@ Deno.serve(async (request) => {
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
     const body = await request.json().catch(() => ({}));
 
-    const cronSecret =
-      Deno.env.get('STATUS_LIVE_CRON_SECRET') ||
-      Deno.env.get('CRON_SECRET') ||
-      '';
+    const cronSecret = await getPlatformSecret(db, 'status_live_cron_secret');
 
     const receivedCronSecret =
       request.headers.get('x-cron-secret') || '';

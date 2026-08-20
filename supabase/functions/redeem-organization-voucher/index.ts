@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
+import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -45,11 +46,11 @@ Deno.serve(async (request) => {
 
   try {
     const key = serviceKey();
-    const botToken = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
     if (!key) throw new Error('Cheia secretă Supabase lipsește.');
-    if (!botToken) throw new Error('DISCORD_BOT_TOKEN lipsește din configurația Supabase.');
 
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    const botToken = await getPlatformSecret(db, 'discord_bot_token');
+    if (!botToken) throw new Error('DISCORD_BOT_TOKEN lipsește din configurația Supabase.');
     const body = await request.json();
     const accessToken = String(body.access_token || '').trim();
     let discordId = '';

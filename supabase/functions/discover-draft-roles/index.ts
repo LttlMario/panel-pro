@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
+import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = { 'Access-Control-Allow-Origin': 'https://lttlmario.github.io', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Max-Age': '86400', 'Content-Type': 'application/json' };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
@@ -24,7 +25,7 @@ Deno.serve(async (request) => {
     if (kind === 'secondary' && String(voucher.package_code || 'standard').toLowerCase() !== 'full') return reply({ error: 'Pachetul Standard permite un singur server Discord.' }, 403);
     if (kind === 'primary' && voucher.guild_id && String(voucher.guild_id) !== guildId) return reply({ error: 'Guild ID-ul nu corespunde voucherului.' }, 403);
 
-    const bot = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
+    const bot = await getPlatformSecret(db, 'discord_bot_token');
     if (!bot) return reply({ error: 'Botul Discord nu este configurat în Supabase.' }, 500);
     const botHeaders = discordBotHeaders(bot);
     const [guildResponse, rolesResponse] = await Promise.all([

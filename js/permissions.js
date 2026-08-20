@@ -17,7 +17,8 @@ const AdministrativePages = new Set([
     'organizatii.html',
     'administrare-organizatii-platforma.html',
     'vouchere.html',
-    'developer.html'
+    'developer.html',
+    'secrete-platforma.html'
 ]);
 
 

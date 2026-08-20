@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
+import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -123,11 +124,6 @@ Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
 
-  const cronSecret = String(Deno.env.get('CRON_SECRET') || '').trim();
-  if (!cronSecret || request.headers.get('x-cron-secret') !== cronSecret) {
-    return reply({ error: 'Unauthorized' }, 401);
-  }
-
   try {
     const body = await request.json().catch(() => ({}));
     const now = new Date();
@@ -140,6 +136,8 @@ Deno.serve(async (request) => {
     const key = serviceKey();
     if (!key) throw new Error('Cheia secretă Supabase lipsește.');
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    const cronSecret = await getPlatformSecret(db, 'cron_secret');
+    if (!cronSecret || request.headers.get('x-cron-secret') !== cronSecret) return reply({ error: 'Unauthorized' }, 401);
     const period = getWeeklyPeriod(now);
     const { data: organizations, error: organizationsError } = await db
       .from('organizations')

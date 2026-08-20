@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
+import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = { 'Access-Control-Allow-Origin': 'https://lttlmario.github.io', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Max-Age': '86400', 'Content-Type': 'application/json' };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
@@ -51,7 +52,7 @@ Deno.serve(async (req) => {
     if (!guildId && voucher.guild_id) guildId = String(voucher.guild_id).trim();
 
     if (guildId) {
-      const botToken = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
+      const botToken = await getPlatformSecret(db, 'discord_bot_token');
       if (!botToken) throw new Error('Botul aplicației nu este configurat în Supabase.');
       const botHeaders = { Authorization: `Bot ${botToken}` };
       const [guild, member] = await Promise.all([

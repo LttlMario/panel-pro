@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { isPlatformAdminAccount } from '../_shared/platform-admin.ts';
 import { requirePanelSession } from '../_shared/panel-session.ts';
+import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -200,11 +201,11 @@ Deno.serve(async (request) => {
   try {
     const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
       || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
-    const botToken = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
     if (!key) throw new Error('Cheia secretă Supabase lipsește.');
-    if (!botToken) throw new Error('DISCORD_BOT_TOKEN lipsește din configurația Supabase.');
 
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    const botToken = await getPlatformSecret(db, 'discord_bot_token');
+    if (!botToken) throw new Error('DISCORD_BOT_TOKEN lipsește din configurația Supabase.');
     const body = await request.json();
     const action = String(body.action || 'owner_get').trim();
     if (!['owner_get', 'owner_update'].includes(action)) return reply({ error: 'Acțiune necunoscută.' }, 400);

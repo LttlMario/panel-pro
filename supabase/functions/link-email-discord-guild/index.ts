@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
+import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -22,14 +23,13 @@ Deno.serve(async (request) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ||
       JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const botToken = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
     const jwt = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
     const body = await request.json().catch(() => ({}));
     const discordAccessToken = String(body.discord_access_token || '').trim();
     const guildId = String(body.guild_id || '').trim();
     const organizationId = String(body.organization_id || '').trim();
 
-    if (!serviceKey || !supabaseUrl || !botToken) throw new Error('Configurația serverului lipsește.');
+    if (!serviceKey || !supabaseUrl) throw new Error('Configurația serverului lipsește.');
     if (!jwt) return reply({ error: 'Sesiunea email lipsește sau a expirat.' }, 401);
     if (!discordAccessToken) return reply({ error: 'Sesiunea Discord lipsește.' }, 400);
     if (!/^\d{15,22}$/.test(guildId)) return reply({ error: 'Serverul Discord selectat este invalid.' }, 400);
@@ -38,6 +38,8 @@ Deno.serve(async (request) => {
     }
 
     const db = createClient(supabaseUrl, serviceKey);
+    const botToken = await getPlatformSecret(db, 'discord_bot_token');
+    if (!botToken) throw new Error('Configurația serverului lipsește.');
     const { data: authData, error: authError } = await db.auth.getUser(jwt);
     if (authError || !authData.user) return reply({ error: 'Sesiunea email nu este validă.' }, 401);
     if (!authData.user.email_confirmed_at) return reply({ error: 'Confirmă mai întâi adresa de email.' }, 403);

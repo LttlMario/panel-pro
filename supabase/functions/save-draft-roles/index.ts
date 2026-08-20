@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
+import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = { 'Access-Control-Allow-Origin': 'https://lttlmario.github.io', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Max-Age': '86400', 'Content-Type': 'application/json' };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
@@ -27,7 +28,7 @@ Deno.serve(async (request) => {
     allowedGuilds.add(primaryGuildId);
     if (roles.some((role: any) => !/^\d{15,22}$/.test(String(role.guild_id || primaryGuildId)) || !allowedGuilds.has(String(role.guild_id || primaryGuildId)))) return reply({ error: 'Un rol selectat nu aparține unui server configurat.' }, 400);
     const guildIds = [...new Set(roles.map((role: any) => String(role.guild_id || primaryGuildId)))];
-    const bot = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
+    const bot = await getPlatformSecret(db, 'discord_bot_token');
     if (!bot) return reply({ error: 'Botul Discord nu este configurat în Supabase.' }, 500);
     const availableRoles = new Set<string>();
     for (const guildId of guildIds) {

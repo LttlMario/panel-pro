@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { isPlatformAdminAccount, isPlatformUserBanned } from '../_shared/platform-admin.ts';
 import { packageAllowsPage, resolvePackageFeatures } from '../_shared/package-features.ts';
+import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -53,10 +54,10 @@ Deno.serve(async (request) => {
     if (emailLogin && voucherCode) return reply({ error: 'Voucherul se verifică numai prin loginul Discord.' }, 400);
     if (!emailLogin && !accessToken) return reply({ error: 'Tokenul Discord lipsește.' }, 400);
     const key = serviceKey();
-    const botToken = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
     if (!key) throw new Error('Cheia secretă Supabase lipsește.');
-    if (!botToken) throw new Error('DISCORD_BOT_TOKEN lipsește. Botul comun trebuie configurat.');
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    const botToken = await getPlatformSecret(db, 'discord_bot_token');
+    if (!botToken) throw new Error('DISCORD_BOT_TOKEN lipsește. Botul comun trebuie configurat.');
     const requestIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown')
       .split(',')[0].trim().slice(0, 120);
     const { data: syncAllowed, error: syncRateError } = await db.rpc('consume_panel_rate_limit', {

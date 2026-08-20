@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
-import { isPlatformAdminAccount, PLATFORM_ADMIN_DISCORD_IDS } from '../_shared/platform-admin.ts';
+import { getPlatformAdminDiscordIds, isPlatformAdminAccount, PLATFORM_ADMIN_DISCORD_IDS } from '../_shared/platform-admin.ts';
 const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json'};
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
 Deno.serve(async request=>{
@@ -68,14 +68,15 @@ Deno.serve(async request=>{
     if(body.action==='platform_admins'){
       const {data,error}=await db.from('platform_administrators').select('discord_id,display_name,active,created_at,updated_at').order('created_at',{ascending:true});
       if(error)throw error;
-      const roots=PLATFORM_ADMIN_DISCORD_IDS.map(discord_id=>({discord_id,display_name:'Administrator principal',active:true,root:true}));
+      const rootIds=await getPlatformAdminDiscordIds(db);
+      const roots=rootIds.map(discord_id=>({discord_id,display_name:'Administrator principal',active:true,root:true}));
       const configured=(data||[]).map((item:any)=>({...item,root:false}));
-      return reply({administrators:[...roots,...configured.filter((item:any)=>!PLATFORM_ADMIN_DISCORD_IDS.includes(String(item.discord_id)))]});
+      return reply({administrators:[...roots,...configured.filter((item:any)=>!rootIds.includes(String(item.discord_id)))]});
     }
     if(body.action==='platform_admin_add'){
       const target=String(body.discord_id||'').trim(),displayName=String(body.display_name||'').trim().slice(0,120)||null;
       if(!snowflake(target))return reply({error:'Discord ID invalid. Introdu un ID numeric valid.'},400);
-      if(PLATFORM_ADMIN_DISCORD_IDS.includes(target))return reply({error:'Acest ID este deja administrator principal.'},409);
+      if((await getPlatformAdminDiscordIds(db)).includes(target))return reply({error:'Acest ID este deja administrator principal.'},409);
       const {error}=await db.from('platform_administrators').upsert({discord_id:target,display_name:displayName,active:true,updated_at:now()},{onConflict:'discord_id'});
       if(error)throw error;
       await audit('platform_admin_added',target,{display_name:displayName});
@@ -84,7 +85,7 @@ Deno.serve(async request=>{
     if(body.action==='platform_admin_remove'){
       const target=String(body.discord_id||'').trim();
       if(!snowflake(target))return reply({error:'Discord ID invalid.'},400);
-      if(PLATFORM_ADMIN_DISCORD_IDS.includes(target))return reply({error:'Administratorul principal nu poate fi eliminat.'},400);
+      if((await getPlatformAdminDiscordIds(db)).includes(target))return reply({error:'Administratorul principal nu poate fi eliminat.'},400);
       if(target===String(discordUser.id))return reply({error:'Nu îți poți elimina propriul acces.'},400);
       const {error}=await db.from('platform_administrators').update({active:false,updated_at:now()}).eq('discord_id',target);
       if(error)throw error;
@@ -100,7 +101,7 @@ Deno.serve(async request=>{
     if(body.action==='platform_ban'){
       const target=String(body.discord_id||'').trim(),reason=String(body.reason||'Blocat de administrator').trim().slice(0,500)||'Blocat de administrator';
       if(!snowflake(target))return reply({error:'Discord ID invalid.'},400);
-      if(PLATFORM_ADMIN_DISCORD_IDS.includes(target)||await isPlatformAdminAccount(db,target))return reply({error:'Un administrator al platformei nu poate fi blocat.'},400);
+      if((await isPlatformAdminAccount(db,target)))return reply({error:'Un administrator al platformei nu poate fi blocat.'},400);
       const {error}=await db.from('platform_user_bans').upsert({discord_id:target,reason,active:true,banned_by_discord_id:discordUser.id,updated_at:now()},{onConflict:'discord_id'});
       if(error)throw error;
       await db.from('panel_sessions').update({revoked_at:now()}).eq('discord_id',target).is('revoked_at',null);
@@ -137,7 +138,7 @@ Deno.serve(async request=>{
       const target=String(body.discord_id||'').trim();
       if(!snowflake(target))return reply({error:'Discord ID invalid.'},400);
       if(target===String(discordUser.id))return reply({error:'Nu îți poți da singur kick.'},400);
-      if(PLATFORM_ADMIN_DISCORD_IDS.includes(target)||await isPlatformAdminAccount(db,target))return reply({error:'Un administrator al platformei nu poate fi dat kick.'},400);
+      if((await isPlatformAdminAccount(db,target)))return reply({error:'Un administrator al platformei nu poate fi dat kick.'},400);
       const {error:memberError}=await db.from('organization_members').update({active:false}).eq('organization_id',organizationId).eq('discord_id',target);
       if(memberError)throw memberError;
       const {error:sessionError}=await db.from('panel_sessions').update({revoked_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('discord_id',target).is('revoked_at',null);
@@ -148,7 +149,7 @@ Deno.serve(async request=>{
     if(body.action==='member_ban'){
       const target=String(body.discord_id||'').trim(),reason=String(body.reason||'Blocat de administrator').trim().slice(0,500)||'Blocat de administrator';
       if(!snowflake(target))return reply({error:'Discord ID invalid.'},400);
-      if(PLATFORM_ADMIN_DISCORD_IDS.includes(target)||await isPlatformAdminAccount(db,target))return reply({error:'Un administrator al platformei nu poate fi blocat.'},400);
+      if((await isPlatformAdminAccount(db,target)))return reply({error:'Un administrator al platformei nu poate fi blocat.'},400);
       const {error}=await db.from('platform_user_bans').upsert({discord_id:target,reason,active:true,banned_by_discord_id:discordUser.id,updated_at:now()},{onConflict:'discord_id'});
       if(error)throw error;
       await db.from('panel_sessions').update({revoked_at:now()}).eq('discord_id',target).is('revoked_at',null);
@@ -159,7 +160,7 @@ Deno.serve(async request=>{
       const target=String(body.discord_id||'').trim();
       if(!snowflake(target))return reply({error:'Discord ID invalid.'},400);
       if(target===String(discordUser.id))return reply({error:'Nu îți poți șterge propriul cont de administrator.'},400);
-      if(PLATFORM_ADMIN_DISCORD_IDS.includes(target)||await isPlatformAdminAccount(db,target))return reply({error:'Un administrator al platformei nu poate fi șters din organizație.'},400);
+      if((await isPlatformAdminAccount(db,target)))return reply({error:'Un administrator al platformei nu poate fi șters din organizație.'},400);
       const {error:sessionError}=await db.from('panel_sessions').delete().eq('discord_id',target);
       if(sessionError)throw sessionError;
       const {error:memberError}=await db.from('organization_members').delete().eq('organization_id',organizationId).eq('discord_id',target);

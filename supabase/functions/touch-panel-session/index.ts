@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
+import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -12,8 +13,6 @@ const reply = (data: unknown, status = 200) =>
 const serviceKey = () =>
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ||
   JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}').default;
-
-const botToken = () => String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
 
 const sha256 = async (value: string) =>
   Array.from(
@@ -96,7 +95,7 @@ Deno.serve(async (request) => {
       return reply({ error: 'Serverul Discord al organizației nu mai este configurat.', code: 'ORGANIZATION_REVOKED' }, 403);
     }
 
-    const discordBotToken = botToken();
+    const discordBotToken = await getPlatformSecret(db, 'discord_bot_token');
     if (!discordBotToken) throw new Error('DISCORD_BOT_TOKEN lipsește din configurația Supabase.');
     const guildId = String(guild.guild_id);
     const guildResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}`, {

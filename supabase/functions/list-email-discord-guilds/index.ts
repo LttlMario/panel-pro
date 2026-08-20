@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
+import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -22,7 +23,6 @@ Deno.serve(async (request) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ||
       JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const botToken = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
     const jwt = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
     const body = await request.json().catch(() => ({}));
     const discordAccessToken = String(body.discord_access_token || '').trim();
@@ -32,6 +32,7 @@ Deno.serve(async (request) => {
     if (!discordAccessToken) return reply({ error: 'Aprobarea Discord lipsește sau a expirat.' }, 400);
 
     const db = createClient(supabaseUrl, serviceKey);
+    const botToken = await getPlatformSecret(db, 'discord_bot_token');
     const { data: authData, error: authError } = await db.auth.getUser(jwt);
     if (authError || !authData.user) return reply({ error: 'Sesiunea email nu este validă.' }, 401);
     if (!authData.user.email_confirmed_at) return reply({ error: 'Confirmă mai întâi adresa de email.' }, 403);

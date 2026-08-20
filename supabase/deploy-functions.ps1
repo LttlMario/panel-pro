@@ -28,6 +28,7 @@ $functions = @(
     'send-weekly-shift-report',
     'send-organization-expiry-notifications',
     'manage-admin-center',
+    'manage-platform-secrets',
     'manage-organizations',
     'manage-owned-organization',
     'redeem-organization-voucher',
