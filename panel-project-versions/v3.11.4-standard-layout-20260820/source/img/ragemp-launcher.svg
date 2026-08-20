@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" role="img" aria-labelledby="title">
+  <title id="title">RAGE Multiplayer</title>
+  <defs><linearGradient id="r" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ef4444"/><stop offset="1" stop-color="#991b1b"/></linearGradient></defs>
+  <rect width="320" height="120" rx="24" fill="#111827"/>
+  <path d="M35 31h58c18 0 27 9 27 24 0 11-5 18-15 22l17 20H91L78 80H63v17H35V31Zm28 20v11h26c4 0 6-2 6-6s-2-5-6-5H63Z" fill="url(#r)"/>
+  <text x="132" y="67" fill="#fff" font-family="Segoe UI,Arial,sans-serif" font-size="35" font-weight="900">RAGE</text>
+  <text x="134" y="89" fill="#9ca3af" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="2">MULTIPLAYER</text>
+</svg>

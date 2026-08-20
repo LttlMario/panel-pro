@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administrare versiuni - Admin</title>
+  <link rel="stylesheet" href="css/global-footer.css">
+  <script src="js/project-version.js?v=3.11.4"></script>
+  <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+    <script src="js/permissions.js?v=4.6.0"></script>
+    <script src="js/panel-layout.js?v=4.23.0"></script>
+  <style>
+    *{box-sizing:border-box} body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:#020617;color:#f8fafc;font-family:Inter,Segoe UI,Arial,sans-serif}
+    main{width:min(100% - 28px,940px);margin:0 auto;padding:32px 0 50px;flex:1}
+    .card{border:1px solid #1e293b;background:#0f172a;border-radius:22px;padding:26px;margin-bottom:18px} .eyebrow{color:#fbbf24;font-size:11px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}
+    h1{margin:8px 0 0;font-size:36px} h2{margin:0 0 14px;font-size:21px} p,li{color:#cbd5e1;font-size:14px;line-height:1.7} code{padding:2px 7px;border-radius:7px;background:#020617;color:#6ee7b7}
+    .warning{border-color:rgba(251,191,36,.28);background:rgba(245,158,11,.06)} .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px} a{padding:10px 14px;border:1px solid #334155;border-radius:11px;color:#e2e8f0;text-decoration:none;font-size:12px;font-weight:800}
+    #access-denied{display:none;text-align:center} #admin-content{display:none}
+  </style>
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body>
+  <main>
+    <section id="access-denied" class="card warning">
+      <p class="eyebrow">Acces restricționat</p>
+      <h1>Doar pentru administratori</h1>
+        <p>Această pagină conține informații tehnice și este disponibilă numai administratorului platformei.</p>
+      <div class="actions"><a href="index.html">Înapoi la Dashboard</a></div>
+    </section>
+
+    <div id="admin-content">
+      <header class="card warning">
+        <p class="eyebrow">Administrare internă • Admin platformă</p>
+        <h1>Administrare versiuni</h1>
+        <p>Versiunea curentă este <strong data-panel-version>v3.11.0</strong>. Informațiile de aici nu apar în changelog-ul public.</p>
+        <div class="actions"><a href="index.html">← Dashboard</a><a href="changelog.html">Vezi changelog-ul public</a></div>
+      </header>
+
+      <section class="card">
+        <h2>Publicarea unei versiuni noi</h2>
+        <ol>
+          <li>Modifică <code>version</code> și <code>releasedAt</code> în <code>js/project-version.js</code>.</li>
+          <li>Adaugă noua versiune în partea de sus din <code>changelog.html</code>.</li>
+          <li>Scrie numai schimbări confirmate: funcții noi, îmbunătățiri și probleme rezolvate.</li>
+          <li>Verifică Dashboard, Pontaj, Cereri, Rapoarte, Contracte, Admin și versiunea mobilă.</li>
+          <li>Publică fișierele actualizate pe GitHub Pages și verifică dacă nu există fișiere vechi în cache.</li>
+          <li>După fiecare modificare, creează o arhivă în <code>panel-project-versions/vX.Y.Z-nume-actualizare/</code> cu manifestul, fișierele afectate, funcțiile Supabase și SQL-ul.</li>
+        </ol>
+      </section>
+
+      <section class="card">
+        <h2>Arhive și rollback</h2>
+        <p>Fiecare versiune publicată este păstrată în <code>panel-project-versions/</code>. În folderul versiunii găsești fișierele modificate, funcțiile Edge, migrarea SQL, commit-ul GitHub și statusul deploy-ului.</p>
+        <div class="actions"><a href="panel-project-versions/README.md">Deschide indexul arhivelor</a></div>
+      </section>
+
+      <section class="card">
+        <h2>Regula versiunilor</h2>
+        <ul>
+          <li><strong>Patch:</strong> reparație fără funcție nouă, de exemplu <code>2.8.0 → 2.8.1</code>.</li>
+          <li><strong>Minor:</strong> funcție nouă compatibilă, de exemplu <code>2.8.0 → 2.9.0</code>.</li>
+          <li><strong>Major:</strong> refacere amplă sau schimbare incompatibilă, de exemplu <code>2.x.x → 3.0.0</code>.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>Fișiere globale</h2>
+        <ul>
+          <li><code>js/project-version.js</code> — sursa unică a versiunii.</li>
+          <li><code>js/global-footer.js</code> — footer-ul și fluxul donației.</li>
+          <li><code>css/global-footer.css</code> — stilul footer-ului și ferestrei de donație.</li>
+          <li><code>changelog.html</code> — istoricul public.</li>
+          <li><code>developer.html</code> — această pagină, numai pentru Admin.</li>
+          <li><code>thank-you.html</code> — confirmarea manuală după donație.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>Mutarea pe alt server Discord</h2>
+        <p>Toți pașii pentru aplicația Discord, server, roluri, webhook-uri, secrete Supabase și redeploy sunt centralizați într-un singur ghid.</p>
+        <ul>
+          <li><code>MIGRARE-MULTI-ORGANIZATIE.md</code> — instalare, securitate și administrarea organizațiilor.</li>
+          <li><code>js/discord-config.js</code> — Client ID și scope-urile OAuth publice.</li>
+          <li><code>supabase/functions/.env.example</code> — denumirile tuturor secretelor necesare.</li>
+        </ul>
+        <div class="actions"><a href="MIGRARE-MULTI-ORGANIZATIE.md">Deschide ghidul platformei</a></div>
+      </section>
+
+      <section class="card">
+        <h2>Verificare înainte de publicare</h2>
+        <ul>
+          <li>Footer-ul apare o singură dată și la extremitatea de jos.</li>
+          <li>Butonul Revolut deschide pagina oficială într-un tab nou.</li>
+          <li>Confirmarea „Da, am donat” deschide pagina de mulțumire.</li>
+          <li>Utilizatorii obișnuiți nu pot vedea această pagină.</li>
+          <li>Numărul versiunii din footer corespunde changelog-ului.</li>
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      let user = null;
+      try {
+        user = JSON.parse(localStorage.getItem("discord_user") || "null");
+      } catch (_) {}
+
+      const allowed = typeof isPlatformAdmin === "function"
+        ? isPlatformAdmin()
+        : user?.platform_admin === true || user?.is_platform_admin === true;
+
+      document.getElementById(allowed ? "admin-content" : "access-denied").style.display = "block";
+
+      if (!user) {
+        setTimeout(() => { location.href = "login.html"; }, 1200);
+      }
+    })();
+  </script>
+  <script src="js/global-footer.js"></script>
+</body>
+</html>
