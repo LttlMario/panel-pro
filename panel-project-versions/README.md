@@ -12,7 +12,9 @@ Pentru fiecare actualizare există un folder `vX.Y.Z-nume-actualizare-data` care
 
 Regula proiectului este ca orice modificare nouă să primească o versiune nouă și o arhivă nouă aici. Pentru rollback se folosește commit-ul din manifest, iar SQL-ul se rulează doar după verificarea diferențelor față de schema curentă.
 
-Versiunea curentă: **v3.11.4**
+Versiunea curentă: **v3.11.5**
+
+- [v3.11.5 — wrapper intern pentru verificare sistem](v3.11.5-diagnostic-inner-wrapper-20260820/README.md)
 
 - [v3.11.4 — layout standard pentru verificare sistem și loguri](v3.11.4-standard-layout-20260820/README.md)
 
