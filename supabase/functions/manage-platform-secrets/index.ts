@@ -27,6 +27,7 @@ const secretKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
+  if (!String(request.headers.get('x-panel-session') || '').trim()) return reply({ error: 'Sesiunea securizată a panelului lipsește.' }, 401);
   try {
     const key = secretKey();
     if (!key) return reply({ error: 'Cheia serverului lipsește.' }, 500);
@@ -61,6 +62,8 @@ Deno.serve(async (request) => {
     }
     return reply({ error: 'Acțiune necunoscută.' }, 400);
   } catch (error) {
-    return reply({ error: error instanceof Error ? error.message : 'Eroare internă.' }, 500);
+    const message = error instanceof Error ? error.message : 'Eroare internă.';
+    if (/Sesiunea panelului|Sesiunea securizată|Autentifică-te din nou/i.test(message)) return reply({ error: message }, 401);
+    return reply({ error: message }, 500);
   }
 });
