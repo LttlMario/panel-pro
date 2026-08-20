@@ -39,12 +39,14 @@ Deno.serve(async (req) => {
     const discordId = String(user.id || '');
     const { data: org } = await db.from('organizations').select('id,lifecycle_status').eq('id', id).maybeSingle();
     if (!org || org.lifecycle_status !== 'draft') return reply({ error: 'Organizația nu este în starea Draft.' }, 400);
-    const { data: voucher } = await db.from('organization_vouchers').select('redeemed_by_discord_id,redeemed_organization_id,guild_id').eq('redeemed_organization_id', id).maybeSingle();
+    const { data: voucher } = await db.from('organization_vouchers').select('redeemed_by_discord_id,redeemed_organization_id,guild_id,package_code').eq('redeemed_organization_id', id).maybeSingle();
     if (!voucher || String(voucher.redeemed_by_discord_id) !== discordId) return reply({ error: 'Nu ești creatorul acestei organizații Draft.' }, 403);
+    const fullPackage = String(voucher.package_code || 'standard').toLowerCase() === 'full';
     if (action === 'attach_guild' || action === 'attach_secondary_guild') {
       const guildId = String(body.guild_id || '').trim();
       if (!validGuild(guildId)) return reply({ error: 'Guild ID invalid.' }, 400);
       const kind = action === 'attach_secondary_guild' ? 'secondary' : 'primary';
+      if (kind === 'secondary' && !fullPackage) return reply({ error: 'Pachetul Standard permite un singur server Discord.' }, 403);
       if (kind === 'primary' && voucher.guild_id && String(voucher.guild_id) !== guildId) return reply({ error: 'Guild ID-ul nu corespunde voucherului.' }, 400);
       if (kind === 'secondary' && voucher.guild_id && String(voucher.guild_id) === guildId) return reply({ error: 'Serverul secundar trebuie să fie diferit de cel principal.' }, 400);
       const botToken = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();

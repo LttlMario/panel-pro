@@ -45,7 +45,7 @@
   box.innerHTML = `
     <div class="mb-5"><h2 class="text-lg font-black">Configurează organizația Draft</h2><p class="mt-1 text-xs text-slate-400">Aceasta este aceeași configurare folosită la Organizații, limitată la crearea organizației tale.</p></div>
     <div class="rounded-xl border border-slate-700 p-4"><h2 class="font-bold">Serverul Discord al organizației</h2><p class="mt-1 text-xs text-slate-400">Membrii sunt repartizați automat după server și rolurile lor.</p><div class="mt-2 flex flex-wrap gap-2"><input id="draft-config-guild" inputmode="numeric" class="field min-w-64 flex-1" placeholder="Scrie ID-ul serverului Discord (Guild ID)"><button id="draft-discover" type="button" class="rounded-xl bg-indigo-700 px-4 py-3 font-bold">Verifică serverul și citește rolurile</button></div><p id="draft-guild-status" class="mt-2 text-xs text-slate-400"></p></div>
-    <div class="mt-4 rounded-xl border border-indigo-700/60 bg-indigo-950/20 p-4"><h2 class="font-bold">Al doilea server Discord (opțional)</h2><p class="mt-1 text-xs text-slate-400">Poți adăuga un server secundar pentru acces administrativ de rezervă.</p><div class="mt-2 flex flex-wrap gap-2"><input id="draft-config-guild-secondary" inputmode="numeric" class="field min-w-64 flex-1" placeholder="Guild ID secundar — lasă gol dacă nu folosești"><button id="draft-discover-secondary" type="button" class="rounded-xl bg-indigo-700 px-4 py-3 font-bold">Verifică serverul secundar</button></div><p id="draft-guild-secondary-status" class="mt-2 text-xs text-slate-400"></p></div>
+    <div id="draft-secondary-guild-section" class="mt-4 rounded-xl border border-indigo-700/60 bg-indigo-950/20 p-4"><h2 class="font-bold">Al doilea server Discord (opțional · Full)</h2><p class="mt-1 text-xs text-slate-400">Pachetul Full poate adăuga un server secundar pentru acces administrativ de rezervă.</p><div class="mt-2 flex flex-wrap gap-2"><input id="draft-config-guild-secondary" inputmode="numeric" class="field min-w-64 flex-1" placeholder="Guild ID secundar — lasă gol dacă nu folosești"><button id="draft-discover-secondary" type="button" class="rounded-xl bg-indigo-700 px-4 py-3 font-bold">Verifică serverul secundar</button></div><p id="draft-guild-secondary-status" class="mt-2 text-xs text-slate-400"></p></div>
     <div class="mt-5"><div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="mb-1 font-bold">Rolurile Discord ale organizației</h2><p class="text-xs text-slate-400">Poți configura oricâte roluri Discord. Accesul la pagini se alege separat pentru fiecare rol.</p></div><button id="draft-add-role" type="button" class="rounded-xl bg-indigo-700 px-4 py-2 font-black">+ Adaugă rol</button></div><div id="draft-roles" class="mt-3 space-y-2"></div></div>
     <details class="mt-5 rounded-xl border border-cyan-700/60 bg-cyan-950/20 p-4" open><summary class="cursor-pointer font-bold">Acces individual la pagini</summary><p class="mt-2 text-xs text-slate-400">Bifează pentru fiecare pagină rolurile Discord care au voie să o deschidă.</p><div id="draft-page-permissions" class="mt-4 space-y-3"></div></details>
     <details class="mt-4 rounded-xl border border-violet-700/60 bg-violet-950/20 p-4" open><summary class="cursor-pointer font-bold">Acces robot / Asistent</summary><p class="mt-2 text-xs text-slate-400">Selector separat pentru informațiile pe care robotul le poate citi.</p><div id="draft-assistant-page-permissions" class="mt-4 space-y-3"></div></details>
@@ -118,6 +118,14 @@
   }
 
   function applyPackageScope() {
+    const secondaryGuildSection = $('draft-secondary-guild-section');
+    if (secondaryGuildSection) {
+      secondaryGuildSection.hidden = !fullPackage;
+      if (!fullPackage) {
+        $('draft-config-guild-secondary').value = '';
+        $('draft-guild-secondary-status').textContent = '';
+      }
+    }
     document.querySelectorAll('[data-draft-webhook]').forEach((input) => {
       const fieldset = input.closest('fieldset');
       if (fieldset) fieldset.hidden = !fullPackage && fullOnlyWebhookKeys.has(input.dataset.draftWebhook);

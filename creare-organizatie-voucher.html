@@ -105,8 +105,8 @@
         window.draftOrganizationId = result.organization?.id || '';
         packageInfo.hidden = false;
         packageInfo.textContent = window.draftPackageCode === 'full'
-          ? 'Pachet Full activat: poți configura separat hook-urile și permisiunile pentru Organizație / Mafia, pe lângă partea de Birouri / Angajați.'
-          : 'Pachet Standard activat: sunt disponibile hook-urile și permisiunile pentru Birouri / Angajați. Opțiunile Organizație / Mafia rămân ascunse.';
+          ? 'Pachet Full activat: poți configura hook-urile și permisiunile pentru Organizație / Mafia și, opțional, un al doilea server Discord.'
+          : 'Pachet Standard activat: sunt disponibile hook-urile și permisiunile Standard pentru Birouri / Angajați și un singur server Discord. Opțiunile Organizație / Mafia rămân ascunse.';
         const showDraftConfiguration = () => typeof window.setDraftOrganizationId === 'function'
           ? window.setDraftOrganizationId(window.draftOrganizationId)
           : setTimeout(showDraftConfiguration, 100);

@@ -19,8 +19,9 @@ Deno.serve(async (request) => {
     const meResponse = await fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bearer ${token}` } });
     if (!meResponse.ok) return reply({ error: 'Sesiunea Discord a expirat.' }, 401);
     const user = await meResponse.json();
-    const { data: voucher } = await db.from('organization_vouchers').select('redeemed_by_discord_id,redeemed_organization_id,guild_id').eq('code', code).maybeSingle();
+    const { data: voucher } = await db.from('organization_vouchers').select('redeemed_by_discord_id,redeemed_organization_id,guild_id,package_code').eq('code', code).maybeSingle();
     if (!voucher || String(voucher.redeemed_by_discord_id) !== String(user.id)) return reply({ error: 'Voucherul nu aparține contului autentificat.' }, 403);
+    if (kind === 'secondary' && String(voucher.package_code || 'standard').toLowerCase() !== 'full') return reply({ error: 'Pachetul Standard permite un singur server Discord.' }, 403);
     if (kind === 'primary' && voucher.guild_id && String(voucher.guild_id) !== guildId) return reply({ error: 'Guild ID-ul nu corespunde voucherului.' }, 403);
 
     const bot = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
