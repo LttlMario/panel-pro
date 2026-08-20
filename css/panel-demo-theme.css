@@ -69,6 +69,12 @@ body.panel-global-shell main > .max-w-5xl {
     box-shadow: 18px 0 45px rgba(0, 0, 0, .12);
 }
 
+#panel-shared-sidebar.is-collapsed {
+    width: 84px !important;
+    min-width: 84px !important;
+    flex-basis: 84px !important;
+}
+
 #panel-shared-sidebar > div:first-child {
     padding: 26px 15px 18px !important;
 }
@@ -162,16 +168,6 @@ body.panel-global-shell main > .max-w-5xl {
     border-radius: 7px !important;
     background: rgba(244, 114, 114, .08) !important;
     color: #fda4af !important;
-}
-
-.panel-sidebar-toggle {
-    top: 16px !important;
-    right: -13px !important;
-    width: 26px !important;
-    height: 26px !important;
-    border-color: #30445f !important;
-    background: #111b2d !important;
-    color: var(--demo-cyan) !important;
 }
 
 #panel-shared-sidebar .panel-sidebar-bottom-actions {
@@ -496,7 +492,7 @@ html[data-panel-theme="dark"] #panel-shared-sidebar .panel-sidebar-bottom-action
 html[data-panel-theme="dark"] #panel-global-footer { background: rgba(3, 5, 10, .98) !important; }
 
 @media (max-width: 767px) {
-    body.panel-shared-sidebar-page { padding-left: 0 !important; }
+    body.panel-shared-sidebar-page { padding-left: 84px !important; }
     body.panel-global-shell main > .p-8,
     body.panel-global-shell main > .p-6,
     body.panel-global-shell main > .p-5,

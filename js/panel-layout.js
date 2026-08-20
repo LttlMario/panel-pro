@@ -92,7 +92,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             #panel-shared-sidebar #panel-user-display-name { color:#f8fafc !important; font-size:13px !important; font-weight:600 !important; }
             #panel-shared-sidebar #panel-user-role { margin-top:3px !important; color:#34d399 !important; font-size:11px !important; }
              #panel-shared-sidebar button { font-family:inherit !important; }
-             #panel-shared-sidebar.is-collapsed { width:84px !important; flex-basis:84px !important; }
+             #panel-shared-sidebar.is-collapsed { width:84px !important; min-width:84px !important; flex-basis:84px !important; }
              #panel-shared-sidebar.is-collapsed > div:first-child { padding:18px 10px !important; }
              #panel-shared-sidebar.is-collapsed .panel-nav-section-label,
              #panel-shared-sidebar.is-collapsed .panel-org-name,
@@ -280,11 +280,12 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 footer { padding-left:12px !important; padding-right:12px !important; padding-bottom:max(18px,env(safe-area-inset-bottom)) !important; }
                 #panel-save-reminder { right:10px; bottom:82px; max-width:calc(100vw - 20px); }
             }
-            /* Păstrăm meniul standard pe toate dimensiunile; meniul mobil nu mai schimbă layout-ul. */
+            /* Pe ecrane înguste păstrăm sidebarul compact, fără să forțăm o lățime de desktop. */
             @media (max-width:767px) {
-                body.panel-global-shell { min-width:1024px !important; overflow-x:auto !important; }
-                body.panel-shared-sidebar-page { padding-left:245px !important; }
-                body.panel-shared-sidebar-page > #panel-shared-sidebar { display:flex !important; position:fixed !important; inset:0 auto 0 0 !important; width:245px !important; z-index:60 !important; }
+                body.panel-global-shell { min-width:0 !important; overflow-x:hidden !important; }
+                body.panel-shared-sidebar-page { padding-left:84px !important; }
+                body.panel-shared-sidebar-page > #panel-shared-sidebar,
+                body.panel-shared-sidebar-page > #panel-shared-sidebar.is-collapsed { display:flex !important; position:fixed !important; inset:0 auto 0 0 !important; width:84px !important; min-width:84px !important; flex-basis:84px !important; z-index:60 !important; }
                 #panel-mobile-menu, #panel-mobile-backdrop, .panel-mobile-toggle, #global-header-mobile-btn, #mobile-menu-toggle { display:none !important; }
                 body.panel-global-shell main { max-width:none !important; }
             }
@@ -376,19 +377,18 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const originalSidebarWidth = sidebar.style.width || '';
 
         const applyCollapsedState = (collapsed) => {
-            const isMobile = window.innerWidth <= 767;
-            const effectiveCollapsed = !isMobile && collapsed;
+            const effectiveCollapsed = collapsed;
             const sidebarWidth = effectiveCollapsed ? '5.25rem' : (originalSidebarWidth || '245px');
-            sidebar.style.width = isMobile ? '' : sidebarWidth;
-            sidebar.style.flexBasis = isMobile ? '' : sidebarWidth;
+            sidebar.style.width = sidebarWidth;
+            sidebar.style.flexBasis = sidebarWidth;
             sidebar.classList.toggle('is-collapsed', effectiveCollapsed);
             if (main?.classList.contains('ml-72')) main.style.marginLeft = effectiveCollapsed ? '5.25rem' : originalMainMargin;
             if (document.body.classList.contains('panel-shared-sidebar-page')) {
-                document.body.style.paddingLeft = isMobile ? '' : (effectiveCollapsed ? '5.25rem' : '245px');
+                document.body.style.paddingLeft = effectiveCollapsed ? '5.25rem' : '245px';
             }
             const mapApp = document.getElementById('app');
             if (mapApp && document.getElementById('map-container-wrapper')) {
-                mapApp.style.gridTemplateColumns = isMobile ? '' : (effectiveCollapsed ? '5.25rem 1fr' : '245px 1fr');
+                mapApp.style.gridTemplateColumns = effectiveCollapsed ? '5.25rem 1fr' : '245px 1fr';
             }
 
             navigation.querySelectorAll('a').forEach((link) => {
