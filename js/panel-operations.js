@@ -52,7 +52,15 @@
   }
 
   async function setupNotifications() {
-    if (!user || document.getElementById('panel-notification-button')) return;
+    if (!user) return;
+    if (!document.querySelector('[data-profile-notifications]')) {
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    }
+    if (document.querySelector('[data-profile-notifications]')) {
+      window.panelProfileRefreshNotifications?.();
+      return;
+    }
+    if (document.getElementById('panel-notification-button')) return;
     const button = document.createElement('button');
     button.id = 'panel-notification-button'; button.type = 'button'; button.className = 'panel-notification-button';
     button.innerHTML = '<span aria-hidden="true">🔔</span><b hidden>0</b>'; button.setAttribute('aria-label', 'Centrul de notificări');

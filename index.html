@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
     <script src="js/supabase-config.js?v=20260819-uuid-fix"></script>
     <script src="js/permissions.js?v=4.6.0"></script>
-    <script src="js/panel-layout.js?v=4.16.0"></script>
+    <script src="js/panel-layout.js?v=4.17.0"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/project-version.js?v=3.11.0"></script>
@@ -50,56 +50,6 @@
                             <div id="dashboard-resource-links" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-4"></div>
                         </article>
                     </div>
-                    <div data-pontaj-only class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                            <div>
-                                <p class="text-[10px] uppercase tracking-wider text-slate-500">Statisticile mele</p>
-                                <h3 class="text-base font-bold text-slate-100 mt-1">Activitate personală</h3>
-                            </div>
-                            <span id="personal-stats-updated" class="text-[10px] text-slate-500">Se încarcă...</span>
-                        </div>
-                        <div class="grid grid-cols-2 lg:grid-cols-6 gap-3">
-                            <article class="bg-slate-950 border border-slate-800 rounded-xl p-4">
-                                <p class="text-[10px] uppercase tracking-wider text-slate-500">Total ture</p>
-                                <p id="personal-total-shifts" class="text-2xl font-black text-slate-100 mt-2">—</p>
-                            </article>
-                            <article class="bg-slate-950 border border-slate-800 rounded-xl p-4">
-                                <p class="text-[10px] uppercase tracking-wider text-slate-500">Total lucrat</p>
-                                <p id="personal-total-hours" class="text-2xl font-black text-emerald-400 mt-2">—</p>
-                            </article>
-                            <article class="bg-slate-950 border border-slate-800 rounded-xl p-4">
-                                <p class="text-[10px] uppercase tracking-wider text-slate-500">Săptămâna aceasta</p>
-                                <p id="personal-week-hours" class="text-2xl font-black text-indigo-400 mt-2">—</p>
-                            </article>
-                            <article class="bg-slate-950 border border-slate-800 rounded-xl p-4">
-                                <p class="text-[10px] uppercase tracking-wider text-slate-500">Ture de zi</p>
-                                <p id="personal-day-hours" class="text-2xl font-black text-amber-400 mt-2">—</p>
-                            </article>
-                            <article class="bg-slate-950 border border-slate-800 rounded-xl p-4 col-span-2 lg:col-span-1">
-                                <p class="text-[10px] uppercase tracking-wider text-slate-500">Ture de noapte</p>
-                                <p id="personal-night-hours" class="text-2xl font-black text-violet-400 mt-2">—</p>
-                            </article>
-                            <article class="bg-slate-950 border border-slate-800 rounded-xl p-4 col-span-2 lg:col-span-1">
-                                <p class="text-[10px] uppercase tracking-wider text-slate-500">Timp total pauză</p>
-                                <p id="personal-pause-hours" class="text-2xl font-black text-amber-400 mt-2 font-mono">—</p>
-                            </article>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
-                            <div class="bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                                <span class="text-xs text-slate-400">Media unei ture</span>
-                                <strong id="personal-average-shift" class="text-sm font-mono text-slate-200">—</strong>
-                            </div>
-                            <div class="bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                                <span class="text-xs text-slate-400">Cea mai lungă tură</span>
-                                <strong id="personal-longest-shift" class="text-sm font-mono text-slate-200">—</strong>
-                            </div>
-                            <div class="bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                                <span class="text-xs text-slate-400">Ultimul pontaj</span>
-                                <strong id="personal-last-shift" class="text-xs text-right text-slate-200">—</strong>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <article data-pontaj-only class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6"><div class="flex items-center justify-between gap-3"><div><p class="text-xs uppercase tracking-wider text-slate-500">Tura curentă</p><h3 id="active-shift-title" class="text-lg font-bold mt-1">Nicio tură activă</h3></div><span id="active-shift-badge" class="px-3 py-1 rounded-lg border text-[10px] font-bold bg-slate-800 text-slate-400 border-slate-700">OPRIT</span></div><div class="mt-7 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5"><div><p id="active-shift-timer" class="text-4xl font-black font-mono text-emerald-400">00:00:00</p><p id="active-shift-note" class="text-xs text-slate-500 mt-2">Pornește o tură când ești pregătit.</p></div><a href="pontaj.html" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold transition text-center">Gestionează pontajul →</a></div></article>
                         <article class="bg-slate-900 border border-slate-800 rounded-2xl p-6"><p class="text-xs uppercase tracking-wider text-slate-500">Acces rapid</p><div class="mt-4 grid gap-2"><a href="cereri.html" class="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold transition">📋 Trimite o învoire</a><a href="craftmecanics.html" class="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold transition">🔨 Craft Mecanic</a><a href="marketplace.html" class="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold transition">🛒 Vezi marketplace-ul</a></div></article>
@@ -368,19 +318,31 @@
             const averageSeconds = completedShifts.length ? completedShifts.reduce((sum, shift) => sum + shiftSecondsValue(shift), 0) / completedShifts.length : 0;
             const longestSeconds = completedShifts.reduce((max, shift) => Math.max(max, shiftSecondsValue(shift)), 0);
             const lastShift = completedShifts[0] || validShifts[0];
+            const activeShift = validShifts.find(shift => ['active', 'paused'].includes(shift.status));
+            const recentActivity = validShifts.slice(0, 4).map(shift => ({
+                title: `${shift.status === 'active' ? 'În tură' : shift.status === 'paused' ? 'În pauză' : 'Tură finalizată'} · ${(shift.shift_type || 'tură').toUpperCase()}`,
+                meta: `${shift.date || '—'} · ${compactDuration(shiftSecondsValue(shift))}`
+            }));
+            const stats = {
+                totalShifts: validShifts.length,
+                totalHours: compactDuration(totalSeconds),
+                weekHours: compactDuration(weekSeconds),
+                dayHours: compactDuration(daySeconds),
+                nightHours: compactDuration(nightSeconds),
+                pauseHours: compactDuration(validShifts.reduce((sum, shift) => sum + pauseSecondsValue(shift), 0)),
+                averageShift: completedShifts.length ? compactDuration(averageSeconds) : '—',
+                longestShift: completedShifts.length ? compactDuration(longestSeconds) : '—',
+                lastShift: lastShift
+                    ? `${lastShift.date || '—'} · ${(lastShift.shift_type || 'tură').toUpperCase()}`
+                    : 'Niciun pontaj',
+                availability: activeShift?.status === 'paused' ? 'În pauză' : activeShift ? 'În tură' : 'Disponibil',
+                recentActivity
+            };
 
-            document.getElementById('personal-total-shifts').textContent = validShifts.length;
-            document.getElementById('personal-total-hours').textContent = compactDuration(totalSeconds);
-            document.getElementById('personal-week-hours').textContent = compactDuration(weekSeconds);
-            document.getElementById('personal-day-hours').textContent = compactDuration(daySeconds);
-            document.getElementById('personal-night-hours').textContent = compactDuration(nightSeconds);
-            document.getElementById('personal-pause-hours').textContent = compactDuration(validShifts.reduce((sum, shift) => sum + pauseSecondsValue(shift), 0));
-            document.getElementById('personal-average-shift').textContent = completedShifts.length ? compactDuration(averageSeconds) : '—';
-            document.getElementById('personal-longest-shift').textContent = completedShifts.length ? compactDuration(longestSeconds) : '—';
-            document.getElementById('personal-last-shift').textContent = lastShift
-                ? `${lastShift.date || '—'} · ${(lastShift.shift_type || 'tură').toUpperCase()}`
-                : 'Niciun pontaj';
-            document.getElementById('personal-stats-updated').textContent = `Actualizat la ${new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}`;
+            if (typeof window.updatePanelProfileStats === 'function') {
+                window.updatePanelProfileStats(stats);
+                return;
+            }
         }
 
         async function loadMechanicDashboard(discordId) {

@@ -127,9 +127,41 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             .panel-profile-menu strong,.panel-profile-menu small { display:block; max-width:125px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
             .panel-account-settings-link { display:flex; align-items:center; gap:7px; padding:7px 8px; color:#d1fae5; font-size:11px; font-weight:700; line-height:1.2; text-decoration:none; }
             .panel-account-settings-link:hover { background:#10273a; color:#6ee7b7; }
-            .panel-profile-dropdown { position:absolute; z-index:90; top:calc(100% + 7px); left:0; min-width:185px; overflow:hidden; border:1px solid #334155; border-radius:12px; background:#0b1628; box-shadow:0 16px 32px rgba(0,0,0,.38); }
-            .panel-profile-dropdown [data-sidebar-logout], .panel-profile-dropdown [data-shared-logout] { width:100%; margin:0; padding:7px 8px; border:0; border-top:1px solid rgba(51,65,85,.7); border-radius:0; background:transparent; color:#fb7185; font-size:11px; text-align:left; cursor:pointer; }
-            .panel-profile-dropdown [data-sidebar-logout]:hover, .panel-profile-dropdown [data-shared-logout]:hover { background:rgba(244,63,94,.1); }
+            .panel-profile-dropdown { position:absolute; z-index:90; top:calc(100% + 7px); left:0; width:290px; max-width:min(290px,calc(100vw - 32px)); overflow:hidden; border:1px solid #334155; border-radius:16px; background:linear-gradient(180deg,#101d32 0%,#0b1628 100%); box-shadow:0 18px 42px rgba(0,0,0,.46); }
+            .panel-profile-dropdown-header { padding:12px 14px 10px; border-bottom:1px solid rgba(51,65,85,.75); }
+            .panel-profile-dropdown-header strong { display:block; color:#f8fafc; font-size:12px; font-weight:800; }
+            .panel-profile-dropdown-header small { display:block; margin-top:3px; color:#64748b; font-size:10px; }
+            .panel-profile-stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; padding:10px; }
+            .panel-profile-stat { min-width:0; padding:9px 10px; border:1px solid rgba(51,65,85,.75); border-radius:11px; background:rgba(2,6,23,.38); }
+            .panel-profile-stat span { display:block; color:#64748b; font-size:9px; letter-spacing:.04em; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+            .panel-profile-stat strong { display:block; margin-top:4px; color:#e2e8f0; font-size:13px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+            .panel-profile-stat strong[data-profile-stat="totalHours"], .panel-profile-stat strong[data-profile-stat="weekHours"] { color:#6ee7b7; }
+            .panel-profile-context { display:grid; grid-template-columns:1fr 1fr; gap:7px; padding:10px; border-bottom:1px solid rgba(51,65,85,.75); }
+            .panel-profile-context > div { min-width:0; padding:8px 9px; border-radius:10px; background:rgba(2,6,23,.28); }
+            .panel-profile-context span { display:block; color:#64748b; font-size:9px; letter-spacing:.04em; text-transform:uppercase; }
+            .panel-profile-context strong { display:block; margin-top:3px; overflow:hidden; color:#e2e8f0; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+            .panel-profile-context strong[data-profile-availability="În tură"] { color:#6ee7b7; }
+            .panel-profile-context strong[data-profile-availability="În pauză"] { color:#fbbf24; }
+            .panel-profile-section { border-bottom:1px solid rgba(51,65,85,.7); }
+            .panel-profile-section > summary { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 14px; color:#cbd5e1; font-size:11px; font-weight:800; cursor:pointer; list-style:none; }
+            .panel-profile-section > summary::-webkit-details-marker { display:none; }
+            .panel-profile-section > summary::after { content:'＋'; color:#64748b; font-size:14px; }
+            .panel-profile-section[open] > summary::after { content:'−'; }
+            .panel-profile-section > summary:hover { background:rgba(30,64,94,.32); color:#f8fafc; }
+            .panel-profile-notification-badge { min-width:18px; padding:2px 5px; border-radius:999px; background:#ef4444; color:#fff; font-size:9px; text-align:center; }
+            .panel-profile-list { max-height:190px; overflow:auto; padding:0 10px 10px; }
+            .panel-profile-list-item { padding:8px 9px; border:1px solid rgba(51,65,85,.65); border-radius:10px; background:rgba(2,6,23,.3); }
+            .panel-profile-list-item.is-unread { border-color:rgba(52,211,153,.42); background:rgba(6,78,59,.18); }
+            .panel-profile-list-item + .panel-profile-list-item { margin-top:6px; }
+            .panel-profile-list-item strong { display:block; overflow:hidden; color:#e2e8f0; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
+            .panel-profile-list-item small { display:block; margin-top:3px; color:#64748b; font-size:9px; line-height:1.35; }
+            .panel-profile-list-item p { margin:4px 0 0; color:#94a3b8; font-size:10px; line-height:1.4; }
+            .panel-profile-list-empty { padding:8px 4px 3px; color:#64748b; font-size:10px; text-align:center; }
+            .panel-profile-action { width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 14px; border:0; border-top:1px solid rgba(51,65,85,.7); background:transparent; color:#cbd5e1; font-size:11px; font-weight:700; line-height:1.2; text-align:left; text-decoration:none; cursor:pointer; }
+            .panel-profile-action:hover { background:rgba(30,64,94,.46); color:#f8fafc; }
+            .panel-profile-action > span:last-child { color:#64748b; font-size:15px; }
+            .panel-profile-action[data-sidebar-logout], .panel-profile-action[data-shared-logout] { color:#fb7185; }
+            .panel-profile-action[data-sidebar-logout]:hover, .panel-profile-action[data-shared-logout]:hover { background:rgba(244,63,94,.1); color:#fda4af; }
             .panel-sidebar-profile strong,.panel-sidebar-profile small { display:block; max-width:125px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
             .panel-sidebar-profile strong { color:#f8fafc; font-size:12px; }
             .panel-sidebar-profile small { color:#34d399; font-size:10px; margin-top:2px; }
@@ -321,6 +353,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const sidebar = navigation?.closest('aside');
         if (!navigation || !sidebar) return;
         ensureBrandLogo(sidebar);
+        runWhenIdle(loadPanelProfileStats, 1000);
         refreshActualRoleLabel();
         sidebar.querySelector(':scope > div:last-child')?.remove();
 
@@ -568,7 +601,318 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         await refreshRoleFromUsersTable();
     }
 
-    window.addEventListener('panel-user-updated', refreshSidebarUserRole);
+    function profileDropdownMarkup() {
+        return `
+            <div class="panel-profile-dropdown-header">
+                <strong>Contul meu</strong>
+                <small data-profile-stats-message>Statisticile tale, pentru organizația activă</small>
+            </div>
+            <div class="panel-profile-context" aria-label="Contextul contului">
+                <div><span>Organizație</span><strong data-profile-organization>—</strong></div>
+                <div><span>Stare</span><strong data-profile-availability="Se verifică">Se verifică</strong></div>
+                <div><span>Sesiune</span><strong data-profile-session>Se verifică</strong></div>
+            </div>
+            <div class="panel-profile-stats" aria-label="Statisticile mele">
+                <div class="panel-profile-stat"><span>Total ture</span><strong data-profile-stat="totalShifts">—</strong></div>
+                <div class="panel-profile-stat"><span>Total lucrat</span><strong data-profile-stat="totalHours">—</strong></div>
+                <div class="panel-profile-stat"><span>Săptămâna aceasta</span><strong data-profile-stat="weekHours">—</strong></div>
+                <div class="panel-profile-stat"><span>Ture de zi</span><strong data-profile-stat="dayHours">—</strong></div>
+                <div class="panel-profile-stat"><span>Ture de noapte</span><strong data-profile-stat="nightHours">—</strong></div>
+                <div class="panel-profile-stat"><span>Timp pauză</span><strong data-profile-stat="pauseHours">—</strong></div>
+                <div class="panel-profile-stat"><span>Media unei ture</span><strong data-profile-stat="averageShift">—</strong></div>
+                <div class="panel-profile-stat"><span>Cea mai lungă</span><strong data-profile-stat="longestShift">—</strong></div>
+                <div class="panel-profile-stat"><span>Ultimul pontaj</span><strong data-profile-stat="lastShift">—</strong></div>
+            </div>
+            <details class="panel-profile-section" data-profile-notifications>
+                <summary><span>🔔 Notificări</span><strong class="panel-profile-notification-badge" data-profile-notification-badge hidden>0</strong></summary>
+                <div class="panel-profile-list" data-profile-notification-list><p class="panel-profile-list-empty">Se încarcă notificările…</p></div>
+            </details>
+            <details class="panel-profile-section" data-profile-activity>
+                <summary>🕘 Activitate recentă</summary>
+                <div class="panel-profile-list" data-profile-activity-list><p class="panel-profile-list-empty">Se încarcă activitatea…</p></div>
+            </details>
+            <a class="panel-profile-action" href="setari-cont.html"><span>⚙️ Setări cont</span><span>›</span></a>
+            <button type="button" class="panel-profile-action" data-profile-theme-toggle><span data-profile-theme-label>🎨 Schimbă tema</span><span>›</span></button>
+            <button type="button" class="panel-profile-action" data-sidebar-logout><span>↪ Deconectare</span><span>›</span></button>
+        `;
+    }
+
+    function refreshPanelProfileContext() {
+        const user = typeof getUser === 'function' ? getUser() : null;
+        const organization = typeof getActiveOrganization === 'function' ? getActiveOrganization() : null;
+        const organizationName = organization?.name || user?.organization_name || 'Organizație activă';
+        document.querySelectorAll('[data-profile-organization]').forEach((element) => {
+            element.textContent = String(organizationName);
+        });
+        const expiresAt = Number(localStorage.getItem('panel_session_expires_at') || 0);
+        const sessionLabel = expiresAt > Date.now()
+            ? `Activă · până la ${new Date(expiresAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}`
+            : 'Reautentificare necesară';
+        document.querySelectorAll('[data-profile-session]').forEach((element) => {
+            element.textContent = sessionLabel;
+        });
+        refreshProfileThemeLabel();
+    }
+
+    function refreshProfileThemeLabel() {
+        const dark = localStorage.getItem('panel_theme') === 'dark';
+        document.querySelectorAll('[data-profile-theme-label]').forEach((element) => {
+            element.textContent = dark ? '☼ Temă normală' : '🌙 Temă întunecată';
+        });
+    }
+
+    function renderProfileActivity(items = []) {
+        document.querySelectorAll('[data-profile-activity-list]').forEach((list) => {
+            list.replaceChildren();
+            if (!items.length) {
+                const empty = document.createElement('p');
+                empty.className = 'panel-profile-list-empty';
+                empty.textContent = 'Nu există activitate recentă.';
+                list.appendChild(empty);
+                return;
+            }
+            items.forEach((item) => {
+                const row = document.createElement('article');
+                row.className = 'panel-profile-list-item';
+                const title = document.createElement('strong');
+                title.textContent = String(item.title || 'Activitate');
+                const meta = document.createElement('small');
+                meta.textContent = String(item.meta || '—');
+                row.append(title, meta);
+                list.appendChild(row);
+            });
+        });
+    }
+
+    function updatePanelProfileStats(stats = {}) {
+        const values = {
+            totalShifts: stats.totalShifts ?? '—',
+            totalHours: stats.totalHours ?? '—',
+            weekHours: stats.weekHours ?? '—',
+            dayHours: stats.dayHours ?? '—',
+            nightHours: stats.nightHours ?? '—',
+            pauseHours: stats.pauseHours ?? '—',
+            averageShift: stats.averageShift ?? '—',
+            longestShift: stats.longestShift ?? '—',
+            lastShift: stats.lastShift ?? '—'
+        };
+        Object.entries(values).forEach(([key, value]) => {
+            document.querySelectorAll(`[data-profile-stat="${key}"]`).forEach((element) => {
+                element.textContent = String(value);
+            });
+        });
+        const message = stats.available === false
+            ? 'Pontajul nu este disponibil pentru rolul tău'
+            : `Actualizat la ${new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}`;
+        document.querySelectorAll('[data-profile-stats-message]').forEach((element) => {
+            element.textContent = message;
+        });
+        const availability = stats.availability || (stats.available === false ? 'Indisponibil' : 'Disponibil');
+        document.querySelectorAll('[data-profile-availability]').forEach((element) => {
+            element.textContent = availability;
+            element.setAttribute('data-profile-availability', availability);
+        });
+        renderProfileActivity(Array.isArray(stats.recentActivity) ? stats.recentActivity : []);
+    }
+
+    window.updatePanelProfileStats = updatePanelProfileStats;
+
+    function profileShiftSeconds(shift, now = Date.now()) {
+        if (!['active', 'paused'].includes(shift?.status)) {
+            return Math.max(0, Number(shift?.duration_ms || 0) / 1000);
+        }
+        const startedAt = Date.parse(String(shift?.started_at || ''));
+        if (!Number.isFinite(startedAt)) return Math.max(0, Number(shift?.duration_ms || 0) / 1000);
+        let seconds = Math.floor((now - startedAt) / 1000) - Number(shift?.paused_seconds || 0);
+        if (shift.status === 'paused' && shift.paused_at) {
+            const pausedAt = Date.parse(String(shift.paused_at));
+            if (Number.isFinite(pausedAt)) seconds -= Math.max(0, Math.floor((now - pausedAt) / 1000));
+        }
+        return Math.max(0, seconds);
+    }
+
+    function profilePauseSeconds(shift, now = Date.now()) {
+        let seconds = Math.max(0, Number(shift?.paused_seconds || 0));
+        if (shift?.status === 'paused' && shift.paused_at) {
+            const pausedAt = Date.parse(String(shift.paused_at));
+            if (Number.isFinite(pausedAt)) seconds += Math.max(0, Math.floor((now - pausedAt) / 1000));
+        }
+        return seconds;
+    }
+
+    function profileCompactDuration(seconds) {
+        const totalMinutes = Math.floor(Math.max(0, Number(seconds || 0)) / 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        if (hours === 0) return `${minutes}m`;
+        return `${hours}h ${String(minutes).padStart(2, '0')}m`;
+    }
+
+    function profileWeekStart() {
+        const roDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Bucharest' }));
+        const day = roDate.getDay() || 7;
+        roDate.setHours(0, 0, 0, 0);
+        roDate.setDate(roDate.getDate() - day + 1);
+        return roDate;
+    }
+
+    async function loadPanelProfileStats() {
+        const user = typeof getUser === 'function' ? getUser() : null;
+        const organizationId = String(window.getActiveOrganizationId?.() || user?.organization_id || '').trim();
+        const discordId = String(user?.discord_id || user?.id || '').trim();
+        if (!organizationId || !discordId || typeof window.createPanelSupabaseClient !== 'function') return;
+        if (typeof canAccessPage === 'function' && !canAccessPage('pontaj.html')) {
+            updatePanelProfileStats({ available: false });
+            return;
+        }
+
+        try {
+            const db = window.createPanelSupabaseClient();
+            const { data, error } = await db
+                .from('shifts')
+                .select('status,duration_ms,started_at,paused_at,paused_seconds,date,created_at,shift_type')
+                .eq('organization_id', organizationId)
+                .eq('discord_id', discordId)
+                .order('created_at', { ascending: false })
+                .limit(500);
+            if (error) throw error;
+
+            const validShifts = (data || []).filter((shift) => shift.status !== 'cancelled');
+            const completedShifts = validShifts.filter((shift) => !['active', 'paused'].includes(shift.status));
+            const now = Date.now();
+            const secondsFor = (shift) => profileShiftSeconds(shift, now);
+            const totalSeconds = validShifts.reduce((sum, shift) => sum + secondsFor(shift), 0);
+            const daySeconds = validShifts
+                .filter((shift) => String(shift.shift_type || '').toLowerCase() === 'zi')
+                .reduce((sum, shift) => sum + secondsFor(shift), 0);
+            const nightSeconds = validShifts
+                .filter((shift) => String(shift.shift_type || '').toLowerCase() === 'noapte')
+                .reduce((sum, shift) => sum + secondsFor(shift), 0);
+            const weekStart = profileWeekStart();
+            const weekSeconds = validShifts
+                .filter((shift) => {
+                    const dateValue = shift.date ? new Date(`${shift.date}T12:00:00`) : new Date(shift.created_at);
+                    return !Number.isNaN(dateValue.getTime()) && dateValue >= weekStart;
+                })
+                .reduce((sum, shift) => sum + secondsFor(shift), 0);
+            const averageSeconds = completedShifts.length
+                ? completedShifts.reduce((sum, shift) => sum + secondsFor(shift), 0) / completedShifts.length
+                : 0;
+            const longestSeconds = completedShifts.reduce((max, shift) => Math.max(max, secondsFor(shift)), 0);
+            const lastShift = completedShifts[0] || validShifts[0];
+            const activeShift = validShifts.find((shift) => ['active', 'paused'].includes(shift.status));
+            const recentActivity = validShifts.slice(0, 4).map((shift) => {
+                const state = shift.status === 'active' ? 'În tură' : shift.status === 'paused' ? 'În pauză' : 'Tură finalizată';
+                const date = shift.date || (shift.created_at ? new Date(shift.created_at).toLocaleDateString('ro-RO') : '—');
+                return {
+                    title: `${state} · ${(shift.shift_type || 'tură').toUpperCase()}`,
+                    meta: `${date} · ${profileCompactDuration(secondsFor(shift))}`
+                };
+            });
+
+            updatePanelProfileStats({
+                totalShifts: validShifts.length,
+                totalHours: profileCompactDuration(totalSeconds),
+                weekHours: profileCompactDuration(weekSeconds),
+                dayHours: profileCompactDuration(daySeconds),
+                nightHours: profileCompactDuration(nightSeconds),
+                pauseHours: profileCompactDuration(validShifts.reduce((sum, shift) => sum + profilePauseSeconds(shift, now), 0)),
+                averageShift: completedShifts.length ? profileCompactDuration(averageSeconds) : '—',
+                longestShift: completedShifts.length ? profileCompactDuration(longestSeconds) : '—',
+                lastShift: lastShift
+                    ? `${lastShift.date || '—'} · ${String(lastShift.shift_type || 'tură').toUpperCase()}`
+                    : 'Niciun pontaj',
+                availability: activeShift?.status === 'paused' ? 'În pauză' : activeShift ? 'În tură' : 'Disponibil',
+                recentActivity
+            });
+        } catch (_) {
+            updatePanelProfileStats({ available: false });
+        }
+    }
+
+    function renderProfileNotifications(notifications = [], readIds = new Set()) {
+        document.querySelectorAll('[data-profile-notification-list]').forEach((list) => {
+            list.replaceChildren();
+            if (!notifications.length) {
+                const empty = document.createElement('p');
+                empty.className = 'panel-profile-list-empty';
+                empty.textContent = 'Nu există notificări noi.';
+                list.appendChild(empty);
+                return;
+            }
+            notifications.forEach((notification) => {
+                const row = document.createElement('article');
+                row.className = 'panel-profile-list-item';
+                if (!readIds.has(String(notification.id))) row.classList.add('is-unread');
+                const title = document.createElement('strong');
+                title.textContent = String(notification.title || 'Notificare');
+                const time = document.createElement('small');
+                time.textContent = notification.created_at
+                    ? new Date(notification.created_at).toLocaleString('ro-RO')
+                    : '—';
+                const message = document.createElement('p');
+                message.textContent = String(notification.message || '');
+                row.append(title, time, message);
+                list.appendChild(row);
+            });
+        });
+    }
+
+    async function loadPanelProfileNotifications(markRead = false) {
+        const lists = document.querySelectorAll('[data-profile-notification-list]');
+        if (!lists.length) return;
+        if (typeof window.panelAdminInvoke !== 'function') return;
+        try {
+            const result = await window.panelAdminInvoke('notifications');
+            const readIds = new Set((result.read_ids || []).map((id) => String(id)));
+            const notifications = (result.notifications || [])
+                .filter((notification) => !notification.expires_at || new Date(notification.expires_at) > new Date())
+                .slice(0, 8);
+            const unread = notifications.filter((notification) => !readIds.has(String(notification.id)));
+            document.querySelectorAll('[data-profile-notification-badge]').forEach((badge) => {
+                badge.textContent = String(unread.length);
+                badge.hidden = unread.length === 0;
+            });
+            renderProfileNotifications(notifications, readIds);
+            if (markRead && unread.length) {
+                await window.panelAdminInvoke('mark_read', { ids: unread.map((notification) => notification.id) });
+                document.querySelectorAll('[data-profile-notification-badge]').forEach((badge) => { badge.hidden = true; });
+            }
+        } catch (_) {
+            renderProfileNotifications([], new Set());
+            document.querySelectorAll('[data-profile-notification-list]').forEach((list) => {
+                const message = list.querySelector('.panel-profile-list-empty');
+                if (message) message.textContent = 'Notificările nu sunt disponibile momentan.';
+            });
+        }
+    }
+
+    window.panelProfileRefreshNotifications = loadPanelProfileNotifications;
+
+    function bindProfileInteractiveElements() {
+        document.querySelectorAll('[data-profile-notifications]').forEach((section) => {
+            if (section.dataset.bound === 'true') return;
+            section.dataset.bound = 'true';
+            section.addEventListener('toggle', () => {
+                if (section.open) loadPanelProfileNotifications(true);
+            });
+        });
+        document.querySelectorAll('[data-profile-theme-toggle]').forEach((button) => {
+            if (button.dataset.bound === 'true') return;
+            button.dataset.bound = 'true';
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                document.getElementById('panel-theme-toggle')?.click();
+                refreshProfileThemeLabel();
+            });
+        });
+    }
+
+    window.addEventListener('panel-user-updated', () => {
+        refreshSidebarUserRole();
+        refreshPanelProfileContext();
+        loadPanelProfileStats();
+    });
 
     function ensureBrandLogo(sidebar) {
         const heading=sidebar.querySelector('h1');
@@ -579,7 +923,11 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const organizationName=window.panelEscapeHtml(organization?.name||'Organizație');const organizationLogo=window.panelSafeAssetUrl(organization?.logo_url||'');
         heading.innerHTML=`<img class="panel-brand-logo" src="${organizationLogo}" alt="${organizationName}" onerror="this.src='img/logo-192.png'"><span class="panel-org-name">${organizationName}</span>`;
         let profile=sidebar.querySelector('.panel-sidebar-profile');
-        if(!profile){const user=typeof getUser==='function'?getUser():null;const displayName=window.panelEscapeHtml(user?.display_name||user?.username||'Utilizator');const role=window.panelEscapeHtml(discordRoleLabel(user));const avatar=window.panelSafeAssetUrl(user?.avatar||user?.avatar_url||'');profile=document.createElement('div');profile.className='panel-sidebar-profile';profile.innerHTML=`<img id="panel-user-avatar" src="${avatar}" alt=""><div class="panel-profile-main"><details class="panel-profile-menu"><summary><strong id="panel-user-display-name">${displayName}</strong><small id="panel-user-role">${role}</small></summary><div class="panel-profile-dropdown"><a class="panel-account-settings-link" href="setari-cont.html">⚙️ Setările contului</a><button type="button" id="panel-logout-btn" data-sidebar-logout>Deconectare</button></div></details></div>`;heading.after(profile);}
+        if(!profile){const user=typeof getUser==='function'?getUser():null;const displayName=window.panelEscapeHtml(user?.display_name||user?.username||'Utilizator');const role=window.panelEscapeHtml(discordRoleLabel(user));const avatar=window.panelSafeAssetUrl(user?.avatar||user?.avatar_url||'');profile=document.createElement('div');profile.className='panel-sidebar-profile';profile.innerHTML=`<img id="panel-user-avatar" src="${avatar}" alt=""><div class="panel-profile-main"><details class="panel-profile-menu"><summary><strong id="panel-user-display-name">${displayName}</strong><small id="panel-user-role">${role}</small></summary><div class="panel-profile-dropdown">${profileDropdownMarkup()}</div></details></div>`;heading.after(profile);}
+        const profileDropdown=profile?.querySelector('.panel-profile-dropdown');
+        if(profileDropdown) profileDropdown.innerHTML=profileDropdownMarkup();
+        refreshPanelProfileContext();
+        bindProfileInteractiveElements();
         const profileMenu=profile?.querySelector('.panel-profile-menu');
         if(profileMenu&&!profileMenu.querySelector('.panel-profile-gear')){
             const summary=profileMenu.querySelector('summary');
@@ -588,6 +936,11 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             gear.addEventListener('click',(event)=>{event.preventDefault();event.stopPropagation();profileMenu.open=!profileMenu.open;});
             gear.addEventListener('keydown',(event)=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();profileMenu.open=!profileMenu.open;}});
             summary?.appendChild(gear);
+        }
+        if(profileMenu && profileMenu.dataset.dismissBound !== 'true'){
+            profileMenu.dataset.dismissBound='true';
+            document.addEventListener('click',(event)=>{if(!profile.contains(event.target)) profileMenu.open=false;});
+            document.addEventListener('keydown',(event)=>{if(event.key==='Escape') profileMenu.open=false;});
         }
     }
 
@@ -600,7 +953,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const legacyNavigation = document.getElementById('sidebar-nav') || [...document.querySelectorAll('aside nav')]
             .find(nav => !nav.closest('#panel-mobile-menu'));
         const legacySidebar = legacyNavigation?.closest('aside') || null;
-        const user=typeof getUser==='function'?getUser():null,organization=typeof getActiveOrganization==='function'?getActiveOrganization():null;const organizationName=window.panelEscapeHtml(organization?.name||'Logo Panel');const organizationLogo=window.panelSafeAssetUrl(organization?.logo_url||'');const displayName=window.panelEscapeHtml(user?.display_name||user?.username||'Utilizator');const role=window.panelEscapeHtml(discordRoleLabel(user));const avatar=window.panelSafeAssetUrl(user?.avatar||user?.avatar_url||'');const sidebar=document.createElement('aside');sidebar.id='panel-shared-sidebar';sidebar.className='panel-responsive-sidebar bg-slate-900 border-r border-slate-800 flex flex-col justify-between';sidebar.style.width='245px';sidebar.style.flex='0 0 245px';sidebar.innerHTML=`<div class="p-6 overflow-y-auto"><h1 class="text-xl font-bold"><img src="${organizationLogo}" alt="${organizationName}" class="panel-brand-logo" onerror="this.src='img/logo-192.png'"></h1><nav id="sidebar-nav" class="mt-6 space-y-1.5"></nav></div><div class="p-4 border-t border-slate-800 flex items-center justify-between gap-2"><div class="flex items-center gap-3 min-w-0"><img id="panel-user-avatar" class="w-9 h-9 rounded-full border border-slate-700 object-cover" src="${avatar}" alt=""><details class="panel-profile-menu min-w-0"><summary><p id="panel-user-display-name" class="font-semibold truncate">${displayName}</p><p id="panel-user-role" class="text-xs text-emerald-400 truncate">${role}</p></summary><div class="panel-profile-dropdown"><a class="panel-account-settings-link" href="setari-cont.html">⚙️ Setările contului</a><button type="button" data-shared-logout>Deconectare</button></div></details></div></div>`;
+        const user=typeof getUser==='function'?getUser():null,organization=typeof getActiveOrganization==='function'?getActiveOrganization():null;const organizationName=window.panelEscapeHtml(organization?.name||'Logo Panel');const organizationLogo=window.panelSafeAssetUrl(organization?.logo_url||'');const displayName=window.panelEscapeHtml(user?.display_name||user?.username||'Utilizator');const role=window.panelEscapeHtml(discordRoleLabel(user));const avatar=window.panelSafeAssetUrl(user?.avatar||user?.avatar_url||'');const sidebar=document.createElement('aside');sidebar.id='panel-shared-sidebar';sidebar.className='panel-responsive-sidebar bg-slate-900 border-r border-slate-800 flex flex-col justify-between';sidebar.style.width='245px';sidebar.style.flex='0 0 245px';sidebar.innerHTML=`<div class="p-6 overflow-y-auto"><h1 class="text-xl font-bold"><img src="${organizationLogo}" alt="${organizationName}" class="panel-brand-logo" onerror="this.src='img/logo-192.png'"></h1><nav id="sidebar-nav" class="mt-6 space-y-1.5"></nav></div><div class="p-4 border-t border-slate-800 flex items-center justify-between gap-2"><div class="flex items-center gap-3 min-w-0"><img id="panel-user-avatar" class="w-9 h-9 rounded-full border border-slate-700 object-cover" src="${avatar}" alt=""><details class="panel-profile-menu min-w-0"><summary><p id="panel-user-display-name" class="font-semibold truncate">${displayName}</p><p id="panel-user-role" class="text-xs text-emerald-400 truncate">${role}</p></summary><div class="panel-profile-dropdown">${profileDropdownMarkup()}</div></details></div></div>`;
         if (legacySidebar) {
             legacySidebar.replaceWith(sidebar);
         } else if (document.getElementById('panel-sidebar-host')) {
@@ -867,14 +1220,17 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
 
     function ensureSidebarLogout(sidebar) {
         const existingLogout = [...sidebar.querySelectorAll('button')].find((button) => {
+            if (button.matches('[data-sidebar-logout],[data-shared-logout]')) return true;
             const action = `${button.id} ${button.getAttribute('onclick') || ''} ${button.textContent || ''}`.toLocaleLowerCase('ro-RO');
             return action.includes('logout') || action.includes('ieșire') || action.includes('iesire');
         });
         if (existingLogout) {
             const cleanButton = existingLogout.cloneNode(true);
             cleanButton.removeAttribute('onclick');
-            const label = cleanButton.querySelector('span:last-child');
-            if (label) label.textContent = 'Logout'; else cleanButton.textContent = 'Logout';
+            if (!cleanButton.classList.contains('panel-profile-action')) {
+                const label = cleanButton.querySelector('span:last-child');
+                if (label) label.textContent = 'Deconectare'; else cleanButton.textContent = 'Deconectare';
+            }
             cleanButton.addEventListener('click', (event) => { event.preventDefault(); event.stopImmediatePropagation(); if (typeof logout === 'function') logout(); else { localStorage.clear(); sessionStorage.clear(); location.replace('login.html'); } });
             existingLogout.replaceWith(cleanButton);
             return;
@@ -889,7 +1245,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         footer.classList.add('flex', 'items-center', 'justify-between', 'gap-3');
         const button = document.createElement('button');
         button.type = 'button';
-        button.textContent = 'Logout';
+        button.textContent = 'Deconectare';
         button.className = 'flex-shrink-0 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl transition cursor-pointer text-xs font-medium';
         button.addEventListener('click', () => {
             if (typeof logout === 'function') logout();
@@ -925,6 +1281,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 button.title = labels[mode];
                 button.setAttribute('aria-label', `${labels[mode]}. Apasă pentru tema următoare.`);
             }
+            refreshProfileThemeLabel();
         };
 
         let mode = localStorage.getItem('panel_theme') || 'panel';
@@ -1195,7 +1552,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (document.getElementById('panel-operations-script')) return;
         const script = document.createElement('script');
         script.id = 'panel-operations-script';
-        script.src = 'js/panel-operations.js?v=20260819-notifications';
+        script.src = 'js/panel-operations.js?v=20260820-profile-menu';
         script.defer = true;
         document.head.appendChild(script);
     }
