@@ -250,19 +250,6 @@
             margin-bottom: 0;
         }
 
-        .recipe-row {
-            display: block;
-            padding: 9px 10px;
-        }
-
-        .recipe-equation {
-            display: block;
-            color: #dbeafe;
-            font-size: 0.82rem;
-            font-weight: 600;
-            line-height: 1.35;
-        }
-
         .item-name {
             font-size: 0.85rem;
             font-weight: 500;
@@ -507,20 +494,20 @@
                             <div class="item-row" style="margin-bottom: 10px;">
                                 <span class="item-name">Produs</span>
                                 <select id="smelteryResource" onchange="calculateAll()" style="width: 100%;">
-                                    <option value="minereu_carbune">Minereu cărbune</option>
-                                    <option value="mesteacan">Mesteacăn</option>
-                                    <option value="minereu_sulf">Minereu de sulf</option>
-                                    <option value="minereu_cupru">Minereu de cupru</option>
-                                    <option value="minereu_fier">Minereu de fier</option>
-                                    <option value="minereu_aur">Minereu de aur</option>
-                                    <option value="minereu_aluminiu">Minereu de aluminiu</option>
-                                    <option value="minereu_plumb">Minereu de plumb</option>
-                                    <option value="otel">Oțel</option>
-                                    <option value="arc">Arc</option>
-                                    <option value="tava_x2">Tavă x2</option>
-                                    <option value="stejar">Stejar</option>
-                                    <option value="cedru">Cedru</option>
-                                    <option value="janta_aluminiu">Jantă aluminiu</option>
+                                    <option value="carbune_minereu">1 Cărbune = 4 Minereu cărbune</option>
+                                    <option value="carbune_mesteacan">1 Cărbune = 1 Mesteacăn</option>
+                                    <option value="sulf_minereu">1 Sulf = 4 Minereu de sulf</option>
+                                    <option value="cupru_minereu">1 Cupru = 4 Minereu de cupru</option>
+                                    <option value="fier_minereu">1 Fier = 4 Minereu de fier</option>
+                                    <option value="aur_minereu">1 Aur = 4 Minereu de aur</option>
+                                    <option value="aluminiu_minereu">1 Aluminiu = 4 Minereu de aluminiu</option>
+                                    <option value="plumb_minereu">1 Plumb = 4 Minereu de plumb</option>
+                                    <option value="otel">1 Oțel = 1 Fier + 1 Cărbune</option>
+                                    <option value="arc">1 Arc = 1 Aluminiu</option>
+                                    <option value="tava_x2">Tavă x2 = 1 Oțel</option>
+                                    <option value="carbune_stejar">Cărbune x2 = 1 Stejar</option>
+                                    <option value="carbune_cedru">Cărbune x3 = 1 Cedru</option>
+                                    <option value="janta_aluminiu">1 Jantă aluminiu = 10 Aluminiu</option>
                                 </select>
                             </div>
                             <div class="item-row">
@@ -873,20 +860,20 @@
         };
 
         const smelteryRecipes = {
-            minereu_carbune: { name: 'Minereu cărbune', produces: 4, base: { 'Cărbune': 1 } },
-            mesteacan: { name: 'Mesteacăn', produces: 1, base: { 'Cărbune': 1 } },
-            minereu_sulf: { name: 'Minereu de sulf', produces: 4, base: { 'Sulf': 1 } },
-            minereu_cupru: { name: 'Minereu de cupru', produces: 4, base: { 'Cupru': 1 } },
-            minereu_fier: { name: 'Minereu de fier', produces: 4, base: { 'Fier': 1 } },
-            minereu_aur: { name: 'Minereu de aur', produces: 4, base: { 'Aur': 1 } },
-            minereu_aluminiu: { name: 'Minereu de aluminiu', produces: 4, base: { 'Aluminiu': 1 } },
-            minereu_plumb: { name: 'Minereu de plumb', produces: 4, base: { 'Plumb': 1 } },
-            otel: { name: 'Oțel', produces: 1, base: { 'Fier': 1, 'Cărbune': 1 } },
-            arc: { name: 'Arc', produces: 1, base: { 'Aluminiu': 1 } },
-            tava_x2: { name: 'Tavă x2', produces: 2, base: { 'Oțel': 1 } },
-            stejar: { name: 'Stejar', produces: 1, base: { 'Cărbune': 2 } },
-            cedru: { name: 'Cedru', produces: 1, base: { 'Cărbune': 3 } },
-            janta_aluminiu: { name: 'Jantă aluminiu', produces: 1, base: { 'Aluminiu': 10 } }
+            carbune_minereu: { name: 'Cărbune', equation: '1 Cărbune = 4 Minereu cărbune', produces: 1, base: { 'Minereu cărbune': 4 } },
+            carbune_mesteacan: { name: 'Cărbune', equation: '1 Cărbune = 1 Mesteacăn', produces: 1, base: { 'Mesteacăn': 1 } },
+            sulf_minereu: { name: 'Sulf', equation: '1 Sulf = 4 Minereu de sulf', produces: 1, base: { 'Minereu de sulf': 4 } },
+            cupru_minereu: { name: 'Cupru', equation: '1 Cupru = 4 Minereu de cupru', produces: 1, base: { 'Minereu de cupru': 4 } },
+            fier_minereu: { name: 'Fier', equation: '1 Fier = 4 Minereu de fier', produces: 1, base: { 'Minereu de fier': 4 } },
+            aur_minereu: { name: 'Aur', equation: '1 Aur = 4 Minereu de aur', produces: 1, base: { 'Minereu de aur': 4 } },
+            aluminiu_minereu: { name: 'Aluminiu', equation: '1 Aluminiu = 4 Minereu de aluminiu', produces: 1, base: { 'Minereu de aluminiu': 4 } },
+            plumb_minereu: { name: 'Plumb', equation: '1 Plumb = 4 Minereu de plumb', produces: 1, base: { 'Minereu de plumb': 4 } },
+            otel: { name: 'Oțel', equation: '1 Oțel = 1 Fier + 1 Cărbune', produces: 1, base: { 'Fier': 1, 'Cărbune': 1 } },
+            arc: { name: 'Arc', equation: '1 Arc = 1 Aluminiu', produces: 1, base: { 'Aluminiu': 1 } },
+            tava_x2: { name: 'Tavă', equation: 'Tavă x2 = 1 Oțel', produces: 2, base: { 'Oțel': 1 } },
+            carbune_stejar: { name: 'Cărbune', equation: 'Cărbune x2 = 1 Stejar', produces: 2, base: { 'Stejar': 1 } },
+            carbune_cedru: { name: 'Cărbune', equation: 'Cărbune x3 = 1 Cedru', produces: 3, base: { 'Cedru': 1 } },
+            janta_aluminiu: { name: 'Jantă aluminiu', equation: '1 Jantă aluminiu = 10 Aluminiu', produces: 1, base: { 'Aluminiu': 10 } }
         };
 
         function toggleCategory(catId) {
@@ -1336,6 +1323,7 @@
                 };
 
                 addSmelteryCard('Produs', smelteryRecipe.name);
+                addSmelteryCard('Rețetă', smelteryRecipe.equation);
                 addSmelteryCard('Cantitate dorită', formatNr(smelteryQty));
                 addSmelteryCard('Loturi necesare', smelteryCrafts);
                 addSmelteryCard('Cantitate produsă', smelteryCrafts * smelteryRecipe.produces);
