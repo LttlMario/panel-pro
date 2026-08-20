@@ -622,6 +622,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 <div class="panel-profile-list" data-profile-activity-list><p class="panel-profile-list-empty">Se încarcă activitatea…</p></div>
             </details>
             <a class="panel-profile-action" href="setari-cont.html"><span>⚙️ Setări cont</span><span>›</span></a>
+            <a class="panel-profile-action" href="prelungire-voucher.html"><span>🎟️ Prelungire organizație cu voucher</span><span>›</span></a>
             <button type="button" class="panel-profile-action" data-profile-theme-toggle><span data-profile-theme-label>🎨 Schimbă tema</span><span>›</span></button>
             <button type="button" class="panel-profile-action" data-sidebar-logout><span>↪ Deconectare</span><span>›</span></button>
         `;
