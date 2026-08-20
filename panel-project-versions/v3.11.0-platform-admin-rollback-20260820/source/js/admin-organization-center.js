@@ -1,0 +1,52 @@
+(() => {
+  if (!location.pathname.endsWith('admin.html')) return;
+  const ready = setInterval(() => {
+    const host = document.querySelector('main');
+    if (!host || document.getElementById('admin-organization-center')) return;
+    clearInterval(ready);
+    const cfg = window.PANEL_SUPABASE_CONFIG;
+    const invoke = async body => {
+      const response = await fetch(`${cfg.url}/functions/v1/manage-organizations`, {method:'POST',headers:{'Content-Type':'application/json',apikey:cfg.publishableKey,Authorization:`Bearer ${cfg.publishableKey}`},body:JSON.stringify(body)});
+      const result = await response.json(); if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`); return result;
+    };
+    const box = document.createElement('section');
+    box.id = 'admin-organization-center';
+    box.className = 'mt-6 rounded-2xl border border-indigo-700/60 bg-indigo-950/20 p-6';
+    box.innerHTML = `<h2 class="text-lg font-black">Centru administrare organizații</h2><p class="mt-2 text-sm text-slate-400">Status, audit, roluri, webhook-uri și operațiuni rapide.</p>
+      <div id="org-admin-stats" class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"></div>
+      <div class="mt-4 flex flex-wrap gap-2"><button id="org-admin-refresh" class="rounded-lg bg-indigo-700 px-3 py-2 text-xs font-bold">↻ Actualizează</button><button id="org-admin-health" class="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold">Verifică tot sistemul</button><button id="org-admin-audit" class="rounded-lg bg-violet-700 px-3 py-2 text-xs font-bold">Încarcă audit</button><button id="org-admin-export" class="rounded-lg bg-cyan-700 px-3 py-2 text-xs font-bold">Exportă organizații CSV</button><button id="org-admin-members" class="rounded-lg bg-fuchsia-700 px-3 py-2 text-xs font-bold">Exportă membri CSV</button></div>
+      <div id="org-admin-health-result" class="mt-3 hidden rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs"></div>
+      <div class="mt-4 grid gap-4 lg:grid-cols-2"><div><h3 class="font-bold">Organizații</h3><div id="org-admin-list" class="mt-2 space-y-2"></div></div><div><h3 class="font-bold">Istoric audit</h3><pre id="org-admin-audit-list" class="mt-2 max-h-72 overflow-auto rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs text-slate-300">Apasă „Încarcă audit”.</pre></div></div>
+      <div class="mt-4 grid gap-3 sm:grid-cols-2"><a class="rounded-xl bg-indigo-700 p-3 text-center font-bold" href="organizatii.html">Organizații</a><a class="rounded-xl bg-fuchsia-700 p-3 text-center font-bold" href="vouchere.html">Vouchere</a><a class="rounded-xl bg-cyan-700 p-3 text-center font-bold" href="diagnostic.html">Verificare sistem</a><a class="rounded-xl bg-emerald-700 p-3 text-center font-bold" href="administrare-organizatie.html">Status organizație</a></div>`;
+    host.appendChild(box);
+    const platformConfigLink=document.createElement('a'); platformConfigLink.href='discord-configurare.html'; platformConfigLink.textContent='⚙ Schimbă configurația platformei'; platformConfigLink.className='mt-3 inline-block rounded-lg border border-amber-700 bg-amber-950/30 px-3 py-2 text-xs font-bold text-amber-200'; box.querySelector('#org-admin-health-result').after(platformConfigLink);
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    let organizations = [];
+    const load = async () => {
+      const result = await invoke({action:'list'}); organizations = result.organizations || [];
+      const now = Date.now(); let active=0,draft=0,expired=0,incomplete=0,webhookIssues=0;
+      document.getElementById('org-admin-list').innerHTML = organizations.map(org => {
+        const expiry=org.platform_settings?.organization_access?.expires_at, isExpired=expiry&&Date.parse(expiry)<=now, isDraft=org.lifecycle_status==='draft', isActive=org.active&&!isExpired&&!isDraft;
+        if(isDraft)draft++; else if(isExpired||!org.active)expired++; else if(isActive)active++;
+        const settings=org.organization_settings?.[0]||{}, missing=!org.organization_guilds?.length||!settings.discord_client_id||!settings.panel_public_url||!org.organization_role_mappings?.length; if(missing)incomplete++;
+        const routes=settings.webhook_routes||{}; if(Object.values(routes).some(route=>Object.values(route||{}).some(item=>item?.enabled&&!item.url)))webhookIssues++;
+        return `<article class="rounded-xl border border-slate-700 bg-slate-950 p-3"><div class="flex items-center justify-between gap-2"><b>${esc(org.name)}</b><span class="text-xs ${isDraft?'text-amber-300':isActive?'text-emerald-300':'text-red-300'}">${isDraft?'Draft':isActive?'Activă':isExpired?'Expirată':'Dezactivată'}</span></div><small class="text-slate-400">${org.organization_guilds?.length||0} server(e) · ${org.organization_role_mappings?.length||0} rol(uri)${missing?' · ⚠ configurație incompletă':''}</small></article>`;
+      }).join('') || '<p class="text-sm text-slate-400">Nu există organizații.</p>';
+      document.getElementById('org-admin-stats').innerHTML = [['active','Active',active,'emerald'],['draft','Draft',draft,'amber'],['expired','Expirate',expired,'red'],['incomplete','Incomplete',incomplete,'yellow'],['webhooks','Webhook-uri cu probleme',webhookIssues,'cyan']].map(x=>`<div class="rounded-xl border border-${x[3]}-700/60 bg-${x[3]}-950/30 p-3"><b class="text-2xl">${x[2]}</b><small class="block text-slate-300">${x[1]}</small></div>`).join('');
+    };
+    const audit = async () => { const result=await invoke({action:'list_audit'});document.getElementById('org-admin-audit-list').textContent=(result.events||[]).map(event=>`${new Date(event.created_at).toLocaleString('ro-RO')} · ${event.action} · ${event.actor_discord_id}`).join('\n')||'Nu există evenimente.'; };
+    document.getElementById('org-admin-refresh').onclick=()=>load().catch(error=>alert(error.message));
+    document.getElementById('org-admin-audit').onclick=()=>audit().catch(error=>alert(error.message));
+    document.getElementById('org-admin-health').onclick=async()=>{const out=document.getElementById('org-admin-health-result');out.hidden=false;out.textContent='Se verifică...';try{await load();const checks=['Baza de date: OK'];for(const org of organizations){for(const guild of org.organization_guilds||[]){try{await invoke({action:'discover',guild_id:guild.guild_id});checks.push(`${org.name}/${guild.guild_id}: roluri OK`);}catch(error){checks.push(`${org.name}/${guild.guild_id}: ${error.message}`);}}}out.textContent=checks.join(' · ');}catch(error){out.textContent=error.message;}};
+    document.getElementById('org-admin-export').onclick=()=>{const rows=[['Nume','Status','Servere','Roluri','Expirare']];organizations.forEach(org=>rows.push([org.name,org.lifecycle_status||'',(org.organization_guilds||[]).length,(org.organization_role_mappings||[]).length,org.platform_settings?.organization_access?.expires_at||'']));const csv=rows.map(row=>row.map(value=>`"${String(value).replaceAll('"','""')}"`).join(',')).join('\n');const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));link.download='organizatii.csv';link.click();URL.revokeObjectURL(link.href);};
+    document.getElementById('org-admin-members').onclick=()=>{const table=document.querySelector('table');if(!table){alert('Încarcă mai înt�i lista membrilor.');return;}const rows=[...table.querySelectorAll('tr')].map(row=>[...row.querySelectorAll('th,td')].map(cell=>`"${cell.innerText.replaceAll('"','""')}"`).join(','));const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'}));link.download='membri.csv';link.click();URL.revokeObjectURL(link.href);};
+    const addMemberBulkTools=()=>{const table=document.querySelector('table');if(!table||document.getElementById('org-member-bulk'))return;const toolbar=document.createElement('div');toolbar.id='org-member-bulk';toolbar.className='mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-fuchsia-800/60 bg-fuchsia-950/20 p-3 text-xs';toolbar.innerHTML='<label class="flex items-center gap-2"><input type="checkbox" id="org-member-select-all"> Selectează toți membrii</label><button id="org-member-bulk-kick" class="rounded-lg bg-rose-700 px-3 py-1.5 font-bold">Kick/logout selectați</button>';table.parentElement.before(toolbar);
+      const decorate=()=>{table.querySelectorAll('tbody tr').forEach(row=>{if(row.querySelector('[data-member-select]'))return;const cell=row.querySelector('td');if(!cell)return;const id=cell.textContent.trim();if(!id||id==='N/A')return;const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.dataset.memberSelect=id;checkbox.className='mr-2';cell.prepend(checkbox);});};
+      new MutationObserver(decorate).observe(table.querySelector('tbody')||table,{childList:true,subtree:true});decorate();
+      toolbar.querySelector('#org-member-select-all').onchange=e=>table.querySelectorAll('[data-member-select]').forEach(box=>box.checked=e.target.checked);
+      toolbar.querySelector('#org-member-bulk-kick').onclick=async()=>{const selected=[...table.querySelectorAll('[data-member-select]:checked')];if(!selected.length)return alert('Selectează cel puțin un membru.');if(!confirm(`Forțezi logout pentru ${selected.length} membri?`))return;for(const box of selected)await window.panelAdminInvoke('member_kick',{discord_id:box.dataset.memberSelect});if(typeof window.fetchUsers==='function')await window.fetchUsers();};
+    };
+    const memberToolsTimer=setInterval(()=>{addMemberBulkTools();if(document.getElementById('org-member-bulk'))clearInterval(memberToolsTimer);},500);
+    load().catch(error=>{document.getElementById('org-admin-list').textContent=error.message;});
+  }, 250);
+})();

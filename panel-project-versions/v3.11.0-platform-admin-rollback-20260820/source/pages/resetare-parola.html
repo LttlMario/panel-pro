@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Resetare parolă · Panel Pro</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js?v=20260813-authfix"></script>
+  <script src="js/password-rules.js"></script>
+  <script src="js/password-visibility.js"></script>
+  <link rel="icon" href="img/favicon.ico">
+  <style>
+    @keyframes reset-fade-up { from { opacity: 0; transform: translateY(24px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes reset-float { 0%,100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(14px,-16px,0); } }
+    .reset-card { animation: reset-fade-up .55s cubic-bezier(.2,.8,.2,1) both; }
+    .reset-blob { animation: reset-float 14s ease-in-out infinite; }
+  </style>
+</head>
+<body class="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-5 py-10 text-slate-100 antialiased">
+  <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    <div class="reset-blob absolute -left-32 -top-32 h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl"></div>
+    <div class="reset-blob absolute -bottom-40 -right-24 h-[30rem] w-[30rem] rounded-full bg-indigo-600/15 blur-3xl" style="animation-delay:-5s"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(15,23,42,.15),rgba(2,6,23,.88)_72%)]"></div>
+  </div>
+
+  <main class="relative z-10 w-full max-w-md">
+    <section class="reset-card overflow-hidden rounded-[2rem] border border-slate-700/70 bg-slate-900/85 p-7 shadow-[0_24px_80px_rgba(0,0,0,.42)] backdrop-blur-xl sm:p-9">
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <img src="img/logo-192.png" alt="Panel Pro" class="h-12 w-12 rounded-2xl border border-cyan-400/25 object-cover shadow-lg shadow-cyan-500/10">
+          <div>
+            <p class="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">Panel Pro</p>
+            <p class="mt-1 text-xs text-slate-500">Securitate cont</p>
+          </div>
+        </div>
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-lg text-cyan-200" aria-hidden="true">🔐</div>
+      </div>
+
+      <div class="mt-8">
+        <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Recuperare cont</p>
+        <h1 class="mt-2 text-3xl font-black tracking-tight text-white">Alege o parolă nouă</h1>
+        <p class="mt-3 text-sm leading-6 text-slate-400">Setează o parolă nouă și securizează-ți accesul la panel.</p>
+      </div>
+
+      <div class="mt-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4 text-xs leading-5 text-cyan-100">
+        <p class="font-bold">Reguli pentru parola nouă</p>
+        <p class="mt-1 text-cyan-100/70">Minimum 8 caractere, o literă mare și o cifră.</p>
+      </div>
+
+      <form id="password-reset-form" class="mt-6 space-y-4"><input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" class="sr-only">
+        <label class="block text-xs font-bold text-slate-400">Parolă nouă
+          <input id="new-password" type="password" minlength="8" pattern="(?=.*[A-Z])(?=.*[0-9]).{8,}" autocomplete="new-password" required class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/70 focus:ring-4 focus:ring-cyan-400/10" placeholder="Introdu parola nouă">
+        </label>
+        <label class="block text-xs font-bold text-slate-400">Confirmă parola
+          <input id="new-password-confirm" type="password" minlength="8" autocomplete="new-password" required class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/70 focus:ring-4 focus:ring-cyan-400/10" placeholder="Repetă parola">
+        </label>
+        <div id="reset-password-rules" class="rounded-2xl border border-slate-700/60 bg-slate-950/40 px-4 py-3"><p class="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Reguli parolă</p><ul data-password-rules-list class="space-y-1"></ul></div>
+        <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl border-2 border-cyan-300/70 bg-cyan-500/10 px-4 py-3.5 text-sm font-black tracking-wide text-cyan-100 shadow-[0_8px_24px_rgba(34,211,238,.16)] transition hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-cyan-400/20 hover:text-white hover:shadow-[0_12px_30px_rgba(34,211,238,.28)] active:translate-y-0">Salvează parola</button>
+      </form>
+
+      <div id="password-reset-status" class="mt-4 min-h-[24px] rounded-xl text-center text-sm leading-6" role="status" aria-live="polite"></div>
+      <a href="login.html" class="mt-5 flex items-center justify-center gap-2 text-sm font-semibold text-slate-400 transition hover:text-cyan-200">← Înapoi la Login</a>
+    </section>
+    <p class="mt-5 text-center text-xs text-slate-600">Panel Pro · Acces securizat</p>
+  </main>
+
+  <script>
+    const authClient = window.createPanelAuthClient({ persistSession: true });
+    const form = document.getElementById('password-reset-form');
+    const status = document.getElementById('password-reset-status');
+    window.bindPanelPasswordRules?.('new-password', 'reset-password-rules');
+    const setStatus = (message, tone = 'info') => {
+      status.textContent = message;
+      status.className = `mt-4 min-h-[24px] rounded-xl text-center text-sm leading-6 ${tone === 'error' ? 'text-rose-300' : tone === 'success' ? 'text-emerald-300' : 'text-cyan-200'}`;
+    };
+
+    authClient.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        form.classList.add('hidden');
+        setStatus('Linkul de resetare este invalid sau a expirat.', 'error');
+      }
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const password = document.getElementById('new-password').value;
+      const confirmation = document.getElementById('new-password-confirm').value;
+      if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) return setStatus('Parola trebuie să aibă minimum 8 caractere, o literă mare și o cifră.', 'error');
+      if (password !== confirmation) return setStatus('Parolele nu coincid.', 'error');
+      setStatus('Se salvează parola...');
+      const { error } = await authClient.auth.updateUser({ password });
+      if (error) return setStatus(error.message || 'Parola nu a putut fi salvată.', 'error');
+      form.classList.add('hidden');
+      setStatus('Parola a fost schimbată cu succes. Poți reveni la Login.', 'success');
+    });
+  </script>
+  <script>
+    document.getElementById('new-password')?.setAttribute('name', 'password');
+    document.getElementById('new-password-confirm')?.setAttribute('name', 'password_confirmation');
+  </script>
+</body>
+</html>
