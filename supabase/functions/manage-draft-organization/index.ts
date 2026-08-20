@@ -5,21 +5,30 @@ const headers = { 'Access-Control-Allow-Origin': 'https://lttlmario.github.io', 
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const validGuild = (value: string) => /^\d{15,22}$/.test(value);
 const webhookChannels = new Set(['organization', 'departments', 'pontaj', 'requests', 'requests_organization', 'requests_departments', 'contracts', 'marketplace', 'illegal_marketplace', 'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'sanctions_organization', 'sanctions_departments', 'status_live', 'organization_expiration']);
+const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
+const allowedPages = new Set(['index.html', 'anunturi.html', 'pontaj.html', 'cereri.html', 'calculator.html', 'bucatarie.html', 'contracte.html', 'calculatorilegal.html', 'craftmecanics.html', 'locatiiilegale.html', 'marketplace.html', 'marketplace-ilegal.html', 'rapoarte.html', 'status-live.html', 'asistent.html']);
+const fullOnlyPages = new Set(['calculatorilegal.html', 'locatiiilegale.html', 'marketplace-ilegal.html']);
 const validWebhook = (value: unknown) => {
   try {
     const url = new URL(String(value || ''));
     return url.protocol === 'https:' && ['discord.com', 'discordapp.com'].includes(url.hostname) && url.pathname.startsWith('/api/webhooks/');
   } catch { return false; }
 };
-const sanitizeWebhookRoutes = (raw: unknown) => {
+const sanitizeWebhookRoutes = (raw: unknown, fullPackage: boolean) => {
   if (!raw || typeof raw !== 'object') return {};
   return Object.fromEntries(Object.entries(raw as Record<string, any>).filter(([channel, route]) => {
-    if (!webhookChannels.has(channel) || !route || typeof route !== 'object') return false;
+    if (!webhookChannels.has(channel) || (!fullPackage && fullOnlyWebhookChannels.has(channel)) || !route || typeof route !== 'object') return false;
     return Boolean(route.primary?.enabled && validWebhook(route.primary.url)) || Boolean(route.secondary?.enabled && validWebhook(route.secondary.url));
   }).map(([channel, route]) => [channel, {
     primary: route.primary?.enabled && validWebhook(route.primary.url) ? { enabled: true, url: String(route.primary.url).trim() } : null,
     secondary: route.secondary?.enabled && validWebhook(route.secondary.url) ? { enabled: true, url: String(route.secondary.url).trim() } : null,
   }]));
+};
+const sanitizePagePermissions = (raw: unknown, fullPackage: boolean) => {
+  if (!raw || typeof raw !== 'object') return {};
+  return Object.fromEntries(Object.entries(raw as Record<string, any>)
+    .filter(([page]) => allowedPages.has(page) && (fullPackage || !fullOnlyPages.has(page)))
+    .map(([page, ids]) => [page, [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((id) => /^\d{15,22}$/.test(id)))]]));
 };
 const allowedContractPlaceholders = new Set(['{{COMPANY}}', '{{ADDRESS}}', '{{MANAGER}}', '{{EMPLOYEE_NAME}}', '{{CNP}}', '{{PHONE}}', '{{POSITION}}', '{{SALARY}}', '{{PROGRAM}}', '{{START_DATE}}', '{{CONTRACT_NUMBER}}']);
 
@@ -74,16 +83,15 @@ Deno.serve(async (req) => {
     }
     if (body.webhook_routes) {
       const { data: currentSettings } = await db.from('organization_settings').select('discord_client_id,panel_public_url').eq('organization_id', id).maybeSingle();
-      const { error } = await db.from('organization_settings').upsert({ organization_id: id, discord_client_id: String(body.discord_client_id || currentSettings?.discord_client_id || ''), panel_public_url: String(body.panel_public_url || currentSettings?.panel_public_url || ''), webhook_routes: sanitizeWebhookRoutes(body.webhook_routes), updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
+      const { error } = await db.from('organization_settings').upsert({ organization_id: id, discord_client_id: String(body.discord_client_id || currentSettings?.discord_client_id || ''), panel_public_url: String(body.panel_public_url || currentSettings?.panel_public_url || ''), webhook_routes: sanitizeWebhookRoutes(body.webhook_routes, fullPackage), updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
       if (error) throw error;
     }
     if (body.page_permissions) {
-      const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'page_permissions', value: body.page_permissions, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+      const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'page_permissions', value: sanitizePagePermissions(body.page_permissions, fullPackage), updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
       if (error) throw error;
     }
     if (body.assistant_page_permissions && typeof body.assistant_page_permissions === 'object') {
-      const allowedPages = new Set(['index.html', 'anunturi.html', 'pontaj.html', 'cereri.html', 'bucatarie.html', 'contracte.html', 'calculator.html', 'calculatorilegal.html', 'craftmecanics.html', 'locatiiilegale.html', 'marketplace.html', 'marketplace-ilegal.html', 'rapoarte.html', 'status-live.html', 'asistent.html']);
-      const value = Object.fromEntries(Object.entries(body.assistant_page_permissions).filter(([page]) => allowedPages.has(page)).map(([page, ids]: any) => [page, [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((id) => /^\d{15,22}$/.test(id)))] ]));
+      const value = sanitizePagePermissions(body.assistant_page_permissions, fullPackage);
       const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'assistant_page_permissions', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
       if (error) throw error;
     }

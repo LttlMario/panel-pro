@@ -6,6 +6,14 @@ const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data)
 const randomToken = () => { const bytes = crypto.getRandomValues(new Uint8Array(32)); return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', ''); };
 const sha256 = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 const avatarUrl = (id: string, avatar?: string | null) => avatar ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png` : 'https://panel-management.netlify.app//img/logo-192.png';
+const allowedPages = new Set(['index.html', 'anunturi.html', 'pontaj.html', 'cereri.html', 'calculator.html', 'bucatarie.html', 'contracte.html', 'calculatorilegal.html', 'craftmecanics.html', 'locatiiilegale.html', 'marketplace.html', 'marketplace-ilegal.html', 'rapoarte.html', 'status-live.html', 'asistent.html']);
+const fullOnlyPages = new Set(['calculatorilegal.html', 'locatiiilegale.html', 'marketplace-ilegal.html']);
+const sanitizePagePermissions = (raw: unknown, fullPackage: boolean) => {
+  if (!raw || typeof raw !== 'object') return {};
+  return Object.fromEntries(Object.entries(raw as Record<string, any>)
+    .filter(([page]) => allowedPages.has(page) && (fullPackage || !fullOnlyPages.has(page)))
+    .map(([page, ids]) => [page, [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((id) => /^\d{15,22}$/.test(id)))]]));
+};
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers });
@@ -49,7 +57,7 @@ Deno.serve(async (req) => {
     if (!premium && guilds.length > 1) return reply({ error: 'Standard permite un singur server.' }, 400);
     let pages = body.page_permissions && typeof body.page_permissions === 'object' ? body.page_permissions : null;
     if (!pages) { const { data } = await db.from('app_settings').select('value').eq('organization_id', id).eq('key', 'page_permissions').maybeSingle(); pages = data?.value || {}; }
-    const { error: pageError } = await db.from('app_settings').upsert({ organization_id: id, key: 'page_permissions', value: pages, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+    const { error: pageError } = await db.from('app_settings').upsert({ organization_id: id, key: 'page_permissions', value: sanitizePagePermissions(pages, premium), updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
     if (pageError) throw pageError;
     const { error: statusError } = await db.from('organizations').update({ lifecycle_status: 'active', active: true, updated_at: new Date().toISOString() }).eq('id', id);
     if (statusError) throw statusError;
