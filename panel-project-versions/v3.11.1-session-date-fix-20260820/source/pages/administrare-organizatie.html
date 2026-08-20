@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self';">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Administrare organizație · Panel</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/global-footer.css">
+  <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+    <script src="js/permissions.js?v=4.6.1"></script>
+    <script src="js/panel-layout.js?v=4.22.0"></script>
+  <script src="js/global-footer.js"></script>
+  <style>
+    #organization-owner-main { width: 100%; min-height: calc(100vh - 96px); padding: 24px; }
+    #organization-owner-shell { width: min(100%, 1100px); margin: 0 auto; }
+    .owner-field { display: block; width: 100%; margin-top: 6px; border: 1px solid #334155; border-radius: 10px; background: #0f172a; color: #e2e8f0; padding: 10px; box-sizing: border-box; }
+    .owner-label { display: block; font-size: 12px; color: #cbd5e1; }
+    .owner-permission-card { border: 1px solid #334155; border-radius: 14px; background: rgba(2, 6, 23, .46); padding: 14px; }
+    .owner-permission-card + .owner-permission-card { margin-top: 10px; }
+    .owner-role-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) 38px; gap: 10px; align-items: end; }
+    .owner-role-row select, .owner-role-row input { min-width: 0; }
+    @media (max-width: 700px) { .owner-role-row { grid-template-columns: 1fr 38px; } .owner-role-row > :first-child { grid-column: 1 / -1; } .owner-role-row > :nth-child(2) { grid-column: 1; } .owner-role-row > :last-child { grid-column: 2; grid-row: 2; } }
+    @media (max-width: 700px) { #organization-owner-main { padding: 14px; } }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100">
+  <main id="organization-owner-main">
+    <div id="organization-owner-shell">
+      <section class="rounded-2xl border border-slate-700 bg-slate-900 p-5 md:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <span class="text-xs font-black uppercase tracking-[0.25em] text-emerald-300">Organizația mea</span>
+            <h1 class="mt-2 text-2xl font-black">Administrare organizație</h1>
+            <p class="mt-2 text-sm text-slate-400">Poți modifica doar organizația al cărei server Discord îl deții.</p>
+          </div>
+          <button id="owner-logout" type="button" class="rounded-xl border border-rose-500/30 px-4 py-2 text-sm font-bold text-rose-300 hover:bg-rose-500/10">Logout</button>
+        </div>
+
+        <div id="owner-account" class="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-700 bg-slate-950/60 p-4">
+          <div class="flex min-w-0 items-center gap-3"><img id="owner-avatar" src="img/logo-192.png" alt="Avatar Discord" class="h-12 w-12 rounded-full border border-slate-700 object-cover"><div class="min-w-0"><strong id="owner-name" class="block truncate text-sm">Cont Discord</strong><span id="owner-username" class="block truncate text-xs text-slate-400">Se verifică proprietatea...</span></div></div>
+          <div class="text-left sm:text-right"><span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Permisiune</span><strong id="owner-permission" class="block text-sm text-amber-300">Se verifică...</strong><span id="owner-guild" class="block text-xs text-slate-500"></span></div>
+        </div>
+
+        <div id="owner-denied" class="mt-5 hidden rounded-2xl border border-rose-700/60 bg-rose-950/30 p-5 text-sm text-rose-200"></div>
+
+        <form id="owner-form" class="mt-5 hidden space-y-5">
+          <div class="grid gap-3 md:grid-cols-2">
+            <label class="owner-label">Numele organizației<input id="owner-org-name" required class="owner-field" placeholder="Numele organizației"></label>
+            <label class="owner-label">Numele organizației ilegale (opțional)<input id="owner-org-illegal-name" class="owner-field" placeholder="Ex: Los Santos Cartel / Royal Family"></label>
+            <label class="owner-label">Codul organizației (opțional)<input id="owner-org-code" class="owner-field" placeholder="Ex: TEST"></label>
+            <label class="owner-label">Adresa organizației<input id="owner-org-address" class="owner-field" placeholder="Sediu sau punct de lucru"></label>
+            <label class="owner-label md:col-span-2">Descrierea organizației<textarea id="owner-org-description" class="owner-field min-h-24" placeholder="Descriere scurtă (opțional)"></textarea></label>
+            <label class="owner-label">Adresa publică a panelului<input id="owner-panel-url" type="url" required class="owner-field" placeholder="https://panel.example/"></label>
+            <label class="owner-label">Logo organizație (link PNG/JPG/WebP)<input id="owner-org-logo" type="url" class="owner-field" placeholder="https://..."></label>
+            <div class="rounded-xl border border-slate-700 bg-slate-950 p-3 md:col-span-2"><span class="block text-xs font-bold text-slate-400">Serverele Discord ale organizației</span><div id="owner-guilds-readonly" class="mt-1 space-y-1 text-sm">Se încarcă...</div><span class="mt-1 block text-xs text-slate-500">Guild ID-urile sunt gestionate administrativ și nu pot fi schimbate de aici.</span></div>
+          </div>
+
+          <section class="rounded-2xl border border-emerald-700/50 bg-emerald-950/15 p-4">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div><span class="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-300">Acces organizație</span><h2 class="mt-1 text-base font-black">Status și prelungire</h2><p class="mt-1 text-xs text-slate-400">Vezi pachetul activ și prelungește accesul cu un voucher alocat organizației.</p></div>
+              <a href="prelungire-voucher.html" class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-black text-emerald-200 hover:bg-emerald-500/20">Aplică voucher</a>
+            </div>
+            <div class="mt-4 grid gap-3 sm:grid-cols-3">
+              <div class="rounded-xl bg-slate-950/70 p-3"><span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Pachet</span><strong id="owner-package-status" class="mt-1 block text-sm text-slate-100">Se încarcă...</strong></div>
+              <div class="rounded-xl bg-slate-950/70 p-3"><span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Acces</span><strong id="owner-access-status" class="mt-1 block text-sm text-slate-100">Se încarcă...</strong></div>
+              <div class="rounded-xl bg-slate-950/70 p-3"><span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Expiră la</span><strong id="owner-expires-status" class="mt-1 block text-sm text-slate-100">Se încarcă...</strong></div>
+            </div>
+          </section>
+
+          <details class="rounded-xl border border-indigo-700/60 bg-indigo-950/15 p-4" open>
+            <summary class="cursor-pointer font-bold">Roluri Discord și acces pe pagini</summary>
+            <p class="mt-2 text-xs text-slate-400">Alege rolurile reale din serverele organizației. Numele rolului este citit direct din Discord; ID-urile rămân ascunse și sunt folosite doar intern.</p>
+            <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div><h2 class="text-sm font-black text-slate-100">Roluri panel</h2><p class="text-xs text-slate-500">Ordinea stabilește nivelul intern: primul rol primește nivelul cel mai mare.</p></div>
+              <button id="owner-add-role" type="button" class="rounded-lg border border-indigo-500/50 bg-indigo-500/10 px-3 py-2 text-xs font-bold text-indigo-200 hover:bg-indigo-500/20">＋ Adaugă rol</button>
+            </div>
+            <div id="owner-roles" class="mt-3 space-y-2"></div>
+            <div id="owner-page-permissions" class="mt-5"></div>
+            <p id="owner-permissions-status" class="mt-3 text-xs text-slate-500"></p>
+          </details>
+
+          <details class="rounded-xl border border-amber-700/60 bg-amber-950/15 p-4" open>
+            <summary class="cursor-pointer font-bold">Permisiuni de citire și scriere</summary>
+            <p class="mt-2 text-xs text-slate-400">Configurează separat cine poate citi, publica sau administra comunicările, cererile și disciplina organizației.</p>
+            <div id="owner-action-permissions" class="mt-4 space-y-3"></div>
+            <div id="owner-communication-permissions" class="mt-4 space-y-3"></div>
+            <div id="owner-discipline-permissions" class="mt-4 space-y-3"></div>
+          </details>
+
+          <details class="rounded-xl border border-violet-700/60 bg-violet-950/15 p-4">
+            <summary class="cursor-pointer font-bold">Acces separat pentru Asistent</summary>
+            <p class="mt-2 text-xs text-slate-400">Aceste bifări controlează cine poate citi informațiile din fiecare categorie a Asistentului.</p>
+            <div id="owner-assistant-permissions" class="mt-4 space-y-3"></div>
+          </details>
+
+          <details class="rounded-xl border border-slate-700 p-4" open>
+            <summary class="cursor-pointer font-bold">Webhookurile organizației</summary>
+            <p class="mt-2 text-xs text-slate-400">Configurează notificările Discord pentru organizația ta. Nu poți modifica webhookurile altor organizații.</p>
+            <div id="owner-webhooks" class="mt-3 grid gap-3 md:grid-cols-2"></div>
+          </details>
+
+          <details class="rounded-xl border border-amber-700/60 bg-amber-950/20 p-4">
+            <summary class="cursor-pointer font-bold">Contractul separat al organizației</summary>
+            <p class="mt-2 text-xs text-slate-400">Acest șablon este folosit la generarea contractelor pentru organizația ta.</p>
+            <label class="owner-label mt-3">Numele contractului<input id="owner-contract-title" class="owner-field" placeholder="Ex: Contract de colaborare"></label>
+            <label class="owner-label mt-3">Salariu implicit<input id="owner-contract-salary" class="owner-field" placeholder="Ex: 100 lei/lună"></label>
+            <label class="owner-label mt-3">Textul contractului<textarea id="owner-contract-template" class="owner-field min-h-72 font-mono text-xs" placeholder="Lipește aici contractul organizației..."></textarea></label>
+            <div class="mt-3 rounded-lg bg-slate-950 p-3 text-xs text-slate-300"><b>Câmpuri disponibile:</b><br>{{COMPANY}} companie · {{ADDRESS}} adresă · {{MANAGER}} manager · {{EMPLOYEE_NAME}} angajat · {{CNP}} CNP · {{PHONE}} telefon · {{POSITION}} funcție · {{SALARY}} salariu · {{PROGRAM}} program · {{START_DATE}} data începerii · {{CONTRACT_NUMBER}} număr contract</div>
+          </details>
+
+          <div class="flex flex-wrap items-center gap-3"><button id="owner-save" type="submit" class="rounded-xl bg-emerald-700 px-6 py-3 font-black">Salvează modificările</button><span id="owner-status" class="text-sm text-slate-400"></span></div>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      const config = window.PANEL_SUPABASE_CONFIG;
+      const user = JSON.parse(localStorage.getItem('discord_user') || 'null');
+      const $ = (id) => document.getElementById(id);
+      const webhookDefinitions = [
+        ['organization', 'Anunțuri organizație'], ['departments', 'Anunțuri Birouri / Angajați'], ['pontaj', 'Pontaj și ture'], ['weekly_reports', 'Rapoarte săptămânale'],
+        ['requests_organization', 'Cereri / Învoiri · Organizație'], ['requests_departments', 'Cereri / Învoiri · Birouri / Angajați'],
+        ['contracts', 'Contracte'], ['marketplace', 'Marketplace legal'], ['illegal_marketplace', 'Marketplace ilegal'],
+        ['fines_organization', 'Amenzi organizație'], ['fines_departments', 'Amenzi Birouri / Angajați'],
+        ['warnings_organization', 'Avertismente organizație'], ['warnings_departments', 'Avertismente Birouri / Angajați'],
+        ['sanctions_organization', 'Sancțiuni financiare organizație'], ['sanctions_departments', 'Sancțiuni financiare Birouri / Angajați'],
+        ['status_live', 'Status Live'], ['organization_expiration', 'Expirare organizație']
+      ];
+      const pageDefinitions = [
+        ['index.html', 'Dashboard'], ['anunturi.html', 'Anunțuri și sondaje'], ['pontaj.html', 'Pontaj'], ['cereri.html', 'Cereri / Învoiri'],
+        ['calculator.html', 'Calculator'], ['bucatarie.html', 'Bucătărie'], ['contracte.html', 'Contracte'], ['calculatorilegal.html', 'Calculator ilegal'],
+        ['craftmecanics.html', 'Craft Mecanic'], ['locatiiilegale.html', 'Locații ilegale'], ['marketplace.html', 'Marketplace'],
+        ['marketplace-ilegal.html', 'Marketplace ilegal'], ['rapoarte.html', 'Rapoarte'], ['status-live.html', 'Status Live'], ['asistent.html', 'Asistent Panel']
+      ];
+      const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+      let discoveredDiscordRoles = [];
+      let ownerRoleRows = [];
+      let pagePermissions = {};
+      let actionPermissions = {};
+      let assistantPagePermissions = {};
+      let communicationPermissions = { organization: { read: [], write: [] }, departments: { read: [], write: [] } };
+      let disciplinePermissions = { organization: { read: [], write: [], sanction: [] }, departments: { read: [], write: [], sanction: [] } };
+      let ownerPackageCode = 'standard';
+      const standardPackageFeatures = new Set(['core', 'announcements', 'requests', 'contracts', 'reports', 'legal_marketplace', 'legal_tools', 'assistant', 'status_live', 'announcements_departments', 'requests_departments', 'discipline_departments']);
+      const fullOnlyWebhookKeys = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
+      const fullOnlyPageFeatures = new Map([['calculatorilegal.html', 'illegal_calculator'], ['locatiiilegale.html', 'illegal_locations'], ['marketplace-ilegal.html', 'illegal_marketplace']]);
+      const ownerAllowsFeature = (feature) => ownerPackageCode === 'full' || standardPackageFeatures.has(feature);
+      const ownerAllowsPage = (page) => !fullOnlyPageFeatures.has(page) || ownerAllowsFeature(fullOnlyPageFeatures.get(page));
+
+      $('owner-name').textContent = user?.display_name || user?.username || 'Cont Discord';
+      $('owner-username').textContent = user?.username ? '@' + user.username : 'Sesiune Discord';
+      $('owner-avatar').src = user?.avatar || user?.avatar_url || 'img/logo-192.png';
+      $('owner-logout').onclick = () => { localStorage.clear(); sessionStorage.clear(); location.replace('login.html'); };
+      $('owner-webhooks').innerHTML = webhookDefinitions.map(([key, label]) => `<fieldset data-owner-webhook-fieldset="${key}" class="rounded-xl border border-slate-700 p-3"><legend class="px-1 text-xs font-bold text-slate-200">${label}</legend><label class="mt-1 flex items-center gap-2 text-xs"><input id="webhook-${key}-primary-enabled" name="webhook_${key}_primary_enabled" type="checkbox" data-owner-webhook-enabled="${key}" data-target="primary"> Discord principal</label><input id="webhook-${key}-primary" name="webhook_${key}_primary" data-owner-webhook="${key}" data-target="primary" type="url" class="owner-field" placeholder="Webhook Discord principal"><label class="mt-2 flex items-center gap-2 text-xs"><input id="webhook-${key}-secondary-enabled" name="webhook_${key}_secondary_enabled" type="checkbox" data-owner-webhook-enabled="${key}" data-target="secondary"> Discord secundar</label><input id="webhook-${key}-secondary" name="webhook_${key}_secondary" data-owner-webhook="${key}" data-target="secondary" type="url" class="owner-field" placeholder="Webhook Discord secundar"></fieldset>`).join('');
+
+      let organizationId = '';
+      const safeOrganizationId = (value) => {
+        const id = String(value || '').trim();
+        return window.isPanelOrganizationId?.(id) ? id : '';
+      };
+      const call = (body) => {
+        const requestedOrganizationId = safeOrganizationId(body?.organization_id)
+          || safeOrganizationId(organizationId)
+          || safeOrganizationId(window.getActiveOrganizationId?.());
+        const accessToken = window.getPanelDiscordAccessToken?.() || '';
+        const panelSession = localStorage.getItem('panel_session_token') || '';
+        return fetch(`${config.url}/functions/v1/manage-owned-organization`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': panelSession },
+          body: JSON.stringify({
+            ...body,
+            ...(accessToken ? { access_token: accessToken } : {}),
+            organization_id: requestedOrganizationId
+          })
+        });
+      };
+      const formatExpiry = (value) => {
+        if (!value) return 'Fără dată setată';
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 'Dată invalidă' : date.toLocaleString('ro-RO', { dateStyle: 'medium', timeStyle: 'short' });
+      };
+      const renderAccess = (access, packageState, active) => {
+        const expiresAt = access?.expires_at || packageState?.expires_at || '';
+        const expired = expiresAt && Date.parse(expiresAt) <= Date.now();
+        ownerPackageCode = String(packageState?.code || 'standard').toLowerCase();
+        $('owner-package-status').textContent = String(packageState?.code || 'standard').toUpperCase();
+        $('owner-access-status').textContent = expired ? 'Expirat — aplică voucher' : (active === false ? 'Dezactivat' : 'Activ');
+        $('owner-access-status').className = `mt-1 block text-sm ${expired || active === false ? 'text-rose-300' : 'text-emerald-300'}`;
+        $('owner-expires-status').textContent = formatExpiry(expiresAt);
+        document.querySelectorAll('[data-owner-webhook-fieldset]').forEach((fieldset) => { fieldset.hidden = ownerPackageCode !== 'full' && fullOnlyWebhookKeys.has(fieldset.dataset.ownerWebhookFieldset); });
+      };
+      const collectWebhooks = () => { const routes = {}; document.querySelectorAll('[data-owner-webhook]').forEach((input) => { const key = input.dataset.ownerWebhook, target = input.dataset.target; if (ownerPackageCode !== 'full' && fullOnlyWebhookKeys.has(key)) return; const url = input.value.trim(), enabled = document.querySelector(`[data-owner-webhook-enabled="${key}"][data-target="${target}"]`)?.checked === true; routes[key] ||= {}; routes[key][target] = { enabled, url }; }); return routes; };
+      const fillWebhooks = (routes) => { document.querySelectorAll('[data-owner-webhook]').forEach((input) => { const route = routes?.[input.dataset.ownerWebhook]?.[input.dataset.target] || {}; input.value = route.url || ''; const checkbox = document.querySelector(`[data-owner-webhook-enabled="${input.dataset.ownerWebhook}"][data-target="${input.dataset.target}"]`); if (checkbox) checkbox.checked = route.enabled === true && Boolean(route.url); }); };
+      const selectedOwnerRoles = () => ownerRoleRows.filter((row) => row.discord_role_id).map((row) => ({ guild_id: String(row.guild_id || ''), discord_role_id: String(row.discord_role_id || ''), panel_role: String(row.discord_role_name || row.panel_role || '').trim() }));
+      const availableOwnerRoles = () => ownerRoleRows.filter((row) => row.discord_role_id).map((row) => ({ id: String(row.discord_role_id), name: String(row.discord_role_name || row.panel_role || 'Rol Discord') })).filter((role, index, list) => list.findIndex((item) => item.id === role.id) === index);
+      const cleanPagePermissionState = () => { const roleIds = new Set(availableOwnerRoles().map((role) => role.id)); pagePermissions = Object.fromEntries(pageDefinitions.filter(([page]) => ownerAllowsPage(page)).map(([page]) => [page, [...new Set((pagePermissions[page] || []).map(String).filter((id) => roleIds.has(id)))]])); };
+      const renderOwnerRoles = () => {
+        const host = $('owner-roles');
+        if (!ownerRoleRows.length) ownerRoleRows = [{ guild_id: '', discord_role_id: '', discord_role_name: '', panel_role: '' }];
+        const options = '<option value="">Alege rolul Discord</option>' + discoveredDiscordRoles.map((role) => `<option value="${esc(role.id)}">${esc(role.guild_name || 'Server Discord')} · ${esc(role.name)}</option>`).join('');
+        const header = '<div class="owner-role-row hidden text-[11px] font-bold uppercase tracking-wider text-slate-500 md:grid"><div>Rol Discord</div><div>Nume rol Discord</div><div></div></div>';
+        host.innerHTML = header + ownerRoleRows.map((row, index) => {
+          const current = discoveredDiscordRoles.find((role) => String(role.id) === String(row.discord_role_id) && String(role.guild_id) === String(row.guild_id));
+          const name = current?.name || row.discord_role_name || row.panel_role || '';
+          return `<div class="owner-role-row owner-permission-card"><select class="owner-field mt-0" data-owner-role-select="${index}" aria-label="Rol Discord ${index + 1}">${options}</select><input class="owner-field mt-0" data-owner-role-name="${index}" value="${esc(name)}" aria-label="Nume rol Discord ${index + 1}" readonly><button type="button" data-owner-role-remove="${index}" class="h-10 rounded-lg border border-rose-500/30 bg-rose-500/10 text-lg font-black text-rose-300 hover:bg-rose-500/20" aria-label="Elimină rolul">−</button></div>`;
+        }).join('');
+        ownerRoleRows.forEach((row, index) => { const select = host.querySelector(`[data-owner-role-select="${index}"]`); if (select) select.value = row.discord_role_id || ''; });
+        host.querySelectorAll('[data-owner-role-select]').forEach((select) => { select.onchange = () => { const index = Number(select.dataset.ownerRoleSelect); const role = discoveredDiscordRoles.find((item) => String(item.id) === String(select.value)); ownerRoleRows[index] = { ...ownerRoleRows[index], discord_role_id: role?.id || '', discord_role_name: role?.name || '', guild_id: role?.guild_id || '', panel_role: role?.name || '' }; renderOwnerRoles(); renderAllPermissions(); }; });
+        host.querySelectorAll('[data-owner-role-remove]').forEach((button) => { button.onclick = () => { const removedId = String(ownerRoleRows[Number(button.dataset.ownerRoleRemove)]?.discord_role_id || ''); ownerRoleRows.splice(Number(button.dataset.ownerRoleRemove), 1); [pagePermissions, actionPermissions, assistantPagePermissions].forEach((rules) => Object.keys(rules).forEach((key) => { rules[key] = (rules[key] || []).map(String).filter((id) => id !== removedId); })); ['organization', 'departments'].forEach((audience) => ['read', 'write', 'sanction'].forEach((kind) => { communicationPermissions[audience][kind] = (communicationPermissions[audience][kind] || []).filter((id) => id !== removedId); disciplinePermissions[audience][kind] = (disciplinePermissions[audience][kind] || []).filter((id) => id !== removedId); })); renderOwnerRoles(); renderAllPermissions(); }; });
+      };
+      const renderOwnerPagePermissions = () => {
+        const host = $('owner-page-permissions');
+        cleanPagePermissionState();
+        const roles = availableOwnerRoles();
+        if (!roles.length) { host.innerHTML = '<div class="owner-permission-card text-xs text-slate-400">Alege cel puțin un rol Discord pentru a configura accesul pe pagini.</div>'; return; }
+        host.innerHTML = `<div class="mb-3 flex flex-wrap items-end justify-between gap-2"><div><h2 class="text-sm font-black text-slate-100">Acces pe pagini</h2><p class="text-xs text-slate-500">Bifează rolurile Discord care pot deschide fiecare pagină.</p></div><span class="text-[11px] text-slate-500">Paginile administrative ale platformei nu pot fi acordate aici.</span></div>` + pageDefinitions.filter(([page]) => ownerAllowsPage(page)).map(([page, label]) => { const selected = new Set((pagePermissions[page] || []).map(String)); const allSelected = roles.every((role) => selected.has(role.id)); return `<div class="owner-permission-card"><div class="flex flex-wrap items-center justify-between gap-2"><strong class="text-xs text-slate-200">${esc(label)}</strong><button type="button" data-owner-page-all="${esc(page)}" class="rounded-lg border border-slate-700 px-2.5 py-1 text-[11px] font-bold text-slate-300 hover:bg-slate-800">${allSelected ? 'Debifează toate' : 'Toate rolurile'}</button></div><div class="mt-3 flex flex-wrap gap-2">${roles.map((role) => `<label class="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-[11px] text-slate-300"><input type="checkbox" data-owner-page-role="${esc(page)}" data-owner-page-role-id="${esc(role.id)}" ${selected.has(role.id) ? 'checked' : ''}><span>${esc(role.name)}</span></label>`).join('')}</div></div>`; }).join('');
+        host.querySelectorAll('[data-owner-page-role]').forEach((box) => { box.onchange = () => { const page = box.dataset.ownerPageRole, id = String(box.dataset.ownerPageRoleId), selected = new Set((pagePermissions[page] || []).map(String)); box.checked ? selected.add(id) : selected.delete(id); pagePermissions[page] = [...selected]; renderOwnerPagePermissions(); }; });
+        host.querySelectorAll('[data-owner-page-all]').forEach((button) => { button.onclick = () => { const page = button.dataset.ownerPageAll, selected = new Set((pagePermissions[page] || []).map(String)), all = roles.every((role) => selected.has(role.id)); pagePermissions[page] = all ? [] : roles.map((role) => role.id); renderOwnerPagePermissions(); }; });
+      };
+      const permissionRoles = () => availableOwnerRoles();
+      const checkboxList = (host, rules, key, roles, prefix) => {
+        const selected = new Set((rules[key] || []).map(String));
+        host.innerHTML = roles.map((role) => `<label class="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs"><input type="checkbox" data-owner-permission="${esc(prefix)}" data-owner-permission-key="${esc(key)}" data-owner-permission-role="${esc(role.id)}" ${selected.has(role.id) ? 'checked' : ''}><span>${esc(role.name)}</span></label>`).join('');
+        host.querySelectorAll('[data-owner-permission]').forEach((box) => { box.onchange = () => { const current = new Set((rules[box.dataset.ownerPermissionKey] || []).map(String)); box.checked ? current.add(String(box.dataset.ownerPermissionRole)) : current.delete(String(box.dataset.ownerPermissionRole)); rules[box.dataset.ownerPermissionKey] = [...current]; }; });
+      };
+      const renderOwnerActionPermissions = () => {
+        const host = $('owner-action-permissions'), roles = permissionRoles();
+        if (!roles.length) { host.innerHTML = '<div class="owner-permission-card text-xs text-slate-400">Alege mai întâi rolurile Discord.</div>'; return; }
+        const groups = [['anunturi.publish', 'Publicare anunțuri și sondaje', 'Cine poate scrie, modifica sau șterge anunțuri.'], ...(ownerAllowsFeature('requests_organization') ? [['cereri.organization', 'Cereri → Organizație', 'Cine trimite cererile către organizație.']] : []), ['cereri.departments', 'Cereri → Birouri / Angajați', 'Cine trimite cererile către birouri și angajați.']];
+        host.innerHTML = groups.map(([key, title, help]) => `<div class="owner-permission-card"><b class="text-sm">${esc(title)}</b><p class="mt-1 text-xs text-slate-400">${esc(help)}</p><div class="mt-3 flex flex-wrap gap-2" data-owner-action-host="${esc(key)}"></div></div>`).join('');
+        groups.forEach(([key]) => checkboxList(host.querySelector(`[data-owner-action-host="${key}"]`), actionPermissions, key, roles, 'action'));
+      };
+      const renderOwnerCommunicationPermissions = () => {
+        const host = $('owner-communication-permissions'), roles = permissionRoles();
+        if (!roles.length) { host.innerHTML = ''; return; }
+        const audiences = [...(ownerAllowsFeature('announcements_organization') ? [['organization', 'Organizație / Mafia']] : []), ['departments', 'Birouri / Angajați']];
+        host.innerHTML = '<h3 class="text-sm font-black text-amber-200">Comunicări — cine poate citi și scrie</h3>' + audiences.map(([audience, label]) => `<div class="mt-3 rounded-xl border border-slate-700 p-3"><b class="text-xs">${esc(label)}</b><div class="mt-2 text-[11px] text-slate-400">Poate citi</div><div class="mt-1 flex flex-wrap gap-2" data-owner-communication-host="${audience}-read"></div><div class="mt-2 text-[11px] text-slate-400">Poate scrie</div><div class="mt-1 flex flex-wrap gap-2" data-owner-communication-host="${audience}-write"></div></div>`).join('');
+        audiences.forEach(([audience]) => ['read', 'write'].forEach((kind) => checkboxList(host.querySelector(`[data-owner-communication-host="${audience}-${kind}"]`), communicationPermissions[audience], kind, roles, 'communication')));
+      };
+      const renderOwnerDisciplinePermissions = () => {
+        const host = $('owner-discipline-permissions'), roles = permissionRoles();
+        if (!roles.length) { host.innerHTML = ''; return; }
+        const audiences = [...(ownerAllowsFeature('discipline_organization') ? [['organization', 'Organizație / Mafia']] : []), ['departments', 'Birouri / Angajați']];
+        host.innerHTML = '<h3 class="text-sm font-black text-amber-200">Disciplină — citire, avertismente și sancțiuni</h3>' + audiences.map(([audience, label]) => `<div class="mt-3 rounded-xl border border-slate-700 p-3"><b class="text-xs">${esc(label)}</b><div class="mt-2 text-[11px] text-slate-400">Poate vedea</div><div class="mt-1 flex flex-wrap gap-2" data-owner-discipline-host="${audience}-read"></div><div class="mt-2 text-[11px] text-slate-400">Poate emite avertismente</div><div class="mt-1 flex flex-wrap gap-2" data-owner-discipline-host="${audience}-write"></div><div class="mt-2 text-[11px] text-slate-400">Poate aplica sancțiuni</div><div class="mt-1 flex flex-wrap gap-2" data-owner-discipline-host="${audience}-sanction"></div></div>`).join('');
+        audiences.forEach(([audience]) => ['read', 'write', 'sanction'].forEach((kind) => checkboxList(host.querySelector(`[data-owner-discipline-host="${audience}-${kind}"]`), disciplinePermissions[audience], kind, roles, 'discipline')));
+      };
+      const renderOwnerAssistantPermissions = () => {
+        const host = $('owner-assistant-permissions'), roles = permissionRoles();
+        if (!roles.length) { host.innerHTML = '<div class="owner-permission-card text-xs text-slate-400">Alege mai întâi rolurile Discord.</div>'; return; }
+        const groups = [['general', 'Generale', [['index.html', 'Dashboard'], ['pontaj.html', 'Pontaj'], ['cereri.html', 'Cereri și absențe'], ['bucatarie.html', 'Bucătărie'], ['asistent.html', 'Asistent']]], ['legal', 'Legale', [['anunturi.html', 'Anunțuri și sondaje'], ['contracte.html', 'Contracte'], ['marketplace.html', 'Marketplace legal'], ['rapoarte.html', 'Rapoarte']]], ['illegal', 'Ilegale', [['calculatorilegal.html', 'Calculator ilegal'], ['craftmecanics.html', 'Craft Mecanic'], ['locatiiilegale.html', 'Locații ilegale'], ['marketplace-ilegal.html', 'Marketplace ilegal']].filter(([page]) => ownerAllowsPage(page))]].filter(([, , pages]) => pages.length);
+        host.innerHTML = groups.map(([key, label, pages]) => `<div class="owner-permission-card"><div class="flex items-center justify-between gap-2"><b class="text-sm">${esc(label)}</b><button type="button" class="rounded-lg border border-violet-700 px-2 py-1 text-[11px] font-bold text-violet-200" data-owner-assistant-all="${key}">Toate rolurile</button></div><div class="mt-2 space-y-2">${pages.map(([page, pageLabel]) => `<div class="rounded-lg border border-slate-800 bg-slate-900 p-2"><div class="text-xs font-bold text-slate-200">${esc(pageLabel)}</div><div class="mt-2 flex flex-wrap gap-2" data-owner-assistant-host="${page}"></div></div>`).join('')}</div></div>`).join('');
+        groups.flatMap(([, , pages]) => pages).forEach(([page]) => checkboxList(host.querySelector(`[data-owner-assistant-host="${page}"]`), assistantPagePermissions, page, roles, 'assistant'));
+        host.querySelectorAll('[data-owner-assistant-all]').forEach((button) => { button.onclick = () => { const group = groups.find(([key]) => key === button.dataset.ownerAssistantAll); (group?.[2] || []).forEach(([page]) => { assistantPagePermissions[page] = roles.map((role) => role.id); }); renderOwnerAssistantPermissions(); }; });
+      };
+      const renderAllPermissions = () => { renderOwnerRoles(); renderOwnerPagePermissions(); renderOwnerActionPermissions(); renderOwnerCommunicationPermissions(); renderOwnerDisciplinePermissions(); renderOwnerAssistantPermissions(); };
+      $('owner-add-role').onclick = () => { if (ownerRoleRows.length >= 50) { $('owner-permissions-status').textContent = 'Ai atins limita de 50 roluri în această configurare.'; return; } ownerRoleRows.push({ guild_id: '', discord_role_id: '', discord_role_name: '', panel_role: '' }); renderAllPermissions(); };
+      async function load() {
+        if (!config || (!window.getPanelDiscordAccessToken?.() && !localStorage.getItem('panel_session_token'))) { $('owner-denied').textContent = 'Sesiunea panelului lipsește. Revino la login.'; $('owner-denied').classList.remove('hidden'); return; }
+        $('owner-permission').textContent = 'Se verifică proprietatea...';
+        try {
+          const response = await call({ action: 'owner_get' });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Nu ai acces la administrarea acestei organizații.');
+          const org = data.organization || {};
+          organizationId = org.id || '';
+          $('owner-permission').textContent = 'Proprietar Guild';
+          $('owner-guild').textContent = data.guild?.name || data.guild?.id || '';
+          const readonlyGuilds = Array.isArray(data.guilds) && data.guilds.length ? data.guilds : (data.guild ? [data.guild] : []);
+          $('owner-guilds-readonly').innerHTML = readonlyGuilds.length ? readonlyGuilds.map((guild) => `<div><span class="font-bold text-slate-200">${String(guild.kind || 'primary') === 'secondary' ? 'Secundar' : 'Principal'}:</span> ${String(guild.guild_name || guild.name || 'Server Discord')} · ${String(guild.guild_id || guild.id || '')}</div>`).join('') : '<div class="text-slate-500">Nu există un Guild configurat.</div>';
+          $('owner-org-name').value = org.name || '';
+          $('owner-org-illegal-name').value = org.illegal_name || '';
+          $('owner-org-code').value = org.code || '';
+          $('owner-org-address').value = org.address || '';
+          $('owner-org-description').value = org.description || '';
+          $('owner-panel-url').value = data.settings?.panel_public_url || '';
+          $('owner-org-logo').value = org.logo_url || '';
+          renderAccess(data.access, data.package, org.active);
+          const contract = data.contract_template || {};
+          $('owner-contract-title').value = contract.title || '';
+          $('owner-contract-salary').value = contract.defaults?.salary || '';
+          $('owner-contract-template').value = contract.template || '';
+          discoveredDiscordRoles = Array.isArray(data.discord_roles) ? data.discord_roles : [];
+           ownerRoleRows = Array.isArray(data.role_mappings) ? data.role_mappings.map((role) => ({ guild_id: String(role.guild_id || ''), discord_role_id: String(role.discord_role_id || ''), discord_role_name: String(role.discord_role_name || ''), panel_role: String(role.panel_role || role.discord_role_name || '') })) : [];
+           pagePermissions = data.page_permissions && typeof data.page_permissions === 'object' ? data.page_permissions : {};
+           actionPermissions = data.action_permissions && typeof data.action_permissions === 'object' ? data.action_permissions : {};
+           assistantPagePermissions = data.assistant_page_permissions && typeof data.assistant_page_permissions === 'object' ? data.assistant_page_permissions : {};
+           const savedCommunication = data.communication_permissions && typeof data.communication_permissions === 'object' ? data.communication_permissions : {};
+           communicationPermissions = { organization: { read: Array.isArray(savedCommunication.organization?.read) ? savedCommunication.organization.read.map(String) : [], write: Array.isArray(savedCommunication.organization?.write) ? savedCommunication.organization.write.map(String) : [] }, departments: { read: Array.isArray(savedCommunication.departments?.read) ? savedCommunication.departments.read.map(String) : [], write: Array.isArray(savedCommunication.departments?.write) ? savedCommunication.departments.write.map(String) : [] } };
+           const savedDiscipline = data.discipline_permissions && typeof data.discipline_permissions === 'object' ? data.discipline_permissions : {};
+           disciplinePermissions = { organization: { read: Array.isArray(savedDiscipline.organization?.read) ? savedDiscipline.organization.read.map(String) : [], write: Array.isArray(savedDiscipline.organization?.write) ? savedDiscipline.organization.write.map(String) : [], sanction: Array.isArray(savedDiscipline.organization?.sanction) ? savedDiscipline.organization.sanction.map(String) : [] }, departments: { read: Array.isArray(savedDiscipline.departments?.read) ? savedDiscipline.departments.read.map(String) : [], write: Array.isArray(savedDiscipline.departments?.write) ? savedDiscipline.departments.write.map(String) : [], sanction: Array.isArray(savedDiscipline.departments?.sanction) ? savedDiscipline.departments.sanction.map(String) : [] } };
+           renderAllPermissions();
+          fillWebhooks(data.settings?.webhook_routes || {});
+          $('owner-form').classList.remove('hidden');
+        } catch (error) {
+          $('owner-permission').textContent = 'Acces refuzat';
+          $('owner-denied').textContent = error.message || 'Doar proprietarul serverului Discord poate administra organizația.';
+          $('owner-denied').classList.remove('hidden');
+        }
+      }
+
+      $('owner-form').onsubmit = async (event) => {
+        event.preventDefault();
+        const button = $('owner-save'); button.disabled = true; $('owner-status').textContent = 'Se salvează modificările...';
+        try {
+          const title = $('owner-contract-title').value.trim(), template = $('owner-contract-template').value.trim(), salary = $('owner-contract-salary').value.trim();
+          const contractTemplate = title || template || salary ? { title, template, defaults: { salary } } : null;
+          const roles = selectedOwnerRoles();
+          if (!roles.length) throw new Error('Configurează cel puțin un rol Discord.');
+           const response = await call({ action: 'owner_update', organization_id: organizationId, organization: { name: $('owner-org-name').value.trim(), illegal_name: $('owner-org-illegal-name').value.trim(), code: $('owner-org-code').value.trim(), address: $('owner-org-address').value.trim(), description: $('owner-org-description').value.trim(), panel_public_url: $('owner-panel-url').value.trim(), logo_url: $('owner-org-logo').value.trim() }, webhook_routes: collectWebhooks(), contract_template: contractTemplate, roles, page_permissions: pagePermissions, action_permissions: actionPermissions, assistant_page_permissions: assistantPagePermissions, communication_permissions: communicationPermissions, discipline_permissions: disciplinePermissions });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Modificările nu au putut fi salvate.');
+          discoveredDiscordRoles = Array.isArray(data.discord_roles) ? data.discord_roles : discoveredDiscordRoles;
+           ownerRoleRows = Array.isArray(data.role_mappings) ? data.role_mappings.map((role) => ({ guild_id: String(role.guild_id || ''), discord_role_id: String(role.discord_role_id || ''), discord_role_name: String(role.discord_role_name || ''), panel_role: String(role.panel_role || role.discord_role_name || '') })) : ownerRoleRows;
+           pagePermissions = data.page_permissions && typeof data.page_permissions === 'object' ? data.page_permissions : pagePermissions;
+           actionPermissions = data.action_permissions && typeof data.action_permissions === 'object' ? data.action_permissions : actionPermissions;
+           assistantPagePermissions = data.assistant_page_permissions && typeof data.assistant_page_permissions === 'object' ? data.assistant_page_permissions : assistantPagePermissions;
+           const updatedCommunication = data.communication_permissions && typeof data.communication_permissions === 'object' ? data.communication_permissions : {};
+           communicationPermissions = { organization: { read: Array.isArray(updatedCommunication.organization?.read) ? updatedCommunication.organization.read.map(String) : [], write: Array.isArray(updatedCommunication.organization?.write) ? updatedCommunication.organization.write.map(String) : [] }, departments: { read: Array.isArray(updatedCommunication.departments?.read) ? updatedCommunication.departments.read.map(String) : [], write: Array.isArray(updatedCommunication.departments?.write) ? updatedCommunication.departments.write.map(String) : [] } };
+           const updatedDiscipline = data.discipline_permissions && typeof data.discipline_permissions === 'object' ? data.discipline_permissions : {};
+           disciplinePermissions = { organization: { read: Array.isArray(updatedDiscipline.organization?.read) ? updatedDiscipline.organization.read.map(String) : [], write: Array.isArray(updatedDiscipline.organization?.write) ? updatedDiscipline.organization.write.map(String) : [], sanction: Array.isArray(updatedDiscipline.organization?.sanction) ? updatedDiscipline.organization.sanction.map(String) : [] }, departments: { read: Array.isArray(updatedDiscipline.departments?.read) ? updatedDiscipline.departments.read.map(String) : [], write: Array.isArray(updatedDiscipline.departments?.write) ? updatedDiscipline.departments.write.map(String) : [], sanction: Array.isArray(updatedDiscipline.departments?.sanction) ? updatedDiscipline.departments.sanction.map(String) : [] } };
+           renderAllPermissions();
+          renderAccess(data.access, data.package, data.organization?.active);
+          $('owner-status').textContent = 'Modificările au fost salvate.';
+          localStorage.setItem('panel_active_organization', JSON.stringify(data.organization || {}));
+        } catch (error) { $('owner-status').textContent = error.message || 'Salvarea a eșuat.'; }
+        button.disabled = false;
+      };
+      load();
+    })();
+  </script>
+</body>
+</html>

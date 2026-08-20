@@ -1,0 +1,36 @@
+{
+  "version": "3.11.1",
+  "releasedAt": "2026-08-20",
+  "title": "Reparare sesiune și acces la prelungirea organizației",
+  "supabaseProjectRef": "vkvsabbbawyiurnaiugo",
+  "githubRepository": "LttlMario/panel-pro",
+  "parentCommit": "cf816fb76bd8aa4b73fffdab05277037d3bb6b55",
+  "releaseCommit": "e4651e36d3c8b00dcd51c5de3a35fa96100dab99",
+  "backupCommit": "see GitHub history for archive commit",
+  "supabaseMigrationApplied": false,
+  "supabaseFunctionsDeployed": [],
+  "pagesDeployment": "Pending validation and GitHub Pages deployment",
+  "backupFileCounts": {
+    "source": 225,
+    "functions": 66,
+    "sql": 37,
+    "supabase": 10,
+    "automation": 2,
+    "payloadTotal": 340,
+    "archiveMetadata": 2,
+    "archiveTotal": 342
+  },
+  "sourceFiles": [
+    "source/pages/ — toate paginile HTML la momentul release-ului",
+    "source/css/ — toate fișierele CSS",
+    "source/js/ — toate fișierele JavaScript",
+    "source/img/ și source/vendor/ — activele web"
+  ],
+  "sqlFiles": [
+    "sql/ — toate migrațiile Supabase disponibile",
+    "sql/manual/ — scripturile SQL manuale disponibile"
+  ],
+  "functionFiles": [
+    "functions/ — toate funcțiile Supabase și _shared"
+  ]
+}

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title desc">
+  <title id="title">Aplicație Panel pentru Android</title>
+  <desc id="desc">Un telefon verde cu simbol Android și o săgeată de descărcare.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#052e2b"/><stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="phone" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#1e293b"/><stop offset="1" stop-color="#020617"/>
+    </linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-opacity=".35"/></filter>
+  </defs>
+  <rect width="640" height="480" rx="44" fill="url(#bg)"/>
+  <circle cx="96" cy="92" r="54" fill="#22c55e" opacity=".12"/>
+  <circle cx="555" cy="390" r="78" fill="#34d399" opacity=".1"/>
+  <g filter="url(#shadow)">
+    <rect x="202" y="44" width="236" height="392" rx="35" fill="url(#phone)" stroke="#475569" stroke-width="5"/>
+    <rect x="219" y="84" width="202" height="302" rx="20" fill="#071a18"/>
+    <rect x="286" y="61" width="68" height="7" rx="4" fill="#64748b"/>
+    <circle cx="320" cy="410" r="11" fill="#334155"/>
+  </g>
+  <g fill="#3ddc84">
+    <path d="M267 191h106a13 13 0 0 1 13 13v77a18 18 0 0 1-18 18h-96a18 18 0 0 1-18-18v-77a13 13 0 0 1 13-13Z"/>
+    <path d="M267 183c3-29 25-50 53-50s50 21 53 50H267Z"/>
+    <rect x="275" y="288" width="18" height="42" rx="9"/><rect x="347" y="288" width="18" height="42" rx="9"/>
+  </g>
+  <g stroke="#3ddc84" stroke-width="7" stroke-linecap="round"><path d="m281 143-13-20"/><path d="m359 143 13-20"/></g>
+  <g fill="#071a18"><circle cx="295" cy="160" r="4"/><circle cx="345" cy="160" r="4"/></g>
+  <g transform="translate(404 269)">
+    <circle cx="61" cy="61" r="61" fill="#10b981" stroke="#a7f3d0" stroke-width="5"/>
+    <path d="M61 24v55m-23-21 23 23 23-23M35 96h52" fill="none" stroke="white" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="320" y="461" text-anchor="middle" fill="#a7f3d0" font-family="Arial, sans-serif" font-size="19" font-weight="700">PANEL PENTRU ANDROID</text>
+</svg>

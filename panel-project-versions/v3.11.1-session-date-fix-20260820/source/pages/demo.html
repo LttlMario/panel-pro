@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Demo interactiv Panel Pro cu date simulate.">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Panel Pro · Demo interactiv</title>
+  <link rel="icon" href="img/favicon.ico">
+  <link rel="stylesheet" href="css/demo.css">
+  <script src="js/text-normalizer.js?v=1.0.0"></script>
+</head>
+<body>
+  <div class="demo-app">
+    <header class="demo-topbar">
+      <button class="demo-mobile-toggle" id="demo-mobile-toggle" type="button" aria-label="Deschide meniul" aria-expanded="false">☰</button>
+      <div class="demo-header-title"><h2 id="demo-header-title">Dashboard</h2></div>
+      <label class="demo-global-search"><input id="demo-global-search" type="search" placeholder="Caută: Runflat, pontaj, învoire..." autocomplete="off"></label>
+    </header>
+
+    <div class="demo-layout">
+      <aside class="demo-sidebar">
+        <div class="sidebar-heading">ORGANIZAȚIE DEMO <span>LM</span></div>
+        <nav class="demo-nav" aria-label="Module demo">
+          <p class="nav-label">OPERAȚIUNI</p>
+          <button class="demo-nav-item is-active" data-demo="dashboard"><span class="nav-icon">⌂</span> Dashboard</button>
+          <button class="demo-nav-item" data-demo="pontaj"><span class="nav-icon">◷</span> Pontaj</button>
+          <button class="demo-nav-item" data-demo="cereri"><span class="nav-icon">▤</span> Cereri / Absențe</button>
+          <button class="demo-nav-item" data-demo="contracte"><span class="nav-icon">▧</span> Contracte</button>
+          <button class="demo-nav-item" data-demo="rapoarte"><span class="nav-icon">▥</span> Rapoarte</button>
+          <p class="nav-label">RESURSE</p>
+          <button class="demo-nav-item" data-demo="marketplace"><span class="nav-icon">◇</span> Marketplace</button>
+          <button class="demo-nav-item" data-demo="calculator"><span class="nav-icon">⊞</span> Calculator</button>
+          <button class="demo-nav-item" data-demo="bucatarie"><span class="nav-icon">♨</span> Bucătărie</button>
+          <button class="demo-nav-item" data-demo="craft"><span class="nav-icon">⌁</span> Craft Mecanic</button>
+          <button class="demo-nav-item" data-demo="anunturi"><span class="nav-icon">◉</span> Anunțuri &amp; Sondaje</button>
+          <button class="demo-nav-item" data-demo="asistent"><span class="nav-icon">✦</span> Asistent Panel</button>
+          <p class="nav-label">ADMINISTRAȚIE</p>
+          <button class="demo-nav-item" data-demo="administrare"><span class="nav-icon">⚙</span> Administrare</button>
+        </nav>
+        <div class="sidebar-bottom"><span class="status-dot"></span><div><b>Organizație activă</b><small>Sincronizare simulată</small></div></div>
+      </aside>
+      <div class="demo-mobile-backdrop" id="demo-mobile-backdrop"></div>
+
+      <main class="demo-main">
+        <div class="demo-context"><span>DEMO INTERACTIV</span><span>•</span><span>Fără autentificare</span><span>•</span><span>Fără conexiune Discord</span></div>
+        <section class="demo-heading">
+          <div><p class="demo-kicker">PANOU DE CONTROL</p><h1 id="demo-title">Bun venit în demo</h1><p id="demo-subtitle">Explorează modulele din meniul lateral. Fiecare ecran îți arată ce poate face organizația ta în varianta reală.</p></div>
+          <div class="profile-chip"><span class="profile-avatar">LM</span><span><b>Little Mario</b><small>Administrator · DEMO</small></span></div>
+        </section>
+
+        <div class="demo-guide" id="demo-guide"><div class="guide-icon">i</div><div><b>Cum folosești această simulare</b><p>Apasă pe un modul din stânga. Vei primi instrucțiuni despre pașii obișnuiți și poți testa doar interacțiuni locale, fără salvare sau trimitere externă.</p></div></div>
+
+        <section class="demo-stats" aria-label="Statistici simulate">
+          <article><span>Membri activi</span><strong id="stat-members">248</strong><small class="positive">+12% luna aceasta</small></article>
+          <article><span>Ore înregistrate</span><strong id="stat-hours">1.284</strong><small class="positive">+8% luna aceasta</small></article>
+          <article><span>Cereri în așteptare</span><strong id="stat-requests">07</strong><small class="warning">De verificat</small></article>
+          <article><span>Status organizație</span><strong class="stat-status">Activă</strong><small class="positive">Totul funcționează</small></article>
+        </section>
+
+        <section class="demo-content-grid">
+          <article class="demo-panel demo-panel-main" id="demo-panel-main"></article>
+          <aside class="demo-panel demo-side-panel"><div class="panel-title"><div><span class="panel-eyebrow">GHID RAPID</span><h2>Ce poți testa</h2></div><span class="panel-count">12 module</span></div><div class="quick-list"><div><span class="quick-check">✓</span><span><b>Navigare între module</b><small>Vezi scopul fiecărei funcții</small></span></div><div><span class="quick-check">✓</span><span><b>Acțiuni simulate</b><small>Primești feedback fără salvare</small></span></div><div><span class="quick-check">✓</span><span><b>Fluxuri explicate</b><small>Înțelegi pașii din varianta reală</small></span></div></div><div class="no-external"><span>◌</span><p><b>Nicio acțiune externă</b><br>Demo-ul nu trimite mesaje, nu postează pe Discord și nu modifică date reale.</p></div></aside>
+        </section>
+      </main>
+    </div>
+  </div>
+  <div class="demo-toast" id="demo-toast" role="status" aria-live="polite"></div>
+  <script src="js/demo.js"></script>
+</body>
+</html>
