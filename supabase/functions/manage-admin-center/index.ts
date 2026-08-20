@@ -66,7 +66,7 @@ Deno.serve(async request=>{
       if(error)throw error;
     };
     if(body.action==='platform_admins'){
-      const {data,error}=await db.from('platform_administrators').select('discord_id,display_name,active,added_by_discord_id,created_at,updated_at').order('created_at',{ascending:true});
+      const {data,error}=await db.from('platform_administrators').select('discord_id,display_name,active,created_at,updated_at').order('created_at',{ascending:true});
       if(error)throw error;
       const roots=PLATFORM_ADMIN_DISCORD_IDS.map(discord_id=>({discord_id,display_name:'Administrator principal',active:true,root:true}));
       const configured=(data||[]).map((item:any)=>({...item,root:false}));
@@ -76,7 +76,7 @@ Deno.serve(async request=>{
       const target=String(body.discord_id||'').trim(),displayName=String(body.display_name||'').trim().slice(0,120)||null;
       if(!snowflake(target))return reply({error:'Discord ID invalid. Introdu un ID numeric valid.'},400);
       if(PLATFORM_ADMIN_DISCORD_IDS.includes(target))return reply({error:'Acest ID este deja administrator principal.'},409);
-      const {error}=await db.from('platform_administrators').upsert({discord_id:target,display_name:displayName,active:true,added_by_discord_id:discordUser.id,updated_at:now()},{onConflict:'discord_id'});
+      const {error}=await db.from('platform_administrators').upsert({discord_id:target,display_name:displayName,active:true,updated_at:now()},{onConflict:'discord_id'});
       if(error)throw error;
       await audit('platform_admin_added',target,{display_name:displayName});
       return reply({ok:true});
@@ -205,5 +205,10 @@ Deno.serve(async request=>{
       const value=body.value;if(!value||typeof value!=='object')return reply({error:'Configurație invalidă.'},400);const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'pontaj_config',value,updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;await db.from('admin_audit_log').insert({organization_id:organizationId,actor_discord_id:discordUser.id,actor_name:actorName,action:'config_import',target_type:'app_settings',target_id:'pontaj_config'});return reply({ok:true});
     }
     return reply({error:'Acțiune necunoscută.'},400);
-  }catch(error){return reply({error:error instanceof Error?error.message:'Eroare internă.'},500)}
+  }catch(error){
+    const details=error&&typeof error==='object'?(error as {message?:unknown;status?:unknown}):null;
+    const message=error instanceof Error?error.message:String(details?.message||'Eroare internă.');
+    const status=Number(details?.status)||(/^Sesiunea|^Utilizatorul nu este înregistrat/.test(message)?401:500);
+    return reply({error:message},status);
+  }
 });
