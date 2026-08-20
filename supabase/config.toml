@@ -1,5 +1,5 @@
 [functions.sync-discord-role]
-verify_jwt = true
+verify_jwt = false
 
 [functions.username-login]
 verify_jwt = false
