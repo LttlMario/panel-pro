@@ -12,13 +12,13 @@
   "pagesDeployment": "Pending validation and GitHub Pages deployment",
   "backupFileCounts": {
     "source": 225,
-    "functions": 66,
+    "functions": 33,
     "sql": 37,
     "supabase": 10,
     "automation": 2,
-    "payloadTotal": 340,
+    "payloadTotal": 307,
     "archiveMetadata": 2,
-    "archiveTotal": 342
+    "archiveTotal": 309
   },
   "sourceFiles": [
     "source/pages/ — toate paginile HTML la momentul release-ului",
