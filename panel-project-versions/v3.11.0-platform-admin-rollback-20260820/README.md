@@ -15,6 +15,7 @@ Status deploy: funcțiile Supabase și GitHub Pages publicate cu succes
 - sursele web modificate în `source/`;
 - toate funcțiile Supabase în `functions/`;
 - toate migrațiile SQL în `sql/`.
+- verificarea GitHub Actions folosită la publicare în `automation/`.
 
 ## Rollback
 
