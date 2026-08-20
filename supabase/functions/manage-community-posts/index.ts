@@ -1,6 +1,6 @@
 import {createClient} from 'jsr:@supabase/supabase-js@2.112.3';
 import {requirePanelSession} from '../_shared/panel-session.ts';
-import {isPlatformAdminDiscordId} from '../_shared/platform-admin.ts';
+import {isPlatformAdminAccount} from '../_shared/platform-admin.ts';
 import {resolvePackageFeatures} from '../_shared/package-features.ts';
 const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Content-Type':'application/json'};
 
@@ -37,7 +37,7 @@ if (requestRateError) {
 }
 if (requestAllowed === false) return reply({ error: 'Ai atins limita temporară pentru această secțiune. Încearcă din nou mai târziu.' }, 429);
 
-const isPlatformAdmin = isPlatformAdminDiscordId(session.discord_id);
+const isPlatformAdmin = await isPlatformAdminAccount(db, session.discord_id);
 stage='load_permission_settings';
 const { data: permissionSettings, error: permissionSettingsError } =
     await db

@@ -1,6 +1,6 @@
 import {createClient} from 'jsr:@supabase/supabase-js@2.112.3';
 import {requirePanelSession} from '../_shared/panel-session.ts';
-import {isPlatformAdminDiscordId} from '../_shared/platform-admin.ts';
+import {isPlatformAdminAccount} from '../_shared/platform-admin.ts';
 const headers={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Content-Type':'application/json'};
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers});
 const safeFetch=async(url:string,init:RequestInit={},timeout=8000)=>{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);try{return await fetch(url,{...init,signal:controller.signal})}finally{clearTimeout(timer)}};
@@ -9,7 +9,7 @@ Deno.serve(async request=>{
  if(request.method==='OPTIONS')return new Response('ok',{headers});if(request.method!=='POST')return reply({error:'Metodă invalidă.'},405);
  try{
   const key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS')??'{}').default;if(!key)throw new Error('Cheia secretă Supabase lipsește.');
-  const db=createClient(Deno.env.get('SUPABASE_URL')!,key),session=await requirePanelSession(db,request,0,true),body=await request.json(),organizationId=session.organization_id;if(!isPlatformAdminDiscordId(session.discord_id))return reply({error:'Această funcție este rezervată administratorului platformei.'},403);
+  const db=createClient(Deno.env.get('SUPABASE_URL')!,key),session=await requirePanelSession(db,request,0,true),body=await request.json(),organizationId=session.organization_id;if(!await isPlatformAdminAccount(db,session.discord_id))return reply({error:'Această funcție este rezervată administratorului platformei.'},403);
   const load=async()=>{const [{data:organization},{data:settings},{data:guilds},{data:roles},{data:platformSettings}]=await Promise.all([
    db.from('organizations').select('*').eq('id',organizationId).single(),db.from('organization_settings').select('*').eq('organization_id',organizationId).maybeSingle(),
    db.from('organization_guilds').select('*').eq('organization_id',organizationId).order('kind'),db.from('organization_role_mappings').select('*').eq('organization_id',organizationId).eq('enabled',true).order('permission_level'),db.from('app_settings').select('key,value').eq('organization_id',organizationId).in('key',['organization_access','contract_template'])]);

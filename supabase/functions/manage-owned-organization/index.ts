@@ -1,5 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
-import { isPlatformAdminDiscordId } from '../_shared/platform-admin.ts';
+import { isPlatformAdminAccount } from '../_shared/platform-admin.ts';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 
 const headers = {
@@ -280,9 +280,10 @@ Deno.serve(async (request) => {
         break;
       }
     }
-    if (!owned && !isPlatformAdminDiscordId(discordId)) return reply({ error: 'Acces refuzat. Doar proprietarul serverului Discord sau administratorul platformei poate administra această organizație.' }, 403);
+    const isPlatformAdmin = await isPlatformAdminAccount(db, discordId);
+    if (!owned && !isPlatformAdmin) return reply({ error: 'Acces refuzat. Doar proprietarul serverului Discord sau administratorul platformei poate administra această organizație.' }, 403);
 
-    if (!owned && isPlatformAdminDiscordId(discordId)) {
+    if (!owned && isPlatformAdmin) {
       const fallbackOrganizationId = requestedOrganizationId;
       if (!fallbackOrganizationId) return reply({ error: 'Administratorul platformei trebuie să selecteze o organizație.' }, 400);
       const { data: fallbackOrganization, error: fallbackError } = await db.from('organizations')

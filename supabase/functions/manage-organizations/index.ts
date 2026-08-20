@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
-import { isPlatformAdminDiscordId, PLATFORM_ADMIN_DISCORD_IDS } from '../_shared/platform-admin.ts';
+import { isPlatformAdminAccount, PLATFORM_ADMIN_DISCORD_IDS } from '../_shared/platform-admin.ts';
 import { FULL_PACKAGE_FEATURES, PACKAGE_FEATURES, packageCatalogForClient, resolvePackageFeatures, STANDARD_PACKAGE_FEATURES } from '../_shared/package-features.ts';
 
 const headers={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
@@ -74,7 +74,7 @@ Deno.serve(async request=>{
     const db=createClient(Deno.env.get('SUPABASE_URL')!,key);cleanupDb=db;
     const body=await request.json();
     const session=await requirePanelSession(db,request,0,true);
-    if(!isPlatformAdminDiscordId(session.discord_id))return reply({error:'Doar administratorul platformei poate administra organizațiile.'},403);
+    if(!await isPlatformAdminAccount(db,session.discord_id))return reply({error:'Doar administratorul platformei poate administra organizațiile.'},403);
     const {data:rateAllowed,error:rateError}=await db.rpc('consume_panel_rate_limit',{p_key:`platform-organizations:${session.discord_id}:${getClientIp(request)}`,p_limit:180,p_window_seconds:900});
     if(rateError)throw new Error(`Protecția anti-abuz nu este disponibilă: ${rateError.message}`);
     if(rateAllowed!==true)return reply({error:'Prea multe operațiuni administrative într-un timp scurt. Încearcă din nou peste câteva minute.'},429);
