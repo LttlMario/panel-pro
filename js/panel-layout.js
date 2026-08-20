@@ -404,7 +404,11 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             sidebar.querySelectorAll('#panel-user-display-name, #panel-user-role').forEach((element) => element.classList.toggle('hidden', effectiveCollapsed));
         };
 
-        const syncResponsiveSidebar = () => applyCollapsedState(window.innerWidth < 1100);
+        const syncResponsiveSidebar = () => {
+            const mainWidth = main?.getBoundingClientRect().width || 0;
+            const shouldCollapse = window.innerWidth < 1100 || (mainWidth > 0 && mainWidth < 900);
+            applyCollapsedState(shouldCollapse);
+        };
         syncResponsiveSidebar();
         window.addEventListener('resize', syncResponsiveSidebar);
 
