@@ -399,7 +399,10 @@
                     <div class="category-group" id="cat-weapon-parts">
                         <div class="category-header" onclick="toggleCategory('cat-weapon-parts')">⚙️ Piese de Armă</div>
                         <div class="category-content" id="weaponPartsForm">
-                            <div class="item-row recipe-row"><span class="recipe-equation">1 Arc + 1 Oțel + 1 Plastic + 2 Scrap = 2 Piese de armă</span></div>
+                            <div class="item-row">
+                                <span class="item-name">Piese de armă</span>
+                                <input type="number" id="part_total_piese" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
                             <div class="item-row">
                                 <span class="item-name">Teavă Pistol</span>
                                 <input type="number" id="part_teava_pistol" min="0" value="0" placeholder="0" oninput="calculateAll()">
@@ -994,6 +997,8 @@
                 weaponComponentsAsParts += (wTotals[compName] || 0) * (componentCost[compName] || 0);
             }
 
+            const totalPartsQty = parseInt(document.getElementById('part_total_piese').value) || 0;
+
             let independentParts = {
                 "Teava Pistol": parseInt(document.getElementById('part_teava_pistol').value) || 0,
                 "Corp Pistol": parseInt(document.getElementById('part_corp_pistol').value) || 0,
@@ -1004,8 +1009,8 @@
                 "Butstock": parseInt(document.getElementById('part_butstock').value) || 0
             };
 
-            let hasIndependentParts = false;
-            let totalIndependentPartsConsumed = 0;
+            let hasIndependentParts = totalPartsQty > 0;
+            let totalIndependentPartsConsumed = totalPartsQty;
 
             for (let pName in independentParts) {
                 let count = independentParts[pName];
