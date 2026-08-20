@@ -236,24 +236,12 @@
 
         // Citirea utilizatorilor (reutilizată exact din rapoarte.html)
         async function fetchUsersData() {
-            try {
-                const { data: directory, error } = await supabaseClient.rpc('get_user_directory');
-                if (error) throw error;
-                (directory || []).forEach(user => {
-                    const id = String(user.discord_id || '').trim();
-                    if (id) usersMap[id] = user.display_name || id;
-                });
-                return;
-            } catch (error) {}
-
-            try {
-                const { data: usersData, error } = await supabaseClient.from('users').select('discord_id, display_name, username');
-                if (error) throw error;
-                (usersData || []).forEach(user => {
-                    const id = String(user.discord_id || '').trim();
-                    if (id) usersMap[id] = user.display_name || user.username || id;
-                });
-            } catch (error) {}
+            const result = await window.loadPanelOrganizationDirectory?.(activeOrganizationId);
+            if (result?.error) return;
+            (result?.data || []).forEach(user => {
+                const id = String(user.discord_id || '').trim();
+                if (id) usersMap[id] = user.display_name || user.username || id;
+            });
         }
 
         // Citirea tabelului shifts pentru pontaje active (reutilizată din rapoarte.html)

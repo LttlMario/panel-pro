@@ -161,12 +161,10 @@ Deno.serve(async request=>{
       if(!snowflake(target))return reply({error:'Discord ID invalid.'},400);
       if(target===String(discordUser.id))return reply({error:'Nu îți poți șterge propriul cont de administrator.'},400);
       if((await isPlatformAdminAccount(db,target)))return reply({error:'Un administrator al platformei nu poate fi șters din organizație.'},400);
-      const {error:sessionError}=await db.from('panel_sessions').delete().eq('discord_id',target);
+      const {error:sessionError}=await db.from('panel_sessions').delete().eq('organization_id',organizationId).eq('discord_id',target);
       if(sessionError)throw sessionError;
       const {error:memberError}=await db.from('organization_members').delete().eq('organization_id',organizationId).eq('discord_id',target);
       if(memberError)throw memberError;
-      const {error:userError}=await db.from('users').delete().eq('discord_id',target);
-      if(userError)throw userError;
       await audit('member_deleted',target,{organization_id:organizationId});
       return reply({ok:true});
     }
@@ -183,7 +181,7 @@ Deno.serve(async request=>{
         db.from('shifts').select('discord_id,status,shift_type,duration,stop_reason,started_at,ended_at,created_at').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(350),
         db.from('absences').select('discord_id,colleague_name,notice_type,reason,notes,end_at,created_at').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(250),
         db.from('marketplace').select('nume,display_name,tip_actiune,produse,pret,created_at').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(150),
-        db.from('marketplace_ilegal').select('nume,tip_actiune,produse,pret,created_at').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(150),
+        db.from('marketplace_ilegal').select('nume,tip_actiune,produse,pret,created_at').is('organization_id',null).order('created_at',{ascending:false}).limit(150),
         db.from('admin_audit_log').select('actor_name,actor_discord_id,action,target_type,target_id,created_at').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(300),
       ]);
       for(const result of [shiftsResult,absencesResult,marketResult,blackMarketResult,auditResult]) if(result.error) throw result.error;

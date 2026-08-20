@@ -95,18 +95,26 @@ async function load() {
         .order('created_at', { ascending: false });
 
     const postIds = (postResult.data || []).map(post => post.id).filter(Boolean);
-    const [optionResult, reactionResult, voteResult, userResult] = await Promise.all([
+    const [optionResult, reactionResult, voteResult, memberResult] = await Promise.all([
         postIds.length ? db.from('community_poll_options').select('*').eq('organization_id', organizationId).in('post_id', postIds) : Promise.resolve({ data: [], error: null }),
         postIds.length ? db.from('community_reactions').select('*').eq('organization_id', organizationId).in('post_id', postIds) : Promise.resolve({ data: [], error: null }),
         postIds.length ? db.from('community_poll_votes').select('*').eq('organization_id', organizationId).in('post_id', postIds) : Promise.resolve({ data: [], error: null }),
-        db.from('users').select('discord_id,display_name,username')
+        db.from('organization_members').select('discord_id').eq('organization_id', organizationId).eq('active', true)
     ]);
+
+    const memberIds = [...new Set((memberResult.data || [])
+        .map(member => String(member.discord_id || '').trim())
+        .filter(Boolean))];
+    const userResult = memberResult.error || !memberIds.length
+        ? { data: [], error: memberResult.error || null }
+        : await db.from('users').select('discord_id,display_name,username').in('discord_id', memberIds);
 
     const error =
         postResult.error ||
         optionResult.error ||
         reactionResult.error ||
         voteResult.error ||
+        memberResult.error ||
         userResult.error;
 
     if (error) {

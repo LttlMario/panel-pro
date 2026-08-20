@@ -924,38 +924,16 @@ async function forceStopActiveShift(shiftId) {
 
         async function fetchUsersData() {
             if (Date.now() - usersDirectoryLoadedAt < 60000 && Object.keys(usersMap).length > 0) return;
-            try {
-                const { data: directory, error } = await supabaseClient.rpc('get_user_directory');
-                if (error) throw error;
-                (directory || []).forEach(user => {
-                    const id = String(user.discord_id || '').trim();
-                    if (id) usersMap[id] = user.display_name || id;
-                });
+            const result = await window.loadPanelOrganizationDirectory?.(currentUser.organization_id);
+            if (result?.error) {
+                console.warn('Directorul organizației nu poate fi încărcat.', result.error);
                 usersDirectoryLoadedAt = Date.now();
                 return;
-            } catch (error) {
-                console.warn('Directorul de utilizatori nu este încă instalat; se încearcă metoda compatibilă.', error);
             }
-
-            try {
-                const { data: usersData, error } = await supabaseClient.from('users').select('discord_id, display_name, username');
-                if (error) throw error;
-                (usersData || []).forEach(user => {
-                    const id = String(user.discord_id || '').trim();
-                    if (id) usersMap[id] = user.display_name || user.username || id;
-                });
-            } catch (error) {
-                console.warn('Lista utilizatorilor nu poate fi citită direct din cauza politicilor RLS.', error);
-            }
-
-            try {
-                let { data: profilesData } = await supabaseClient.from('profiles').select('discord_id, display_name, username');
-                if (profilesData) {
-                    profilesData.forEach(u => {
-                        if (u.discord_id) usersMap[String(u.discord_id).trim()] = u.display_name || u.username;
-                    });
-                }
-            } catch (e) {}
+            (result?.data || []).forEach(user => {
+                const id = String(user.discord_id || '').trim();
+                if (id) usersMap[id] = user.display_name || user.username || id;
+            });
             usersDirectoryLoadedAt = Date.now();
         }
 

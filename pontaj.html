@@ -571,7 +571,7 @@
                         duration_ms: workedNow * 1000
                     };
                 }
-                const { data, error } = await supabaseClient.from('shifts').update(update).eq('id', activeShiftRecord.id).select('*').single();
+                const { data, error } = await supabaseClient.from('shifts').update(update).eq('id', activeShiftRecord.id).eq('organization_id', currentUser.organization_id).select('*').single();
                 if (error) throw error;
                 activeShiftRecord = data; syncActiveShiftUI();
                 await sendGeneralDiscordWebhook(activeShiftRecord.status === 'paused' ? '⏸️ Pontaj Pauză' : '▶️ Pontaj Reluat', `Angajatul **${currentUser.display_name}** a ${activeShiftRecord.status === 'paused' ? 'pus tura pe pauză' : 'reluat tura'}.`, activeShiftRecord.status === 'paused' ? 16776960 : 3066993);
@@ -590,7 +590,7 @@
                 const workedSeconds = getWorkedSeconds(record, now);
                 const reason = automatic ? 'Încheiere automată – program maxim atins' : 'Încheiere manuală';
                 const update = { status: automatic ? 'auto_completed' : 'completed', end_time: getRomanianTime(now), duration: formatTime(workedSeconds), duration_ms: workedSeconds * 1000, ended_at: now.toISOString(), stop_reason: reason };
-                const { data, error } = await supabaseClient.from('shifts').update(update).eq('id', record.id).in('status', ['active', 'paused']).select('*');
+                const { data, error } = await supabaseClient.from('shifts').update(update).eq('id', record.id).eq('organization_id', currentUser.organization_id).in('status', ['active', 'paused']).select('*');
                 if (error) throw error;
                 if (!data?.length) {
                     // Un UPDATE cu zero rânduri nu înseamnă automat că tura a fost
@@ -599,6 +599,7 @@
                         .from('shifts')
                         .select('*')
                         .eq('id', record.id)
+                        .eq('organization_id', currentUser.organization_id)
                         .maybeSingle();
                     if (verifyError) throw verifyError;
                     if (remoteShift && ['active', 'paused'].includes(remoteShift.status) && !remoteShift.end_time) {
@@ -657,7 +658,7 @@
             const { error } = await supabaseClient.from('shifts').update({
                 discord_close_notified_at: new Date().toISOString(),
                 discord_close_notification_error: null
-            }).eq('id', shift.id);
+            }).eq('id', shift.id).eq('organization_id', currentUser.organization_id);
             if (error) console.error('Confirmarea Discord a fost trimisă, dar marcarea ei a eșuat:', error);
             return !error;
         }

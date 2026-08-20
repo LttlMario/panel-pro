@@ -68,6 +68,35 @@ window.createPanelSupabaseClient = function createPanelSupabaseClient() {
     return panelSupabaseClientCache;
 };
 
+// Directorul folosit în paginile unei organizații trebuie construit din
+// membrii acelei organizații. Tabelul users este o identitate globală și nu
+// trebuie citit fără această limitare.
+window.loadPanelOrganizationDirectory = async function loadPanelOrganizationDirectory(organizationId) {
+    const normalizedOrganizationId = String(organizationId || '').trim();
+    if (!normalizedOrganizationId) {
+        return { data: [], error: new Error('Organizația activă nu a fost identificată.') };
+    }
+
+    const db = window.createPanelSupabaseClient();
+    const { data: members, error: memberError } = await db
+        .from('organization_members')
+        .select('discord_id')
+        .eq('organization_id', normalizedOrganizationId)
+        .eq('active', true);
+
+    if (memberError) return { data: [], error: memberError };
+
+    const ids = [...new Set((members || [])
+        .map((member) => String(member.discord_id || '').trim())
+        .filter(Boolean))];
+    if (!ids.length) return { data: [], error: null };
+
+    return db
+        .from('users')
+        .select('discord_id,display_name,username')
+        .in('discord_id', ids);
+};
+
 // Client separat pentru conturile email. Nu îl folosim pentru permisiunile panelului;
 // acesta gestionează doar sesiunea Auth, confirmarea emailului și recuperarea parolei.
 const panelAuthClientCache = new Map();

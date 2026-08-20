@@ -332,8 +332,13 @@ Semnătură:`;
                 const organization = window.getActiveOrganization?.();
                 const db = window.createPanelSupabaseClient?.();
                 if (organization?.name) document.getElementById('company').value = organization.name;
-                if (db) {
-                    const { data } = await db.from('app_settings').select('value').eq('key', 'contract_template').maybeSingle();
+                const organizationId = String(
+                    organization?.id ||
+                    window.getActiveOrganizationId?.() ||
+                    ''
+                ).trim();
+                if (db && organizationId) {
+                    const { data } = await db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'contract_template').maybeSingle();
                     const custom = data?.value;
                     if (custom?.template) contractTemplate = String(custom.template);
                     if (custom?.defaults?.salary) document.getElementById('salary').value = String(custom.defaults.salary);

@@ -133,6 +133,7 @@
         let dashboardAllShifts = [];
         let dashboardRealtimeChannel = null;
         let dashboardDiscordId = null;
+        let dashboardOrganizationId = null;
         let dashboardRefreshTimeout = null;
         let dashboardHasPontajAccess = true;
 
@@ -191,6 +192,13 @@
                 // Păstrăm sesiunea sincronizată cu Discord; rândul vechi din users
                 // nu trebuie să înlocuiască rolul și organizația activă.
                 let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
+
+                dashboardOrganizationId = String(
+                    activeUser.organization_id ||
+                    activeUser.active_organization?.id ||
+                    window.getActiveOrganizationId?.() ||
+                    ''
+                ).trim();
 
 
 
@@ -378,10 +386,11 @@
         async function loadMechanicDashboard(discordId) {
             try {
                 if (!dashboardHasPontajAccess) return;
+                if (!dashboardOrganizationId) throw new Error('Organizația activă nu a fost identificată.');
                 const [shiftsResult, absenceResult, historyResult] = await Promise.all([
-                    supabaseClient.from('shifts').select('*').eq('discord_id', discordId).eq('date', romanianToday()).order('created_at', { ascending: false }),
-                    supabaseClient.from('absences').select('*').eq('discord_id', discordId).gte('end_at', new Date().toISOString()).order('start_at', { ascending: true }).limit(1),
-                    supabaseClient.from('shifts').select('*').eq('discord_id', discordId).order('created_at', { ascending: false })
+                    supabaseClient.from('shifts').select('*').eq('organization_id', dashboardOrganizationId).eq('discord_id', discordId).eq('date', romanianToday()).order('created_at', { ascending: false }),
+                    supabaseClient.from('absences').select('*').eq('organization_id', dashboardOrganizationId).eq('discord_id', discordId).gte('end_at', new Date().toISOString()).order('start_at', { ascending: true }).limit(1),
+                    supabaseClient.from('shifts').select('*').eq('organization_id', dashboardOrganizationId).eq('discord_id', discordId).order('created_at', { ascending: false })
                 ]);
                 if (shiftsResult.error) throw shiftsResult.error;
                 if (historyResult.error) throw historyResult.error;

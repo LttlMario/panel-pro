@@ -848,7 +848,7 @@
                 const discordResponse = await trimitePeDiscord({ ...nouAnunt, id: savedAnunt.id });
                 if (discordResponse?.ok) {
                     const discordResult = await discordResponse.json();
-                    await supabaseClient.from('marketplace_ilegal').update({ discord_message_ids: discordResult.messages || [] }).eq('id', savedAnunt.id);
+                    await supabaseClient.from('marketplace_ilegal').update({ discord_message_ids: discordResult.messages || [] }).eq('id', savedAnunt.id).is('organization_id', null);
                 }
 
                 alert('Anunț publicat cu succes!');

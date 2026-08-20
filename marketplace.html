@@ -659,7 +659,7 @@
 
                 if (discordResponse?.ok) {
                     const discordResult = await discordResponse.json();
-                    await supabaseClient.from('marketplace').update({ discord_message_ids: discordResult.messages || [] }).eq('id', savedAnunt.id);
+                    await supabaseClient.from('marketplace').update({ discord_message_ids: discordResult.messages || [] }).eq('id', savedAnunt.id).eq('organization_id', currentUser.organization_id);
                 }
 
                 alert('Anunț publicat și trimis cu succes pe Discord!');

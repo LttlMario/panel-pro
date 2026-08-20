@@ -500,15 +500,17 @@ const own = async (id:string) => {
  if(body.action==='marketplace_delete'){
    const table=body.table;
    if(!['marketplace','marketplace_ilegal'].includes(table))throw new Error('Tabel Marketplace invalid.');
-   const globalMarketplace=table==='marketplace_ilegal'&&isPlatformAdmin;
+   const globalMarketplace=table==='marketplace_ilegal';
    const itemQuery=db.from(table).select('id,organization_id,created_by_discord_id,discord_message_ids').eq('id',body.item_id);
    if(!globalMarketplace)itemQuery.eq('organization_id',organizationId);
+   if(globalMarketplace)itemQuery.is('organization_id',null);
    const {data:item,error:itemError}=await itemQuery.maybeSingle();
    if(itemError)throw itemError;
    if(!item)throw new Error('Anunțul nu mai există sau nu este accesibil.');
    if(!isPlatformAdmin&&String(item.created_by_discord_id||'')!==String(du.id))return reply({error:'Poți șterge numai anunțurile publicate de tine.'},403);
    const deleteQuery=db.from(table).delete().eq('id',body.item_id);
    if(!globalMarketplace)deleteQuery.eq('organization_id',organizationId);
+   if(globalMarketplace)deleteQuery.is('organization_id',null);
    const {data:deleted,error}=await deleteQuery.select('id');
    if(error)throw error;
    if(!deleted?.length)throw new Error('Anunțul nu a fost șters.');
@@ -519,7 +521,7 @@ const own = async (id:string) => {
    }
    return reply({ok:true,deleted_id:body.item_id});
  }
- if(body.action==='marketplace_update'){if(body.table!=='marketplace_ilegal')throw new Error('Tabel Marketplace invalid.');const itemQuery=db.from('marketplace_ilegal').select('id,organization_id,created_by_discord_id').eq('id',body.item_id);if(!isPlatformAdmin)itemQuery.eq('organization_id',organizationId);const {data:item,error:itemError}=await itemQuery.maybeSingle();if(itemError)throw itemError;if(!item)return reply({error:'Anunțul nu există sau nu aparține organizației active.'},404);if(!isPlatformAdmin&&String(item.created_by_discord_id||'')!==String(du.id))return reply({error:'Poți edita numai anunțurile publicate de tine.'},403);const {data:updated,error:updateError}=await db.from('marketplace_ilegal').update({nume:normalizeBlackMarketName(body.nume),telefon:String(body.telefon||''),tip_actiune:body.tip_actiune||null,categorie:body.categorie||null,subcategorie:body.subcategorie||null,produse:String(body.produse||''),pret:body.pret||null,imagini_json:body.imagini_json||'[]',imagine_url:body.imagine_url||null,updated_at:new Date().toISOString()}).eq('id',body.item_id).select('*').single();if(updateError)throw updateError;return reply({ok:true,item:updated})}
+ if(body.action==='marketplace_update'){if(body.table!=='marketplace_ilegal')throw new Error('Tabel Marketplace invalid.');const itemQuery=db.from('marketplace_ilegal').select('id,organization_id,created_by_discord_id').eq('id',body.item_id).is('organization_id',null);const {data:item,error:itemError}=await itemQuery.maybeSingle();if(itemError)throw itemError;if(!item)return reply({error:'Anunțul global nu există sau nu este accesibil.'},404);if(!isPlatformAdmin&&String(item.created_by_discord_id||'')!==String(du.id))return reply({error:'Poți edita numai anunțurile publicate de tine.'},403);const {data:updated,error:updateError}=await db.from('marketplace_ilegal').update({nume:normalizeBlackMarketName(body.nume),telefon:String(body.telefon||''),tip_actiune:body.tip_actiune||null,categorie:body.categorie||null,subcategorie:body.subcategorie||null,produse:String(body.produse||''),pret:body.pret||null,imagini_json:body.imagini_json||'[]',imagine_url:body.imagine_url||null,updated_at:new Date().toISOString()}).eq('id',body.item_id).is('organization_id',null).select('*').single();if(updateError)throw updateError;return reply({ok:true,item:updated})}
  if(body.action==='react'){const key={organization_id:organizationId,post_id:body.post_id,user_discord_id:du.id,reaction:body.reaction};const {data}=await db.from('community_reactions').select('id').match(key).maybeSingle();const q=data?db.from('community_reactions').delete().eq('organization_id',organizationId).eq('id',data.id):db.from('community_reactions').insert(key);const {error}=await q;if(error)throw error;return reply({ok:true})}
  if(body.action==='vote'){const {data:option}=await db.from('community_poll_options').select('post_id').eq('organization_id',organizationId).eq('id',body.option_id).single();if(!option||option.post_id!==body.post_id)throw new Error('Opțiune invalidă.');const {error}=await db.from('community_poll_votes').upsert({organization_id:organizationId,post_id:body.post_id,option_id:body.option_id,user_discord_id:du.id},{onConflict:'post_id,user_discord_id'});if(error)throw error;await updateDiscordPoll(body.post_id);return reply({ok:true})}
  return reply({error:'Acțiune necunoscută.'},400);
