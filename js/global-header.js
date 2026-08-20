@@ -30,7 +30,7 @@
                     <button type="button" id="global-header-mobile-btn" class="md:hidden w-10 h-10 rounded-xl border border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800 text-lg" aria-label="Deschide meniul">☰</button>
                     <h2 class="text-lg font-bold text-slate-100">${titleText}</h2>
                 </div>
-                <div class="${searchWrapperClass}">
+                <div class="panel-global-search-host ${searchWrapperClass}">
                     <input id="global-search" type="search" autocomplete="off" placeholder="Caută: Runflat, pontaj, învoire..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-100 outline-none focus:border-emerald-500">
                     <div id="global-search-results" class="hidden absolute right-0 mt-2 w-full max-h-80 overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 shadow-2xl z-50"></div>
                 </div>
