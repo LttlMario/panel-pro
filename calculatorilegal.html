@@ -250,6 +250,19 @@
             margin-bottom: 0;
         }
 
+        .recipe-row {
+            display: block;
+            padding: 9px 10px;
+        }
+
+        .recipe-equation {
+            display: block;
+            color: #dbeafe;
+            font-size: 0.82rem;
+            font-weight: 600;
+            line-height: 1.35;
+        }
+
         .item-name {
             font-size: 0.85rem;
             font-weight: 500;
@@ -386,6 +399,7 @@
                     <div class="category-group" id="cat-weapon-parts">
                         <div class="category-header" onclick="toggleCategory('cat-weapon-parts')">⚙️ Piese de Armă</div>
                         <div class="category-content" id="weaponPartsForm">
+                            <div class="item-row recipe-row"><span class="recipe-equation">1 Arc + 1 Oțel + 1 Plastic + 2 Scrap = 2 Piese de armă</span></div>
                             <div class="item-row">
                                 <span class="item-name">Teavă Pistol</span>
                                 <input type="number" id="part_teava_pistol" min="0" value="0" placeholder="0" oninput="calculateAll()">
@@ -480,6 +494,27 @@
                                 <span class="item-name">Cantitate</span>
                                 <input type="number" id="mushroomsQty" min="0" value="0" placeholder="0" oninput="calculateAll()">
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Categorie 7: Topitorie -->
+                    <div class="category-group" id="cat-smeltery">
+                        <div class="category-header" onclick="toggleCategory('cat-smeltery')">🏭 Topitorie</div>
+                        <div class="category-content" id="smelteryForm">
+                            <div class="item-row recipe-row"><span class="recipe-equation">1 Cărbune = 4 Minereu cărbune</span></div>
+                            <div class="item-row recipe-row"><span class="recipe-equation">1 Cărbune = 1 Mesteacăn</span></div>
+                            <div class="item-row recipe-row"><span class="recipe-equation">1 Sulf = 4 Minereu de sulf</span></div>
+                            <div class="item-row recipe-row"><span class="recipe-equation">1 Cupru = 4 Minereu de cupru</span></div>
+                            <div class="item-row recipe-row"><span class="recipe-equation">1 Fier = 4 Minereu de fier</span></div>
+                            <div class="item-row recipe-row"><span class="recipe-equation">1 Aur = 4 Minereu de aur</span></div>
+                            <div class="item-row recipe-row"><span class="recipe-equation">1 Aluminiu = 4 Minereu de aluminiu</span></div>
+                            <div class="item-row recipe-row"><span class="recipe-equation">1 Plumb = 4 Minereu de plumb</span></div>
+                            <div class="item-row recipe-row"><span class="recipe-equation">1 Oțel = 1 Fier + 1 Cărbune</span></div>
+                            <div class="item-row recipe-row"><span class="recipe-equation">1 Arc = 1 Aluminiu</span></div>
+                            <div class="item-row recipe-row"><span class="recipe-equation">Tavă x2 = 1 Oțel</span></div>
+                            <div class="item-row recipe-row"><span class="recipe-equation">Cărbune x2 = 1 Stejar</span></div>
+                            <div class="item-row recipe-row"><span class="recipe-equation">Cărbune x3 = 1 Cedru</span></div>
+                            <div class="item-row recipe-row"><span class="recipe-equation">1 Jantă aluminiu = 10 Aluminiu</span></div>
                         </div>
                     </div>
 
