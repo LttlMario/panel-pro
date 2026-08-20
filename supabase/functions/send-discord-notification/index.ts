@@ -222,7 +222,7 @@ if (request.method === 'OPTIONS') {
 
     if (!serviceKey) {
       throw new Error(
-        'Cheia service role lipseÈ™te.'
+        'Cheia service role lipsește.'
       );
     }
 
@@ -233,7 +233,7 @@ if (request.method === 'OPTIONS') {
 
     if (!supabaseUrl) {
       throw new Error(
-        'SUPABASE_URL lipseÈ™te.'
+        'SUPABASE_URL lipsește.'
       );
     }
 
@@ -277,7 +277,7 @@ if (request.method === 'OPTIONS') {
     if (!session?.organization_id) {
 
       throw new Error(
-        'OrganizaÈ›ia activă nu a fost identificată.'
+        'Organizația activă nu a fost identificată.'
       );
 
     }
@@ -297,7 +297,7 @@ if (request.method === 'OPTIONS') {
     ) {
 
       throw new Error(
-        'OrganizaÈ›ia solicitată nu corespunde organizaÈ›iei active.'
+        'Organizația solicitată nu corespunde organizației active.'
       );
 
     }
@@ -327,7 +327,7 @@ if (request.method === 'OPTIONS') {
 
     /*
      * ============================================================
-     * CONFIG ORGANIZAÈšIE
+     * CONFIG ORGANIZAȚIE
      * ============================================================
      */
 
@@ -359,7 +359,7 @@ if (request.method === 'OPTIONS') {
       if (!organizationConfig) {
 
       throw new Error(
-        'ConfiguraÈ›ia organizaÈ›iei active nu a fost găsită.'
+        'Configurația organizației active nu a fost găsită.'
       );
 
       }
@@ -385,7 +385,7 @@ let route = null;
  * ============================================================
  *
  * requests:
- *  - primary = cereri organizaÈ›ie
+ *  - primary = cereri organizație
  *  - secondary = cereri departamente
  *
  * Canalele noi:
@@ -411,7 +411,7 @@ if (finalChannel === 'requests_organization') {
   if (!webhooks.length) {
 
     throw new Error(
-      'Webhook-ul requests.primary nu este configurat pentru cereri organizaÈ›ie.'
+      'Webhook-ul requests.primary nu este configurat pentru cereri organizație.'
     );
 
   }
@@ -630,7 +630,7 @@ if (finalChannel === 'illegal_marketplace') {
   if (!webhooks.length) {
 
       throw new Error(
-        `Webhook-ul ${finalChannel} nu este configurat pentru organizaÈ›ia activă.`
+        `Webhook-ul ${finalChannel} nu este configurat pentru organizația activă.`
       );
 
   }

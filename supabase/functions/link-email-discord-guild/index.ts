@@ -16,7 +16,7 @@ const botHeaders = (token: string) => ({
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
-  if (request.method !== 'POST') return reply({ error: 'MetodÄƒ invalidÄƒ.' }, 405);
+  if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
 
   try {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ||
@@ -29,9 +29,9 @@ Deno.serve(async (request) => {
     const guildId = String(body.guild_id || '').trim();
     const organizationId = String(body.organization_id || '').trim();
 
-    if (!serviceKey || !supabaseUrl || !botToken) throw new Error('ConfiguraÈ›ia serverului lipseÈ™te.');
-    if (!jwt) return reply({ error: 'Sesiunea email lipseÈ™te sau a expirat.' }, 401);
-    if (!discordAccessToken) return reply({ error: 'Sesiunea Discord lipseÈ™te.' }, 400);
+    if (!serviceKey || !supabaseUrl || !botToken) throw new Error('Configurația serverului lipsește.');
+    if (!jwt) return reply({ error: 'Sesiunea email lipsește sau a expirat.' }, 401);
+    if (!discordAccessToken) return reply({ error: 'Sesiunea Discord lipsește.' }, 400);
     if (!/^\d{15,22}$/.test(guildId)) return reply({ error: 'Serverul Discord selectat este invalid.' }, 400);
     if (organizationId && !UUID_RE.test(organizationId)) {
       return reply({ error: 'Organizația selectată este veche sau invalidă.', code: 'ORGANIZATION_ID_INVALID' }, 400);
@@ -39,8 +39,8 @@ Deno.serve(async (request) => {
 
     const db = createClient(supabaseUrl, serviceKey);
     const { data: authData, error: authError } = await db.auth.getUser(jwt);
-    if (authError || !authData.user) return reply({ error: 'Sesiunea email nu este validÄƒ.' }, 401);
-    if (!authData.user.email_confirmed_at) return reply({ error: 'ConfirmÄƒ mai Ã®ntÃ¢i adresa de email.' }, 403);
+    if (authError || !authData.user) return reply({ error: 'Sesiunea email nu este validă.' }, 401);
+    if (!authData.user.email_confirmed_at) return reply({ error: 'Confirmă mai întâi adresa de email.' }, 403);
 
     const requestIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown')
       .split(',')[0].trim().slice(0, 120);
@@ -61,7 +61,7 @@ Deno.serve(async (request) => {
       .eq('auth_user_id', authData.user.id)
       .maybeSingle();
     if (accountError) throw accountError;
-    if (!account) return reply({ error: 'Profilul contului nu existÄƒ Ã®ncÄƒ.' }, 404);
+    if (!account) return reply({ error: 'Profilul contului nu există încă.' }, 404);
     if (account.discord_guild_id && String(account.discord_guild_id) !== guildId) {
       return reply({ error: 'Contul este deja asociat cu alt server Discord.' }, 409);
     }
@@ -97,18 +97,18 @@ Deno.serve(async (request) => {
     const configuredGuild = configuredOrganizations[0] as any;
     const configuredOrganizationId = String(configuredGuild.organizations?.id || configuredGuild.organization_id || '').trim();
     if (!UUID_RE.test(configuredOrganizationId)) return reply({ error: 'Configurația organizației este invalidă.', code: 'ORGANIZATION_DATA_INVALID' }, 500);
-    if (!configuredGuild) return reply({ error: 'Serverul Discord selectat nu este configurat pentru nicio organizaÈ›ie.', code: 'GUILD_NOT_CONFIGURED' }, 404);
+    if (!configuredGuild) return reply({ error: 'Serverul Discord selectat nu este configurat pentru nicio organizație.', code: 'GUILD_NOT_CONFIGURED' }, 404);
 
     const discordResponse = await fetch('https://discord.com/api/v10/users/@me', {
       headers: { Authorization: `Bearer ${discordAccessToken}` },
     });
-    if (!discordResponse.ok) return reply({ error: 'Sesiunea Discord nu este validÄƒ sau a expirat.' }, 401);
+    if (!discordResponse.ok) return reply({ error: 'Sesiunea Discord nu este validă sau a expirat.' }, 401);
     const discordUser = await discordResponse.json();
     const discordId = String(discordUser.id || '').trim();
     if (!discordId) return reply({ error: 'Contul Discord nu a putut fi identificat.' }, 401);
 
     const memberResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`, { headers: botHeaders(botToken) });
-    if (memberResponse.status === 404) return reply({ error: 'Nu eÈ™ti membru pe serverul Discord selectat.', code: 'MEMBER_NOT_FOUND' }, 403);
+    if (memberResponse.status === 404) return reply({ error: 'Nu ești membru pe serverul Discord selectat.', code: 'MEMBER_NOT_FOUND' }, 403);
     if (!memberResponse.ok) return reply({ error: `Botul nu poate verifica serverul Discord (HTTP ${memberResponse.status}).`, code: 'BOT_CANNOT_READ_GUILD' }, 502);
     const member = await memberResponse.json();
 
@@ -157,6 +157,6 @@ Deno.serve(async (request) => {
     });
   } catch (error) {
     console.error(error);
-    return reply({ error: error instanceof Error ? error.message : 'Conectarea Discord a eÈ™uat.' }, 500);
+    return reply({ error: error instanceof Error ? error.message : 'Conectarea Discord a eșuat.' }, 500);
   }
 });

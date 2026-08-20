@@ -38,7 +38,7 @@ const sha256 = async (value: string) => Array.from(new Uint8Array(await crypto.s
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
-  if (request.method !== 'POST') return reply({ error: 'MetodÄƒ invalidÄƒ.' }, 405);
+  if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
   try {
     const body = await request.json();
     const emailLogin = body.email_login === true;
@@ -50,12 +50,12 @@ Deno.serve(async (request) => {
     let voucherGuildId = String(body.voucher_guild_id || '').trim();
     if (voucherCode && voucherGuildId && !/^\d{15,22}$/.test(voucherGuildId)) return reply({ error: 'Guild ID-ul voucherului este invalid.' }, 400);
     let accessToken = String(body.access_token || '').trim();
-    if (emailLogin && voucherCode) return reply({ error: 'Voucherul se verificÄƒ numai prin loginul Discord.' }, 400);
-    if (!emailLogin && !accessToken) return reply({ error: 'Tokenul Discord lipseÈ™te.' }, 400);
+    if (emailLogin && voucherCode) return reply({ error: 'Voucherul se verifică numai prin loginul Discord.' }, 400);
+    if (!emailLogin && !accessToken) return reply({ error: 'Tokenul Discord lipsește.' }, 400);
     const key = serviceKey();
     const botToken = String(Deno.env.get('DISCORD_BOT_TOKEN') || '').trim();
-    if (!key) throw new Error('Cheia secretÄƒ Supabase lipseÈ™te.');
-    if (!botToken) throw new Error('DISCORD_BOT_TOKEN lipseÈ™te. Botul comun trebuie configurat.');
+    if (!key) throw new Error('Cheia secretă Supabase lipsește.');
+    if (!botToken) throw new Error('DISCORD_BOT_TOKEN lipsește. Botul comun trebuie configurat.');
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
     const requestIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown')
       .split(',')[0].trim().slice(0, 120);
@@ -73,7 +73,7 @@ Deno.serve(async (request) => {
     if (voucherCode) {
       const { data: voucher, error: voucherError } = await db.from('organization_vouchers').select('guild_id,redeemed_at,redeemed_organization_id,expires_at,revoked_at').eq('code', voucherCode).maybeSingle();
       if (voucherError) throw voucherError;
-      if (!voucher) return reply({ error: 'Voucherul nu existÄƒ.' }, 400);
+      if (!voucher) return reply({ error: 'Voucherul nu există.' }, 400);
       if (voucher.revoked_at) return reply({ error: 'Voucherul a fost revocat.' }, 409);
       if (voucher.redeemed_at || voucher.redeemed_organization_id) return reply({ error: 'Voucherul a fost deja folosit.' }, 409);
       if (voucher.expires_at && Date.parse(String(voucher.expires_at)) <= Date.now()) return reply({ error: 'Voucherul a expirat.' }, 400);
@@ -86,10 +86,10 @@ Deno.serve(async (request) => {
     let selectedGuildId = '';
     if (emailLogin) {
       const jwt = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
-      if (!jwt || jwt === key) return reply({ error: 'Sesiunea email lipseÈ™te sau a expirat.' }, 401);
+      if (!jwt || jwt === key) return reply({ error: 'Sesiunea email lipsește sau a expirat.' }, 401);
       const { data: authData, error: authError } = await db.auth.getUser(jwt);
-      if (authError || !authData.user) return reply({ error: 'Sesiunea email nu este validÄƒ.' }, 401);
-      if (!authData.user.email_confirmed_at) return reply({ error: 'ConfirmÄƒ mai Ã®ntÃ¢i adresa de email.' }, 403);
+      if (authError || !authData.user) return reply({ error: 'Sesiunea email nu este validă.' }, 401);
+      if (!authData.user.email_confirmed_at) return reply({ error: 'Confirmă mai întâi adresa de email.' }, 403);
       const { data: account, error: accountError } = await db
         .from('user_accounts')
         .select('username,discord_id,discord_guild_id')
@@ -97,7 +97,7 @@ Deno.serve(async (request) => {
         .maybeSingle();
       if (accountError) throw accountError;
       if (!account || !account.discord_id || !account.discord_guild_id) {
-        return reply({ error: 'ConecteazÄƒ mai Ã®ntÃ¢i Discord È™i selecteazÄƒ serverul pentru acest cont.', code: 'NEEDS_DISCORD_LINK' }, 409);
+        return reply({ error: 'Conectează mai întâi Discord și selectează serverul pentru acest cont.', code: 'NEEDS_DISCORD_LINK' }, 409);
       }
       selectedGuildId = String(account.discord_guild_id);
       discordUser = {
@@ -173,7 +173,7 @@ Deno.serve(async (request) => {
       if (!guildSnapshots.has(guildId)) guildSnapshots.set(guildId, fetchGuildSnapshot(guildId, String(discordUser.id), accessToken, botToken));
       return guildSnapshots.get(guildId)!;
     };
-    // Pornim verificÄƒrile tuturor serverelor simultan, apoi pÄƒstrÄƒm ordinea existentÄƒ la procesarea rolurilor.
+    // Pornim verificările tuturor serverelor simultan, apoi păstrăm ordinea existentă la procesarea rolurilor.
     await Promise.all(guildsToProcess.map((guild:any) => getGuildSnapshot(String(guild.guild_id))));
     for (const guild of guildsToProcess) {
       const snapshot = await getGuildSnapshot(String(guild.guild_id));
@@ -235,7 +235,7 @@ Deno.serve(async (request) => {
           })[0];
 if (!best) {
   /*
-   * Platform Admin poate intra Ã®n organizaÈ›ie chiar dacÄƒ
+   * Platform Admin poate intra în organizație chiar dacă
    * nu are un mapping normal configurat.
    */
   if (isPlatformAdmin && fallbackRoleLabel) {
@@ -308,9 +308,9 @@ if (!existing) {
   }
 
   /*
-   * Foarte important pentru organizaÈ›iile care folosesc
-   * douÄƒ servere Discord:
-   * unim rolurile gÄƒsite pe ambele servere.
+   * Foarte important pentru organizațiile care folosesc
+   * două servere Discord:
+   * unim rolurile găsite pe ambele servere.
    */
     existing.discord_role_ids = [
       ...new Set([
@@ -320,7 +320,7 @@ if (!existing) {
     ];
   }
 
-  // ÃŽnchide procesarea serverului Discord curent.
+  // Închide procesarea serverului Discord curent.
   }
 
   if (isPlatformAdmin) {
@@ -333,7 +333,7 @@ if (!existing) {
       if (!matches.has(organizationId)) {
         matches.set(organizationId, {
           organization,
-          panel_role: platformRoleLabel || 'Administrator platformÄƒ',
+          panel_role: platformRoleLabel || 'Administrator platformă',
           nickname: String(discordUser.global_name || discordUser.username),
           guild_ids: [],
           discord_role_ids: []
@@ -369,8 +369,8 @@ if (!existing) {
         )
         .map(([page]) => page);
 
-    // Orice rol Discord identificat trebuie sÄƒ poatÄƒ intra Ã®n Dashboard È™i Pontaj.
-    // Restul paginilor rÄƒmÃ¢n controlate de selecÈ›iile configurate Ã®n organizaÈ›ie.
+    // Orice rol Discord identificat trebuie să poată intra în Dashboard și Pontaj.
+    // Restul paginilor rămân controlate de selecțiile configurate în organizație.
     if (value.discord_role_ids.length) {
       allowed_pages = [
         ...new Set(['index.html', 'pontaj.html', ...allowed_pages])
@@ -414,10 +414,10 @@ if (!existing) {
     if (!available.length) {
       await db.from('panel_sessions').update({ revoked_at: new Date().toISOString() }).eq('discord_id', discordUser.id).is('revoked_at', null);
       await db.from('organization_members').update({ active: false, last_verified_at: new Date().toISOString() }).eq('discord_id', discordUser.id).eq('active', true);
-      return reply({ error: 'Nu ai niciun rol configurat Ã®ntr-o organizaÈ›ie a platformei.', code: 'NO_ORGANIZATION' }, 403);
+      return reply({ error: 'Nu ai niciun rol configurat într-o organizație a platformei.', code: 'NO_ORGANIZATION' }, 403);
     }
     if (voucherCode) return reply({
-      error: 'Voucherul trebuie configurat Ã®ntr-o organizaÈ›ie nouÄƒ sau existentÄƒ.',
+      error: 'Voucherul trebuie configurat într-o organizație nouă sau existentă.',
       code: 'VOUCHER_REQUIRES_ORGANIZATION_SETUP',
       voucher_code: voucherCode,
       voucher_guild_id: voucherGuildId || null,
@@ -450,7 +450,7 @@ if (!existing) {
       avatar: accountAvatar || avatarUrl(discordUser.id, discordUser.avatar), avatar_url: accountAvatar || avatarUrl(discordUser.id, discordUser.avatar),
       role: active.panel_role, default_role: active.panel_role,
     };
-    // Emailul nu este solicitat prin OAuth È™i nu este sincronizat Ã®n panel.
+    // Emailul nu este solicitat prin OAuth și nu este sincronizat în panel.
     const { data: savedUser, error: userError } = await db.from('users').upsert(userData, { onConflict: 'discord_id' }).select('id,discord_id,username,display_name,avatar,avatar_url,role,default_role,tutorial_read,service,maintenance_mode,discord_logs_active,threshold_value,max_shift_hours,created_at,updated_at').single();
     if (userError) throw userError;
     await Promise.all(
@@ -462,7 +462,7 @@ if (!existing) {
             discord_id: discordUser.id,
             panel_role: item.panel_role,
 
-            // Compatibilitate DB temporarÄƒ.
+            // Compatibilitate DB temporară.
             // Nu mai este folosit pentru acces.
             permission_level:
               isPlatformAdmin ? 99 : 1,
@@ -504,9 +504,9 @@ const { error: sessionError } =
         discordUser.id,
 
       /*
-       * Compatibilitate temporarÄƒ cu baza de date.
+       * Compatibilitate temporară cu baza de date.
        *
-       * permission_level NU mai controleazÄƒ accesul
+       * permission_level NU mai controlează accesul
        * utilizatorilor normali.
        *
        * 99 = Platform Admin
@@ -518,7 +518,7 @@ const { error: sessionError } =
       is_platform_admin:
         isPlatformAdmin,
 
-      // RLS foloseÈ™te rolurile Discord reale pentru paginile configurate.
+      // RLS folosește rolurile Discord reale pentru paginile configurate.
       discord_role_ids:
         [...new Set((active.discord_role_ids || []).map(String))],
 
@@ -532,7 +532,7 @@ if (sessionError) {
 
 
 // ============================================================
-// È˜TERGEM SESIUNILE EXPIRATE
+// ȘTERGEM SESIUNILE EXPIRATE
 // ============================================================
 
 await db
@@ -549,7 +549,7 @@ await db
 
 
 // ============================================================
-// RÄ‚SPUNS LOGIN / SYNC
+// RĂSPUNS LOGIN / SYNC
 // ============================================================
 
 return reply({
@@ -569,7 +569,7 @@ return reply({
 
     /*
      * Administratorul platformei este separat
-     * de rolurile organizaÈ›iei.
+     * de rolurile organizației.
      */
     platform_admin:
       isPlatformAdmin,
@@ -585,7 +585,7 @@ return reply({
 
     /*
      * Acestea sunt paginile pe care utilizatorul
-     * are voie efectiv sÄƒ le deschidÄƒ.
+     * are voie efectiv să le deschidă.
      */
     allowed_pages:
       active.allowed_pages,
@@ -625,7 +625,7 @@ return reply({
 
 
   // ----------------------------------------------------------
-  // ORGANIZAÈšIA ACTIVÄ‚
+  // ORGANIZAȚIA ACTIVĂ
   // ----------------------------------------------------------
 
   active_organization: {
@@ -656,7 +656,7 @@ return reply({
 
 
   // ----------------------------------------------------------
-  // TOATE ORGANIZAÈšIILE UTILIZATORULUI
+  // TOATE ORGANIZAȚIILE UTILIZATORULUI
   // ----------------------------------------------------------
 
   organizations:
@@ -692,7 +692,7 @@ return reply({
       error:
         error instanceof Error
           ? error.message
-          : 'Eroare necunoscutÄƒ.'
+          : 'Eroare necunoscută.'
     },
     500
   );

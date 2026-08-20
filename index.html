@@ -31,7 +31,7 @@
             <div class="p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
                 <div class="bg-slate-900 border border-slate-800 p-4 sm:p-6 rounded-2xl shadow-lg space-y-4">
                     <h3 class="text-base font-bold text-slate-100">Panou de Control Principal</h3>
-                    <p class="text-xs text-slate-400">Folosește meniul din st�nga pentru a naviga rapid către secțiunile dorite, inclusiv noul Marketplace și Black Market (Ilegal).</p>
+                    <p class="text-xs text-slate-400">Folosește meniul din stânga pentru a naviga rapid către secțiunile dorite, inclusiv noul Marketplace și Black Market (Ilegal).</p>
                 </div>
             </div>
                 <section class="px-4 pb-6 md:px-8 md:pb-8 max-w-7xl mx-auto w-full space-y-6">
@@ -68,7 +68,7 @@
                                 <p id="personal-total-hours" class="text-2xl font-black text-emerald-400 mt-2">—</p>
                             </article>
                             <article class="bg-slate-950 border border-slate-800 rounded-xl p-4">
-                                <p class="text-[10px] uppercase tracking-wider text-slate-500">Săptăm�na aceasta</p>
+                                <p class="text-[10px] uppercase tracking-wider text-slate-500">Săptămâna aceasta</p>
                                 <p id="personal-week-hours" class="text-2xl font-black text-indigo-400 mt-2">—</p>
                             </article>
                             <article class="bg-slate-950 border border-slate-800 rounded-xl p-4">
@@ -101,7 +101,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <article data-pontaj-only class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6"><div class="flex items-center justify-between gap-3"><div><p class="text-xs uppercase tracking-wider text-slate-500">Tura curentă</p><h3 id="active-shift-title" class="text-lg font-bold mt-1">Nicio tură activă</h3></div><span id="active-shift-badge" class="px-3 py-1 rounded-lg border text-[10px] font-bold bg-slate-800 text-slate-400 border-slate-700">OPRIT</span></div><div class="mt-7 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5"><div><p id="active-shift-timer" class="text-4xl font-black font-mono text-emerald-400">00:00:00</p><p id="active-shift-note" class="text-xs text-slate-500 mt-2">Pornește o tură c�nd ești pregătit.</p></div><a href="pontaj.html" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold transition text-center">Gestionează pontajul →</a></div></article>
+                        <article data-pontaj-only class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6"><div class="flex items-center justify-between gap-3"><div><p class="text-xs uppercase tracking-wider text-slate-500">Tura curentă</p><h3 id="active-shift-title" class="text-lg font-bold mt-1">Nicio tură activă</h3></div><span id="active-shift-badge" class="px-3 py-1 rounded-lg border text-[10px] font-bold bg-slate-800 text-slate-400 border-slate-700">OPRIT</span></div><div class="mt-7 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5"><div><p id="active-shift-timer" class="text-4xl font-black font-mono text-emerald-400">00:00:00</p><p id="active-shift-note" class="text-xs text-slate-500 mt-2">Pornește o tură când ești pregătit.</p></div><a href="pontaj.html" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold transition text-center">Gestionează pontajul →</a></div></article>
                         <article class="bg-slate-900 border border-slate-800 rounded-2xl p-6"><p class="text-xs uppercase tracking-wider text-slate-500">Acces rapid</p><div class="mt-4 grid gap-2"><a href="cereri.html" class="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold transition">📋 Trimite o învoire</a><a href="craftmecanics.html" class="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold transition">🔨 Craft Mecanic</a><a href="marketplace.html" class="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold transition">🛒 Vezi marketplace-ul</a></div></article>
                     </div>
 
@@ -413,7 +413,7 @@
                 const absence = absenceResult.data?.[0];
                 if (absence) {
                     document.getElementById('next-absence').textContent = absence.notice_type || 'Învoire';
-                    document.getElementById('next-absence-detail').textContent = `P�nă la ${new Date(absence.end_at).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' })}`;
+                    document.getElementById('next-absence-detail').textContent = `Până la ${new Date(absence.end_at).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' })}`;
                 }
                 clearInterval(dashboardTimer); updateDashboardTimer(); dashboardTimer = setInterval(updateDashboardTimer, 1000);
             } catch (error) {

@@ -11,7 +11,7 @@ const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data)
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
-  if (request.method !== 'POST') return reply({ error: 'MetodÄƒ invalidÄƒ.' }, 405);
+  if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
 
   try {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ||
@@ -21,16 +21,16 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const action = String(body.action || '').trim();
 
-    if (!serviceKey || !supabaseUrl) throw new Error('ConfiguraÈ›ia serverului lipseÈ™te.');
-    if (!jwt) return reply({ error: 'Sesiunea contului lipseÈ™te sau a expirat.' }, 401);
+    if (!serviceKey || !supabaseUrl) throw new Error('Configurația serverului lipsește.');
+    if (!jwt) return reply({ error: 'Sesiunea contului lipsește sau a expirat.' }, 401);
     if (!['get_account', 'disconnect_discord', 'clear_data', 'revoke_sessions', 'delete_account'].includes(action)) {
-      return reply({ error: 'AcÈ›iunea contului este invalidÄƒ.' }, 400);
+      return reply({ error: 'Acțiunea contului este invalidă.' }, 400);
     }
 
     const db = createClient(supabaseUrl, serviceKey);
     const { data: authData, error: authError } = await db.auth.getUser(jwt);
-    if (authError || !authData.user) return reply({ error: 'Sesiunea contului nu este validÄƒ.' }, 401);
-    if (!authData.user.email_confirmed_at) return reply({ error: 'ConfirmÄƒ mai Ã®ntÃ¢i adresa de email.' }, 403);
+    if (authError || !authData.user) return reply({ error: 'Sesiunea contului nu este validă.' }, 401);
+    if (!authData.user.email_confirmed_at) return reply({ error: 'Confirmă mai întâi adresa de email.' }, 403);
 
     const requestIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown')
       .split(',')[0].trim().slice(0, 120);
@@ -51,7 +51,7 @@ Deno.serve(async (request) => {
       .eq('auth_user_id', authData.user.id)
       .maybeSingle();
     if (accountError) throw accountError;
-    if (!account) return reply({ error: 'Profilul contului nu existÄƒ.' }, 404);
+    if (!account) return reply({ error: 'Profilul contului nu există.' }, 404);
 
     if (action === 'get_account') {
       const { data: profile, error: profileError } = await db
@@ -74,7 +74,7 @@ Deno.serve(async (request) => {
         : { discord_id: null, discord_guild_id: null, updated_at: new Date().toISOString() };
       const { error } = await db.from('user_accounts').update(update).eq('auth_user_id', authData.user.id);
       if (error) throw error;
-      return reply({ ok: true, action, message: action === 'clear_data' ? 'Datele opÈ›ionale au fost È™terse.' : 'LegÄƒtura Discord a fost eliminatÄƒ.' });
+      return reply({ ok: true, action, message: action === 'clear_data' ? 'Datele opționale au fost șterse.' : 'Legătura Discord a fost eliminată.' });
     }
 
     if (action === 'revoke_sessions') {
@@ -88,6 +88,6 @@ Deno.serve(async (request) => {
     return reply({ ok: true, action, deleted: true });
   } catch (error) {
     console.error(error);
-    return reply({ error: error instanceof Error ? error.message : 'Setarea contului nu a putut fi aplicatÄƒ.' }, 500);
+    return reply({ error: error instanceof Error ? error.message : 'Setarea contului nu a putut fi aplicată.' }, 500);
   }
 });

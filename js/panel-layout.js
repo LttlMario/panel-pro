@@ -31,17 +31,17 @@ window.panelSafeLink = window.panelSafeLink || function panelSafeLink(value) {
 if (!window.__panelOnboardingLoader && !window.location.pathname.endsWith('login.html')) { window.__panelOnboardingLoader = true; const onboardingScript = document.createElement('script'); onboardingScript.src = 'js/panel-onboarding.js?v=1'; document.head.appendChild(onboardingScript); }
 if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetchFixed) { window.__organizationFetchFixed = true; const _fetch = window.fetch; window.fetch = (url, options = {}) => { if (String(url).includes('/functions/v1/manage-organizations')) options.headers = { ...(options.headers || {}), 'x-panel-session': localStorage.getItem('panel_session_token') || '' }; return _fetch(url, options); }; }
 (() => {
-    // RuleazÄƒ funcÈ›iile auxiliare dupÄƒ primul afiÈ™aj, astfel Ã®ncÃ¢t
-    // navigarea È™i conÈ›inutul principal sÄƒ nu concureze cu scripturile
-    // care nu sunt necesare pentru prima interacÈ›iune.
+    // Rulează funcțiile auxiliare după primul afișaj, astfel încât
+    // navigarea și conținutul principal să nu concureze cu scripturile
+    // care nu sunt necesare pentru prima interacțiune.
     function runWhenIdle(callback, timeout = 1200) {
         const run = () => {
             try {
                 Promise.resolve(callback()).catch(error => {
-                    console.warn('O funcÈ›ie auxiliarÄƒ a panoului nu a putut fi Ã®ncÄƒrcatÄƒ.', error);
+                    console.warn('O funcție auxiliară a panoului nu a putut fi încărcată.', error);
                 });
             } catch (error) {
-                console.warn('O funcÈ›ie auxiliarÄƒ a panoului nu a putut fi pornitÄƒ.', error);
+                console.warn('O funcție auxiliară a panoului nu a putut fi pornită.', error);
             }
         };
 
@@ -1199,8 +1199,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         document.head.appendChild(script);
     }
 
-    // Centrul de operaÈ›iuni este folosit doar pentru funcÈ›ii secundare;
-    // Ã®ncÄƒrcarea lui nu trebuie sÄƒ concureze cu pagina curentÄƒ.
+    // Centrul de operațiuni este folosit doar pentru funcții secundare;
+    // încărcarea lui nu trebuie să concureze cu pagina curentă.
     runWhenIdle(loadOperationsCenter, 1600);
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
     else setup();
