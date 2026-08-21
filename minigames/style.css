@@ -181,6 +181,11 @@ body.minigames-page #root:not(.hidden) {
     backdrop-filter: blur(7px);
 }
 
+body.minigames-page #root .panel-header-tools,
+body.minigames-page #root #global-search {
+    display: none !important;
+}
+
 body.minigames-page #root:not(.hidden) #stage {
     max-width: calc(100vw - 28px);
     max-height: calc(100vh - 28px);
