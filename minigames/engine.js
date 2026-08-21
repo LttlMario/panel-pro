@@ -135,6 +135,13 @@ const MG = (function () {
         }, 850);
     }
 
+    function cancelCurrent() {
+        if (ended || !current) return;
+        if (current.__allowCancel !== false) end(false);
+    }
+
+    $('mg-close')?.addEventListener('click', cancelCurrent);
+
     /* ---- Global cancel key ---- */
     document.addEventListener('keydown', (e) => {
         if (ended || !current) return;
@@ -143,7 +150,7 @@ const MG = (function () {
             if (allow) {
                 e.preventDefault();
                 e.stopPropagation();
-                end(false);
+                cancelCurrent();
             }
         }
     });

@@ -67,6 +67,25 @@ html, body {
     font-size: 18px; letter-spacing: 0.5px;
 }
 #hud-timer { display: flex; align-items: center; gap: 10px; }
+#mg-close {
+    display: grid; place-items: center;
+    width: 30px; height: 30px; flex: 0 0 30px;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 8px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.04);
+    font: 700 20px/1 var(--display);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.15s;
+}
+#mg-close:hover,
+#mg-close:focus-visible {
+    border-color: var(--danger);
+    color: #fff;
+    background: rgba(255,59,92,0.16);
+    outline: none;
+    transform: scale(1.04);
+}
 #timer-bar {
     width: 120px; height: 6px; border-radius: 3px;
     background: rgba(255,255,255,0.08); overflow: hidden;
