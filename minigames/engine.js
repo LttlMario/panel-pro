@@ -140,7 +140,11 @@ const MG = (function () {
         if (ended || !current) return;
         if (e.key === 'Escape') {
             const allow = current.__allowCancel !== false;
-            if (allow) end(false);
+            if (allow) {
+                e.preventDefault();
+                e.stopPropagation();
+                end(false);
+            }
         }
     });
 

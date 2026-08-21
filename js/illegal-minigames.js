@@ -114,7 +114,7 @@
     function launchGame(id) {
         const game = games.find(item => item.id === id);
         if (!game || !window.MG?.open || !window.MG.games?.[id]) return;
-        window.MG.open({ game: id, difficulty: state.difficulty, sound: state.sound, volume: 0.55 });
+        window.MG.open({ game: id, difficulty: state.difficulty, allowCancel: true, sound: state.sound, volume: 0.55 });
         const current = $('minigames-current-game');
         if (current) current.textContent = `${game.title} · dificultate ${state.difficulty}`;
     }
