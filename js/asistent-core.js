@@ -435,7 +435,8 @@
                 { page: 'contracte.html', pattern: /\b(contracte|generez contract)\b/ },
                 { page: 'calculatorilegal.html', pattern: /\b(calculator ilegal|arme|arma|arm[ăa] de foc|muni[țt]ii|gloan[țt]e)\b/ },
                 { page: 'marketplace-ilegal.html', pattern: /\b(black market|piata neagra|cocaina|marijuana|jointuri|acetona|cayo|tec|tec9|tec 9|tec-9)\b/ },
-                { page: 'locatiiilegale.html', pattern: /\b(locatii ilegale|loca[țt]ii ilegale|zone ilegale|loca[țt]ie ilegal[ăa])\b/ }
+                { page: 'locatiiilegale.html', pattern: /\b(locatii ilegale|loca[țt]ii ilegale|zone ilegale|loca[țt]ie ilegal[ăa])\b/ },
+                { page: 'minigames.html', pattern: /\b(minigames?|mini games?|skill ?check|lockpick|heist|hack(?:ing)?|tripwire|vault)\b/ }
             ];
             const blockedTopic = restrictedTopics.find((topic) => topic.pattern.test(query) && !isPageAllowed(topic.page));
             if (blockedTopic) return { answer: 'Nu ai permisiunea necesară pentru această secțiune. Asistentul îți poate arăta doar informațiile disponibile rolului tău.' };

@@ -126,6 +126,13 @@
             text: 'Black Market este marketplace-ul pentru anunțuri speciale. În funcție de permisiuni, poți vedea sau publica oferte pentru arme, muniție, piese, plicuri, jointuri și servicii, cu preț și imagini.'
         },
         {
+            page: 'minigames.html',
+            selector: '#minigames-grid, main',
+            section: 'Modul special',
+            title: 'Minigames',
+            text: 'Biblioteca Minigames conține provocări interactive pentru crime, heist-uri, hack-uri și joburi specializate. Poți filtra jocurile, seta dificultatea și porni direct o provocare.'
+        },
+        {
             page: 'index.html',
             selector: '#panel-shared-sidebar',
             section: 'Final',

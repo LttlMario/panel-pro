@@ -1185,7 +1185,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             ['ilegal', 'Resurse ilegale', [
                 ['calculatorilegal.html', '🧮', 'Calculator Ilegal'],
                 ['locatiiilegale.html', '🗺️', 'Locații Ilegale'],
-                ['marketplace-ilegal.html', '🚨', 'Black Market']
+                ['marketplace-ilegal.html', '🚨', 'Black Market'],
+                ['minigames.html', '🎮', 'Minigames']
             ]],
             ['administratie', 'Administrație', [
                 ['logs.html', '🧾', 'Loguri'],

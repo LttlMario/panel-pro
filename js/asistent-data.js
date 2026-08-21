@@ -145,6 +145,12 @@ window.PANEL_ASSISTANT_KNOWLEDGE = [
         answer: 'Black Market este marketplace-ul pentru rolurile Familia și superioare. Include anunțuri pentru Arme, Muniție, Plicuri, Jointuri, Piese de armă și Servicii. Prețul este obligatoriu și sunt permise maximum 5 imagini.'
     },
     {
+        title: 'Minigames ilegale',
+        category: 'ilegal', page: 'minigames.html',
+        keywords: ['minigames', 'mini games', 'jocuri', 'skillcheck', 'heist', 'hack', 'lockpick', 'tripwire', 'vault'],
+        answer: 'Pagina Minigames din Resurse ilegale conține 70 de provocări interactive pentru crime, heist-uri, hack-uri și joburi specializate. Poți căuta după nume, filtra după categorie, seta dificultatea și porni jocul direct din panel.'
+    },
+    {
         title: 'TEC-9 / TEC',
         category: 'ilegal', page: 'marketplace-ilegal.html',
         keywords: ['tec', 'tec9', 'tec 9', 'tec-9', 'arma tec', 'pistol tec', 'vand tec', 'cumpar tec', 'black market tec'],
@@ -188,6 +194,7 @@ window.PANEL_ASSISTANT_PAGES = [
     { file: 'calculatorilegal.html', label: 'Calculator Ilegal' },
     { file: 'locatiiilegale.html', label: 'Locații Ilegale' },
     { file: 'marketplace-ilegal.html', label: 'Black Market' },
+    { file: 'minigames.html', label: 'Minigames' },
     { file: 'rapoarte.html', label: 'Rapoarte' },
     { file: 'contracte.html', label: 'Contracte' },
     { file: 'asistent.html', label: 'Asistent' },
