@@ -1,7 +1,5 @@
 /* Ay-eye Minigames — shared stylesheet */
 
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Azeret+Mono:wght@400;500;700&display=swap');
-
 :root {
     --accent: #00e0b8;
     --danger: #ff3b5c;

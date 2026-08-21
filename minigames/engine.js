@@ -7,6 +7,7 @@ const MG = (function () {
     let sessionNonce = null;   // per-game token from Lua; required to report a result
 
     const $ = (id) => document.getElementById(id);
+    const setText = (id, value) => { const node = $(id); if (node) node.textContent = value; };
 
     /* ---- Lua bridge ---- */
     function post(name, body) {
@@ -55,7 +56,7 @@ const MG = (function () {
 
     /* ---- Round dots ---- */
     function setDots(total, states) {
-        const c = $('dots'); c.innerHTML = '';
+        const c = $('dots'); if (!c) return; c.innerHTML = '';
         for (let i = 0; i < total; i++) {
             const d = document.createElement('div');
             d.className = 'dot' + (states && states[i] ? ' ' + states[i] : '');
@@ -77,20 +78,21 @@ const MG = (function () {
         $('flash').className = 'hidden';
 
         const name = game ? game.title : payload.game;
-        $('hud-name').textContent = name;
-        $('hud-tag').textContent = 'SECURE TASK';
-        $('hint').textContent = (game && game.hint) ? game.hint : '';
-        $('board').innerHTML = '';
+        setText('hud-name', name);
+        setText('hud-tag', 'SECURE TASK');
+        setText('hint', (game && game.hint) ? game.hint : '');
+        const board = $('board'); if (!board) return end(false);
+        board.innerHTML = '';
         setDots(0);
 
         if (!game) { return end(false); }
 
         const api = {
-            board: $('board'),
+            board,
             cfg: payload,
             startTimer, stopTimer, addTime, setDots,
-            setHint: (t) => { $('hint').textContent = t || ''; },
-            setTag:  (t) => { $('hud-tag').textContent = t || ''; },
+            setHint: (t) => setText('hint', t || ''),
+            setTag:  (t) => setText('hud-tag', t || ''),
             succeed: () => end(true),
             fail:    () => end(false),
             shake:   () => { $('stage').classList.add('shake');
