@@ -215,12 +215,15 @@
                                 <h2 class="text-xs font-black uppercase tracking-wide text-cyan-300">Export angajați</h2>
                                 <p class="mt-1 text-[11px] text-slate-400">Selectează rândurile și copiază numele + CNP-ul pentru cealaltă aplicație.</p>
                             </div>
-                            <button type="button" id="refreshEmployeeExport" class="rounded-lg border border-slate-700 px-3 py-1.5 text-[11px] font-bold text-slate-300 hover:bg-slate-800">Actualizează</button>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" id="refreshEmployeeExport" class="rounded-lg border border-slate-700 px-3 py-1.5 text-[11px] font-bold text-slate-300 hover:bg-slate-800">Actualizează</button>
+                                <button type="button" id="exportManualContracts" class="rounded-lg bg-cyan-700 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-cyan-600">Export manual</button>
+                            </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <label class="text-[11px] text-slate-400">Afișează<select id="employeeExportFilter" class="ml-2 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-[11px] text-slate-200"><option value="new">Neeexportați</option><option value="active">Activi</option><option value="inactive">Foști angajați</option><option value="all">Toți</option></select></label>
-                            <button type="button" id="copySelectedEmployees" class="rounded-lg bg-cyan-700 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-cyan-600">Copiază selecția</button>
-                            <button type="button" id="copyNewEmployees" class="rounded-lg border border-cyan-700/60 px-3 py-1.5 text-[11px] font-bold text-cyan-200 hover:bg-cyan-950/50">Copiază neeexportații</button>
+                            <button type="button" id="copySelectedEmployees" class="rounded-lg border border-cyan-700/60 px-3 py-1.5 text-[11px] font-bold text-cyan-200 hover:bg-cyan-950/50">Exportă selecția</button>
+                            <button type="button" id="copyNewEmployees" class="rounded-lg border border-cyan-700/60 px-3 py-1.5 text-[11px] font-bold text-cyan-200 hover:bg-cyan-950/50">Exportă neeexportații</button>
                         </div>
                         <div id="employeeExportStatus" class="text-[11px] text-slate-500">Se încarcă lista angajaților…</div>
                         <div class="max-h-72 overflow-auto rounded-lg border border-slate-800">
@@ -435,6 +438,7 @@ Semnătură:`;
             document.getElementById('refreshEmployeeExport')?.addEventListener('click', loadEmployeeExportPanel);
             document.getElementById('copySelectedEmployees')?.addEventListener('click', () => copyEmployeeExport(false));
             document.getElementById('copyNewEmployees')?.addEventListener('click', () => copyEmployeeExport(true));
+            document.getElementById('exportManualContracts')?.addEventListener('click', () => copyEmployeeExport(true));
             loadEmployeeExportPanel();
         });
 
