@@ -41,6 +41,14 @@
     element.innerHTML = `<div class="discipline-notice ${tone}">${esc(message)}</div>`;
   }
 
+  function closeDisciplineModal() {
+    const modal = $('discipline-modal');
+    if (!modal) return;
+    modal.hidden = true;
+    $('discipline-form')?.reset();
+    if ($('sanction-fields')) $('sanction-fields').hidden = true;
+  }
+
   function visibleScopeRecords(kind) {
     const rows = kind === 'warnings' ? state.warnings : state.sanctions;
     return rows.filter((row) => row.target_scope === 'departments' || row.target_scope === 'organization');
@@ -184,7 +192,20 @@
       if (state.filter) showCommunity();
     }));
     $('discipline-create-button')?.addEventListener('click', openModal);
-    $('[data-discipline-close]')?.addEventListener('click', () => { if ($('discipline-modal')) $('discipline-modal').hidden = true; });
+    document.addEventListener('click', (event) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest('[data-discipline-close]')) {
+        event.preventDefault();
+        closeDisciplineModal();
+      }
+      if (target === $('discipline-modal')) closeDisciplineModal();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !$('discipline-modal')?.hidden) {
+        event.preventDefault();
+        closeDisciplineModal();
+      }
+    });
     $('discipline-kind')?.addEventListener('change', () => { if ($('sanction-fields')) $('sanction-fields').hidden = $('discipline-kind').value !== 'sanction'; });
     $('discipline-scope')?.addEventListener('change', loadTargets);
     $('discipline-form')?.addEventListener('submit', async (event) => {
@@ -202,7 +223,7 @@
       if (kind === 'sanction') Object.assign(payload, { amount: $('discipline-amount').value, currency: $('discipline-currency').value.trim(), due_at: $('discipline-due').value || null });
       try {
         await call(payload);
-        $('discipline-modal').hidden = true;
+        closeDisciplineModal();
         notice(`${typeLabel(kind)} a fost salvat(ă) și va fi vizibil(ă) doar audienței permise.`, 'success');
         await load();
         if (state.filter) render();
