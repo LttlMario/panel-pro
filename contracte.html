@@ -354,7 +354,11 @@ Nume: {{EMPLOYEE_NAME}}
 Semnătură:`;
 
         let currentContractNumber = "";
-        const contractCounterKey = () => `contract_counter_${window.getActiveOrganizationId?.() || 'default'}`;
+        const contractCounterKey = () => {
+            const today = new Date();
+            const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            return `contract_counter_${window.getActiveOrganizationId?.() || 'default'}_${dateKey}`;
+        };
         let currentUser = JSON.parse(localStorage.getItem('discord_user')) || JSON.parse(localStorage.getItem('workforce_user')) || { display_name: 'Admin', role: 'admin' };
         let employeeExportState = { employees: [], discord_members: [], last_manual_export: null };
 
@@ -538,6 +542,8 @@ Semnătură:`;
         }
 
         async function generateContract() {
+            // Recalculează numărul dacă pagina a rămas deschisă peste schimbarea zilei.
+            loadOrInitContractNumber();
             const company = document.getElementById('company').value.trim();
             const address = String(window.getActiveOrganization?.()?.address || '').trim();
             const manager = document.getElementById('manager').value.trim();
