@@ -1206,30 +1206,63 @@ async function forceStopActiveShift(shiftId) {
             }
         }
 
-        async function sendReportToDiscordWebhook(dataList, titleHeader, embedColor = 3447003) {
-            let totalMs = dataList.reduce((acc, curr) => acc + (Number(curr.duration_ms) || 0), 0);
-            let totalHours = (totalMs / 3600000).toFixed(2);
-            let uniqueMechanics = new Set(dataList.map(s => s.discord_id)).size;
+        function reportShiftDurationMs(shift) {
+            const stored = Number(shift.duration_ms);
+            if (Number.isFinite(stored) && stored >= 0) return stored;
+            const parts = String(shift.duration || '').split(':').map(Number);
+            if (parts.length === 3 && parts.every(Number.isFinite)) return ((parts[0] * 3600) + (parts[1] * 60) + parts[2]) * 1000;
+            if (parts.length === 2 && parts.every(Number.isFinite)) return ((parts[0] * 60) + parts[1]) * 1000;
+            return 0;
+        }
 
-            let sampleRows = dataList.slice(0, 10).map(s => `• **${s.mechanic_name}** (${(s.shift_type || 'std').toUpperCase()}) - ${s.date} [**${s.duration}**]`).join('\n');
+        function reportDateLabel(date) {
+            const parsed = new Date(`${date}T12:00:00`);
+            if (Number.isNaN(parsed.getTime())) return date || 'Data necunoscută';
+            const label = new Intl.DateTimeFormat('ro-RO', { weekday: 'long', day: '2-digit', month: '2-digit' }).format(parsed);
+            return label.charAt(0).toUpperCase() + label.slice(1);
+        }
 
-            if (dataList.length > 10) {
-                sampleRows += `\n...și încă ${dataList.length - 10} înregistrări.`;
+        function buildShiftBreakdown(dataList, shiftType, label) {
+            const shifts = dataList.filter((shift) => String(shift.shift_type || '').toLowerCase() === shiftType);
+            const grouped = new Map();
+            shifts.forEach((shift) => {
+                const key = String(shift.discord_id || shift.mechanic_name || 'unknown');
+                const member = grouped.get(key) || { name: shift.mechanic_name || 'Membru necunoscut', totalMs: 0, dates: new Map() };
+                const durationMs = reportShiftDurationMs(shift);
+                member.totalMs += durationMs;
+                member.dates.set(String(shift.date || ''), (member.dates.get(String(shift.date || '')) || 0) + durationMs);
+                grouped.set(key, member);
+            });
+
+            const memberBlocks = [...grouped.values()].sort((left, right) => left.name.localeCompare(right.name, 'ro')).map((member) => [
+                member.name,
+                ...[...member.dates.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([date, durationMs]) => `  ${reportDateLabel(date)} — ${formatTime(Math.floor(durationMs / 1000))}`),
+                `  Total săptămână — ${formatTime(Math.floor(member.totalMs / 1000))}`,
+            ].join('\n'));
+            const totalMs = shifts.reduce((sum, shift) => sum + reportShiftDurationMs(shift), 0);
+            const header = `Total ore ${label.toLowerCase()}: **${(totalMs / 3600000).toFixed(2)}h**\nAngajați: **${grouped.size}** · Ture: **${shifts.length}**`;
+            let body = '';
+            let shown = 0;
+            for (const block of memberBlocks) {
+                if (body && body.length + block.length + 2 > 3400) break;
+                if (!body && block.length > 3400) break;
+                body += `${body ? '\n\n' : ''}${block}`;
+                shown += 1;
             }
+            const remaining = memberBlocks.length - shown;
+            if (remaining > 0) body += `${body ? '\n\n' : ''}…și încă ${remaining} angajați.`;
+            return `${header}\n\n\`\`\`text\n${body || 'Nicio tură în această categorie.'}\n\`\`\``;
+        }
 
-            const payload = {
-                embeds: [{
-                    title: titleHeader,
-                    color: embedColor,
-                    fields: [
-                        { name: "📈 Total Ture", value: `${dataList.length}`, inline: true },
-                        { name: "⏱️ Total Ore Lucrate", value: `**${totalHours}h**`, inline: true },
-                        { name: "👥 Membri Contorizați", value: `${uniqueMechanics}`, inline: true },
-                        { name: "📋 Ultimele Ture din Raport", value: sampleRows || "Nicio tură", inline: false }
-                    ],
-                    timestamp: new Date().toISOString()
-                }]
-            };
+        function buildManualShiftEmbeds(dataList, titleHeader) {
+            return [
+                { title: `${titleHeader} · ☀️ Ture de zi`, color: 16766720, description: buildShiftBreakdown(dataList, 'zi', 'turele de zi'), timestamp: new Date().toISOString() },
+                { title: `${titleHeader} · 🌙 Ture de noapte`, color: 65535, description: buildShiftBreakdown(dataList, 'noapte', 'turele de noapte'), timestamp: new Date().toISOString() },
+            ];
+        }
+
+        async function sendReportToDiscordWebhook(dataList, titleHeader) {
+            const payload = { allowed_mentions: { parse: [] }, embeds: buildManualShiftEmbeds(dataList, titleHeader) };
 
             try {
                 let response = await sendPanelDiscord('weekly_reports', payload);
