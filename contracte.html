@@ -438,7 +438,7 @@ Semnătură:`;
             document.getElementById('refreshEmployeeExport')?.addEventListener('click', loadEmployeeExportPanel);
             document.getElementById('copySelectedEmployees')?.addEventListener('click', () => copyEmployeeExport(false));
             document.getElementById('copyNewEmployees')?.addEventListener('click', () => copyEmployeeExport(true));
-            document.getElementById('exportManualContracts')?.addEventListener('click', () => copyEmployeeExport(true));
+            document.getElementById('exportManualContracts')?.addEventListener('click', () => copyEmployeeExport(false));
             loadEmployeeExportPanel();
         });
 
