@@ -39,12 +39,14 @@ MG.register('locksmith', {
         function finish(ok) { if (ended) return; ended = true; document.removeEventListener('keydown', key); api.stopTimer(); setTimeout(() => ok ? api.succeed() : api.fail(), 250); }
 
         const riseSpeed = 1.6 + diff * 0.5;
-        function draw() {
+        let lastFrame = 0;
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             const acc = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e0b8').trim();
             const suc = (getComputedStyle(document.documentElement).getPropertyValue('--success') || '#39d98a').trim();
             if (!ended && cur < pinCount) {
                 const p = pins[cur];
-                p.h += dir * riseSpeed;
+                p.h += dir * riseSpeed * scale;
                 if (p.h > 170) { p.h = 170; dir = -1; }
                 if (p.h < 0) { p.h = 0; dir = 1; }
             }

@@ -17,7 +17,7 @@ MG.register('hotwire', {
         const left = order.map((i) => ({ x: 60, y: 40 + i * gap, c: colors[i], done: false }));
         const right = rightOrder.map((cIdx, i) => ({ x: W - 60, y: 40 + i * gap, c: colors[cIdx] }));
 
-        let phase = 'wire', dragFrom = null, mouse = { x: 0, y: 0 }, solved = 0, ended = false;
+        let phase = 'wire', dragFrom = null, mouse = { x: 0, y: 0 }, solved = 0, ended = false, lastFrame = 0;
         const links = [];
         let pos = 0, dir = 1, zoneX = 0, igniteReady = false;
         const igniteSpeed = 2.6 + diff * 0.8;
@@ -66,7 +66,8 @@ MG.register('hotwire', {
             const mx = (x1 + x2) / 2;
             ctx.beginPath(); ctx.moveTo(x1, y1); ctx.bezierCurveTo(mx, y1, mx, y2, x2, y2); ctx.stroke(); ctx.shadowBlur = 0;
         }
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             const acc = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e0b8').trim();
             const suc = (getComputedStyle(document.documentElement).getPropertyValue('--success') || '#39d98a').trim();
             ctx.clearRect(0, 0, W, H);
@@ -80,7 +81,7 @@ MG.register('hotwire', {
                 ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(50, ty - 12, W - 100, 24);
                 ctx.fillStyle = 'rgba(57,217,138,0.2)'; ctx.strokeStyle = suc; ctx.lineWidth = 2;
                 ctx.fillRect(zoneX, ty - 12, zoneW, 24); ctx.strokeRect(zoneX, ty - 12, zoneW, 24);
-                if (!ended && igniteReady) { pos += dir * igniteSpeed; if (pos > W - 50) { pos = W - 50; dir = -1; } if (pos < 50) { pos = 50; dir = 1; } }
+                if (!ended && igniteReady) { pos += dir * igniteSpeed * scale; if (pos > W - 50) { pos = W - 50; dir = -1; } if (pos < 50) { pos = 50; dir = 1; } }
                 ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.shadowColor = acc; ctx.shadowBlur = 12;
                 ctx.beginPath(); ctx.moveTo(pos, ty - 18); ctx.lineTo(pos, ty + 18); ctx.stroke(); ctx.shadowBlur = 0;
                 ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '12px monospace'; ctx.textAlign = 'center';

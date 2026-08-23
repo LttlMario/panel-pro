@@ -43,8 +43,10 @@ MG.register('suture', {
         api.setTag('SUTURING');
         api.startTimer(Math.max(16, 28 - diff * 2), () => { if (!done) { done = true; api.stopTimer(); setTimeout(() => api.fail(), 200); } });
 
-        function draw() {
-            if (!done) { ring += ringSpd * dirR; if (ring < lo - 0.12) dirR = 1; if (ring > 1) { ring = 1; dirR = -1; } }
+        let lastFrame = 0;
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
+            if (!done) { ring += ringSpd * dirR * scale; if (ring < lo - 0.12) dirR = 1; if (ring > 1) { ring = 1; dirR = -1; } }
             ctx.clearRect(0, 0, W, H);
 
             ctx.strokeStyle = 'rgba(255,80,90,0.55)'; ctx.lineWidth = 6; ctx.beginPath();

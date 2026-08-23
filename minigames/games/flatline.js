@@ -14,7 +14,7 @@ MG.register('flatline', {
         api.board.appendChild(wrap);
         const ctx = cvs.getContext('2d');
 
-        let done = 0, fails = 0, pos = 0, dir = 1;
+        let done = 0, fails = 0, pos = 0, dir = 1, lastFrame = 0;
         const speed = 1.7 + diff * 0.95;
         const zoneW = Math.max(38, 120 - diff * 14);
         let zoneX = rnd();
@@ -61,7 +61,8 @@ MG.register('flatline', {
             return baseline + y;
         }
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             ctx.clearRect(0, 0, W, H);
             ctx.strokeStyle = 'rgba(57,217,138,0.5)'; ctx.lineWidth = 2;
             ctx.beginPath();
@@ -73,7 +74,7 @@ MG.register('flatline', {
             ctx.fillRect(zoneX, 30, zoneW, H - 60);
             ctx.strokeRect(zoneX, 30, zoneW, H - 60);
 
-            pos += dir * speed;
+            pos += dir * speed * scale;
             if (pos > W - 40) { pos = W - 40; dir = -1; }
             if (pos < 40) { pos = 40; dir = 1; }
             ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;

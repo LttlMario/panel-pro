@@ -21,7 +21,7 @@ MG.register('lasergrid', {
                 speed: 0.6 + diff * 0.35 + Math.random() * 0.6
             });
         }
-        let player = { x: 24, y: H / 2 }, ended = false, hasMouse = false;
+        let player = { x: 24, y: H / 2 }, ended = false, hasMouse = false, lastFrame = 0;
         const exit = { x: W - 30, y: H / 2, r: 22 };
 
         function rel(e) {
@@ -34,7 +34,8 @@ MG.register('lasergrid', {
         api.startTimer(Math.max(12, 22 - diff * 1.6), () => finish(false));
         function finish(ok) { if (ended) return; ended = true; api.stopTimer(); setTimeout(() => ok ? api.succeed() : api.fail(), 250); }
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             const acc = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e0b8').trim();
             const dng = (getComputedStyle(document.documentElement).getPropertyValue('--danger') || '#ff3b5c').trim();
             const suc = (getComputedStyle(document.documentElement).getPropertyValue('--success') || '#39d98a').trim();
@@ -49,7 +50,7 @@ MG.register('lasergrid', {
             let hit = false;
             lasers.forEach((l) => {
                 if (!ended) {
-                    l.pos += l.dir * l.speed;
+                    l.pos += l.dir * l.speed * scale;
                     const max = l.horizontal ? H - 16 : W - 16;
                     if (l.pos > max) { l.pos = max; l.dir = -1; }
                     if (l.pos < 16) { l.pos = 16; l.dir = 1; }

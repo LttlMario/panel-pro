@@ -14,7 +14,7 @@ MG.register('cooking', {
         const zoneW = Math.max(44, 130 - diff * 14);
         const speed = 1.6 + diff * 0.8;
 
-        let step = 0, ended = false, pos = 60, dir = 1;
+        let step = 0, ended = false, pos = 60, dir = 1, lastFrame = 0;
         let zoneX = newZone();
         api.setDots(steps);
 
@@ -38,11 +38,12 @@ MG.register('cooking', {
         api.startTimer(Math.max(11, 24 - diff * 1.6), () => finish(false));
         function finish(ok) { if (ended) return; ended = true; if (!ok) api.shake(); document.removeEventListener('keydown', key); api.stopTimer(); setTimeout(() => ok ? api.succeed() : api.fail(), 200); }
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             const acc = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e0b8').trim();
             const suc = (getComputedStyle(document.documentElement).getPropertyValue('--success') || '#39d98a').trim();
             if (!ended) {
-                pos += dir * speed;
+                pos += dir * speed * scale;
                 if (pos > W - 60) { pos = W - 60; dir = -1; }
                 if (pos < 60) { pos = 60; dir = 1; }
             }

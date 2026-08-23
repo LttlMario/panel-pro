@@ -14,7 +14,7 @@ MG.register('stacker', {
         let speed = 1.5 + diff * 0.6;
         let stack = [{ x: W / 2 - 70, w: 140 }];
         let cur = { x: 0, w: 140, dir: 1 };
-        let placed = 1, ended = false;
+        let placed = 1, ended = false, lastFrame = 0;
         api.setDots(goal);
 
         function topY(level) { return H - 30 - level * blockH; }
@@ -45,9 +45,10 @@ MG.register('stacker', {
         api.setTag('STACK');
         api.startTimer(Math.max(12, 26 - diff * 2), () => fail());
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             if (!ended) {
-                cur.x += cur.dir * speed;
+                cur.x += cur.dir * speed * scale;
                 if (cur.x + cur.w > W) { cur.x = W - cur.w; cur.dir = -1; }
                 if (cur.x < 0) { cur.x = 0; cur.dir = 1; }
             }

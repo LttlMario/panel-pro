@@ -16,7 +16,7 @@ MG.register('dataheist', {
         const spawnGap = Math.max(28, 60 - diff * 6);
         const corruptChance = 0.22 + diff * 0.04;
 
-        let packets = [], grabbed = 0, miss = 0, frame = 0, ended = false;
+        let packets = [], grabbed = 0, miss = 0, frame = 0, ended = false, spawnClock = 0, lastFrame = 0;
         let paddle = W / 2, hasMouse = false;
         const padW = Math.max(50, 90 - diff * 8), padY = H - 28;
         api.setDots(maxMiss);
@@ -32,13 +32,18 @@ MG.register('dataheist', {
         function registerMiss() { miss++; api.setDots(maxMiss, Array.from({ length: maxMiss }, (_, i) => i < miss ? 'fail' : '')); if (miss >= maxMiss) finish(false); }
         function finish(ok) { if (ended) return; ended = true; api.stopTimer(); setTimeout(() => ok ? api.succeed() : api.fail(), 250); }
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             const acc = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e0b8').trim();
             const suc = (getComputedStyle(document.documentElement).getPropertyValue('--success') || '#39d98a').trim();
             const dng = (getComputedStyle(document.documentElement).getPropertyValue('--danger') || '#ff3b5c').trim();
             frame++;
-            if (!ended && frame % spawnGap === 0) {
-                packets.push({ x: api.rand(20, W - 20), y: -14, corrupt: Math.random() < corruptChance, gone: false });
+            if (!ended) {
+                spawnClock += scale;
+                if (spawnClock >= spawnGap) {
+                    spawnClock -= spawnGap;
+                    packets.push({ x: api.rand(20, W - 20), y: -14, corrupt: Math.random() < corruptChance, gone: false });
+                }
             }
             ctx.clearRect(0, 0, W, H);
             ctx.strokeStyle = 'rgba(255,255,255,0.06)';
@@ -46,7 +51,7 @@ MG.register('dataheist', {
 
             packets.forEach((p) => {
                 if (p.gone) return;
-                if (!ended) p.y += fallSpeed;
+                if (!ended) p.y += fallSpeed * scale;
                 const caught = p.y > padY - 8 && p.y < padY + 8 && Math.abs(p.x - paddle) < padW / 2;
                 if (caught) {
                     p.gone = true;

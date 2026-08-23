@@ -16,7 +16,7 @@ MG.register('harvest', {
         const needPct = 0.65 + diff * 0.04;
         const window_ = Math.max(22, 44 - diff * 3);
 
-        let crops = [], spawned = 0, cut = 0, judged = 0, frame = 0, ended = false, flash = 0;
+        let crops = [], spawned = 0, cut = 0, judged = 0, frame = 0, ended = false, flash = 0, spawnClock = 0, lastFrame = 0;
 
         function attempt() {
             if (ended) return;
@@ -42,13 +42,18 @@ MG.register('harvest', {
         api.startTimer(Math.max(14, 26 - diff), () => finish((cut / total) >= needPct));
         function finish(ok) { if (ended) return; ended = true; document.removeEventListener('keydown', key); api.stopTimer(); setTimeout(() => ok ? api.succeed() : api.fail(), 250); }
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             frame++;
             const acc = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e0b8').trim();
             const suc = (getComputedStyle(document.documentElement).getPropertyValue('--success') || '#39d98a').trim();
             const dng = (getComputedStyle(document.documentElement).getPropertyValue('--danger') || '#ff3b5c').trim();
-            if (!ended && spawned < total && frame % gap === 0) {
-                crops.push({ x: api.rand(60, W - 60), y: -20, cut: false, missed: false }); spawned++;
+            if (!ended && spawned < total) {
+                spawnClock += scale;
+                if (spawnClock >= gap) {
+                    spawnClock -= gap;
+                    crops.push({ x: api.rand(60, W - 60), y: -20, cut: false, missed: false }); spawned++;
+                }
             }
             ctx.clearRect(0, 0, W, H);
             ctx.strokeStyle = flash > 0 ? suc : acc; ctx.lineWidth = flash > 0 ? 4 : 2;
@@ -58,7 +63,7 @@ MG.register('harvest', {
 
             crops.forEach((c) => {
                 if (c.cut) return;
-                if (!ended) c.y += speed;
+                if (!ended) c.y += speed * scale;
                 if (c.y > cutY + window_ && !c.missed) { c.missed = true; judged++; }
                 ctx.fillStyle = c.missed ? dng : suc;
                 ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = c.missed ? 0 : 6;

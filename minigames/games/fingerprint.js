@@ -60,13 +60,15 @@ MG.register('fingerprint', {
             ctx.restore();
         }
 
-        function draw() {
+        let lastFrame = 0;
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             ctx.clearRect(0, 0, W, H);
             ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '10px monospace'; ctx.textAlign = 'center'; ctx.fillText('REFERENCE', W / 2, 18);
             ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.fillRect(W / 2 - 46, 26, 92, 92);
             ctx.strokeStyle = acc; ctx.lineWidth = 1; ctx.strokeRect(W / 2 - 46, 26, 92, 92);
             print(W / 2, 72, 34, refRot, acc, true);
-            scan = (scan + 1.3) % 92; ctx.strokeStyle = 'rgba(0,224,184,0.5)'; ctx.lineWidth = 1;
+            scan = (scan + 1.3 * scale) % 92; ctx.strokeStyle = 'rgba(0,224,184,0.5)'; ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(W / 2 - 46, 26 + scan); ctx.lineTo(W / 2 + 46, 26 + scan); ctx.stroke();
 
             cands.forEach(c => { ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1; ctx.strokeRect(c.x - 34, c.y - 34, 68, 68); print(c.x, c.y, 26, c.rot, 'rgba(255,255,255,0.72)', false); });

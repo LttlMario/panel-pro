@@ -43,12 +43,14 @@ MG.register('paintspray', {
             ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '9px monospace'; ctx.textAlign = 'left'; ctx.fillText(label, x, y - 3);
         }
 
-        function draw() {
+        let lastFrame = 0;
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             if (!done && spraying && has) {
                 const ccx = (mx - px) / cw, ccy = (my - py) / ch;
                 for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
                     const d = Math.hypot(c + 0.5 - ccx, r + 0.5 - ccy);
-                    if (d < brush) { const idx = r * cols + c; const before = cells[idx]; cells[idx] += flow * (1 - d / brush); if (cells[idx] > 1.25 && before <= 1.25) drips++; }
+                    if (d < brush) { const idx = r * cols + c; const before = cells[idx]; cells[idx] += flow * (1 - d / brush) * scale; if (cells[idx] > 1.25 && before <= 1.25) drips++; }
                 }
             }
 

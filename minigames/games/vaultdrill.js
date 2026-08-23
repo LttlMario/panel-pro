@@ -17,7 +17,7 @@ MG.register('vaultdrill', {
             const a = (i / points) * Math.PI * 2 - Math.PI / 2;
             drillPts.push({ x: cx + Math.cos(a) * R, y: cy + Math.sin(a) * R, done: false });
         }
-        let cur = 0, prog = 0, dir = 1, ended = false;
+        let cur = 0, prog = 0, dir = 1, ended = false, lastFrame = 0;
         const speed = 1.2 + diff * 0.5;
         const coreLow = 42, coreHigh = 58;
         api.setDots(points);
@@ -38,10 +38,11 @@ MG.register('vaultdrill', {
         api.startTimer(Math.max(12, 24 - diff * 2), () => finish(false));
         function finish(ok) { if (ended) return; ended = true; document.removeEventListener('keydown', key); api.stopTimer(); setTimeout(() => ok ? api.succeed() : api.fail(), 250); }
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             const acc = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e0b8').trim();
             const suc = (getComputedStyle(document.documentElement).getPropertyValue('--success') || '#39d98a').trim();
-            if (!ended && cur < points) { prog += dir * speed; if (prog > 100) { prog = 100; dir = -1; } if (prog < 0) { prog = 0; dir = 1; } }
+            if (!ended && cur < points) { prog += dir * speed * scale; if (prog > 100) { prog = 100; dir = -1; } if (prog < 0) { prog = 0; dir = 1; } }
             ctx.clearRect(0, 0, W, H);
 
             ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 3;

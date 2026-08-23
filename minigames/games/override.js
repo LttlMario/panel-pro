@@ -26,7 +26,7 @@ MG.register('override', {
         const tol = Math.max(0.12, 0.3 - diff * 0.03);
         let corruption = 0;
         const corrSpeed = 0.0016 + diff * 0.0006;
-        let done = false;
+        let done = false, lastFrame = 0;
 
         api.setDots(ringCount);
 
@@ -56,9 +56,10 @@ MG.register('override', {
         api.startTimer(Math.max(16, 34 - diff * 3), () => fail());
         function fail() { if (done) return; done = true; document.removeEventListener('keydown', key); api.stopTimer(); setTimeout(() => api.fail(), 200); }
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             if (!done) {
-                corruption = Math.min(1, corruption + corrSpeed);
+                corruption = Math.min(1, corruption + corrSpeed * scale);
                 if (corruption >= 1) { fail(); return; }
             }
             ctx.clearRect(0, 0, W, H);
@@ -73,7 +74,7 @@ MG.register('override', {
             ctx.beginPath(); ctx.moveTo(cx, cy - 30); ctx.lineTo(cx, cy - (rings[ringCount - 1].r + 20)); ctx.stroke();
 
             rings.forEach((ring, i) => {
-                if (!ring.locked && !done) ring.ang += ring.spd;
+                if (!ring.locked && !done) ring.ang += ring.spd * scale;
                 const isActive = i === active;
                 ctx.strokeStyle = ring.locked ? suc : (isActive ? acc : 'rgba(255,255,255,0.15)');
                 ctx.lineWidth = isActive ? 4 : 2;

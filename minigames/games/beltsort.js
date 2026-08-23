@@ -21,7 +21,7 @@ MG.register('beltsort', {
         const speed = 1.1 + diff * 0.4;
         const spawnGap = Math.max(34, 72 - diff * 8);
         const beltY = H / 2, R = 16;
-        let parts = [], caught = 0, wrong = 0, frame = 0, done = false, dash = 0;
+        let parts = [], caught = 0, wrong = 0, frame = 0, done = false, dash = 0, spawnClock = 0, lastFrame = 0;
 
         api.setDots(maxWrong);
         function strike() { wrong++; api.setDots(maxWrong, Array.from({ length: maxWrong }, (_, i) => i < wrong ? 'fail' : '')); if (wrong >= maxWrong) finish(false); }
@@ -55,10 +55,14 @@ MG.register('beltsort', {
             if (def) { ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x - r * 0.4, y - r * 0.3); ctx.lineTo(x + r * 0.05, y + r * 0.1); ctx.lineTo(x - r * 0.15, y + r * 0.35); ctx.stroke(); }
         }
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             frame++;
-            if (!done && frame % spawnGap === 0) parts.push({ x: -R, def: Math.random() < 0.5, gone: false });
-            if (!done) dash = (dash + speed) % 28;
+            if (!done) {
+                spawnClock += scale;
+                if (spawnClock >= spawnGap) { spawnClock -= spawnGap; parts.push({ x: -R, def: Math.random() < 0.5, gone: false }); }
+                dash = (dash + speed * scale) % 28;
+            }
             ctx.clearRect(0, 0, W, H);
 
             // belt
@@ -70,7 +74,7 @@ MG.register('beltsort', {
 
             parts.forEach(p => {
                 if (p.gone) return;
-                if (!done) p.x += speed;
+                if (!done) p.x += speed * scale;
                 if (p.x > W + R) { p.gone = true; if (p.def) strike(); return; }
                 gear(p.x, beltY, R, p.def ? dng : acc, p.def);
             });

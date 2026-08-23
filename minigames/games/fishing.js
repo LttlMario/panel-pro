@@ -43,7 +43,9 @@ MG.register('fishing', {
             setTimeout(() => ok ? api.succeed() : api.fail(), 250);
         }
 
-        function draw() {
+        let lastFrame = 0;
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             const acc = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e0b8').trim();
             const suc = (getComputedStyle(document.documentElement).getPropertyValue('--success') || '#39d98a').trim();
             ctx.clearRect(0, 0, W, H);
@@ -60,14 +62,14 @@ MG.register('fishing', {
                 ctx.fillStyle = acc; ctx.beginPath(); ctx.arc(80, H / 2 + bob, 7, 0, Math.PI * 2); ctx.fill();
             } else if (phase === 'reel') {
                 if (!ended) {
-                    zoneY += (holding ? -2.4 : 2.0);
+                    zoneY += (holding ? -2.4 : 2.0) * scale;
                     zoneY = Math.max(20 + zoneH / 2, Math.min(H - 20 - zoneH / 2, zoneY));
-                    fishTimer -= 1;
+                    fishTimer -= scale;
                     if (fishTimer <= 0) { fishVel = api.rand(-fishSpeed, fishSpeed); fishTimer = api.randInt(20, 50); }
-                    fishY += fishVel;
+                    fishY += fishVel * scale;
                     fishY = Math.max(30, Math.min(H - 30, fishY));
                     const inside = fishY > zoneY - zoneH / 2 && fishY < zoneY + zoneH / 2;
-                    reel += inside ? 0.8 : -drain;
+                    reel += (inside ? 0.8 : -drain) * scale;
                     reel = Math.max(0, Math.min(reelGoal, reel));
                     api.setTag(inside ? 'REELING' : 'SLIPPING');
                     if (reel >= reelGoal) { finish(true); return; }

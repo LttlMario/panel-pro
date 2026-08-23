@@ -21,7 +21,7 @@ MG.register('crane', {
         const swSpd = 0.03 + diff * 0.006;
         const tgW = Math.max(46, 92 - diff * 9);
         const rounds = 3;
-        let phase = api.rand(0, Math.PI * 2), prevX = 0, round = 0, done = false;
+        let phase = api.rand(0, Math.PI * 2), prevX = 0, round = 0, done = false, lastFrame = 0;
         let target = newTarget(), crate = null;
 
         api.setDots(rounds);
@@ -45,12 +45,13 @@ MG.register('crane', {
         function win() { if (done) return; done = true; document.removeEventListener('keydown', key); api.stopTimer(); api.setTag('LOADED'); setTimeout(() => api.succeed(), 300); }
         function dotState() { return Array.from({ length: rounds }, (_, i) => i < round ? 'done' : ''); }
 
-        function draw() {
-            if (!done) { prevX = hookPos().x; phase += swSpd; }
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
+            if (!done) { prevX = hookPos().x; phase += swSpd * scale; }
             const h = hookPos();
 
             if (crate) {
-                crate.vy += g; crate.x += crate.vx; crate.y += crate.vy;
+                crate.vy += g * scale; crate.x += crate.vx * scale; crate.y += crate.vy * scale;
                 if (crate.y >= floorY - 10) {
                     if (Math.abs(crate.x - target) < tgW / 2) {
                         round++; api.setDots(rounds, dotState()); api.sfx('good');

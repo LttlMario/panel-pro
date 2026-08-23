@@ -34,16 +34,18 @@ MG.register('drilling', {
             setTimeout(() => ok ? api.succeed() : api.fail(), 250);
         }
 
-        function draw() {
+        let lastFrame = 0;
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             const acc = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e0b8').trim();
             const suc = (getComputedStyle(document.documentElement).getPropertyValue('--success') || '#39d98a').trim();
             const dng = (getComputedStyle(document.documentElement).getPropertyValue('--danger') || '#ff3b5c').trim();
             if (!ended) {
-                pressure += (holding ? rise : -fall) + (Math.random() - 0.5) * wander;
+                pressure += ((holding ? rise : -fall) + (Math.random() - 0.5) * wander) * scale;
                 pressure = Math.max(0, Math.min(100, pressure));
                 const inBand = pressure >= bandLow && pressure <= bandHigh;
-                if (inBand) { depth += 0.7; api.sfx('tick'); heat = Math.max(0, heat - 0.4); }
-                else { heat += pressure > bandHigh ? 1.4 : 0.2; }
+                if (inBand) { depth += 0.7 * scale; api.sfx('tick'); heat = Math.max(0, heat - 0.4 * scale); }
+                else { heat += (pressure > bandHigh ? 1.4 : 0.2) * scale; }
                 api.setTag(inBand ? 'DRILLING' : (pressure > bandHigh ? 'TOO HARD' : 'TOO SOFT'));
                 if (heat >= 100) { finish(false); return; }
                 if (depth >= 100) { finish(true); return; }

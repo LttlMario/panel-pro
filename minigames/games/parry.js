@@ -21,7 +21,7 @@ MG.register('parry', {
         const winLo = 0.72;
         const guardR = 30, maxR = 150;
         const DIRS = { L: [-1, 0], U: [0, -1], R: [1, 0] };
-        let strike = null, gap = 16, made = 0, miss = 0, done = false, flash = 0, flashCol = '';
+        let strike = null, gap = 16, made = 0, miss = 0, done = false, flash = 0, flashCol = '', lastFrame = 0;
 
         api.setDots(need);
         function spawn() { const d = ['L', 'U', 'R'][api.randInt(0, 2)]; strike = { dir: d, t: 0 }; }
@@ -45,10 +45,11 @@ MG.register('parry', {
         api.setTag('GUARD');
         api.startTimer(Math.max(18, 30 - diff * 2), () => { if (!done) { done = true; api.stopTimer(); document.removeEventListener('keydown', key); setTimeout(() => api.fail(), 200); } });
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             if (!done) {
-                if (strike) { strike.t += speed; if (strike.t >= 1) resolve(false); }
-                else if (gap > 0) { gap--; if (gap === 0) spawn(); }
+                if (strike) { strike.t += speed * scale; if (strike.t >= 1) resolve(false); }
+                else if (gap > 0) { gap -= scale; if (gap <= 0) spawn(); }
             }
             if (flash > 0) flash--;
             ctx.clearRect(0, 0, W, H);

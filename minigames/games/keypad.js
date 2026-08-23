@@ -3,8 +3,7 @@ MG.register('keypad', {
     hint: '● right spot · ○ right digit, wrong spot',
     run(api) {
         const diff = Math.max(1, Math.min(5, api.cfg.difficulty || 2));
-        const len = 3 + Math.floor(diff / 2);
-        const attempts = Math.max(4, 8 - diff);
+        const len = 6;
         const code = Array.from({ length: len }, () => api.randInt(0, 9));
 
         let guess = [], tries = 0, ended = false;
@@ -18,7 +17,7 @@ MG.register('keypad', {
               <div id="pad" style="display:grid;grid-template-columns:repeat(3,56px);gap:8px;width:184px;"></div>
             </div>
             <div style="min-width:150px;">
-              <div class="label">HISTORY (${attempts} tries)</div>
+              <div class="label">HISTORY (unlimited tries)</div>
               <div id="hist" style="display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:14px;"></div>
             </div>`;
         api.board.appendChild(box);
@@ -68,18 +67,10 @@ MG.register('keypad', {
 
             tries++;
             if (exact === len) { ended = true; api.stopTimer(); api.setTag('UNLOCKED'); setTimeout(() => api.succeed(), 300); return; }
-            if (tries >= attempts) { ended = true; api.shake(); api.stopTimer(); revealCode(); setTimeout(() => api.fail(), 600); return; }
             guess = []; renderEntry();
-            api.setTag('TRY ' + (tries + 1) + '/' + attempts);
+            api.setTag('TRY ' + (tries + 1));
         }
-        function revealCode() {
-            const row = document.createElement('div');
-            row.style.cssText = 'color:var(--danger);font-size:12px;margin-top:4px;';
-            row.textContent = 'CODE: ' + code.join(' ');
-            histEl.appendChild(row);
-        }
-
-        api.setTag('TRY 1/' + attempts);
+        api.setTag('TRY 1');
         api.startTimer(Math.max(25, 60 - diff * 5), () => { if (!ended) api.fail(); });
         renderEntry();
         return { destroy() {} };

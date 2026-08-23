@@ -68,8 +68,10 @@ MG.register('intrusion', {
         api.setTag('INTRUDING');
         api.startTimer(Math.max(14, 28 - diff * 2), () => { if (!won && !lost) end_(false); });
 
-        function draw() {
-            t += 1;
+        let lastFrame = 0;
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
+            t += scale;
             ctx.clearRect(0, 0, W, H);
             const acc = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e0b8').trim();
             const dng = (getComputedStyle(document.documentElement).getPropertyValue('--danger') || '#ff3b5c').trim();

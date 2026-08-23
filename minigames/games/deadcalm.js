@@ -16,7 +16,7 @@ MG.register('deadcalm', {
         let tx = W / 2, ty = H / 2;
         let cx = W / 2, cy = H / 2;
         let phase = Math.random() * 100;
-        let holding = false, breath = 1, shots = 0;
+        let holding = false, breath = 1, shots = 0, lastFrame = 0;
         let tvx = api.rand(-0.4, 0.4), tvy = api.rand(-0.4, 0.4);
 
         api.setDots(need);
@@ -45,10 +45,11 @@ MG.register('deadcalm', {
             document.removeEventListener('keyup', up);
         }
 
-        function draw() {
-            phase += 0.05;
-            if (holding) breath = Math.max(0, breath - 0.012);
-            else breath = Math.min(1, breath + 0.006);
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
+            phase += 0.05 * scale;
+            if (holding) breath = Math.max(0, breath - 0.012 * scale);
+            else breath = Math.min(1, breath + 0.006 * scale);
 
             const steady = holding && breath > 0;
             const amp = steady ? drift * 1.2 : drift * (breath <= 0 ? 9 : 5.5);
@@ -56,7 +57,7 @@ MG.register('deadcalm', {
             cx = tx + Math.sin(phase * 1.7) * wob + Math.sin(phase * 0.6) * wob * 0.6;
             cy = ty + Math.cos(phase * 1.3) * wob + Math.cos(phase * 0.9) * wob * 0.6;
 
-            tx += tvx; ty += tvy;
+            tx += tvx * scale; ty += tvy * scale;
             if (tx < 70 || tx > W - 70) tvx *= -1;
             if (ty < 70 || ty > H - 70) tvy *= -1;
 

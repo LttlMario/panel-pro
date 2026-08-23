@@ -19,7 +19,7 @@ MG.register('pillpress', {
         const need = 4 + diff;
         const maxWrong = Math.max(2, 5 - diff);
         const window = Math.max(0.1, 0.24 - diff * 0.025);
-        let phase = 0, spd = 0.03 + diff * 0.006, made = 0, wrong = 0, done = false, flash = 0;
+        let phase = 0, spd = 0.03 + diff * 0.006, made = 0, wrong = 0, done = false, flash = 0, lastFrame = 0;
 
         api.setDots(need);
 
@@ -42,8 +42,9 @@ MG.register('pillpress', {
         api.setTag('PRESSING');
         api.startTimer(Math.max(16, 28 - diff * 2), () => { if (!done) { done = true; api.stopTimer(); document.removeEventListener('keydown', key); setTimeout(() => api.fail(), 200); } });
 
-        function draw() {
-            if (!done) phase += spd;
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
+            if (!done) phase += spd * scale;
             const pos = (1 - Math.cos(phase)) / 2;
             ctx.clearRect(0, 0, W, H);
 

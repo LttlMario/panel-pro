@@ -17,7 +17,7 @@ MG.register('jammer', {
         for (let i = 0; i < channels; i++) {
             chans.push({ level: api.rand(0, 40), speed: 0.8 + diff * 0.4 + Math.random() * 0.8, dir: 1, jammed: false });
         }
-        let jammedCount = 0, ended = false, wrong = 0;
+        let jammedCount = 0, ended = false, wrong = 0, lastFrame = 0;
         const maxWrong = Math.max(2, 5 - diff);
         api.setDots(channels);
 
@@ -42,7 +42,8 @@ MG.register('jammer', {
         api.startTimer(Math.max(13, 24 - diff * 2), () => finish(false));
         function finish(ok) { if (ended) return; ended = true; api.stopTimer(); setTimeout(() => ok ? api.succeed() : api.fail(), 250); }
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             const acc = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e0b8').trim();
             const suc = (getComputedStyle(document.documentElement).getPropertyValue('--success') || '#39d98a').trim();
             const dng = (getComputedStyle(document.documentElement).getPropertyValue('--danger') || '#ff3b5c').trim();
@@ -51,7 +52,7 @@ MG.register('jammer', {
             chans.forEach((c, i) => {
                 const x = 20 + i * chW + 6, w = chW - 12;
                 if (!ended && !c.jammed) {
-                    c.level += c.dir * c.speed;
+                    c.level += c.dir * c.speed * scale;
                     if (c.level > 100) { c.level = 100; c.dir = -1; }
                     if (c.level < 0) { c.level = 0; c.dir = 1; }
                 }

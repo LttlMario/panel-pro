@@ -56,8 +56,10 @@ MG.register('lugnuts', {
             ctx.restore(); ctx.shadowBlur = 0;
         }
 
-        function draw() {
-            if (!done) { t += spd; if (t > 1) t = 0; }
+        let lastFrame = 0;
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
+            if (!done) { t += spd * scale; if (t > 1) t = 0; }
             ctx.clearRect(0, 0, W, H);
 
             ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 16;

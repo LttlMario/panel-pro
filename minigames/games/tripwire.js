@@ -37,7 +37,7 @@ MG.register('tripwire', {
 
         const start = { x: 26, y: H / 2 };
         const av = { x: start.x, y: start.y, r: 8 };
-        let mx = start.x, my = start.y, has = false, done = false;
+        let mx = start.x, my = start.y, has = false, done = false, lastFrame = 0;
 
         cvs.addEventListener('mousemove', (e) => {
             const b = cvs.getBoundingClientRect();
@@ -58,8 +58,9 @@ MG.register('tripwire', {
             return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
         }
 
-        function draw() {
-            if (has) { av.x += (mx - av.x) * 0.4; av.y += (my - av.y) * 0.4; }
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
+            if (has) { const follow = 1 - Math.pow(1 - 0.4, scale); av.x += (mx - av.x) * follow; av.y += (my - av.y) * follow; }
             av.x = Math.max(av.r, Math.min(W - av.r, av.x));
             av.y = Math.max(av.r, Math.min(H - av.r, av.y));
 
@@ -72,7 +73,7 @@ MG.register('tripwire', {
 
             let tripped = false;
             beams.forEach(bm => {
-                if (!done) bm.phase += bm.spd;
+                if (!done) bm.phase += bm.spd * scale;
                 bm.ang = bm.base + Math.sin(bm.phase) * sweep;
                 const tx = bm.x + Math.cos(bm.ang) * L, ty = bm.y + Math.sin(bm.ang) * L;
                 const d = segDist(av.x, av.y, bm.x, bm.y, tx, ty), near = d < 22;

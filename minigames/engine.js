@@ -54,6 +54,13 @@ const MG = (function () {
         if (timer) timer.start += ms;
     }
 
+    // Converts per-frame movement to a stable 60 FPS reference step. This keeps
+    // the same difficulty on 60 Hz, 120 Hz and 144 Hz displays.
+    function frameScale(now, previous) {
+        if (!previous) return 1;
+        return Math.min(3, Math.max(0.25, (now - previous) / (1000 / 60)));
+    }
+
     /* ---- Round dots ---- */
     function setDots(total, states) {
         const c = $('dots'); if (!c) return; c.innerHTML = '';
@@ -93,6 +100,7 @@ const MG = (function () {
             startTimer, stopTimer, addTime, setDots,
             setHint: (t) => setText('hint', t || ''),
             setTag:  (t) => setText('hud-tag', t || ''),
+            frameScale,
             succeed: () => end(true),
             fail:    () => end(false),
             shake:   () => { $('stage').classList.add('shake');

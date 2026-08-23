@@ -76,7 +76,9 @@ MG.register('daemonrun', {
             trace.c = tc + pick[0]; trace.r = tr + pick[1];
         }
 
-        function draw() {
+        let lastFrame = 0;
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             ctx.clearRect(0, 0, W, H);
             for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
                 if (maze[r][c] === 1) {
@@ -97,16 +99,18 @@ MG.register('daemonrun', {
                 ctx.shadowBlur = 0;
             });
 
-            pPix.x += (player.c * S - pPix.x) * 0.35;
-            pPix.y += (player.r * S - pPix.y) * 0.35;
+            const playerFollow = 1 - Math.pow(1 - 0.35, scale);
+            pPix.x += (player.c * S - pPix.x) * playerFollow;
+            pPix.y += (player.r * S - pPix.y) * playerFollow;
             ctx.fillStyle = acc; ctx.shadowColor = acc; ctx.shadowBlur = 10;
             ctx.beginPath(); ctx.arc(pPix.x + S / 2, pPix.y + S / 2, S / 2 - 5, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0;
 
-            traceTick += traceSpeed;
+            traceTick += traceSpeed * scale;
             if (traceTick >= 10) { traceTick = 0; moveTrace(); }
-            tPix.x += (trace.c * S - tPix.x) * 0.18;
-            tPix.y += (trace.r * S - tPix.y) * 0.18;
+            const traceFollow = 1 - Math.pow(1 - 0.18, scale);
+            tPix.x += (trace.c * S - tPix.x) * traceFollow;
+            tPix.y += (trace.r * S - tPix.y) * traceFollow;
             ctx.fillStyle = dng; ctx.shadowColor = dng; ctx.shadowBlur = 12;
             ctx.beginPath(); ctx.arc(tPix.x + S / 2, tPix.y + S / 2, S / 2 - 4, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0;

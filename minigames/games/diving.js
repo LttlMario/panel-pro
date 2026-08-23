@@ -35,7 +35,7 @@ MG.register('diving', {
         function draw() {
             const now = performance.now(); const dt = Math.min(0.05, (now - last) / 1000); last = now;
             if (!done) {
-                if (has) { diver.x += (mx - diver.x) * 0.18; diver.y += (my - diver.y) * 0.18; }
+                if (has) { const follow = 1 - Math.pow(1 - 0.18, dt * 60); diver.x += (mx - diver.x) * follow; diver.y += (my - diver.y) * follow; }
                 diver.x = Math.max(diver.r, Math.min(W - diver.r, diver.x));
                 diver.y = Math.max(surfaceY - 6, Math.min(H - diver.r, diver.y));
                 const atSurface = diver.y <= surfaceY + 16;

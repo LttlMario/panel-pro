@@ -19,7 +19,7 @@ MG.register('getaway', {
         const laneX = (i) => (W / lanes) * (i + 0.5);
         let targetLane = 1, carX = laneX(1);
         const carW = 36, carH = 58, carY = H - 70;
-        let done = false, dash = 0, spawnT = 0;
+        let done = false, dash = 0, spawnT = 0, lastFrame = 0;
         const speed = 3 + diff * 0.7;
         const spawnEvery = Math.max(22, 60 - diff * 7);
         const traffic = [];
@@ -38,12 +38,14 @@ MG.register('getaway', {
 
         function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             if (!done) {
-                carX += (laneX(targetLane) - carX) * 0.22;
-                dash = (dash + speed) % 44;
-                if (++spawnT >= spawnEvery) {
-                    spawnT = 0;
+                carX += (laneX(targetLane) - carX) * (1 - Math.pow(1 - 0.22, scale));
+                dash = (dash + speed * scale) % 44;
+                spawnT += scale;
+                if (spawnT >= spawnEvery) {
+                    spawnT -= spawnEvery;
                     const l = api.randInt(0, lanes - 1);
                     traffic.push({ x: laneX(l), y: -carH });
                     if (diff >= 3 && Math.random() < 0.45) {
@@ -60,7 +62,7 @@ MG.register('getaway', {
 
             let crash = false;
             for (const t of traffic) {
-                if (!done) t.y += speed;
+                if (!done) t.y += speed * scale;
                 ctx.fillStyle = dng; rr(t.x - carW / 2, t.y, carW, carH, 7); ctx.fill();
                 ctx.fillStyle = 'rgba(0,0,0,0.35)'; rr(t.x - carW / 2 + 5, t.y + 9, carW - 10, 15, 3); ctx.fill();
                 if (Math.abs(t.x - carX) < carW * 0.78 && t.y + carH > carY + 8 && t.y < carY + carH - 8) crash = true;

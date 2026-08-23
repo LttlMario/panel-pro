@@ -13,7 +13,7 @@ MG.register('skillcheck', {
 
         const zoneSize = Math.max(0.18, 0.72 - diff * 0.10);
         const speed = 0.022 + diff * 0.016;
-        let ang = 0, dir = 1, done = 0, zoneStart = 0, ended = false;
+        let ang = 0, dir = 1, done = 0, zoneStart = 0, ended = false, lastFrame = 0;
 
         function newZone() {
             zoneStart = api.rand(0, Math.PI * 2);
@@ -41,8 +41,9 @@ MG.register('skillcheck', {
 
         api.startTimer(Math.max(7, 18 - diff * 1.6), () => { cleanup(); api.fail(); });
 
-        function draw() {
-            if (!ended) ang += speed * dir;
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
+            if (!ended) ang += speed * dir * scale;
             ctx.clearRect(0, 0, W, H);
             const acc = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e0b8').trim();
             const suc = (getComputedStyle(document.documentElement).getPropertyValue('--success') || '#39d98a').trim();

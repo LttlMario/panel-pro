@@ -22,7 +22,7 @@ MG.register('archery', {
         const tgR = Math.max(17, 32 - diff * 3);
         const aidLen = diff <= 2 ? 90 : diff <= 4 ? 46 : 24;
         const wind = diff >= 4 ? (Math.random() < 0.5 ? -1 : 1) * (0.015 + diff * 0.006) : 0;
-        let round = 0, aiming = false, aim = { x: 0, y: 0 }, arrow = null, done = false;
+        let round = 0, aiming = false, aim = { x: 0, y: 0 }, arrow = null, done = false, lastFrame = 0;
 
         api.setDots(rounds);
         function newTarget() { return { x: 280 + Math.random() * (W - 320), y: 55 + Math.random() * (H - 150) }; }
@@ -39,9 +39,10 @@ MG.register('archery', {
         api.setTag('AIM');
         api.startTimer(Math.max(22, 38 - diff * 2), () => { if (!done) { done = true; api.stopTimer(); setTimeout(() => api.fail(), 200); } });
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             if (arrow && !done) {
-                arrow.vy += g; arrow.vx += wind; arrow.x += arrow.vx; arrow.y += arrow.vy;
+                arrow.vy += g * scale; arrow.vx += wind * scale; arrow.x += arrow.vx * scale; arrow.y += arrow.vy * scale;
                 if (Math.hypot(arrow.x - target.x, arrow.y - target.y) < tgR) {
                     round++; api.sfx('good'); api.setDots(rounds, Array.from({ length: rounds }, (_, i) => i < round ? 'done' : ''));
                     if (round >= rounds) { done = true; api.stopTimer(); api.setTag('BULLSEYE'); setTimeout(() => api.succeed(), 300); return; }

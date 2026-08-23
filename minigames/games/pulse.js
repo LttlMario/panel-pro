@@ -17,7 +17,7 @@ MG.register('pulse', {
         const spawnGap = Math.max(30, 78 - diff * 8);
         const needPct = 0.6 + diff * 0.05;
 
-        let notes = [], spawned = 0, hits = 0, judged = 0, frame = 0, flash = {};
+        let notes = [], spawned = 0, hits = 0, judged = 0, frame = 0, flash = {}, spawnClock = 0, lastFrame = 0;
         const done = () => judged >= total;
 
         function key(e) {
@@ -54,11 +54,16 @@ MG.register('pulse', {
             setTimeout(() => pass ? api.succeed() : api.fail(), 200);
         });
 
-        function draw() {
+        function draw(now) {
+            const scale = api.frameScale(now, lastFrame); lastFrame = now;
             frame++;
-            if (spawned < total && frame % spawnGap === 0) {
-                notes.push({ lane: api.randInt(0, 3), y: -20, hit: false, missed: false });
-                spawned++;
+            if (spawned < total) {
+                spawnClock += scale;
+                if (spawnClock >= spawnGap) {
+                    spawnClock -= spawnGap;
+                    notes.push({ lane: api.randInt(0, 3), y: -20, hit: false, missed: false });
+                    spawned++;
+                }
             }
             ctx.clearRect(0, 0, W, H);
             const acc = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#00e0b8').trim();
@@ -80,7 +85,7 @@ MG.register('pulse', {
 
             notes.forEach((n) => {
                 if (n.hit) return;
-                n.y += speed;
+                n.y += speed * scale;
                 if (n.y > strikeY + 26 && !n.missed) { n.missed = true; judged++; }
                 ctx.fillStyle = n.missed ? dng : acc;
                 ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = n.missed ? 0 : 8;
