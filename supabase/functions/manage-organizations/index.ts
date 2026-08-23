@@ -17,6 +17,7 @@ const webhookChannels=new Set([
   'requests_organization',
   'requests_departments',
   'contracts',
+  'contract_identity_weekly',
   'marketplace',
   'illegal_marketplace',
   'fines_organization',

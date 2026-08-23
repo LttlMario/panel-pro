@@ -27,6 +27,7 @@ const levels: Record<string, number> = {
   requests: 1,
 
   contracts: 1,
+  contract_identity_weekly: 1,
   marketplace: 1,
   illegal_marketplace: 1,
   live_status: 1

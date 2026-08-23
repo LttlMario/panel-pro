@@ -22,6 +22,9 @@ verify_jwt = false
 [functions.send-weekly-shift-report]
 verify_jwt = false
 
+[functions.send-weekly-contract-export]
+verify_jwt = false
+
 [functions.send-organization-expiry-notifications]
 verify_jwt = false
 
@@ -35,6 +38,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.manage-owned-organization]
+verify_jwt = false
+
+[functions.manage-contracts]
 verify_jwt = false
 
 [functions.redeem-organization-voucher]

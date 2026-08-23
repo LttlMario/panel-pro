@@ -23,7 +23,7 @@
     ['pontaj', 'Pontaj și ture', 'Pornirea, oprirea și închiderea automată a turelor.'],
     ['requests_organization', 'Cereri / Învoiri · Organizație', 'Cererile direcționate către Organizație.'],
     ['requests_departments', 'Cereri / Învoiri · Birouri / Angajați', 'Cererile direcționate către Birouri / Angajați.'],
-    ['contracts', 'Contracte', 'Contractele create sau actualizate.'],
+    ['contracts', 'Contracte', 'Contractele create sau actualizate.'], ['contract_identity_weekly', 'Export săptămânal: nume + CNP', 'Trimite numai numele și CNP-ul contractelor noi.'],
     ['marketplace', 'Marketplace legal', 'Anunțurile publicate în marketplace-ul normal.'],
     ['illegal_marketplace', 'Marketplace ilegal', 'Anunțurile publicate în marketplace-ul ilegal.'],
     ['fines_organization', 'Amenzi organizație', 'Amenzile publicate pentru membrii organizației.'],
