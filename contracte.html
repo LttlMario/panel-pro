@@ -128,8 +128,8 @@
                         </div>
 
                         <div class="space-y-1.5">
-                            <label class="text-xs font-medium text-slate-400">CNP Angajat *</label>
-                            <input type="text" id="cnp" placeholder="Cod Numeric Personal" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
+                            <label class="text-xs font-medium text-slate-400">CNP / Identificator Angajat *</label>
+                            <input type="text" id="cnp" placeholder="CNP sau identificator intern" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
                         </div>
 
                         <div class="space-y-1.5">
@@ -549,8 +549,8 @@ Semnătură:`;
             const schedule = document.getElementById('schedule').value.trim();
             const startDate = document.getElementById('startDate').value.trim();
 
-            if (!/^\d{13}$/.test(cnp.replace(/\D/g, ''))) {
-                alert('CNP-ul trebuie să conțină exact 13 cifre.');
+            if (!cnp) {
+                alert('Completează CNP-ul sau identificatorul angajatului.');
                 return;
             }
 

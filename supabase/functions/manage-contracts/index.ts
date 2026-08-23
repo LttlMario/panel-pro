@@ -12,11 +12,11 @@ const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data)
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
 const clean = (value: unknown, max = 500) => String(value || '').trim().slice(0, max);
 const validDiscordId = (value: unknown) => /^\d{15,22}$/.test(clean(value, 30));
-const normalizeCnp = (value: unknown) => clean(value, 32).replace(/\D/g, '');
+const normalizeCnp = (value: unknown) => clean(value, 120);
 
 function validateCnp(value: unknown) {
   const cnp = normalizeCnp(value);
-  if (!/^\d{13}$/.test(cnp)) throw new Error('CNP-ul trebuie să conțină exact 13 cifre.');
+  if (!cnp) throw new Error('CNP-ul sau identificatorul angajatului este obligatoriu.');
   return cnp;
 }
 
