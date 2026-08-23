@@ -180,8 +180,10 @@ if (body.action === 'announcement_access') {
     });
 }
 if (body.action === 'discipline_access') {
+    const departmentsAccess = { read: canDiscipline('departments', 'read'), write: canDiscipline('departments', 'write'), sanction: canDiscipline('departments', 'sanction'), own: true };
     return reply({
-        employee: { read: canDiscipline('departments', 'read'), write: canDiscipline('departments', 'write'), sanction: canDiscipline('departments', 'sanction'), own: true },
+        departments: departmentsAccess,
+        employee: departmentsAccess,
         organization: { read: canDiscipline('organization', 'read'), write: canDiscipline('organization', 'write'), sanction: canDiscipline('organization', 'sanction'), own: false },
         platform_admin: isPlatformAdmin,
         package_code: String(packageSetting?.value?.code || 'standard'),
@@ -300,6 +302,7 @@ if (['discipline_list', 'discipline_targets'].includes(String(body.action || '')
         warnings: visibleWarnings,
         sanctions: visibleSanctions,
         access: {
+            departments: { read: canDiscipline('departments', 'read'), write: canDiscipline('departments', 'write'), sanction: canDiscipline('departments', 'sanction'), own: true },
             employee: { read: canDiscipline('departments', 'read'), write: canDiscipline('departments', 'write'), sanction: canDiscipline('departments', 'sanction'), own: true },
             organization: { read: canDiscipline('organization', 'read'), write: canDiscipline('organization', 'write'), sanction: canDiscipline('organization', 'sanction'), own: false },
             platform_admin: isPlatformAdmin
