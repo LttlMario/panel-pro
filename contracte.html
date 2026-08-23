@@ -218,6 +218,7 @@
                             <div class="flex flex-wrap gap-2">
                                 <button type="button" id="refreshEmployeeExport" class="rounded-lg border border-slate-700 px-3 py-1.5 text-[11px] font-bold text-slate-300 hover:bg-slate-800">Actualizează</button>
                                 <button type="button" id="exportManualContracts" class="rounded-lg bg-cyan-700 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-cyan-600">Export manual</button>
+                                <button type="button" id="sendManualDiscordExport" class="rounded-lg bg-indigo-700 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-indigo-600">Trimite manual pe Discord</button>
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
@@ -439,6 +440,7 @@ Semnătură:`;
             document.getElementById('copySelectedEmployees')?.addEventListener('click', () => copyEmployeeExport(false));
             document.getElementById('copyNewEmployees')?.addEventListener('click', () => copyEmployeeExport(true));
             document.getElementById('exportManualContracts')?.addEventListener('click', () => copyEmployeeExport(false));
+            document.getElementById('sendManualDiscordExport')?.addEventListener('click', () => sendManualDiscordExport());
             loadEmployeeExportPanel();
         });
 
@@ -543,6 +545,19 @@ Semnătură:`;
                 alert(`Au fost copiate ${result.row_count} rânduri: Nume[TAB]CNP. Exportul a fost memorat ca ultimul export.`);
                 await loadEmployeeExportPanel();
             } catch (error) { alert(error.message || 'Exportul nu a putut fi copiat.'); }
+        }
+
+        async function sendManualDiscordExport() {
+            const ids = [...document.querySelectorAll('[data-employee-export-id]:checked')].map((input) => input.dataset.employeeExportId);
+            if (!ids.length) { alert('Bifează cel puțin un angajat pentru trimiterea pe Discord.'); return; }
+            const button = document.getElementById('sendManualDiscordExport');
+            if (button) { button.disabled = true; button.textContent = 'Se trimite…'; }
+            try {
+                const result = await contractApi('manual_discord_export', { employee_ids: ids });
+                alert(`Au fost trimise ${result.row_count} rânduri pe Discord prin webhook-ul contractelor.`);
+                await loadEmployeeExportPanel();
+            } catch (error) { alert(error.message || 'Exportul nu a putut fi trimis pe Discord.'); }
+            finally { if (button) { button.disabled = false; button.textContent = 'Trimite manual pe Discord'; } }
         }
 
         async function generateContract() {

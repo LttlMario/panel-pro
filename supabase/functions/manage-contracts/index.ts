@@ -20,6 +20,29 @@ function validateCnp(value: unknown) {
   return cnp;
 }
 
+function contractIdentityWebhookUrls(settings: any) {
+  const route = settings?.webhook_routes?.contract_identity_weekly || {};
+  return [...new Set(['primary', 'secondary']
+    .map((target) => route?.[target]?.enabled === false ? '' : clean(route?.[target]?.url, 500))
+    .filter((value) => {
+      try {
+        const url = new URL(value);
+        return url.protocol === 'https:' && /^(discord(?:app)?\.com)$/.test(url.hostname) && url.pathname.includes('/api/webhooks/');
+      } catch (_) { return false; }
+    }))];
+}
+
+function contractExportChunks(lines: string[], maxLength = 1800) {
+  const result: string[] = [];
+  let current = '';
+  for (const line of lines) {
+    if (current && current.length + line.length + 1 > maxLength) { result.push(current); current = ''; }
+    current += `${current ? '\n' : ''}${line}`;
+  }
+  if (current) result.push(current);
+  return result;
+}
+
 async function syncEmployees(db: any, organizationId: string) {
   const [{ data: employees, error: employeesError }, { data: members, error: membersError }] = await Promise.all([
     db.from('organization_employees').select('id,discord_id,status').eq('organization_id', organizationId),
@@ -167,6 +190,74 @@ async function manualExport(db: any, session: any, body: any) {
   return { batch_id: batch.id, row_count: employees?.length || 0, text, employees };
 }
 
+async function manualDiscordExport(db: any, session: any, body: any) {
+  const ids = [...new Set((Array.isArray(body.employee_ids) ? body.employee_ids : []).map(String).filter(Boolean))];
+  if (!ids.length) throw new Error('Selectează cel puțin un angajat pentru trimiterea pe Discord.');
+
+  const [{ data: employees, error: employeesError }, { data: settings, error: settingsError }, { data: organization, error: organizationError }] = await Promise.all([
+    db.from('organization_employees').select('id,full_name,cnp,status').eq('organization_id', session.organization_id).in('id', ids).order('full_name'),
+    db.from('organization_settings').select('webhook_routes').eq('organization_id', session.organization_id).maybeSingle(),
+    db.from('organizations').select('name').eq('id', session.organization_id).maybeSingle(),
+  ]);
+  if (employeesError) throw employeesError;
+  if (settingsError) throw settingsError;
+  if (organizationError) throw organizationError;
+  if ((employees || []).length !== ids.length) throw new Error('Unul dintre angajații selectați nu aparține organizației active.');
+
+  const webhooks = contractIdentityWebhookUrls(settings);
+  if (!webhooks.length) throw new Error('Webhook-ul pentru exportul nume + CNP nu este configurat sau nu este activ.');
+
+  const now = new Date();
+  const { data: batch, error: batchError } = await db.from('contract_export_batches').insert({
+    organization_id: session.organization_id,
+    export_type: 'manual',
+    status: 'processing',
+    created_by_discord_id: session.discord_id,
+  }).select('id').single();
+  if (batchError) throw batchError;
+
+  const exportItems = (employees || []).map((employee: any) => ({ batch_id: batch.id, employee_id: employee.id, full_name: employee.full_name, cnp: employee.cnp }));
+  const { error: itemError } = await db.from('contract_export_items').insert(exportItems);
+  if (itemError) {
+    await db.from('contract_export_batches').update({ status: 'failed', error: itemError.message, completed_at: now.toISOString() }).eq('id', batch.id);
+    throw itemError;
+  }
+
+  const chunks = contractExportChunks((employees || []).map((employee: any) => `${employee.full_name}\t${employee.cnp}`));
+  const failures: string[] = [];
+  let successfulPosts = 0;
+  for (const webhook of webhooks) {
+    for (const content of chunks) {
+      try {
+        const response = await fetch(webhook, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            allowed_mentions: { parse: [] },
+            embeds: [{
+              title: '📋 Export manual angajați',
+              description: `Organizație: **${organization?.name || ''}**\n\n\`\`\`text\n${content}\n\`\`\``,
+              color: 3447003,
+              timestamp: now.toISOString(),
+            }],
+          }),
+        });
+        if (!response.ok) failures.push(`Discord HTTP ${response.status}`);
+        else successfulPosts += 1;
+      } catch (error) { failures.push(error instanceof Error ? error.message : 'Eroare Discord.'); }
+    }
+  }
+
+  if (!successfulPosts) {
+    const errorMessage = failures.join(' | ') || 'Discord nu a acceptat exportul.';
+    await db.from('contract_export_batches').update({ status: 'failed', error: errorMessage, completed_at: new Date().toISOString() }).eq('id', batch.id);
+    throw new Error(errorMessage);
+  }
+
+  await db.from('contract_export_batches').update({ status: 'completed', row_count: exportItems.length, completed_at: new Date().toISOString(), error: failures.length ? failures.join(' | ') : null }).eq('id', batch.id);
+  return { batch_id: batch.id, row_count: exportItems.length, sent_webhooks: successfulPosts, partial: failures.length > 0 };
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
@@ -179,6 +270,7 @@ Deno.serve(async (request) => {
     const action = clean(body.action, 40) || 'list';
     if (action === 'create_contract') return reply({ ok: true, ...(await createContract(db, session, body)) });
     if (action === 'manual_export') return reply({ ok: true, ...(await manualExport(db, session, body)) });
+    if (action === 'manual_discord_export') return reply({ ok: true, ...(await manualDiscordExport(db, session, body)) });
     if (action === 'list') return reply({ ok: true, ...(await listContracts(db, session.organization_id)) });
     return reply({ error: 'Acțiune necunoscută.' }, 400);
   } catch (error) {
