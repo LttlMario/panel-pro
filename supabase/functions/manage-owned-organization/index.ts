@@ -37,6 +37,7 @@ const allowedPages = new Map([
   ['locatiiilegale.html', 'Locații ilegale'],
   ['marketplace.html', 'Marketplace'],
   ['marketplace-ilegal.html', 'Marketplace ilegal'],
+  ['minigames.html', 'Minigames'],
   ['rapoarte.html', 'Rapoarte'],
   ['status-live.html', 'Status Live'],
   ['asistent.html', 'Asistent Panel']
@@ -47,7 +48,8 @@ const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization'
 const fullOnlyPageFeatures = new Map([
   ['calculatorilegal.html', 'illegal_calculator'],
   ['locatiiilegale.html', 'illegal_locations'],
-  ['marketplace-ilegal.html', 'illegal_marketplace']
+  ['marketplace-ilegal.html', 'illegal_marketplace'],
+  ['minigames.html', 'illegal_minigames']
 ]);
 const standardPackageFeatures = new Set([
   'core', 'announcements', 'requests', 'contracts', 'reports', 'legal_marketplace',

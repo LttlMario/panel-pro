@@ -457,6 +457,7 @@ if (settingsError) {
     'locatiiilegale.html',
     'marketplace.html',
     'marketplace-ilegal.html',
+    'minigames.html',
     'rapoarte.html',
     'status-live.html',
     'asistent.html'
@@ -561,7 +562,7 @@ if(body.assistant_page_permissions && typeof body.assistant_page_permissions ===
   const allowedAssistantPages = new Set([
     'index.html','anunturi.html','pontaj.html','cereri.html','bucatarie.html',
     'contracte.html','calculatorilegal.html','craftmecanics.html',
-    'locatiiilegale.html','marketplace.html','marketplace-ilegal.html',
+    'locatiiilegale.html','marketplace.html','marketplace-ilegal.html','minigames.html',
     'rapoarte.html','status-live.html','asistent.html'
   ]);
   const assistantRules = Object.fromEntries(
