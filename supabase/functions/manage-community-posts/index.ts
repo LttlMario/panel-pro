@@ -110,6 +110,32 @@ const sessionDiscordRoleIds =
         ? session.discord_role_ids.map(String)
         : [];
 
+// Permisiunile disciplinare sunt configurate pe rolurile Discord, însă rolul
+// organizațional activ este păstrat în members. Îl folosim ca fallback pentru
+// sesiunile create înainte ca proprietarul să salveze ultima configurație.
+const { data: activeMemberForPermissions, error: activeMemberError } = await db
+    .from('organization_members')
+    .select('panel_role')
+    .eq('organization_id', organizationId)
+    .eq('discord_id', session.discord_id)
+    .eq('active', true)
+    .maybeSingle();
+if (activeMemberError) throw activeMemberError;
+const { data: permissionRoleMappings, error: permissionRoleMappingsError } = await db
+    .from('organization_role_mappings')
+    .select('discord_role_id,panel_role')
+    .eq('organization_id', organizationId)
+    .eq('enabled', true);
+if (permissionRoleMappingsError) throw permissionRoleMappingsError;
+const activePanelRole = String(activeMemberForPermissions?.panel_role || '').trim().toLowerCase();
+const roleIdsFromActivePanelRole = activePanelRole
+    ? (permissionRoleMappings || [])
+        .filter((role: any) => String(role.panel_role || '').trim().toLowerCase() === activePanelRole)
+        .map((role: any) => String(role.discord_role_id || '').trim())
+        .filter(Boolean)
+    : [];
+const effectiveDiscordRoleIds = [...new Set([...sessionDiscordRoleIds, ...roleIdsFromActivePanelRole])];
+
 const hasAnnouncementPageAccess =
     isPlatformAdmin ||
     sessionDiscordRoleIds.some(roleId =>
@@ -132,7 +158,7 @@ const disciplineRoles = (scope:string, action:'read'|'write'|'sanction') =>
         ? disciplinePermissions[scope][action].map(String)
         : [];
 const canDiscipline = (scope:string, action:'read'|'write'|'sanction') =>
-    hasDisciplineFeature(scope) && (isPlatformAdmin || sessionDiscordRoleIds.some(roleId => disciplineRoles(scope, action).includes(roleId)));
+    hasDisciplineFeature(scope) && (isPlatformAdmin || effectiveDiscordRoleIds.some(roleId => disciplineRoles(scope, action).includes(roleId)));
 const disciplineVisible = (scope:string, targetDiscordId:string|null) =>
     hasDisciplineFeature(scope) && (scope === 'departments'
         ? String(targetDiscordId || '') === String(session.discord_id) || canDiscipline(scope, 'read') || canDiscipline(scope, 'write') || canDiscipline(scope, 'sanction')
