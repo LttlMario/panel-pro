@@ -110,9 +110,9 @@
                         </div>
                     </div>
                     <div class="pt-3 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <p class="text-[11px] text-slate-400">Alege <strong class="text-slate-200">Tură de zi</strong> sau <strong class="text-slate-200">Tură de noapte</strong>, aplică filtrul, apoi trimite raportul către Discord.</p>
-                        <button onclick="sendSelectedShiftTypeReport()" class="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-md cursor-pointer">
-                            Trimite pontajul selectat pe Discord
+                        <p class="text-[11px] text-slate-400">Raportul manual trimite automat ambele embeduri: <strong class="text-slate-200">Ture de zi</strong> și <strong class="text-slate-200">Ture de noapte</strong>.</p>
+                        <button onclick="sendManualReport()" class="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-md cursor-pointer">
+                            Trimite raportul complet pe Discord
                         </button>
                     </div>
                 </div>
@@ -1164,12 +1164,22 @@ async function forceStopActiveShift(shiftId) {
         }
 
         async function sendManualReport() {
-            if (filteredShiftsData.length === 0) {
+            const shiftFilter = document.getElementById('filter-shift-type');
+            const selectedShiftFilter = shiftFilter?.value || 'all';
+            if (shiftFilter) shiftFilter.value = 'all';
+            applyFilters();
+            const reportData = [...filteredShiftsData];
+            if (shiftFilter) {
+                shiftFilter.value = selectedShiftFilter;
+                applyFilters();
+            }
+
+            if (reportData.length === 0) {
                 alert('Nu există date filtrate pentru a trimite raportul!');
                 return;
             }
 
-            const success = await sendReportToDiscordWebhook(filteredShiftsData, "📊 Raport General Ture (Solicitat Manual)");
+            const success = await sendReportToDiscordWebhook(reportData, "📊 Raport General Ture (Solicitat Manual)");
             if (success) {
                 alert('Raportul a fost trimis cu succes pe Discord prin Webhook!');
             } else {
