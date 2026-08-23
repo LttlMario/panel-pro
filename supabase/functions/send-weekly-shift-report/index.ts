@@ -70,6 +70,58 @@ function formatDuration(seconds: number) {
   return `${hours}:${minutes}:${rest}`;
 }
 
+function shiftDurationMs(shift: any) {
+  const stored = Number(shift.duration_ms);
+  if (Number.isFinite(stored) && stored >= 0) return stored;
+  const parts = String(shift.duration || '').split(':').map(Number);
+  if (parts.length === 3 && parts.every((part) => Number.isFinite(part))) return ((parts[0] * 3600) + (parts[1] * 60) + parts[2]) * 1000;
+  if (parts.length === 2 && parts.every((part) => Number.isFinite(part))) return ((parts[0] * 60) + parts[1]) * 1000;
+  return 0;
+}
+
+function dateLabel(date: string) {
+  const parsed = new Date(`${date}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return date;
+  const formatted = new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', weekday: 'long', day: '2-digit', month: '2-digit' }).format(parsed);
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
+
+function shiftMemberBlocks(shifts: any[]) {
+  const grouped = new Map<string, { name: string; totalMs: number; dates: Map<string, number> }>();
+  for (const shift of shifts) {
+    const key = String(shift.discord_id || shift.colleague_name || 'unknown');
+    const durationMs = shiftDurationMs(shift);
+    const current = grouped.get(key) || { name: shift.colleague_name || 'Membru necunoscut', totalMs: 0, dates: new Map<string, number>() };
+    current.totalMs += durationMs;
+    current.dates.set(String(shift.date || ''), (current.dates.get(String(shift.date || '')) || 0) + durationMs);
+    grouped.set(key, current);
+  }
+  return [...grouped.values()]
+    .sort((left, right) => left.name.localeCompare(right.name, 'ro'))
+    .map((member) => [
+      member.name,
+      ...[...member.dates.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([date, durationMs]) => `  ${dateLabel(date)} — ${formatDuration(Math.floor(durationMs / 1000))}`),
+      `  Total săptămână — ${formatDuration(Math.floor(member.totalMs / 1000))}`,
+    ].join('\n'));
+}
+
+function shiftEmbedDescription(shifts: any[], label: string, maxLength = 3500) {
+  const lines = shiftMemberBlocks(shifts);
+  const totalMs = shifts.reduce((sum, shift) => sum + shiftDurationMs(shift), 0);
+  const header = `Total ore ${label.toLowerCase()}: **${formatDuration(Math.floor(totalMs / 1000))}**\nMembri: **${new Set(shifts.map((shift: any) => String(shift.discord_id || shift.colleague_name || ''))).size}**`;
+  let content = '';
+  let shown = 0;
+  for (const block of lines) {
+    if (content && content.length + block.length + 2 > maxLength) break;
+    if (!content && block.length > maxLength) break;
+    content += `${content ? '\n\n' : ''}${block}`;
+    shown += 1;
+  }
+  const remaining = lines.length - shown;
+  if (remaining > 0) content += `${content ? '\n\n' : ''}…și încă ${remaining} membri.`;
+  return `${header}\n\n\`\`\`text\n${content || 'Nicio tură în această categorie.'}\n\`\`\``;
+}
+
 async function claimRun(db: any, organizationId: string, periodStart: string, periodEnd: string) {
   const now = new Date().toISOString();
   const base = {
@@ -180,28 +232,22 @@ Deno.serve(async (request) => {
         const webhooks = getWeeklyReportWebhookUrls(settings);
         if (!webhooks.length) throw new Error('Webhook-ul pentru rapoarte săptămânale nu este configurat.');
 
-        const totalMs = shifts.reduce((sum: number, shift: any) => sum + (Number(shift.duration_ms) || 0), 0);
-        const uniqueMembers = new Set(shifts.map((shift: any) => String(shift.discord_id || shift.colleague_name || ''))).size;
-        let sample = shifts.slice(0, 10).map((shift: any) =>
-          `• **${shift.colleague_name || 'Membru necunoscut'}** (${String(shift.shift_type || 'tură').toUpperCase()}) - ${shift.date} [**${shift.duration || formatDuration(Math.floor(Number(shift.duration_ms || 0) / 1000))}**]`
-        ).join('\n');
-        if (shifts.length > 10) sample += `\n...și încă ${shifts.length - 10} înregistrări.`;
-
-        const payload = JSON.stringify({
-          allowed_mentions: { parse: [] },
-          embeds: [{
-            title: `🔔 Raport Săptămânal (${period.start} – ${period.end})`,
-            description: organization.name ? `Organizație: **${organization.name}**` : undefined,
-            color: 3447003,
-            fields: [
-              { name: '📈 Total Ture', value: String(shifts.length), inline: true },
-              { name: '⏱️ Total Ore Lucrate', value: `**${(totalMs / 3600000).toFixed(2)}h**`, inline: true },
-              { name: '👥 Membri Contorizați', value: String(uniqueMembers), inline: true },
-              { name: '📋 Ture din Raport', value: sample || 'Nicio tură', inline: false },
-            ],
+        const dayShifts = shifts.filter((shift: any) => String(shift.shift_type || '').toLowerCase() !== 'noapte');
+        const nightShifts = shifts.filter((shift: any) => String(shift.shift_type || '').toLowerCase() === 'noapte');
+        const embeds = [
+          {
+            title: `🔔 Raport Săptămânal · ☀️ Ture de zi · ${period.start} – ${period.end}`,
+            description: `${organization.name ? `Organizație: **${organization.name}**\n\n` : ''}${shiftEmbedDescription(dayShifts, 'turele de zi')}`,
+            color: 16766720,
             timestamp: now.toISOString(),
-          }],
-        });
+          },
+          {
+            title: `🔔 Raport Săptămânal · 🌙 Ture de noapte · ${period.start} – ${period.end}`,
+            description: `${organization.name ? `Organizație: **${organization.name}**\n\n` : ''}${shiftEmbedDescription(nightShifts, 'turele de noapte')}`,
+            color: 65535,
+            timestamp: now.toISOString(),
+          },
+        ];
 
         const failures: string[] = [];
         for (const webhook of webhooks) {
@@ -209,7 +255,7 @@ Deno.serve(async (request) => {
             const response = await fetch(webhook, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: payload,
+              body: JSON.stringify({ allowed_mentions: { parse: [] }, embeds }),
             });
             if (!response.ok) {
               const details = (await response.text()).slice(0, 300);

@@ -95,6 +95,21 @@ function chunks(lines: string[], maxLength = 1800) {
   return result;
 }
 
+function contractEmbedBlock(title: string, employees: any[], maxLength = 1500) {
+  const lines = employees.map((employee: any) => `${employee.full_name}\t${employee.cnp}`);
+  let content = '';
+  let shown = 0;
+  for (const line of lines) {
+    if (content && content.length + line.length + 1 > maxLength) break;
+    if (!content && line.length > maxLength) break;
+    content += `${content ? '\n' : ''}${line}`;
+    shown += 1;
+  }
+  const remaining = lines.length - shown;
+  if (remaining > 0) content += `${content ? '\n' : ''}…și încă ${remaining} angajați.`;
+  return `${title}\n\`\`\`text\n${content || 'Niciun angajat în această categorie.'}\n\`\`\``;
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
@@ -129,7 +144,7 @@ Deno.serve(async (request) => {
         if (!webhooks.length) throw new Error('Webhookul săptămânal pentru nume și CNP nu este configurat.');
         const employeeIds = [...new Set((contracts || []).map((contract: any) => String(contract.employee_id)))];
         const { data: employees, error: employeesError } = employeeIds.length
-          ? await db.from('organization_employees').select('id,full_name,cnp').in('id', employeeIds)
+          ? await db.from('organization_employees').select('id,full_name,cnp,status').in('id', employeeIds)
           : { data: [], error: null };
         if (employeesError) throw employeesError;
         const employeeMap = new Map((employees || []).map((employee: any) => [String(employee.id), employee]));
@@ -140,22 +155,49 @@ Deno.serve(async (request) => {
         }
         if (!unique.size) { await finishRun(db, runId, 'skipped', 'Nu există contracte noi în perioada raportată.'); results.push({ organization_id: organization.id, status: 'skipped_no_contracts' }); continue; }
 
+        const previousBatchesResult = await db.from('contract_export_batches')
+          .select('id')
+          .eq('organization_id', organization.id)
+          .eq('status', 'completed')
+          .in('export_type', ['manual', 'weekly_discord']);
+        if (previousBatchesResult.error) throw previousBatchesResult.error;
+        const previousBatchIds = (previousBatchesResult.data || []).map((batch: any) => String(batch.id));
+        const previousItemsResult = previousBatchIds.length
+          ? await db.from('contract_export_items').select('employee_id').in('batch_id', previousBatchIds).in('employee_id', [...unique.values()].map((employee: any) => employee.id))
+          : { data: [], error: null };
+        if (previousItemsResult.error) throw previousItemsResult.error;
+        const previouslyReported = new Set((previousItemsResult.data || []).map((item: any) => String(item.employee_id)));
+        const uniqueEmployees = [...unique.values()];
+        const activeNew = uniqueEmployees.filter((employee: any) => employee.status !== 'inactive' && !previouslyReported.has(String(employee.id)));
+        const activePrevious = uniqueEmployees.filter((employee: any) => employee.status !== 'inactive' && previouslyReported.has(String(employee.id)));
+        const inactive = uniqueEmployees.filter((employee: any) => employee.status === 'inactive');
+
         const { data: batch, error: batchError } = await db.from('contract_export_batches').insert({ organization_id: organization.id, export_type: 'weekly_discord', status: 'processing', period_start: period.start, period_end: period.end }).select('id').single();
         if (batchError) throw batchError;
         const exportItems = [...unique.values()].map((employee: any) => ({ batch_id: batch.id, employee_id: employee.id, full_name: employee.full_name, cnp: employee.cnp }));
         const { error: itemError } = await db.from('contract_export_items').insert(exportItems);
         if (itemError) throw itemError;
-        const lineChunks = chunks([...unique.values()].map((employee: any) => `${employee.full_name}\t${employee.cnp}`));
+        const activeDescription = [
+          organization.name ? `Organizație: **${organization.name}**` : '',
+          contractEmbedBlock('🆕 Activi · fără raport anterior', activeNew),
+          contractEmbedBlock('🔁 Activi · raportați anterior', activePrevious),
+        ].filter(Boolean).join('\n\n');
+        const inactiveDescription = [
+          organization.name ? `Organizație: **${organization.name}**` : '',
+          contractEmbedBlock('🔴 Plecați / demisionați', inactive, 3300),
+        ].filter(Boolean).join('\n\n');
+        const embeds = [
+          { title: `📋 Export săptămânal · Angajați activi · ${period.start} – ${period.end}`, description: activeDescription, color: 5763719, timestamp: now.toISOString() },
+          { title: `📋 Export săptămânal · Plecați / demisionați · ${period.start} – ${period.end}`, description: inactiveDescription, color: 15548997, timestamp: now.toISOString() },
+        ];
         const failures: string[] = [];
         for (const webhook of webhooks) {
-          for (const content of lineChunks) {
-            try {
-              const response = await fetch(webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: `📋 Export săptămânal angajați · ${period.start} – ${period.end}`, description: `Organizație: **${organization.name || ''}**\n\n\`\`\`text\n${content}\n\`\`\``, color: 3447003, timestamp: now.toISOString() }] }) });
-              if (!response.ok) failures.push(`Discord HTTP ${response.status}`);
-            } catch (error) { failures.push(error instanceof Error ? error.message : 'Eroare Discord.'); }
-          }
+          try {
+            const response = await fetch(webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ allowed_mentions: { parse: [] }, embeds }) });
+            if (!response.ok) failures.push(`Discord HTTP ${response.status}`);
+          } catch (error) { failures.push(error instanceof Error ? error.message : 'Eroare Discord.'); }
         }
-        if (failures.length === webhooks.length * lineChunks.length) throw new Error(failures.join(' | '));
+        if (failures.length === webhooks.length) throw new Error(failures.join(' | '));
         await db.from('contract_export_batches').update({ status: 'completed', row_count: exportItems.length, completed_at: new Date().toISOString(), error: failures.length ? failures.join(' | ') : null }).eq('id', batch.id);
         await finishRun(db, runId, 'sent', failures.length ? failures.join(' | ') : null);
         results.push({ organization_id: organization.id, status: failures.length ? 'sent_partial' : 'sent', row_count: exportItems.length });
