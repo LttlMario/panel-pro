@@ -100,7 +100,7 @@
                 <div class="lg:col-span-5 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-6">
                     <div class="flex items-center justify-between pb-4 border-b border-slate-800">
                         <span id="contractFormTitle" class="text-sm font-bold text-slate-100 uppercase tracking-wide">Date Contract</span>
-                        <span id="contractNumberDisplay" class="text-xs font-mono font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-lg">CN-2026-00001</span>
+                        <span id="contractNumberDisplay" class="text-xs font-mono font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-lg">CN-23.08.2026-00001</span>
                     </div>
 
                     <form id="contractForm" onsubmit="return false;" class="space-y-4">
@@ -451,7 +451,6 @@ Semnătură:`;
 
         function loadOrInitContractNumber() {
             let counter = localStorage.getItem(contractCounterKey());
-            const currentYear = new Date().getFullYear();
 
             if (!counter) {
                 counter = 1;
@@ -459,17 +458,19 @@ Semnătură:`;
                 counter = parseInt(counter, 10);
             }
 
-            currentContractNumber = formatContractNumber(currentYear, counter);
+            currentContractNumber = formatContractNumber(new Date(), counter);
             document.getElementById('contractNumberDisplay').innerText = currentContractNumber;
         }
 
-        function formatContractNumber(year, number) {
-            return `CN-${year}-${String(number).padStart(5, '0')}`;
+        function formatContractNumber(date, number) {
+            const dd = String(date.getDate()).padStart(2, '0');
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const yyyy = date.getFullYear();
+            return `CN-${dd}.${mm}.${yyyy}-${String(number).padStart(5, '0')}`;
         }
 
         function incrementContractNumber() {
             let counter = localStorage.getItem(contractCounterKey());
-            const currentYear = new Date().getFullYear();
 
             if (!counter) {
                 counter = 1;
@@ -478,7 +479,7 @@ Semnătură:`;
             }
 
             localStorage.setItem(contractCounterKey(), counter);
-            currentContractNumber = formatContractNumber(currentYear, counter);
+            currentContractNumber = formatContractNumber(new Date(), counter);
             document.getElementById('contractNumberDisplay').innerText = currentContractNumber;
         }
 
