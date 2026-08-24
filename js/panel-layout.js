@@ -1,4 +1,8 @@
 // Navigare comună pentru panel: meniu mobil și sidebar pliabil pe desktop.
+const panelNativeAndroid = /Android/i.test(navigator.userAgent || '') && (
+    window.Capacitor?.isNativePlatform?.() === true || /;\s*wv\)/i.test(navigator.userAgent || '')
+);
+if (panelNativeAndroid) document.documentElement.classList.add('panel-android-native');
 if (document.head && !document.head.querySelector('meta[http-equiv="Content-Security-Policy"]')) {
     const panelCsp = document.createElement('meta');
     panelCsp.httpEquiv = 'Content-Security-Policy';
@@ -302,6 +306,24 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 }
                 body.panel-global-shell main { max-width:none !important; }
             }
+            html.panel-android-native body.panel-global-shell { min-width:0 !important; overflow-x:hidden !important; }
+            html.panel-android-native body.panel-shared-sidebar-page { padding-left:0 !important; }
+            html.panel-android-native body.panel-shared-sidebar-page > #panel-shared-sidebar,
+            html.panel-android-native body.panel-shared-sidebar-page > #panel-shared-sidebar.is-collapsed { display:none !important; }
+            html.panel-android-native #panel-mobile-menu { display:block !important; }
+            html.panel-android-native #panel-mobile-backdrop { display:none !important; }
+            html.panel-android-native .panel-mobile-toggle { display:flex !important; }
+            html.panel-android-native body.panel-global-shell > div:has(main) {
+                width:100% !important;
+                max-width:100% !important;
+                margin-left:0 !important;
+                padding-left:0 !important;
+            }
+            html.panel-android-native body.panel-global-shell > div:has(main) > main {
+                width:100% !important;
+                max-width:none !important;
+                margin-left:0 !important;
+            }
             /* Sidebar-ul este același și pe paginile calculatorului, care au stiluri proprii. */
             #panel-shared-sidebar .nav-link,
             #panel-shared-sidebar .nav-link:link,
@@ -391,7 +413,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const originalSidebarWidth = sidebar.style.width || '';
 
         const applyCollapsedState = (collapsed) => {
-            const isMobileViewport = window.innerWidth <= 767;
+            const isMobileViewport = window.innerWidth <= 767 || document.documentElement.classList.contains('panel-android-native');
             const effectiveCollapsed = !isMobileViewport && collapsed;
             const sidebarWidth = effectiveCollapsed ? '5.25rem' : (originalSidebarWidth || '245px');
             sidebar.style.width = isMobileViewport ? '' : sidebarWidth;
