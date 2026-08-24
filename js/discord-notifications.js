@@ -4,7 +4,7 @@
 
     const PENDING_KEY = 'panel_pending_discord_notification';
 
-    window.sendPanelDiscord = async (channel, payload) => {
+    window.sendPanelDiscord = async (channel, payload, options = {}) => {
         const accessToken = window.getPanelDiscordAccessToken?.() || '';
 
         if (!accessToken) {
@@ -47,6 +47,7 @@
             body = JSON.stringify({
                 channel,
                 payload,
+                message_key: options?.messageKey ? String(options.messageKey) : '',
                 access_token: accessToken,
                 organization_id: organizationId
             });
@@ -76,7 +77,8 @@
                     PENDING_KEY,
                     JSON.stringify({
                         channel,
-                        payload
+                        payload,
+                        options: options || {}
                     })
                 );
 
@@ -121,7 +123,8 @@
 
             await window.sendPanelDiscord(
                 pending.channel,
-                pending.payload
+                pending.payload,
+                pending.options || {}
             );
         } catch (error) {
             console.error(

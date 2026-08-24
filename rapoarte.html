@@ -290,6 +290,7 @@
         let secondsElapsed = 0;
         let isPaused = false;
         let shiftStartTime = null;
+        let activeShiftMessageKey = '';
         let isActionProcessing = false;
         let currentUser = {
             discord_id: '',
@@ -457,6 +458,7 @@
             document.getElementById('btn-start').disabled = true;
 
             shiftStartTime = new Date();
+            activeShiftMessageKey = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${currentUser.discord_id || 'shift'}`;
             secondsElapsed = 0;
             isPaused = false;
 
@@ -471,7 +473,7 @@
                 }
             }, 1000);
 
-            await sendGeneralDiscordWebhook("▶️ Pontaj Start", `Membrul **${currentUser.display_name}** a pornit tura de **${selectedShiftType.toUpperCase()}**.`, 3066993);
+            await sendGeneralDiscordWebhook("▶️ Pontaj Start", `Membrul **${currentUser.display_name}** a pornit tura de **${selectedShiftType.toUpperCase()}**.`, 3066993, activeShiftMessageKey);
 
             setTimeout(() => { isActionProcessing = false; }, 2000);
         }
@@ -485,11 +487,11 @@
             if (isPaused) {
                 pauseText.textContent = 'Reluare';
                 document.getElementById('current-shift-status').textContent = 'Tura este în PAUZĂ';
-                await sendGeneralDiscordWebhook("⏸️ Pontaj Pauză", `Membrul **${currentUser.display_name}** a pus tura de **${selectedShiftType.toUpperCase()}** pe **pauză** la timpul: **${formatTime(secondsElapsed)}**`, 16776960);
+                await sendGeneralDiscordWebhook("⏸️ Pontaj Pauză", `Membrul **${currentUser.display_name}** a pus tura de **${selectedShiftType.toUpperCase()}** pe **pauză** la timpul: **${formatTime(secondsElapsed)}**`, 16776960, activeShiftMessageKey);
             } else {
                 pauseText.textContent = 'Pauză';
                 document.getElementById('current-shift-status').textContent = `Tura de ${selectedShiftType.toUpperCase()} este activă...`;
-                await sendGeneralDiscordWebhook("▶️ Pontaj Reluat", `Membrul **${currentUser.display_name}** a reluat tura de **${selectedShiftType.toUpperCase()}**.`, 3066993);
+                await sendGeneralDiscordWebhook("▶️ Pontaj Reluat", `Membrul **${currentUser.display_name}** a reluat tura de **${selectedShiftType.toUpperCase()}**.`, 3066993, activeShiftMessageKey);
             }
 
             setTimeout(() => { isActionProcessing = false; }, 1000);
@@ -527,7 +529,8 @@
 
                 await sendStopShiftDiscordWebhook({
                     ...shiftData,
-                    colleague_name: currentUser.display_name
+                    colleague_name: currentUser.display_name,
+                    message_key: activeShiftMessageKey
                 });
 
                 alert('Tura a fost salvată și înregistrată cu succes!');
@@ -542,10 +545,10 @@
             setTimeout(() => { isActionProcessing = false; }, 2000);
         }
 
-        async function sendGeneralDiscordWebhook(title, description, color) {
+        async function sendGeneralDiscordWebhook(title, description, color, messageKey = '') {
             const payload = { embeds: [{ title: title, description: description, color: color, timestamp: new Date().toISOString() }] };
             try {
-                await sendPanelDiscord('pontaj', payload);
+                await sendPanelDiscord('pontaj', payload, { messageKey });
             } catch (err) {}
         }
 
@@ -564,7 +567,7 @@
                 }]
             };
             try {
-                await sendPanelDiscord('pontaj', payload);
+                await sendPanelDiscord('pontaj', payload, { messageKey: String(data.message_key || '') });
             } catch (err) {}
         }
 
@@ -572,6 +575,7 @@
             clearInterval(timerInterval);
             secondsElapsed = 0;
             isPaused = false;
+            activeShiftMessageKey = '';
             document.getElementById('timer-display').textContent = '00:00:00';
             document.getElementById('current-shift-status').textContent = 'Tură neselectată / Oprită';
             document.getElementById('btn-start').disabled = false;

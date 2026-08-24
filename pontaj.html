@@ -539,7 +539,7 @@
                 if (error) throw error;
                 activeShiftRecord = data;
                 syncActiveShiftUI(); startTimer();
-                await sendGeneralDiscordWebhook('▶️ Pontaj Start', `Angajatul **${currentUser.display_name}** a pornit tura de **${selectedShiftType.toUpperCase()}**.`, 3066993);
+                await sendGeneralDiscordWebhook('▶️ Pontaj Start', `Angajatul **${currentUser.display_name}** a pornit tura de **${selectedShiftType.toUpperCase()}**.`, 3066993, String(data.id));
             } catch (error) {
                 console.error('Eroare pornire pontaj:', error);
                 alert(`Pontajul nu a putut fi pornit: ${error?.message || 'eroare necunoscută'}`);
@@ -574,7 +574,7 @@
                 const { data, error } = await supabaseClient.from('shifts').update(update).eq('id', activeShiftRecord.id).eq('organization_id', currentUser.organization_id).select('*').single();
                 if (error) throw error;
                 activeShiftRecord = data; syncActiveShiftUI();
-                await sendGeneralDiscordWebhook(activeShiftRecord.status === 'paused' ? '⏸️ Pontaj Pauză' : '▶️ Pontaj Reluat', `Angajatul **${currentUser.display_name}** a ${activeShiftRecord.status === 'paused' ? 'pus tura pe pauză' : 'reluat tura'}.`, activeShiftRecord.status === 'paused' ? 16776960 : 3066993);
+                await sendGeneralDiscordWebhook(activeShiftRecord.status === 'paused' ? '⏸️ Pontaj Pauză' : '▶️ Pontaj Reluat', `Angajatul **${currentUser.display_name}** a ${activeShiftRecord.status === 'paused' ? 'pus tura pe pauză' : 'reluat tura'}.`, activeShiftRecord.status === 'paused' ? 16776960 : 3066993, String(activeShiftRecord.id));
             } catch (error) { console.error('Eroare pauză pontaj:', error); alert('Starea pauzei nu a putut fi salvată.'); }
             finally { isActionProcessing = false; }
         }
@@ -636,9 +636,9 @@
             document.getElementById('btn-start').disabled = false; document.getElementById('btn-pause').disabled = true; document.getElementById('btn-stop').disabled = true; document.getElementById('pause-btn-text').textContent = 'Pauză'; selectedShiftType = null; resetUIButtons();
         }
 
-        async function sendGeneralDiscordWebhook(title, description, color) {
+        async function sendGeneralDiscordWebhook(title, description, color, messageKey = '') {
             const payload = { embeds: [{ title, description, color, timestamp: new Date().toISOString() }] };
-            try { await sendPanelDiscord('pontaj', payload); return true; }
+            try { await sendPanelDiscord('pontaj', payload, { messageKey }); return true; }
             catch (error) { console.error('Eroare webhook pontaj:', error); return false; }
         }
 
@@ -648,7 +648,7 @@
                 { name: '⏰ Interval', value: `${data.start_time} - ${data.end_time}`, inline: false }, { name: '⏳ Timp Total Lucrat', value: `**${data.duration}**`, inline: true },
                 { name: '📝 Motiv', value: data.reason || data.stop_reason || 'Încheiere manuală', inline: false }
             ], timestamp: new Date().toISOString() }] };
-            try { await sendPanelDiscord('pontaj', payload); return true; }
+            try { await sendPanelDiscord('pontaj', payload, { messageKey: String(data.id || '') }); return true; }
             catch (error) { console.error('Eroare webhook oprire:', error); return false; }
         }
 

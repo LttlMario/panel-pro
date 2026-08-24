@@ -82,6 +82,7 @@ if (request.method === 'OPTIONS') {
     let payload: any = null;
 
     let requestedOrganizationId = '';
+    let requestedMessageKey = '';
 
     let forwardBody: BodyInit;
     let forwardHeaders: Record<string,string> = {};
@@ -138,6 +139,7 @@ if (request.method === 'OPTIONS') {
         String(
           body.organization_id || ''
         );
+      requestedMessageKey = String(body.message_key || '').trim().slice(0, 120);
 
 
       payload =
@@ -662,6 +664,8 @@ if (finalChannel === 'illegal_marketplace') {
 
     const deliveredMessages: any[] = [];
     const editExistingPontajMessage = finalChannel === 'pontaj';
+    const pontajMessageKey = requestedMessageKey || 'organization';
+    let storedPontajMessageRefs: Record<string, any> = {};
     let storedMessageRefs: Record<string, string> = {};
     if (editExistingPontajMessage) {
       const { data: messageRefsSetting, error: messageRefsError } = await db
@@ -672,7 +676,14 @@ if (finalChannel === 'illegal_marketplace') {
         .maybeSingle();
       if (messageRefsError) throw messageRefsError;
       const savedPontajRefs = messageRefsSetting?.value?.pontaj;
-      if (savedPontajRefs && typeof savedPontajRefs === 'object') storedMessageRefs = savedPontajRefs;
+      if (savedPontajRefs && typeof savedPontajRefs === 'object') {
+        storedPontajMessageRefs = savedPontajRefs;
+        const savedForMessage = savedPontajRefs[pontajMessageKey];
+        const isMessageMap = savedForMessage && typeof savedForMessage === 'object' && !Array.isArray(savedForMessage);
+        const isLegacyMap = pontajMessageKey === 'organization' && Object.values(savedPontajRefs).every((value) => typeof value === 'string');
+        if (isMessageMap) storedMessageRefs = savedForMessage;
+        else if (isLegacyMap) storedMessageRefs = savedPontajRefs;
+      }
     }
     const updatedMessageRefs = { ...storedMessageRefs };
     for (const webhook of webhooks) {
@@ -763,7 +774,7 @@ if (finalChannel === 'illegal_marketplace') {
       const { error: saveMessageRefsError } = await db.from('app_settings').upsert({
         organization_id: sessionOrganizationId,
         key: MESSAGE_REFS_KEY,
-        value: { pontaj: updatedMessageRefs },
+        value: { pontaj: { ...storedPontajMessageRefs, [pontajMessageKey]: updatedMessageRefs } },
         updated_at: new Date().toISOString()
       }, { onConflict: 'organization_id,key' });
       if (saveMessageRefsError) throw saveMessageRefsError;
