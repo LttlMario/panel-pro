@@ -36,6 +36,7 @@ Deno.serve(async request=>{
       } catch (_) { return null; }
     };
     const visibleNotifications = async (notes: any[]) => {
+      try {
       const { data: permissionRows, error: permissionError } = await db.from('app_settings')
         .select('key,value')
         .eq('organization_id', organizationId)
@@ -65,6 +66,10 @@ Deno.serve(async request=>{
         const accessKey = String(note.access_key || '');
         return !accessKey || hasScopedAccess(accessKey, page);
       });
+      } catch (error) {
+        console.error('organization hub notification filter failed', error);
+        return notes.filter((note: any) => String(note.recipient_discord_id || '') === String(discordUser.id));
+      }
     };
     const countRows = async (table: string, configure: (query: any) => any) => {
       let query = db.from(table).select('id', { count: 'exact', head: true });
@@ -72,6 +77,17 @@ Deno.serve(async request=>{
       const result = await query;
       if (result.error) throw result.error;
       return Number(result.count || 0);
+    };
+    const safeCountRows = async (table: string, configure: (query: any) => any) => {
+      try { return await countRows(table, configure); }
+      catch (error) { console.error(`organization hub count failed: ${table}`, error); return 0; }
+    };
+    const safeOptionalQuery = async (query: any, fallback: any, label: string) => {
+      try {
+        const result = await query;
+        if (result.error) { console.error(`organization hub query failed: ${label}`, result.error); return { data: fallback, error: null }; }
+        return result;
+      } catch (error) { console.error(`organization hub query failed: ${label}`, error); return { data: fallback, error: null }; }
     };
     const buildOrganizationBackup = async () => {
       const [organization, settings, roles, guilds, members] = await Promise.all([
@@ -89,20 +105,20 @@ Deno.serve(async request=>{
       const nowIso = new Date().toISOString();
       const [organizationResult, brandingResult, membersResult, auditResult, notificationsResult, readsResult, counts] = await Promise.all([
         db.from('organizations').select('id,name,slug,description,logo_url,banner_url,active,lifecycle_status,updated_at').eq('id', organizationId).single(),
-        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_branding').maybeSingle(),
-        db.from('organization_members').select('discord_id,panel_role,permission_level,active,last_verified_at,created_at').eq('organization_id', organizationId).eq('active', true).order('created_at', { ascending: true }).limit(500),
-        db.from('admin_audit_log').select('id,actor_name,actor_discord_id,action,target_type,target_id,details,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(100),
-        db.from('panel_notifications').select('id,title,message,level,notification_type,required_page,access_key,recipient_discord_id,link,created_at,expires_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(100),
-        db.from('panel_notification_reads').select('notification_id').eq('organization_id', organizationId).eq('discord_id', discordUser.id),
+        safeOptionalQuery(db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_branding').maybeSingle(), null, 'branding'),
+        safeOptionalQuery(db.from('organization_members').select('discord_id,panel_role,permission_level,active,last_verified_at,created_at').eq('organization_id', organizationId).eq('active', true).order('created_at', { ascending: true }).limit(500), [], 'members'),
+        safeOptionalQuery(db.from('admin_audit_log').select('id,actor_name,actor_discord_id,action,target_type,target_id,details,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(100), [], 'audit'),
+        safeOptionalQuery(db.from('panel_notifications').select('id,title,message,level,notification_type,required_page,access_key,recipient_discord_id,link,created_at,expires_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(100), [], 'notifications'),
+        safeOptionalQuery(db.from('panel_notification_reads').select('notification_id').eq('organization_id', organizationId).eq('discord_id', discordUser.id), [], 'notification reads'),
         Promise.all([
-          countRows('organization_members', (q) => q.eq('organization_id', organizationId).eq('active', true)),
-          countRows('shifts', (q) => q.eq('organization_id', organizationId)),
-          countRows('shifts', (q) => q.eq('organization_id', organizationId).in('status', ['active', 'paused'])),
-          countRows('absences', (q) => q.eq('organization_id', organizationId).gte('end_at', nowIso)),
-          countRows('community_posts', (q) => q.eq('organization_id', organizationId)),
-          countRows('marketplace', (q) => q),
-          countRows('marketplace_ilegal', (q) => q.is('organization_id', null)),
-          countRows('organization_stash_items', (q) => q.eq('organization_id', organizationId).neq('status', 'archived')),
+          safeCountRows('organization_members', (q) => q.eq('organization_id', organizationId).eq('active', true)),
+          safeCountRows('shifts', (q) => q.eq('organization_id', organizationId)),
+          safeCountRows('shifts', (q) => q.eq('organization_id', organizationId).in('status', ['active', 'paused'])),
+          safeCountRows('absences', (q) => q.eq('organization_id', organizationId).gte('end_at', nowIso)),
+          safeCountRows('community_posts', (q) => q.eq('organization_id', organizationId)),
+          safeCountRows('marketplace', (q) => q),
+          safeCountRows('marketplace_ilegal', (q) => q.is('organization_id', null)),
+          safeCountRows('organization_stash_items', (q) => q.eq('organization_id', organizationId).neq('status', 'archived')),
         ])
       ]);
       for (const result of [organizationResult, brandingResult, membersResult, auditResult, notificationsResult, readsResult]) {
