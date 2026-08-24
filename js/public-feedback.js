@@ -10,7 +10,7 @@
   let editing = null;
   let loading = false;
 
-  const titleForKind = kind === 'rating' ? 'Rate the Panel' : 'Sugestii';
+  const titleForKind = kind === 'rating' ? 'Recenzii Panel' : 'Sugestii';
   const emptyText = kind === 'rating' ? 'Nu există încă evaluări. Fii primul care evaluează panelul.' : 'Nu există încă sugestii. Fii primul care propune o îmbunătățire.';
 
   async function invoke(body) {

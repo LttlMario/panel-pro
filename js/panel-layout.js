@@ -1226,8 +1226,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             ['management', 'Operațiuni', [
                 ['index.html', '📊', 'Dashboard'],
                 ['anunturi.html', '📣', 'Anunțuri & Sondaje'],
-                ['suggestii.html', '💡', 'Sugestii'],
-                ['rate-panel.html', '⭐', 'Rate the Panel'],
                 ['pontaj.html', '⏱️', 'Pontaj'],
                 ['cereri.html', '📋', 'Cereri / Absențe'],
                 ['contracte.html', '📜', 'Contracte'],
@@ -1257,6 +1255,10 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 ['admin.html', '👑', 'Panou Admin'],
                 ['administrare-organizatie.html', '🏢', 'Administrare organizație'],
                 ['prelungire-voucher.html', '🎟️', 'Prelungire prin voucher']
+            ]],
+            ['feedback', 'Feedback', [
+                ['suggestii.html', '💡', 'Sugestii'],
+                ['rate-panel.html', '⭐', 'Recenzii Panel']
             ]]
         ];
         const renderLink = ([href, icon, label]) => {
