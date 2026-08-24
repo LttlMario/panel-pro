@@ -207,7 +207,12 @@ function canAccessPage(page) {
 // ============================================================
 
 function logout() {
+    // Drafturile locale ale formularelor trebuie să supraviețuiască logoutului.
+    // Păstrăm doar cheile create explicit pentru această funcție și eliminăm sesiunea.
+    const localDrafts = Object.entries(localStorage)
+        .filter(([key]) => key.startsWith('panel_local_'));
     localStorage.clear();
+    localDrafts.forEach(([key, value]) => localStorage.setItem(key, value));
     sessionStorage.clear();
 
     window.location.replace('login.html');
