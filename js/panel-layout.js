@@ -396,6 +396,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const sidebar = navigation?.closest('aside');
         if (!navigation || !sidebar) return;
         ensureBrandLogo(sidebar);
+        runWhenIdle(loadOrganizationBranding, 450);
         runWhenIdle(loadPanelProfileStats, 1000);
         refreshActualRoleLabel();
         sidebar.querySelector(':scope > div:last-child')?.remove();
@@ -1015,6 +1016,40 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             profileMenu.dataset.dismissBound='true';
             document.addEventListener('click',(event)=>{if(!profile.contains(event.target)) profileMenu.open=false;});
             document.addEventListener('keydown',(event)=>{if(event.key==='Escape') profileMenu.open=false;});
+        }
+    }
+
+    async function loadOrganizationBranding() {
+        const user = typeof getUser === 'function' ? getUser() : null;
+        const config = window.PANEL_SUPABASE_CONFIG;
+        if (!user || !config?.url || !config?.publishableKey || typeof window.ensurePanelSession !== 'function') return;
+        try {
+            const panelSession = await window.ensurePanelSession();
+            const response = await fetch(`${config.url}/functions/v1/manage-admin-center`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': panelSession },
+                body: JSON.stringify({ action: 'org_hub' })
+            });
+            if (!response.ok) return;
+            const result = await response.json();
+            const organization = result.organization || {};
+            const accent = /^#[0-9a-f]{6}$/i.test(String(result.branding?.accent || '')) ? String(result.branding.accent) : '';
+            if (accent) {
+                document.documentElement.style.setProperty('--accent', accent);
+                document.documentElement.style.setProperty('--panel-org-accent', accent);
+            }
+            const active = window.getActiveOrganization?.();
+            if (active && organization.id === active.id) {
+                const merged = { ...active, ...organization };
+                localStorage.setItem('panel_active_organization', JSON.stringify(merged));
+                const organizations = JSON.parse(localStorage.getItem('panel_organizations') || '[]');
+                localStorage.setItem('panel_organizations', JSON.stringify(organizations.map((item) => item.id === merged.id ? { ...item, ...merged } : item)));
+            }
+            document.querySelectorAll('.panel-org-name').forEach((element) => { element.textContent = organization.name || element.textContent; });
+            if (organization.logo_url) document.querySelectorAll('.panel-brand-logo').forEach((element) => { element.src = window.panelSafeAssetUrl(organization.logo_url); });
+            if (organization.banner_url) document.querySelectorAll('.panel-global-header').forEach((element) => { element.style.backgroundImage = `linear-gradient(90deg, rgba(2,6,23,.96), rgba(2,6,23,.68)), url("${window.panelSafeAssetUrl(organization.banner_url)}")`; element.style.backgroundSize = 'cover'; });
+        } catch (_) {
+            // Personalizarea este opțională; pagina funcționează și dacă serviciul este indisponibil.
         }
     }
 
