@@ -1483,6 +1483,8 @@ $('status').textContent=`Organizația a fost salvată cu ${roles.length} roluri 
 // Păstrează formularul și poziția curentă după salvare; lista se poate reîncărca manual.
 (() => {
   const form = $('form');
+  const originalNewButtonHandler = $('new').onclick;
+  $('new').onclick = () => { originalNewButtonHandler?.(); if (restoreOrganizationDraft('new')) $('status').textContent = 'Draft local încărcat. Poți continua configurarea și salva organizația când ești gata.'; };
   let draftSaveTimer = 0;
   const queueLocalDraftSave = () => { window.clearTimeout(draftSaveTimer); draftSaveTimer = window.setTimeout(saveOrganizationDraft, 0); };
   form.addEventListener('input', queueLocalDraftSave);
