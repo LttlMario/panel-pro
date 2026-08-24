@@ -29,6 +29,10 @@ const GlobalPublicPages = new Set([
     'rate-panel.html'
 ]);
 
+const OrganizationHubPages = new Set([
+    'organizatie-centru.html'
+]);
+
 
 // ============================================================
 // UTILIZATOR
@@ -190,6 +194,10 @@ function canAccessPage(page) {
     }
 
     if (GlobalPublicPages.has(page)) {
+        return isLogged();
+    }
+
+    if (OrganizationHubPages.has(page)) {
         return isLogged();
     }
 

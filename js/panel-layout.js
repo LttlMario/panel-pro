@@ -1254,7 +1254,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 ['developer.html', '🛠️', 'Developer'],
                 ['admin.html', '👑', 'Panou Admin'],
                 ['administrare-organizatie.html', '🏢', 'Administrare organizație'],
-                ['prelungire-voucher.html', '🎟️', 'Prelungire prin voucher']
+                ['prelungire-voucher.html', '🎟️', 'Prelungire prin voucher'],
+                ['organizatie-centru.html', '🧭', 'Centru organizație']
             ]],
             ['feedback', 'Feedback', [
                 ['suggestii.html', '💡', 'Sugestii'],
