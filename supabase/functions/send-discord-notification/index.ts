@@ -34,6 +34,20 @@ const levels: Record<string, number> = {
 };
 
 const channels = new Set(Object.keys(levels));
+const MESSAGE_REFS_KEY = 'discord_message_refs';
+
+const executeWebhookUrl = (webhook: string) => {
+  const url = new URL(webhook);
+  url.searchParams.set('wait', 'true');
+  return url.toString();
+};
+
+const editWebhookMessageUrl = (webhook: string, messageId: string) => {
+  const url = new URL(webhook);
+  url.pathname = `${url.pathname.replace(/\/$/, '')}/messages/${encodeURIComponent(messageId)}`;
+  url.searchParams.delete('wait');
+  return url.toString();
+};
 
 
 Deno.serve(async (request) => {
@@ -647,6 +661,20 @@ if (finalChannel === 'illegal_marketplace') {
 
 
     const deliveredMessages: any[] = [];
+    const editExistingPontajMessage = finalChannel === 'pontaj';
+    let storedMessageRefs: Record<string, string> = {};
+    if (editExistingPontajMessage) {
+      const { data: messageRefsSetting, error: messageRefsError } = await db
+        .from('app_settings')
+        .select('value')
+        .eq('organization_id', sessionOrganizationId)
+        .eq('key', MESSAGE_REFS_KEY)
+        .maybeSingle();
+      if (messageRefsError) throw messageRefsError;
+      const savedPontajRefs = messageRefsSetting?.value?.pontaj;
+      if (savedPontajRefs && typeof savedPontajRefs === 'object') storedMessageRefs = savedPontajRefs;
+    }
+    const updatedMessageRefs = { ...storedMessageRefs };
     for (const webhook of webhooks) {
 
 
@@ -681,16 +709,26 @@ if (finalChannel === 'illegal_marketplace') {
 
 
 
-      const discordUrl = `${webhook}${webhook.includes('?') ? '&' : '?'}wait=true`;
-      const sent =
-        await fetch(
-          discordUrl,
-          {
-            method:'POST',
-            headers:forwardHeaders,
-            body:forwardBody
-          }
-        );
+      let messageId = editExistingPontajMessage ? String(storedMessageRefs[webhook] || '') : '';
+      let sent: Response | null = null;
+      if (messageId) {
+        sent = await fetch(editWebhookMessageUrl(webhook, messageId), {
+          method: 'PATCH',
+          headers: forwardHeaders,
+          body: forwardBody
+        });
+        if (!sent.ok && [400, 404].includes(sent.status)) {
+          messageId = '';
+          sent = null;
+        }
+      }
+      if (!sent) {
+        sent = await fetch(executeWebhookUrl(webhook), {
+          method: 'POST',
+          headers: forwardHeaders,
+          body: forwardBody
+        });
+      }
 
 
 
@@ -701,11 +739,34 @@ if (finalChannel === 'illegal_marketplace') {
         );
 
       }
-      try {
-        const message = await sent.json();
-        if (message?.id) deliveredMessages.push({ webhook, id: String(message.id) });
-      } catch (_) {}
+      if (editExistingPontajMessage) {
+        if (!messageId) {
+          try {
+            const message = await sent.json();
+            messageId = String(message?.id || '');
+          } catch (_) {}
+        }
+        if (messageId) {
+          updatedMessageRefs[webhook] = messageId;
+          deliveredMessages.push({ webhook, id: messageId, action: storedMessageRefs[webhook] ? 'edited' : 'created' });
+        }
+      } else {
+        try {
+          const message = await sent.json();
+          if (message?.id) deliveredMessages.push({ webhook, id: String(message.id), action: 'created' });
+        } catch (_) {}
+      }
 
+    }
+
+    if (editExistingPontajMessage) {
+      const { error: saveMessageRefsError } = await db.from('app_settings').upsert({
+        organization_id: sessionOrganizationId,
+        key: MESSAGE_REFS_KEY,
+        value: { pontaj: updatedMessageRefs },
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'organization_id,key' });
+      if (saveMessageRefsError) throw saveMessageRefsError;
     }
 
 

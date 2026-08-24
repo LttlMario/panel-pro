@@ -332,10 +332,33 @@
                 'status_live_webhook',
                 webhook
             );
+            localStorage.removeItem(`status_live_message:${activeOrganizationId || 'default'}`);
 
             alert('Webhook salvat.');
 
         }
+        const statusLiveMessageKey = () => `status_live_message:${activeOrganizationId || 'default'}`;
+        const discordExecuteUrl = (webhook) => { const url = new URL(webhook); url.searchParams.set('wait', 'true'); return url.toString(); };
+        const discordEditMessageUrl = (webhook, messageId) => { const url = new URL(webhook); url.pathname = `${url.pathname.replace(/\/$/, '')}/messages/${encodeURIComponent(messageId)}`; url.searchParams.delete('wait'); return url.toString(); };
+        let statusLiveRequestChain = Promise.resolve();
+        const updateStatusLiveDiscord = (webhook, payload) => {
+            const request = statusLiveRequestChain.then(async () => {
+                let saved = null;
+                try { saved = JSON.parse(localStorage.getItem(statusLiveMessageKey()) || 'null'); } catch (_) {}
+                let messageId = saved?.webhook === webhook ? String(saved.message_id || '') : '';
+                let response = null;
+                if (messageId) {
+                    response = await fetch(discordEditMessageUrl(webhook, messageId), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok && [400, 404].includes(response.status)) { messageId = ''; response = null; }
+                }
+                if (!response) response = await fetch(discordExecuteUrl(webhook), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`Discord a raspuns cu ${response.status}`);
+                if (!messageId) { const message = await response.json().catch(() => null); messageId = String(message?.id || ''); }
+                if (messageId) localStorage.setItem(statusLiveMessageKey(), JSON.stringify({ webhook, message_id: messageId }));
+            });
+            statusLiveRequestChain = request.catch(() => {});
+            return request;
+        };
         async function manualSyncStatusLive() {
             await fetchAndRenderActiveShifts(true);
             alert('Statusul Live a fost trimis/actualizat pe Discord cu succes!');
@@ -399,25 +422,7 @@
 
         }
 
-        const response = await fetch(webhook, {
-
-            method: 'POST',
-
-            headers: {
-                'Content-Type': 'application/json'
-            },
-
-            body: JSON.stringify(payload)
-
-        });
-
-        if (!response.ok) {
-
-            throw new Error(
-                `Discord a raspuns cu ${response.status}`
-            );
-
-        }
+        await updateStatusLiveDiscord(webhook, payload);
 
         } catch (error) {
 
