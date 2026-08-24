@@ -21,40 +21,85 @@ const validNumber = (value: unknown, min: number, max: number) => {
 const webhookUrlPattern = /^https:\/\/(?:discord\.com|discordapp\.com)\/api\/webhooks\//;
 const routeTargets = (route: any, legacyUrl = '') => {
   const targets = ['primary', 'secondary']
-    .map((target) => route?.[target])
-    .filter((item) => item?.enabled === true && webhookUrlPattern.test(String(item.url || '')))
-    .map((item) => ({ url: String(item.url).trim() }));
-  if (!targets.length && webhookUrlPattern.test(String(legacyUrl || '').trim())) targets.push({ url: String(legacyUrl).trim() });
+    .map((key) => ({ key, item: route?.[key] }))
+    .filter((target) => target.item?.enabled === true && webhookUrlPattern.test(String(target.item.url || '')))
+    .map((target) => ({ key: target.key, url: String(target.item.url).trim() }));
+  if (!targets.length && webhookUrlPattern.test(String(legacyUrl || '').trim())) targets.push({ key: 'legacy', url: String(legacyUrl).trim() });
   return targets;
 };
 
-const sendDiscordWebhook = async (db: any, organizationId: string, routeKey: string, embed: any) => {
+const syncDiscordWebhook = async (db: any, organizationId: string, routeKey: string, embed: any, existingMessageIds: any = {}, createIfMissing = true) => {
   const { data: settings, error } = await db.from('organization_settings').select('webhook_routes').eq('organization_id', organizationId).maybeSingle();
   if (error) throw error;
   const targets = routeTargets(settings?.webhook_routes?.[routeKey]);
   if (!targets.length) {
     console.warn(`Nu există un webhook activ pentru ruta ${routeKey}, organizația ${organizationId}.`);
-    return { route: routeKey, configured: false, sent: 0, failed: 0 };
+    return { route: routeKey, configured: false, sent: 0, edited: 0, failed: 0, message_ids: {} };
   }
-  const results = await Promise.all(targets.map(async (target: any) => {
+  const messageIds: Record<string, string> = {};
+  let sent = 0;
+  let edited = 0;
+  let failed = 0;
+  await Promise.all(targets.map(async (target: any) => {
+    const baseUrl = String(target.url).replace(/\/$/, '');
+    const existingMessageId = text(existingMessageIds?.[target.key], 100);
     try {
-      const response = await fetch(`${String(target.url)}?wait=true`, {
+      const payload = JSON.stringify({ username: 'Panel Pro · Stash', embeds: [embed], allowed_mentions: { parse: [] } });
+      if (existingMessageId) {
+        const editResponse = await fetch(`${baseUrl}/messages/${encodeURIComponent(existingMessageId)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload
+        });
+        if (editResponse.ok) {
+          messageIds[target.key] = existingMessageId;
+          edited += 1;
+          return;
+        }
+        if (editResponse.status !== 404) {
+          const details = (await editResponse.text().catch(() => '')).slice(0, 300);
+          console.error(`Webhook ${routeKey} edit returned ${editResponse.status}: ${details}`);
+          failed += 1;
+          return;
+        }
+      }
+      if (!createIfMissing) return;
+      const createUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}wait=true`;
+      const createResponse = await fetch(createUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'Panel Pro · Stash', embeds: [embed], allowed_mentions: { parse: [] } })
+        body: payload
       });
-      if (!response.ok) {
-        const details = (await response.text().catch(() => '')).slice(0, 300);
-        console.error(`Webhook ${routeKey} returned ${response.status}: ${details}`);
+      if (!createResponse.ok) {
+        const details = (await createResponse.text().catch(() => '')).slice(0, 300);
+        console.error(`Webhook ${routeKey} returned ${createResponse.status}: ${details}`);
+        failed += 1;
+        return;
       }
-      return response.ok;
+      const createdMessage = await createResponse.json().catch(() => ({}));
+      const createdMessageId = text(createdMessage?.id, 100);
+      if (!createdMessageId) {
+        console.error(`Webhook ${routeKey} did not return a Discord message id.`);
+        failed += 1;
+        return;
+      }
+      messageIds[target.key] = createdMessageId;
+      sent += 1;
     } catch (webhookError) {
       console.error(`Webhook ${routeKey} failed`, webhookError);
-      return false;
+      failed += 1;
     }
   }));
-  const sent = results.filter(Boolean).length;
-  return { route: routeKey, configured: true, sent, failed: results.length - sent };
+  return { route: routeKey, configured: true, sent, edited, failed, message_ids: messageIds };
+};
+
+const syncAndStoreWebhook = async (db: any, table: string, row: any, organizationId: string, routeKey: string, embed: any) => {
+  const webhook = await syncDiscordWebhook(db, organizationId, routeKey, embed, row?.discord_message_ids || {}, true);
+  if (Object.keys(webhook.message_ids || {}).length) {
+    const { error } = await db.from(table).update({ discord_message_ids: { ...(row?.discord_message_ids || {}), ...webhook.message_ids } }).eq('id', row.id);
+    if (error) throw error;
+  }
+  return webhook;
 };
 
 const actorDisplayName = async (db: any, discordId: string) => {
@@ -209,7 +254,7 @@ Deno.serve(async (req) => {
       if (title.length < 2 || category.length < 2 || !quantity || unit.length < 1) return reply({ error: 'Completează articolul, categoria și o cantitate validă.' }, 400);
       const { data, error } = await db.from('organization_stash_items').insert({ organization_id: organizationId, title, category, quantity, unit, description, status: ['available', 'reserved', 'out'].includes(body.status) ? body.status : 'available', source_type: 'manual', created_by_discord_id: session.discord_id, created_by_name: name, updated_by_discord_id: session.discord_id }).select('*').single();
       if (error) throw error;
-      const webhook = await sendDiscordWebhook(db, organizationId, 'stash', itemEmbed(data, 'Articol nou în Stash'));
+      const webhook = await syncAndStoreWebhook(db, 'organization_stash_items', data, organizationId, 'stash', itemEmbed(data, 'Articol nou în Stash'));
       return reply({ ok: true, item: data, webhook });
     }
 
@@ -227,7 +272,7 @@ Deno.serve(async (req) => {
       if (updates.quantity === null) return reply({ error: 'Cantitatea este invalidă.' }, 400);
       const { data, error } = await db.from('organization_stash_items').update(updates).eq('organization_id', organizationId).eq('id', body.id).select('*').single();
       if (error) throw error;
-      const webhook = await sendDiscordWebhook(db, organizationId, 'stash', itemEmbed(data, 'Stash actualizat'));
+      const webhook = await syncAndStoreWebhook(db, 'organization_stash_items', data, organizationId, 'stash', itemEmbed(data, 'Stash actualizat'));
       return reply({ ok: true, item: data, webhook });
     }
 
@@ -236,7 +281,7 @@ Deno.serve(async (req) => {
       if (!validId(body.id)) return reply({ error: 'Articolul este invalid.' }, 400);
       const { data, error } = await db.from('organization_stash_items').update({ status: 'archived', updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', body.id).select('*').single();
       if (error) throw error;
-      const webhook = await sendDiscordWebhook(db, organizationId, 'stash', itemEmbed(data, 'Articol arhivat din Stash'));
+      const webhook = await syncAndStoreWebhook(db, 'organization_stash_items', data, organizationId, 'stash', itemEmbed(data, 'Articol arhivat din Stash'));
       return reply({ ok: true, item: data, webhook });
     }
 
@@ -248,7 +293,7 @@ Deno.serve(async (req) => {
       if (!canDeleteOwn(item, 'created_by_discord_id')) return reply({ error: 'Doar autorul, proprietarul organizației sau administratorul global poate șterge acest articol.' }, 403);
       const { error } = await db.from('organization_stash_items').delete().eq('organization_id', organizationId).eq('id', body.id);
       if (error) throw error;
-      const webhook = await sendDiscordWebhook(db, organizationId, 'stash', itemEmbed(item, 'Articol șters din Stash'));
+      const webhook = await syncDiscordWebhook(db, organizationId, 'stash', itemEmbed({ ...item, status: 'deleted' }, 'Articol șters din Stash'), item.discord_message_ids || {}, false);
       return reply({ ok: true, deleted_id: body.id, webhook });
     }
 
@@ -266,7 +311,7 @@ Deno.serve(async (req) => {
       if (itemTitle.length < 2 || !quantity) return reply({ error: 'Alege un articol și o cantitate validă.' }, 400);
       const { data, error } = await db.from('organization_stash_requests').insert({ organization_id: organizationId, stash_item_id: itemId, item_title: itemTitle, quantity, note: text(body.note, 2000), requested_by_discord_id: session.discord_id, requested_by_name: name }).select('*').single();
       if (error) throw error;
-      const webhook = await sendDiscordWebhook(db, organizationId, 'stash_requests', requestEmbed(data));
+      const webhook = await syncAndStoreWebhook(db, 'organization_stash_requests', data, organizationId, 'stash_requests', requestEmbed(data));
       return reply({ ok: true, request: data, webhook });
     }
 
@@ -275,7 +320,7 @@ Deno.serve(async (req) => {
       if (!validId(body.id) || !['pending', 'approved', 'rejected', 'completed'].includes(body.status)) return reply({ error: 'Cererea sau statusul sunt invalide.' }, 400);
       const { data, error } = await db.from('organization_stash_requests').update({ status: body.status, handled_by_discord_id: session.discord_id, handled_by_name: name, handled_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', body.id).select('*').single();
       if (error) throw error;
-      const webhook = await sendDiscordWebhook(db, organizationId, 'stash_requests', requestEmbed(data, body.status === 'approved' ? 'Cerere aprobată' : body.status === 'rejected' ? 'Cerere respinsă' : 'Cerere actualizată'));
+      const webhook = await syncAndStoreWebhook(db, 'organization_stash_requests', data, organizationId, 'stash_requests', requestEmbed(data, body.status === 'approved' ? 'Cerere aprobată' : body.status === 'rejected' ? 'Cerere respinsă' : 'Cerere actualizată'));
       return reply({ ok: true, request: data, webhook });
     }
 
@@ -287,7 +332,7 @@ Deno.serve(async (req) => {
       if (!canDeleteOwn(request, 'requested_by_discord_id')) return reply({ error: 'Doar autorul, proprietarul organizației sau administratorul global poate șterge această cerere.' }, 403);
       const { error } = await db.from('organization_stash_requests').delete().eq('organization_id', organizationId).eq('id', body.id);
       if (error) throw error;
-      const webhook = await sendDiscordWebhook(db, organizationId, 'stash_requests', requestEmbed(request, 'Cerere ștearsă din Stash'));
+      const webhook = await syncDiscordWebhook(db, organizationId, 'stash_requests', requestEmbed({ ...request, status: 'deleted' }, 'Cerere ștearsă din Stash'), request.discord_message_ids || {}, false);
       return reply({ ok: true, deleted_id: body.id, webhook });
     }
 
@@ -298,7 +343,7 @@ Deno.serve(async (req) => {
       if (title.length < 2 || category.length < 2 || !quantity || !unit.length) return reply({ error: 'Completează articolul donat și o cantitate validă.' }, 400);
       const { data, error } = await db.from('organization_stash_donations').insert({ organization_id: organizationId, title, category, quantity, unit, note, donated_by_discord_id: session.discord_id, donated_by_name: name }).select('*').single();
       if (error) throw error;
-      const webhook = await sendDiscordWebhook(db, organizationId, 'stash_donations', donationEmbed(data, 'Donație nouă în așteptarea aprobării'));
+      const webhook = await syncAndStoreWebhook(db, 'organization_stash_donations', data, organizationId, 'stash_donations', donationEmbed(data, 'Donație nouă în așteptarea aprobării'));
       return reply({ ok: true, donation: data, webhook });
     }
 
@@ -309,20 +354,21 @@ Deno.serve(async (req) => {
       if (donationError) throw donationError;
       if (!donation || donation.status !== 'pending') return reply({ error: 'Donația nu mai este în așteptare.' }, 400);
       let updated = donation;
+      let itemWebhook = null;
       if (body.status === 'approved') {
         const { data: item, error: itemError } = await db.from('organization_stash_items').insert({ organization_id: organizationId, title: donation.title, category: donation.category, quantity: donation.quantity, unit: donation.unit, description: donation.note, status: 'available', source_type: 'donation', created_by_discord_id: donation.donated_by_discord_id, created_by_name: donation.donated_by_name, updated_by_discord_id: session.discord_id }).select('*').single();
         if (itemError) throw itemError;
         const { data: changed, error } = await db.from('organization_stash_donations').update({ status: 'approved', reviewed_by_discord_id: session.discord_id, reviewed_by_name: name, reviewed_at: new Date().toISOString(), stash_item_id: item.id, updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', donation.id).select('*').single();
         if (error) throw error;
         updated = changed;
-        await sendDiscordWebhook(db, organizationId, 'stash', itemEmbed(item, 'Donație aprobată și adăugată în Stash'));
+        itemWebhook = await syncAndStoreWebhook(db, 'organization_stash_items', item, organizationId, 'stash', itemEmbed(item, 'Donație aprobată și adăugată în Stash'));
       } else {
         const { data: changed, error } = await db.from('organization_stash_donations').update({ status: 'rejected', reviewed_by_discord_id: session.discord_id, reviewed_by_name: name, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', donation.id).select('*').single();
         if (error) throw error;
         updated = changed;
       }
-      const webhook = await sendDiscordWebhook(db, organizationId, 'stash_donations', donationEmbed(updated, body.status === 'approved' ? 'Donație aprobată' : 'Donație respinsă'));
-      return reply({ ok: true, donation: updated, webhook });
+      const webhook = await syncAndStoreWebhook(db, 'organization_stash_donations', updated, organizationId, 'stash_donations', donationEmbed(updated, body.status === 'approved' ? 'Donație aprobată' : 'Donație respinsă'));
+      return reply({ ok: true, donation: updated, webhook, item_webhook: itemWebhook });
     }
 
     if (action === 'delete_donation') {
@@ -333,7 +379,7 @@ Deno.serve(async (req) => {
       if (!canDeleteOwn(donation, 'donated_by_discord_id')) return reply({ error: 'Doar autorul, proprietarul organizației sau administratorul global poate șterge această donație.' }, 403);
       const { error } = await db.from('organization_stash_donations').delete().eq('organization_id', organizationId).eq('id', body.id);
       if (error) throw error;
-      const webhook = await sendDiscordWebhook(db, organizationId, 'stash_donations', donationEmbed(donation, 'Donație ștearsă din Stash'));
+      const webhook = await syncDiscordWebhook(db, organizationId, 'stash_donations', donationEmbed({ ...donation, status: 'deleted' }, 'Donație ștearsă din Stash'), donation.discord_message_ids || {}, false);
       return reply({ ok: true, deleted_id: body.id, webhook });
     }
 
