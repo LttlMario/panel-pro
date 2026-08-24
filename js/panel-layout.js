@@ -289,6 +289,17 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 #panel-mobile-menu { display:block !important; }
                 #panel-mobile-backdrop { display:none !important; }
                 .panel-mobile-toggle { display:flex !important; }
+                body.panel-global-shell > div:has(main) {
+                    width:100% !important;
+                    max-width:100% !important;
+                    margin-left:0 !important;
+                    padding-left:0 !important;
+                }
+                body.panel-global-shell > div:has(main) > main {
+                    width:100% !important;
+                    max-width:none !important;
+                    margin-left:0 !important;
+                }
                 body.panel-global-shell main { max-width:none !important; }
             }
             /* Sidebar-ul este același și pe paginile calculatorului, care au stiluri proprii. */
@@ -369,6 +380,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         relocateHeaderActions(currentPage);
         setupAdminSaveArea();
         const main = document.querySelector('main');
+        const pageShell = main?.closest('body > div');
         if (main) {
             main.style.minHeight = '100vh';
             // Paginile istorice aveau un offset propriu pentru sidebar.
@@ -387,7 +399,16 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             sidebar.classList.toggle('is-collapsed', effectiveCollapsed);
             if (main?.classList.contains('ml-72')) main.style.marginLeft = isMobileViewport ? '' : (effectiveCollapsed ? '5.25rem' : originalMainMargin);
             if (document.body.classList.contains('panel-shared-sidebar-page')) {
-                document.body.style.paddingLeft = isMobileViewport ? '' : (effectiveCollapsed ? '5.25rem' : '245px');
+                document.body.style.setProperty('padding-left', isMobileViewport ? '0px' : (effectiveCollapsed ? '5.25rem' : '245px'), isMobileViewport);
+            }
+            if (isMobileViewport) {
+                main?.style.setProperty('margin-left', '0px', 'important');
+                main?.style.setProperty('width', '100%', 'important');
+                main?.style.setProperty('max-width', 'none', 'important');
+                pageShell?.style.setProperty('margin-left', '0px', 'important');
+                pageShell?.style.setProperty('padding-left', '0px', 'important');
+                pageShell?.style.setProperty('width', '100%', 'important');
+                pageShell?.style.setProperty('max-width', '100%', 'important');
             }
             const mapApp = document.getElementById('app');
             if (mapApp && document.getElementById('map-container-wrapper')) {
