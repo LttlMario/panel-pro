@@ -39,7 +39,7 @@
     const host = $('stash-archives');
     if (!state.access.log) { host.innerHTML = '<div class="stash-empty">Nu ai acces la jurnalul arhivelor.</div>'; return; }
     if (!state.archives.length) { host.innerHTML = '<div class="stash-empty">Nu există articole arhivate.</div>'; return; }
-    host.innerHTML = state.archives.map((item) => `<div class="stash-row"><div><b class="text-slate-100">${esc(item.title)}</b><div class="stash-muted">${esc(item.category)} · ${esc(item.quantity)} ${esc(item.unit)} · ${esc(item.created_by_name)}</div></div><span class="stash-pill">Arhivat</span><time class="stash-muted">${esc(item.updated_at ? new Date(item.updated_at).toLocaleString('ro-RO') : '')}</time></div>`).join('');
+    host.innerHTML = state.archives.map((item) => `<div class="stash-row"><div><b class="text-slate-100">${esc(item.title)}</b><div class="stash-muted">${esc(item.category)} · ${esc(item.quantity)} ${esc(item.unit)} · ${esc(item.created_by_name)}</div></div><span class="stash-pill">Arhivat</span><div class="stash-actions"><time class="stash-muted">${esc(item.updated_at ? new Date(item.updated_at).toLocaleString('ro-RO') : '')}</time>${item.can_delete ? `<button class="stash-btn danger" data-delete-item="${esc(item.id)}">Șterge din arhivă</button>` : ''}</div></div>`).join('');
   };
   const renderAccess = () => {
     $('stash-add').hidden = !state.access.write;

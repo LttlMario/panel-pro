@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
         items: (itemsResult.data || []).map((row: any) => ({ ...row, can_delete: canDeleteOwn(row, 'created_by_discord_id') })),
         requests: requests.map((row: any) => ({ ...row, can_delete: canDeleteOwn(row, 'requested_by_discord_id') })),
         donations: donations.map((row: any) => ({ ...row, can_delete: canDeleteOwn(row, 'donated_by_discord_id') })),
-        archives: archivesResult.data || []
+        archives: (archivesResult.data || []).map((row: any) => ({ ...row, can_delete: canDeleteOwn(row, 'created_by_discord_id') }))
       });
     }
 
