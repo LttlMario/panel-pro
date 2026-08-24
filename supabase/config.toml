@@ -13,6 +13,9 @@ verify_jwt = false
 [functions.manage-community-posts]
 verify_jwt = false
 
+[functions.manage-public-feedback]
+verify_jwt = false
+
 [functions.manage-stash]
 verify_jwt = false
 

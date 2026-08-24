@@ -1226,6 +1226,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             ['management', 'Operațiuni', [
                 ['index.html', '📊', 'Dashboard'],
                 ['anunturi.html', '📣', 'Anunțuri & Sondaje'],
+                ['suggestii.html', '💡', 'Sugestii'],
+                ['rate-panel.html', '⭐', 'Rate the Panel'],
                 ['pontaj.html', '⏱️', 'Pontaj'],
                 ['cereri.html', '📋', 'Cereri / Absențe'],
                 ['contracte.html', '📜', 'Contracte'],

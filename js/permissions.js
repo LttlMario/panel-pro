@@ -21,6 +21,14 @@ const AdministrativePages = new Set([
     'secrete-platforma.html'
 ]);
 
+// Aceste două pagini sunt publice la nivelul platformei: orice membru cu o
+// sesiune validă le poate vedea, indiferent de organizația activă și de rolul
+// configurat pentru paginile organizației.
+const GlobalPublicPages = new Set([
+    'suggestii.html',
+    'rate-panel.html'
+]);
+
 
 // ============================================================
 // UTILIZATOR
@@ -178,6 +186,10 @@ function canAccessPage(page) {
     // Orice membru autentificat poate deschide pagina de prelungire;
     // funcția Supabase verifică apartenența la organizație și voucherul.
     if (page === 'prelungire-voucher.html') {
+        return isLogged();
+    }
+
+    if (GlobalPublicPages.has(page)) {
         return isLogged();
     }
 

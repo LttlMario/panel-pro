@@ -6,6 +6,8 @@ const SECRET_ENV_FALLBACKS: Record<string, string[]> = {
   platform_owner_discord_ids: ['PLATFORM_OWNER_DISCORD_IDS'],
   status_live_cron_secret: ['STATUS_LIVE_CRON_SECRET', 'CRON_SECRET'],
   discord_pontaj_webhook_url: ['DISCORD_PONTAJ_WEBHOOK_URL'],
+  public_community_webhook_primary: ['PUBLIC_COMMUNITY_WEBHOOK_PRIMARY'],
+  public_community_webhook_secondary: ['PUBLIC_COMMUNITY_WEBHOOK_SECONDARY'],
 };
 
 export async function getPlatformSecret(db: any, name: string): Promise<string> {

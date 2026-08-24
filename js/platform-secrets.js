@@ -17,10 +17,10 @@
       <div class="flex items-start justify-between gap-4"><div><h2>${escapeHtml(item.label)}</h2><p class="mt-1">Nume intern: <code class="text-slate-300">${escapeHtml(item.name)}</code></p></div><span class="secret-status ${item.configured ? 'ready' : 'missing'}">${item.configured ? 'CONFIGURAT' : 'LIPSEȘTE'}</span></div>
       <p class="mt-3">Aplicat automat în: ${escapeHtml((item.applied_to || []).join(', ') || 'nicio funcție') }.</p>
       <div class="mt-4 hidden" data-editor><input class="secret-input" type="password" autocomplete="new-password" placeholder="Valoare nouă (nu este afișată)"></div>
-      <div class="mt-4 flex flex-wrap gap-2"><button type="button" class="secret-button secondary" data-change>Schimbă secretul</button><button type="button" class="secret-button primary" data-apply>Aplică peste tot</button></div>
+      <div class="mt-4 flex flex-wrap gap-2"><button type="button" class="secret-button secondary" data-change>Schimbă secretul</button><button type="button" class="secret-button primary" data-apply>Aplică peste tot</button>${String(item.name).startsWith('public_community_webhook_') ? '<button type="button" class="secret-button secondary" data-test>Testează webhookul</button>' : ''}</div>
     </article>`).join('');
     list.querySelectorAll('[data-secret-card]').forEach((card) => {
-      const name = card.dataset.secretCard; const editor = card.querySelector('[data-editor]'); const input = card.querySelector('input'); const change = card.querySelector('[data-change]'); const apply = card.querySelector('[data-apply]');
+      const name = card.dataset.secretCard; const editor = card.querySelector('[data-editor]'); const input = card.querySelector('input'); const change = card.querySelector('[data-change]'); const apply = card.querySelector('[data-apply]'); const test = card.querySelector('[data-test]');
       change.addEventListener('click', async () => {
         if (editor.classList.contains('hidden')) { editor.classList.remove('hidden'); input.focus(); change.textContent = 'Salvează secretul'; return; }
         if (!input.value.trim()) { setStatus('Introdu o valoare înainte de salvare.', 'error'); return; }
@@ -28,6 +28,7 @@
         try { const result = await request({ action:'set', name, value:input.value }); input.value=''; editor.classList.add('hidden'); change.textContent='Schimbă secretul'; setStatus(`Secretul a fost salvat și aplicat în ${(result.applied_to || []).length} locuri.`, 'success'); await load(); } catch (error) { setStatus(error.message, 'error'); } finally { change.disabled=false; apply.disabled=false; }
       });
       apply.addEventListener('click', async () => { apply.disabled=true; setStatus('Se verifică aplicarea…'); try { const result=await request({action:'apply',name}); setStatus(`Secretul este activ pentru ${(result.applied_to || []).length} locuri.`, 'success'); } catch(error) { setStatus(error.message, 'error'); } finally { apply.disabled=false; } });
+      test?.addEventListener('click', async () => { test.disabled=true; setStatus('Se testează webhookul…'); try { await request({action:'test_webhook',name}); setStatus('Webhookul a răspuns cu succes.', 'success'); } catch(error) { setStatus(error.message, 'error'); } finally { test.disabled=false; } });
     });
   };
   async function load() { setStatus('Se verifică statusul…'); try { const result=await request({action:'list'}); render(result.secrets || []); setStatus('Status actualizat.', 'success'); } catch(error) { list.innerHTML=`<div class="rounded-2xl border border-rose-400/30 bg-rose-950/20 p-6 text-rose-200">${escapeHtml(error.message)}</div>`; setStatus(error.message, 'error'); } }

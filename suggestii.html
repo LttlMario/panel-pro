@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co; font-src 'self' https: data:; form-action 'self';">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sugestii · Panel Pro</title>
+  <link rel="stylesheet" href="css/tailwind.css"><link rel="stylesheet" href="css/public-feedback.css"><link rel="stylesheet" href="css/global-footer.css">
+  <script src="js/supabase-config.js?v=20260820-session-date-fix"></script><script src="js/permissions.js?v=20260824-global-feedback"></script><script src="js/panel-layout.js?v=4.27.0"></script><script src="js/project-version.js?v=3.11.5"></script>
+  <link rel="icon" href="img/favicon.ico"><link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex text-sm" data-feedback-kind="suggestion">
+  <main class="flex-1 min-w-0"><section class="feedback-shell"><div class="feedback-hero"><div><p class="feedback-eyebrow">Spațiu public · toate organizațiile</p><h1 id="feedback-page-title">Sugestii</h1><p id="feedback-page-description">Propune idei pentru Panel Pro. Sugestiile sunt vizibile tuturor organizațiilor.</p></div><button id="feedback-create" type="button" class="feedback-button">+ Adaugă sugestie</button></div><div id="feedback-feed" class="feedback-feed"><div class="feedback-empty">Se încarcă postările…</div></div></section><div data-panel-footer-host class="w-full mt-auto"></div></main>
+  <div id="feedback-modal" class="feedback-modal" hidden><section class="feedback-dialog" role="dialog" aria-modal="true"><h2 id="feedback-modal-title">Creează o sugestie</h2><form id="feedback-form"><label class="feedback-label">Titlu<input id="feedback-title" class="feedback-input" maxlength="140" required placeholder="Ex: Îmbunătățire pentru pontaj"></label><label class="feedback-label">Mesaj<textarea id="feedback-content" class="feedback-input feedback-content-input" maxlength="4000" required placeholder="Scrie sugestia ta…"></textarea></label><div id="feedback-rating-wrap" hidden><label class="feedback-label">Notă<select id="feedback-rating" class="feedback-input"><option value="5">★★★★★ · 5</option><option value="4">★★★★☆ · 4</option><option value="3">★★★☆☆ · 3</option><option value="2">★★☆☆☆ · 2</option><option value="1">★☆☆☆☆ · 1</option></select></label></div><div class="feedback-dialog-actions"><button id="feedback-cancel" type="button" class="feedback-button secondary">Renunță</button><button id="feedback-submit" type="submit" class="feedback-button">Salvează</button></div></form></section></div>
+  <script src="js/public-feedback.js?v=20260824-global-feedback"></script><script src="js/global-footer.js"></script>
+</body>
+</html>
