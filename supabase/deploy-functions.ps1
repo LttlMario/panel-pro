@@ -23,6 +23,7 @@ $functions = @(
     'sync-discord-role',
     'manage-discord-config',
     'manage-community-posts',
+    'manage-stash',
     'send-discord-notification',
     'close-expired-shifts',
     'send-weekly-shift-report',
