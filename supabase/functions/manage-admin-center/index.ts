@@ -38,6 +38,7 @@ Deno.serve(async request=>{
       const visible=(note:any)=>{
         const recipient=String(note.recipient_discord_id||'');
         if(recipient===String(discordUser.id))return true;
+        if(recipient)return false;
         const page=String(note.required_page||'');
         if(page&&!hasPageAccess(page))return false;
         const accessKey=String(note.access_key||'');
