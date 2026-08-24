@@ -122,7 +122,21 @@
     `;
 
     const standalone = window.matchMedia?.('(display-mode: standalone)')?.matches || navigator.standalone === true;
-    const iosDevice = /iPad|iPhone|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const userAgent = navigator.userAgent || '';
+    const androidDevice = /Android/i.test(userAgent);
+    const iosDevice = /iPad|iPhone|iPod/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const nativeCapacitor = window.Capacitor?.isNativePlatform?.() === true;
+    const androidNative = androidDevice && (nativeCapacitor || /;\s*wv\)/i.test(userAgent));
+    if (androidNative) {
+      footer.querySelector('.pgf-android-badge')?.remove();
+      footer.querySelector('.pgf-ios-badge')?.remove();
+      document.getElementById('dashboard-fivem-launcher')?.remove();
+    } else if (androidDevice) {
+      footer.querySelector('.pgf-ios-badge')?.remove();
+    } else if (iosDevice) {
+      footer.querySelector('.pgf-android-badge')?.remove();
+      document.getElementById('dashboard-fivem-launcher')?.remove();
+    }
     if (standalone && iosDevice) footer.classList.add('pgf-ios-installed');
 
     findFooterHost().appendChild(footer);
