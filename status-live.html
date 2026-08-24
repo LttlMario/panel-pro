@@ -101,6 +101,7 @@
         let activeShiftsData = [];
         let activeOrganization = null;
         let activeOrganizationId = null;
+        const statusLiveWebhookKey = () => `status_live_webhook:${activeOrganizationId || 'default'}`;
 
         document.addEventListener('DOMContentLoaded', async () => {
             // Autentificare reutilizată din rapoarte.html
@@ -181,7 +182,7 @@
 
 
                 const savedWebhook =
-                    localStorage.getItem('status_live_webhook');
+                    localStorage.getItem(statusLiveWebhookKey());
 
                 if (savedWebhook) {
 
@@ -329,7 +330,7 @@
             }
 
             localStorage.setItem(
-                'status_live_webhook',
+                statusLiveWebhookKey(),
                 webhook
             );
             localStorage.removeItem(`status_live_message:${activeOrganizationId || 'default'}`);
@@ -412,7 +413,7 @@
         try {
 
         const webhook =
-            localStorage.getItem('status_live_webhook');
+            localStorage.getItem(statusLiveWebhookKey());
 
         if (!webhook) {
 
