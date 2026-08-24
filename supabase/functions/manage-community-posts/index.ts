@@ -2,7 +2,7 @@ import {createClient} from 'jsr:@supabase/supabase-js@2.112.3';
 import {requirePanelSession} from '../_shared/panel-session.ts';
 import {isPlatformAdminAccount} from '../_shared/platform-admin.ts';
 import {resolvePackageFeatures} from '../_shared/package-features.ts';
-const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Content-Type':'application/json'};
+const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
 
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
 const normalizeBlackMarketName=(value:unknown)=>String(value??'').replace(/^\s*\d{1,12}\s+/,'').replace(/^\s*\d{1,12}\s*[|:/#-]\s*/,'').replace(/\s*[|:/#-]\s*\d{1,12}\s*$/,'').replace(/\s+\d{1,12}\s*$/,'').replace(/\s*[[(]\s*\d{1,12}\s*[\])]\s*$/,'').replace(/\s{2,}/g,' ').trim();
