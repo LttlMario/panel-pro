@@ -73,6 +73,17 @@ Deno.serve(async request=>{
       if (result.error) throw result.error;
       return Number(result.count || 0);
     };
+    const buildOrganizationBackup = async () => {
+      const [organization, settings, roles, guilds, members] = await Promise.all([
+        db.from('organizations').select('id,name,slug,description,logo_url,banner_url,active,lifecycle_status').eq('id', organizationId).single(),
+        db.from('app_settings').select('key,value').eq('organization_id', organizationId).neq('key', 'organization_backup_snapshot'),
+        db.from('organization_role_mappings').select('*').eq('organization_id', organizationId),
+        db.from('organization_guilds').select('*').eq('organization_id', organizationId),
+        db.from('organization_members').select('*').eq('organization_id', organizationId),
+      ]);
+      for (const result of [organization, settings, roles, guilds, members]) if (result.error) throw result.error;
+      return { schemaVersion: 2, exportedAt: new Date().toISOString(), organization: organization.data, settings: settings.data || [], roles: roles.data || [], guilds: guilds.data || [], members: members.data || [] };
+    };
 
     if (body.action === 'org_hub') {
       const nowIso = new Date().toISOString();
@@ -243,15 +254,16 @@ Deno.serve(async request=>{
 
     if (body.action === 'org_backup') {
       if (!isOrganizationManager) return reply({ error: 'Backupul este disponibil doar ownerului sau administratorului organizației.' }, 403);
-      const [organization, settings, roles, guilds, members] = await Promise.all([
-        db.from('organizations').select('id,name,slug,description,logo_url,banner_url,active,lifecycle_status').eq('id', organizationId).single(),
-        db.from('app_settings').select('key,value').eq('organization_id', organizationId),
-        db.from('organization_role_mappings').select('*').eq('organization_id', organizationId),
-        db.from('organization_guilds').select('*').eq('organization_id', organizationId),
-        db.from('organization_members').select('*').eq('organization_id', organizationId),
-      ]);
-      for (const result of [organization, settings, roles, guilds, members]) if (result.error) throw result.error;
-      return reply({ schemaVersion: 2, exportedAt: new Date().toISOString(), organization: organization.data, settings: settings.data || [], roles: roles.data || [], guilds: guilds.data || [], members: members.data || [] });
+      return reply(await buildOrganizationBackup());
+    }
+
+    if (body.action === 'org_backup_snapshot') {
+      if (!isOrganizationManager) return reply({ error: 'Backupul este disponibil doar ownerului sau administratorului organizației.' }, 403);
+      const snapshot = await buildOrganizationBackup();
+      const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'organization_backup_snapshot', value: snapshot, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+      if (error) throw error;
+      await db.from('admin_audit_log').insert({ organization_id: organizationId, actor_discord_id: discordUser.id, actor_name: actorName, action: 'organization_backup_snapshot', target_type: 'app_settings', target_id: 'organization_backup_snapshot', details: { automatic: true } });
+      return reply({ ok: true, exportedAt: snapshot.exportedAt });
     }
 
     if(['notifications','mark_read'].includes(String(body.action||''))){
