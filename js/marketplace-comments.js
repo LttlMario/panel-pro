@@ -61,6 +61,18 @@
                 </div>
                 <form class="marketplace-comments-form" data-comments-form>
                     <textarea name="content" maxlength="2000" rows="3" placeholder="Scrie un comentariu…" required></textarea>
+                    <div class="marketplace-comments-emoji-bar" role="toolbar" aria-label="Alege un emoticon">
+                        <span>Emoticoane:</span>
+                        <button type="button" data-comments-emoji="👍" aria-label="Like">👍</button>
+                        <button type="button" data-comments-emoji="❤️" aria-label="Inimă">❤️</button>
+                        <button type="button" data-comments-emoji="😂" aria-label="Râs">😂</button>
+                        <button type="button" data-comments-emoji="😮" aria-label="Uimire">😮</button>
+                        <button type="button" data-comments-emoji="😢" aria-label="Tristețe">😢</button>
+                        <button type="button" data-comments-emoji="🔥" aria-label="Foc">🔥</button>
+                        <button type="button" data-comments-emoji="✅" aria-label="Confirmare">✅</button>
+                        <button type="button" data-comments-emoji="❌" aria-label="Respins">❌</button>
+                        <button type="button" data-comments-emoji="👀" aria-label="Privesc">👀</button>
+                    </div>
                     <div class="marketplace-comments-form-footer">
                         <small>Comentariul va fi vizibil doar utilizatorilor care au acces la această pagină.</small>
                         <button type="submit">Publică</button>
@@ -72,6 +84,18 @@
         modal.addEventListener('click', async (event) => {
             const close = event.target.closest('[data-comments-close]');
             if (close) return closeModal();
+            const emojiButton = event.target.closest('[data-comments-emoji]');
+            if (emojiButton) {
+                const textarea = modal.querySelector('textarea[name="content"]');
+                const emoji = emojiButton.dataset.commentsEmoji || '';
+                const start = textarea.selectionStart ?? textarea.value.length;
+                const end = textarea.selectionEnd ?? start;
+                textarea.value = `${textarea.value.slice(0, start)}${emoji}${textarea.value.slice(end)}`;
+                textarea.focus();
+                const cursor = start + emoji.length;
+                textarea.setSelectionRange(cursor, cursor);
+                return;
+            }
             const deleteButton = event.target.closest('[data-comments-delete]');
             if (!deleteButton) return;
             if (!window.confirm('Ștergi acest comentariu?')) return;
@@ -195,6 +219,10 @@
         .marketplace-comments-form { padding: 15px 18px 18px; border-top: 1px solid #1e293b; background: #0b1220; }
         .marketplace-comments-form textarea { width: 100%; resize: vertical; min-height: 76px; padding: 11px 12px; border: 1px solid #334155; border-radius: 14px; outline: none; color: #e2e8f0; background: #020617; font: inherit; font-size: 13px; }
         .marketplace-comments-form textarea:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, .12); }
+        .marketplace-comments-emoji-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+        .marketplace-comments-emoji-bar span { margin-right: 2px; color: #64748b; font-size: 10px; }
+        .marketplace-comments-emoji-bar button { min-width: 28px; height: 28px; padding: 0 5px; border: 1px solid #334155; border-radius: 8px; color: #e2e8f0; background: #111827; font-size: 15px; line-height: 1; cursor: pointer; }
+        .marketplace-comments-emoji-bar button:hover { border-color: #10b981; background: #064e3b; }
         .marketplace-comments-form-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
         .marketplace-comments-form-footer small { color: #64748b; font-size: 10px; line-height: 1.4; }
         .marketplace-comments-form-footer button { padding: 9px 15px; border: 1px solid rgba(52, 211, 153, .35); border-radius: 11px; color: #d1fae5; background: rgba(16, 185, 129, .15); font-size: 12px; font-weight: 800; cursor: pointer; }
