@@ -103,6 +103,7 @@ AS $$
               'bucatarie.html',
               'craftmecanics.html',
               'asistent.html',
+              'stash.html',
               'status-live.html'
             )
           )

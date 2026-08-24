@@ -27,7 +27,10 @@ const webhookChannels=new Set([
   'sanctions_organization',
   'sanctions_departments',
   'status_live',
-  'organization_expiration'
+  'organization_expiration',
+  'stash',
+  'stash_requests',
+  'stash_donations'
 ]);
 const discordBotHeaders=(bot:string)=>({Authorization:`Bot ${bot}`,'User-Agent':'PanelManagement/1.0 (+https://panel-management.netlify.app)'});
 const organizationIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -460,7 +463,8 @@ if (settingsError) {
     'minigames.html',
     'rapoarte.html',
     'status-live.html',
-    'asistent.html'
+    'asistent.html',
+    'stash.html'
   ]);
 
 
@@ -517,7 +521,12 @@ if(
     'anunturi.publish',
     'marketplace.delete',
     'cereri.organization',
-    'cereri.departments'
+    'cereri.departments',
+    'stash.write',
+    'stash.request',
+    'stash.manage_requests',
+    'stash.donate',
+    'stash.approve_donation'
   ]);
 
   const actionRules = Object.fromEntries(

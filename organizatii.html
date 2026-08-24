@@ -1,5 +1,5 @@
 <!doctype html><html lang="ro" class="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Organizații · Platformă</title>
-<link rel="stylesheet" href="css/tailwind.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script><script src="js/supabase-config.js?v=20260820-session-date-fix"></script><script src="js/permissions.js?v=4.6.0"></script><script src="js/panel-layout.js?v=4.26.0"></script><link rel="stylesheet" href="css/global-footer.css">    <link rel="icon" href="img/favicon.ico">
+<link rel="stylesheet" href="css/tailwind.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script><script src="js/supabase-config.js?v=20260820-session-date-fix"></script><script src="js/permissions.js?v=4.6.0"></script><script src="js/panel-layout.js?v=4.27.0"></script><link rel="stylesheet" href="css/global-footer.css">    <link rel="icon" href="img/favicon.ico">
     <link rel="apple-touch-icon" href="img/logo-180.png">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
@@ -363,7 +363,7 @@ let organizations=[],
 const pagePermissionGroups=[
     {key:'dashboard',label:'Dashboard',mode:'all',pages:[['index.html','Dashboard']]},
     {key:'illegal',label:'Ilegale',description:'Calculator ilegal, locații ilegale, marketplace ilegal și minigames.',mode:'group',pages:[['calculatorilegal.html','Calculator ilegal'],['locatiiilegale.html','Locații ilegale'],['marketplace-ilegal.html','Marketplace ilegal'],['minigames.html','Minigames']]},
-    {key:'resources',label:'Resurse',description:'Marketplace, calculator, bucătărie și Craft Mecanic.',mode:'group',pages:[['marketplace.html','Marketplace'],['calculator.html','Calculator'],['bucatarie.html','Bucătărie'],['craftmecanics.html','Craft Mecanic']]},
+    {key:'resources',label:'Resurse',description:'Marketplace, calculator, bucătărie, Craft Mecanic și Stash.',mode:'group',pages:[['marketplace.html','Marketplace'],['calculator.html','Calculator'],['bucatarie.html','Bucătărie'],['craftmecanics.html','Craft Mecanic'],['stash.html','Stash organizație']]},
     {key:'management',label:'Management',description:'Contracte și rapoarte.',mode:'group',pages:[['contracte.html','Contracte'],['rapoarte.html','Rapoarte']]},
     {key:'individual',label:'Pagini individuale',mode:'individual',pages:[['anunturi.html','Anunțuri și sondaje'],['pontaj.html','Pontaj'],['cereri.html','Cereri și absențe'],['asistent.html','Asistent']]}
 ];
@@ -417,6 +417,18 @@ const webhookDefinitions={
     illegal_marketplace:{
         label:'Marketplace ilegal',
         help:'Anunțurile publicate în marketplace-ul ilegal.'
+    },
+    stash:{
+        label:'Stash organizație',
+        help:'Articolele, cererile și donațiile gestionate în stash-ul organizației.'
+    },
+    stash_requests:{
+        label:'Cereri Stash',
+        help:'Cereri noi și actualizări de status din pagina Stash.'
+    },
+    stash_donations:{
+        label:'Donații Stash',
+        help:'Donații trimise și aprobate pentru stash.'
     },
     fines_organization:{
         label:'Amenzi organizație',
@@ -1262,6 +1274,37 @@ function renderActionPermissions() {
                 'Cine poate șterge anunțuri din Marketplace legal și Black Market. Autorul și administratorul platformei păstrează accesul existent.',
 
             color: 'rose'
+        },
+
+        {
+            key: 'stash.write',
+            title: 'Stash — postează și gestionează',
+            description: 'Cine poate adăuga, modifica și arhiva articole din stash.',
+            color: 'emerald'
+        },
+        {
+            key: 'stash.request',
+            title: 'Stash — trimite cereri',
+            description: 'Cine poate trimite cereri pentru articole din stash.',
+            color: 'cyan'
+        },
+        {
+            key: 'stash.manage_requests',
+            title: 'Stash — aprobă cereri',
+            description: 'Cine poate aproba, respinge și finaliza cererile.',
+            color: 'amber'
+        },
+        {
+            key: 'stash.donate',
+            title: 'Stash — donează',
+            description: 'Cine poate trimite donații către stash.',
+            color: 'violet'
+        },
+        {
+            key: 'stash.approve_donation',
+            title: 'Stash — aprobă donații',
+            description: 'Cine verifică donațiile și le postează în stash.',
+            color: 'emerald'
         },
 
 

@@ -14,6 +14,7 @@ export const PACKAGE_FEATURES = Object.freeze({
   status_live: { label: 'Status Live', pages: ['status-live.html'] },
   discipline_departments: { label: 'Avertismente și sancțiuni · Angajați', pages: ['anunturi.html'] },
   discipline_organization: { label: 'Avertismente și sancțiuni · Organizație', pages: ['anunturi.html'] },
+  stash: { label: 'Stash organizație', pages: ['stash.html'] },
   illegal_calculator: { label: 'Calculator ilegal', pages: ['calculatorilegal.html'] },
   illegal_locations: { label: 'Locații ilegale', pages: ['locatiiilegale.html'] },
   illegal_marketplace: { label: 'Marketplace ilegal', pages: ['marketplace-ilegal.html'] },
@@ -23,7 +24,7 @@ export const PACKAGE_FEATURES = Object.freeze({
 export const STANDARD_PACKAGE_FEATURES = Object.freeze([
   'core', 'announcements', 'requests', 'contracts', 'reports',
   'legal_marketplace', 'legal_tools', 'assistant', 'status_live',
-  'announcements_departments', 'requests_departments', 'discipline_departments'
+  'announcements_departments', 'requests_departments', 'discipline_departments', 'stash'
 ]);
 
 export const FULL_PACKAGE_FEATURES = Object.freeze(Object.keys(PACKAGE_FEATURES));

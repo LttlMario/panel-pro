@@ -17,7 +17,7 @@ const webhookChannels = new Set([
   'organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization',
   'requests_departments', 'contracts', 'contract_identity_weekly', 'marketplace', 'illegal_marketplace',
   'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments',
-  'sanctions_organization', 'sanctions_departments', 'status_live', 'organization_expiration'
+  'sanctions_organization', 'sanctions_departments', 'status_live', 'organization_expiration', 'stash', 'stash_requests', 'stash_donations'
 ]);
 const allowedContractPlaceholders = new Set([
   '{{COMPANY}}', '{{ADDRESS}}', '{{MANAGER}}', '{{EMPLOYEE_NAME}}', '{{CNP}}',
@@ -40,10 +40,11 @@ const allowedPages = new Map([
   ['minigames.html', 'Minigames'],
   ['rapoarte.html', 'Rapoarte'],
   ['status-live.html', 'Status Live'],
-  ['asistent.html', 'Asistent Panel']
+  ['asistent.html', 'Asistent Panel'],
+  ['stash.html', 'Stash organizație']
 ]);
 const allowedAssistantPages = new Set([...allowedPages.keys()]);
-const allowedActionKeys = new Set(['anunturi.publish', 'marketplace.delete', 'cereri.organization', 'cereri.departments']);
+const allowedActionKeys = new Set(['anunturi.publish', 'marketplace.delete', 'cereri.organization', 'cereri.departments', 'stash.write', 'stash.request', 'stash.manage_requests', 'stash.donate', 'stash.approve_donation']);
 const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
 const fullOnlyPageFeatures = new Map([
   ['calculatorilegal.html', 'illegal_calculator'],
@@ -54,7 +55,7 @@ const fullOnlyPageFeatures = new Map([
 const standardPackageFeatures = new Set([
   'core', 'announcements', 'requests', 'contracts', 'reports', 'legal_marketplace',
   'legal_tools', 'assistant', 'status_live', 'announcements_departments',
-  'requests_departments', 'discipline_departments'
+  'requests_departments', 'discipline_departments', 'stash'
 ]);
 
 const packageAllowsFeature = (packageValue: any, feature: string) =>

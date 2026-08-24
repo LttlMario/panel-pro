@@ -1,0 +1,252 @@
+import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
+import { requirePanelSession } from '../_shared/panel-session.ts';
+
+const headers = {
+  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
+  'Access-Control-Max-Age': '86400',
+  'Content-Type': 'application/json'
+};
+
+const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
+const text = (value: unknown, max = 4000) => String(value ?? '').trim().slice(0, max);
+const validId = (value: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
+const validNumber = (value: unknown, min: number, max: number) => {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= min && number <= max ? number : null;
+};
+
+const routeTargets = (route: any) => ['primary', 'secondary']
+  .map((target) => route?.[target])
+  .filter((item) => item?.enabled === true && /^https:\/\/(?:discord\.com|discordapp\.com)\/api\/webhooks\//.test(String(item.url || '')));
+
+const sendDiscordWebhook = async (db: any, organizationId: string, routeKey: string, embed: any) => {
+  const { data: settings, error } = await db.from('organization_settings').select('webhook_routes').eq('organization_id', organizationId).maybeSingle();
+  if (error) throw error;
+  const targets = routeTargets(settings?.webhook_routes?.[routeKey]);
+  await Promise.all(targets.map(async (target: any) => {
+    try {
+      const response = await fetch(`${String(target.url)}?wait=true`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'Panel Pro · Stash', embeds: [embed] })
+      });
+      if (!response.ok) console.error(`Webhook ${routeKey} returned ${response.status}`);
+    } catch (webhookError) {
+      console.error(`Webhook ${routeKey} failed`, webhookError);
+    }
+  }));
+};
+
+const actorDisplayName = async (db: any, discordId: string) => {
+  const { data } = await db.from('users').select('display_name,username').eq('discord_id', discordId).maybeSingle();
+  return text(data?.display_name || data?.username || discordId, 120);
+};
+
+const itemEmbed = (item: any, title = 'Actualizare Stash') => ({
+  title,
+  color: 0x22c55e,
+  fields: [
+    { name: 'Articol', value: text(item.title, 1024), inline: true },
+    { name: 'Categorie', value: text(item.category, 1024), inline: true },
+    { name: 'Cantitate', value: `${item.quantity} ${text(item.unit, 20)}`, inline: true },
+    { name: 'Status', value: text(item.status, 100), inline: true },
+    { name: 'Detalii', value: text(item.description || 'Fără detalii.', 1024), inline: false }
+  ],
+  footer: { text: `Postat de ${text(item.created_by_name, 120)}` },
+  timestamp: new Date().toISOString()
+});
+
+const requestEmbed = (request: any, statusLabel = 'Cerere nouă din Stash') => ({
+  title: statusLabel,
+  color: statusLabel === 'Cerere aprobată' ? 0x22c55e : statusLabel === 'Cerere respinsă' ? 0xef4444 : 0xf59e0b,
+  fields: [
+    { name: 'Articol', value: text(request.item_title, 1024), inline: true },
+    { name: 'Cantitate', value: String(request.quantity), inline: true },
+    { name: 'Solicitat de', value: text(request.requested_by_name, 1024), inline: true },
+    { name: 'Status', value: text(request.status, 100), inline: true },
+    { name: 'Notă', value: text(request.note || 'Fără notă.', 1024), inline: false }
+  ],
+  timestamp: new Date().toISOString()
+});
+
+const donationEmbed = (donation: any, title = 'Donație Stash') => ({
+  title,
+  color: title === 'Donație aprobată' ? 0x38bdf8 : title === 'Donație respinsă' ? 0xef4444 : 0xa78bfa,
+  fields: [
+    { name: 'Articol', value: text(donation.title, 1024), inline: true },
+    { name: 'Categorie', value: text(donation.category, 1024), inline: true },
+    { name: 'Cantitate', value: `${donation.quantity} ${text(donation.unit, 20)}`, inline: true },
+    { name: 'Donat de', value: text(donation.donated_by_name, 1024), inline: true },
+    { name: 'Status', value: text(donation.status, 100), inline: true },
+    { name: 'Notă', value: text(donation.note || 'Fără notă.', 1024), inline: false }
+  ],
+  timestamp: new Date().toISOString()
+});
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers });
+  try {
+    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
+    if (!key) throw new Error('Cheia Supabase lipsește.');
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    const session = await requirePanelSession(db, req);
+    const organizationId = session.organization_id;
+    const body = await req.json().catch(() => ({}));
+    const action = text(body.action, 40);
+    const [settingsResult, mappingResult, memberResult] = await Promise.all([
+      db.from('app_settings').select('key,value').eq('organization_id', organizationId).in('key', ['page_permissions', 'action_permissions']),
+      db.from('organization_role_mappings').select('discord_role_id,panel_role,enabled').eq('organization_id', organizationId).eq('enabled', true),
+      db.from('organization_members').select('panel_role').eq('organization_id', organizationId).eq('discord_id', session.discord_id).eq('active', true).maybeSingle()
+    ]);
+    if (settingsResult.error || mappingResult.error || memberResult.error) throw settingsResult.error || mappingResult.error || memberResult.error;
+    const settingMap = Object.fromEntries((settingsResult.data || []).map((row: any) => [row.key, row.value || {}]));
+    const roleIds = new Set(session.discord_role_ids.map(String));
+    if (memberResult.data?.panel_role) {
+      (mappingResult.data || []).filter((row: any) => String(row.panel_role || '') === String(memberResult.data.panel_role)).forEach((row: any) => roleIds.add(String(row.discord_role_id)));
+    }
+    const allowed = (permission: string) => {
+      if (session.is_platform_admin) return true;
+      const ids = permission === 'read'
+        ? settingMap.page_permissions?.['stash.html']
+        : settingMap.action_permissions?.[`stash.${permission}`];
+      return Array.isArray(ids) && ids.some((id: any) => roleIds.has(String(id)));
+    };
+    const need = (permission: string) => {
+      if (!allowed(permission)) throw new Error('Nu ai permisiunea necesară pentru această acțiune.');
+    };
+    const name = await actorDisplayName(db, session.discord_id);
+    const access = {
+      read: allowed('read'),
+      write: allowed('write'),
+      request: allowed('request'),
+      manage_requests: allowed('manage_requests'),
+      donate: allowed('donate'),
+      approve_donation: allowed('approve_donation')
+    };
+
+    if (action === 'load') {
+      if (!access.read && !access.request && !access.donate && !access.approve_donation) need('read');
+      const [itemsResult, requestsResult, donationsResult] = await Promise.all([
+        access.read
+          ? db.from('organization_stash_items').select('*').eq('organization_id', organizationId).neq('status', 'archived').order('created_at', { ascending: false }).limit(300)
+          : Promise.resolve({ data: [], error: null }),
+        access.manage_requests || access.request
+          ? db.from('organization_stash_requests').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(300)
+          : Promise.resolve({ data: [], error: null }),
+        access.approve_donation || access.donate
+          ? db.from('organization_stash_donations').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(300)
+          : Promise.resolve({ data: [], error: null })
+      ]);
+      if (itemsResult.error || requestsResult.error || donationsResult.error) throw itemsResult.error || requestsResult.error || donationsResult.error;
+      const requests = access.manage_requests ? requestsResult.data || [] : (requestsResult.data || []).filter((row: any) => row.requested_by_discord_id === session.discord_id);
+      const donations = access.approve_donation ? donationsResult.data || [] : (donationsResult.data || []).filter((row: any) => row.donated_by_discord_id === session.discord_id);
+      return reply({ ok: true, access, items: itemsResult.data || [], requests, donations });
+    }
+
+    if (action === 'create_item') {
+      need('write');
+      const title = text(body.title, 140), category = text(body.category || 'General', 60), unit = text(body.unit || 'buc.', 20), description = text(body.description, 4000);
+      const quantity = validNumber(body.quantity, 0, 100000000);
+      if (title.length < 2 || category.length < 2 || !quantity || unit.length < 1) return reply({ error: 'Completează articolul, categoria și o cantitate validă.' }, 400);
+      const { data, error } = await db.from('organization_stash_items').insert({ organization_id: organizationId, title, category, quantity, unit, description, status: ['available', 'reserved', 'out'].includes(body.status) ? body.status : 'available', source_type: 'manual', created_by_discord_id: session.discord_id, created_by_name: name, updated_by_discord_id: session.discord_id }).select('*').single();
+      if (error) throw error;
+      await sendDiscordWebhook(db, organizationId, 'stash', itemEmbed(data, 'Articol nou în Stash'));
+      return reply({ ok: true, item: data });
+    }
+
+    if (action === 'update_item') {
+      need('write');
+      if (!validId(body.id)) return reply({ error: 'Articolul este invalid.' }, 400);
+      const updates: any = { updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() };
+      if (body.title !== undefined) updates.title = text(body.title, 140);
+      if (body.category !== undefined) updates.category = text(body.category, 60);
+      if (body.unit !== undefined) updates.unit = text(body.unit, 20);
+      if (body.description !== undefined) updates.description = text(body.description, 4000);
+      if (body.quantity !== undefined) updates.quantity = validNumber(body.quantity, 0, 100000000);
+      if (body.status !== undefined && ['available', 'reserved', 'out', 'archived'].includes(body.status)) updates.status = body.status;
+      if (updates.title !== undefined && updates.title.length < 2) return reply({ error: 'Titlul este prea scurt.' }, 400);
+      if (updates.quantity === null) return reply({ error: 'Cantitatea este invalidă.' }, 400);
+      const { data, error } = await db.from('organization_stash_items').update(updates).eq('organization_id', organizationId).eq('id', body.id).select('*').single();
+      if (error) throw error;
+      await sendDiscordWebhook(db, organizationId, 'stash', itemEmbed(data, 'Stash actualizat'));
+      return reply({ ok: true, item: data });
+    }
+
+    if (action === 'archive_item') {
+      need('write');
+      if (!validId(body.id)) return reply({ error: 'Articolul este invalid.' }, 400);
+      const { data, error } = await db.from('organization_stash_items').update({ status: 'archived', updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', body.id).select('*').single();
+      if (error) throw error;
+      await sendDiscordWebhook(db, organizationId, 'stash', itemEmbed(data, 'Articol arhivat din Stash'));
+      return reply({ ok: true, item: data });
+    }
+
+    if (action === 'create_request') {
+      need('request');
+      const itemId = validId(body.stash_item_id) ? String(body.stash_item_id) : null;
+      let itemTitle = text(body.item_title, 140);
+      if (itemId) {
+        const { data: item, error } = await db.from('organization_stash_items').select('id,title,status').eq('organization_id', organizationId).eq('id', itemId).maybeSingle();
+        if (error) throw error;
+        if (!item || item.status === 'archived') return reply({ error: 'Articolul selectat nu mai este disponibil.' }, 400);
+        itemTitle = item.title;
+      }
+      const quantity = validNumber(body.quantity, 0.01, 100000000);
+      if (itemTitle.length < 2 || !quantity) return reply({ error: 'Alege un articol și o cantitate validă.' }, 400);
+      const { data, error } = await db.from('organization_stash_requests').insert({ organization_id: organizationId, stash_item_id: itemId, item_title: itemTitle, quantity, note: text(body.note, 2000), requested_by_discord_id: session.discord_id, requested_by_name: name }).select('*').single();
+      if (error) throw error;
+      await sendDiscordWebhook(db, organizationId, 'stash_requests', requestEmbed(data));
+      return reply({ ok: true, request: data });
+    }
+
+    if (action === 'update_request') {
+      need('manage_requests');
+      if (!validId(body.id) || !['pending', 'approved', 'rejected', 'completed'].includes(body.status)) return reply({ error: 'Cererea sau statusul sunt invalide.' }, 400);
+      const { data, error } = await db.from('organization_stash_requests').update({ status: body.status, handled_by_discord_id: session.discord_id, handled_by_name: name, handled_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', body.id).select('*').single();
+      if (error) throw error;
+      await sendDiscordWebhook(db, organizationId, 'stash_requests', requestEmbed(data, body.status === 'approved' ? 'Cerere aprobată' : body.status === 'rejected' ? 'Cerere respinsă' : 'Cerere actualizată'));
+      return reply({ ok: true, request: data });
+    }
+
+    if (action === 'create_donation') {
+      need('donate');
+      const title = text(body.title, 140), category = text(body.category || 'Donație', 60), unit = text(body.unit || 'buc.', 20), note = text(body.note, 4000);
+      const quantity = validNumber(body.quantity, 0.01, 100000000);
+      if (title.length < 2 || category.length < 2 || !quantity || !unit.length) return reply({ error: 'Completează articolul donat și o cantitate validă.' }, 400);
+      const { data, error } = await db.from('organization_stash_donations').insert({ organization_id: organizationId, title, category, quantity, unit, note, donated_by_discord_id: session.discord_id, donated_by_name: name }).select('*').single();
+      if (error) throw error;
+      await sendDiscordWebhook(db, organizationId, 'stash_donations', donationEmbed(data, 'Donație nouă în așteptarea aprobării'));
+      return reply({ ok: true, donation: data });
+    }
+
+    if (action === 'update_donation') {
+      need('approve_donation');
+      if (!validId(body.id) || !['approved', 'rejected'].includes(body.status)) return reply({ error: 'Donația sau statusul sunt invalide.' }, 400);
+      const { data: donation, error: donationError } = await db.from('organization_stash_donations').select('*').eq('organization_id', organizationId).eq('id', body.id).maybeSingle();
+      if (donationError) throw donationError;
+      if (!donation || donation.status !== 'pending') return reply({ error: 'Donația nu mai este în așteptare.' }, 400);
+      let updated = donation;
+      if (body.status === 'approved') {
+        const { data: item, error: itemError } = await db.from('organization_stash_items').insert({ organization_id: organizationId, title: donation.title, category: donation.category, quantity: donation.quantity, unit: donation.unit, description: donation.note, status: 'available', source_type: 'donation', created_by_discord_id: donation.donated_by_discord_id, created_by_name: donation.donated_by_name, updated_by_discord_id: session.discord_id }).select('*').single();
+        if (itemError) throw itemError;
+        const { data: changed, error } = await db.from('organization_stash_donations').update({ status: 'approved', reviewed_by_discord_id: session.discord_id, reviewed_by_name: name, reviewed_at: new Date().toISOString(), stash_item_id: item.id, updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', donation.id).select('*').single();
+        if (error) throw error;
+        updated = changed;
+        await sendDiscordWebhook(db, organizationId, 'stash', itemEmbed(item, 'Donație aprobată și adăugată în Stash'));
+      } else {
+        const { data: changed, error } = await db.from('organization_stash_donations').update({ status: 'rejected', reviewed_by_discord_id: session.discord_id, reviewed_by_name: name, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', donation.id).select('*').single();
+        if (error) throw error;
+        updated = changed;
+      }
+      await sendDiscordWebhook(db, organizationId, 'stash_donations', donationEmbed(updated, body.status === 'approved' ? 'Donație aprobată' : 'Donație respinsă'));
+      return reply({ ok: true, donation: updated });
+    }
+
+    return reply({ error: 'Acțiunea Stash este necunoscută.' }, 400);
+  } catch (error) {
+    console.error(error);
+    return reply({ error: error instanceof Error ? error.message : 'Eroare internă.' }, 500);
+  }
+});
