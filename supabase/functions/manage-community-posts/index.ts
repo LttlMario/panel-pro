@@ -146,11 +146,97 @@ const canDeleteMarketplaceByRole =
     isPlatformAdmin ||
     effectiveDiscordRoleIds.some(roleId => allowedMarketplaceDeleteRoles.includes(roleId));
 
+const marketplacePageForTable = (table:string) =>
+    table === 'marketplace_ilegal' ? 'marketplace-ilegal.html' : 'marketplace.html';
+const marketplaceFeatureForTable = (table:string) =>
+    table === 'marketplace_ilegal' ? 'illegal_marketplace' : 'legal_marketplace';
+const hasMarketplacePageAccess = (table:string) => {
+    const page = marketplacePageForTable(table);
+    const roles = Array.isArray(pagePermissions[page]) ? pagePermissions[page].map(String) : [];
+    return isPlatformAdmin || (
+        packageFeatures.includes(marketplaceFeatureForTable(table)) &&
+        effectiveDiscordRoleIds.some(roleId => roles.includes(roleId))
+    );
+};
+const loadMarketplaceItem = async (table:string, itemId:string) => {
+    const query = db.from(table)
+        .select('id,organization_id,created_by_discord_id')
+        .eq('id', itemId);
+    if (table === 'marketplace_ilegal') query.is('organization_id', null);
+    const { data, error } = await query.maybeSingle();
+    if (error) throw error;
+    return data;
+};
+const canManageMarketplaceComment = (table:string, item:any, comment:any) =>
+    isPlatformAdmin ||
+    String(comment.author_discord_id || '') === String(du.id) ||
+    (canDeleteMarketplaceByRole && (
+        table === 'marketplace_ilegal' ||
+        String(item?.organization_id || '') === String(organizationId)
+    ));
+
 if (body.action === 'marketplace_access') {
     return reply({
         can_delete: canDeleteMarketplaceByRole,
         platform_admin: isPlatformAdmin
     });
+}
+
+if (['marketplace_comments_list', 'marketplace_comment_add', 'marketplace_comment_delete'].includes(String(body.action || ''))) {
+    const table = String(body.table || '');
+    if (!['marketplace', 'marketplace_ilegal'].includes(table)) return reply({ error: 'Tabel Marketplace invalid.' }, 400);
+    if (!hasMarketplacePageAccess(table)) return reply({ error: 'Nu ai acces la comentariile acestei pagini.' }, 403);
+    const itemId = String(body.item_id || '').trim();
+    if (!itemId) return reply({ error: 'Anunțul nu a fost identificat.' }, 400);
+    const item = await loadMarketplaceItem(table, itemId);
+    if (!item) return reply({ error: 'Anunțul nu există sau nu este accesibil.' }, 404);
+
+    if (body.action === 'marketplace_comments_list') {
+        const { data: comments, error } = await db.from('marketplace_comments')
+            .select('id,marketplace_table,marketplace_id,author_discord_id,author_name,content,created_at,updated_at')
+            .eq('marketplace_table', table)
+            .eq('marketplace_id', itemId)
+            .order('created_at', { ascending: true })
+            .limit(200);
+        if (error) throw error;
+        return reply({
+            comments: (comments || []).map((comment:any) => ({
+                ...comment,
+                can_delete: canManageMarketplaceComment(table, item, comment)
+            })),
+            can_comment: true
+        });
+    }
+
+    if (body.action === 'marketplace_comment_add') {
+        const content = String(body.content || '').trim();
+        if (!content || content.length > 2000) return reply({ error: 'Comentariul trebuie să aibă între 1 și 2000 de caractere.' }, 400);
+        const { data: author } = await db.from('users').select('display_name,username').eq('discord_id', du.id).maybeSingle();
+        const authorName = String(author?.display_name || author?.username || du.id).trim().slice(0, 120);
+        const { data: comment, error } = await db.from('marketplace_comments').insert({
+            marketplace_table: table,
+            marketplace_id: itemId,
+            author_discord_id: du.id,
+            author_name: authorName,
+            content
+        }).select('id,marketplace_table,marketplace_id,author_discord_id,author_name,content,created_at,updated_at').single();
+        if (error) throw error;
+        return reply({ comment, can_delete: true });
+    }
+
+    const commentId = String(body.comment_id || '').trim();
+    const { data: comment, error: commentError } = await db.from('marketplace_comments')
+        .select('id,author_discord_id')
+        .eq('id', commentId)
+        .eq('marketplace_table', table)
+        .eq('marketplace_id', itemId)
+        .maybeSingle();
+    if (commentError) throw commentError;
+    if (!comment) return reply({ error: 'Comentariul nu mai există.' }, 404);
+    if (!canManageMarketplaceComment(table, item, comment)) return reply({ error: 'Nu ai permisiunea să ștergi acest comentariu.' }, 403);
+    const { error: deleteError } = await db.from('marketplace_comments').delete().eq('id', commentId).eq('marketplace_table', table).eq('marketplace_id', itemId);
+    if (deleteError) throw deleteError;
+    return reply({ ok: true, deleted_id: commentId });
 }
 
 const hasAnnouncementPageAccess =
@@ -560,6 +646,8 @@ const own = async (id:string) => {
    const {data:deleted,error}=await deleteQuery.select('id');
    if(error)throw error;
    if(!deleted?.length)throw new Error('Anunțul nu a fost șters.');
+   const { error: commentsCleanupError } = await db.from('marketplace_comments').delete().eq('marketplace_table', table).eq('marketplace_id', body.item_id);
+   if (commentsCleanupError) console.warn('Comentariile anunțului nu au putut fi curățate:', commentsCleanupError.message);
    const messageRefs = Array.isArray(item.discord_message_ids) ? item.discord_message_ids : [];
    for (const ref of messageRefs) {
      if (!ref?.webhook || !ref?.id) continue;

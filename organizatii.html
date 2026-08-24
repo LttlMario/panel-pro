@@ -1549,13 +1549,6 @@ $('status').textContent=`Organizația a fost salvată cu ${roles.length} roluri 
   $('client').required=false; $('url').required=false;
   $('client').closest('label')?.classList.add('hidden'); $('url').closest('label')?.classList.add('hidden');
   const inheritedNote=document.createElement('p'); inheritedNote.className='mt-3 rounded-lg border border-slate-700 bg-slate-950 p-3 text-xs text-slate-400'; inheritedNote.textContent='Discord Client ID și URL-ul panelului sunt moștenite din configurarea platformei. Organizația are nevoie doar de servere, roluri și webhook-uri Discord.'; $('guild').closest('.rounded-xl')?.before(inheritedNote);
-  const originalLoad = load;
-  form.addEventListener('submit', () => { form.dataset.skipNextLoad = 'true'; }, true);
-  load = async () => {
-    if (form.dataset.skipNextLoad) { delete form.dataset.skipNextLoad; return; }
-    return originalLoad();
-  };
-
   // La alegerea unui rol Discord, folosește automat numele rolului ca nume inițial în panel.
 const originalRenderRoles = renderRoles;
 

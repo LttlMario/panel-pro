@@ -145,9 +145,9 @@
       let communicationPermissions = { organization: { read: [], write: [] }, departments: { read: [], write: [] } };
       let disciplinePermissions = { organization: { read: [], write: [], sanction: [] }, departments: { read: [], write: [], sanction: [] } };
       let ownerPackageCode = 'standard';
-      const standardPackageFeatures = new Set(['core', 'announcements', 'requests', 'contracts', 'reports', 'legal_marketplace', 'legal_tools', 'assistant', 'status_live', 'announcements_departments', 'requests_departments', 'discipline_departments', 'stash']);
+      const standardPackageFeatures = new Set(['core', 'announcements', 'requests', 'contracts', 'reports', 'legal_marketplace', 'legal_tools', 'assistant', 'status_live', 'announcements_departments', 'requests_departments', 'discipline_departments']);
       const fullOnlyWebhookKeys = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
-      const fullOnlyPageFeatures = new Map([['calculatorilegal.html', 'illegal_calculator'], ['locatiiilegale.html', 'illegal_locations'], ['marketplace-ilegal.html', 'illegal_marketplace'], ['minigames.html', 'illegal_minigames']]);
+      const fullOnlyPageFeatures = new Map([['calculatorilegal.html', 'illegal_calculator'], ['locatiiilegale.html', 'illegal_locations'], ['marketplace-ilegal.html', 'illegal_marketplace'], ['minigames.html', 'illegal_minigames'], ['stash.html', 'stash']]);
       const ownerAllowsFeature = (feature) => ownerPackageCode === 'full' || standardPackageFeatures.has(feature);
       const ownerAllowsPage = (page) => !fullOnlyPageFeatures.has(page) || ownerAllowsFeature(fullOnlyPageFeatures.get(page));
 

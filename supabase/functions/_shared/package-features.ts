@@ -24,7 +24,7 @@ export const PACKAGE_FEATURES = Object.freeze({
 export const STANDARD_PACKAGE_FEATURES = Object.freeze([
   'core', 'announcements', 'requests', 'contracts', 'reports',
   'legal_marketplace', 'legal_tools', 'assistant', 'status_live',
-  'announcements_departments', 'requests_departments', 'discipline_departments', 'stash'
+  'announcements_departments', 'requests_departments', 'discipline_departments'
 ]);
 
 export const FULL_PACKAGE_FEATURES = Object.freeze(Object.keys(PACKAGE_FEATURES));

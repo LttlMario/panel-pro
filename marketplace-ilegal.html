@@ -11,6 +11,7 @@
     <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
     <script src="js/permissions.js?v=4.6.0"></script>
     <script src="js/panel-layout.js?v=4.27.0"></script>
+    <script src="js/marketplace-comments.js?v=20260824-market-comments-fix"></script>
     <link rel="stylesheet" href="css/global-footer.css">
     <script src="js/project-version.js?v=3.11.5"></script>
     <link rel="icon" href="img/favicon.ico">
@@ -620,6 +621,7 @@
                                 </div>
                                 <div>
                                     ${dataFormatata ? `<div class="text-[10px] text-slate-500">Publicat: ${dataFormatata}</div>` : ''}
+                                    <button type="button" data-marketplace-comments-open data-marketplace-table="marketplace_ilegal" data-marketplace-id="${escapeHtml(item.id)}" data-marketplace-title="${escapeHtml(numeAfisat || 'Anunț')}" class="mt-2 px-2.5 py-1 rounded-lg border border-sky-500/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 text-[10px] font-bold">💬 Comentarii</button>
                                     ${poateEdita ? `<button type="button" onclick="editeazaAnuntMarketplace('${item.id}')" class="mt-2 px-2.5 py-1 rounded-lg border border-sky-500/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 text-[10px] font-bold">Editează</button>` : ''}
                                     ${poateSterge ? `<button type="button" onclick="stergeAnuntMarketplace('${item.id}')" class="mt-2 ml-1 px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-[10px] font-bold">Șterge</button>` : ''}
                                 </div>

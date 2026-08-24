@@ -6,6 +6,7 @@
   let modalMode = '';
   let editingItem = null;
 
+  const stashCategories = ['Arme', 'Muniție', 'Armuri', 'Semințe de cocaină', 'Semințe de canabis', 'Semințe de tutun', 'Plicuri goale', 'Plicuri de cocaină', 'Plicuri de ciuperci'];
   const statusLabel = { available: 'Disponibil', reserved: 'Rezervat', out: 'Epuizat', archived: 'Arhivat', pending: 'În așteptare', approved: 'Aprobat', rejected: 'Respins', completed: 'Finalizat' };
   const statusClass = (status) => ['available', 'approved', 'completed'].includes(status) ? 'green' : ['pending', 'reserved'].includes(status) ? 'amber' : ['rejected', 'out'].includes(status) ? 'red' : '';
   const showNotice = (message, error = false) => { const node = $('stash-notice'); node.textContent = message || ''; node.hidden = !message; node.style.borderColor = error ? '#991b1b' : '#7c2d12'; node.style.background = error ? '#450a0a' : '#431407'; node.style.color = error ? '#fecaca' : '#fed7aa'; };
@@ -35,9 +36,6 @@
     host.innerHTML = state.donations.map((donation) => `<div class="stash-row"><div><b class="text-slate-100">${esc(donation.title)}</b><div class="stash-muted">${esc(donation.donated_by_name)} · ${esc(donation.quantity)} ${esc(donation.unit)}${donation.note ? ` · ${esc(donation.note)}` : ''}</div></div><span class="stash-pill ${statusClass(donation.status)}">${esc(statusLabel[donation.status] || donation.status)}</span>${state.access.approve_donation && donation.status === 'pending' ? `<div class="stash-actions"><button class="stash-btn primary" data-donation-status="approved" data-donation-id="${esc(donation.id)}">Aprobă și postează</button><button class="stash-btn danger" data-donation-status="rejected" data-donation-id="${esc(donation.id)}">Respinge</button></div>` : '<span></span>'}</div>`).join('');
   };
   const renderAccess = () => {
-    const entries = [['read', 'Poate citi inventarul'], ['write', 'Poate posta și gestiona articole'], ['request', 'Poate trimite cereri'], ['manage_requests', 'Poate aproba cereri'], ['donate', 'Poate dona'], ['approve_donation', 'Poate aproba donații']];
-    $('stash-access-help').textContent = 'Permisiunile se configurează pe roluri Discord, separat pentru fiecare organizație.';
-    $('stash-access-list').innerHTML = entries.map(([key, label]) => `<div class="stash-item"><div class="flex items-center justify-between gap-3"><span class="text-xs text-slate-300">${esc(label)}</span><span class="stash-pill ${state.access[key] ? 'green' : 'red'}">${state.access[key] ? 'Da' : 'Nu'}</span></div></div>`).join('');
     $('stash-add').hidden = !state.access.write;
     $('stash-request').hidden = !state.access.request;
     $('stash-donate').hidden = !state.access.donate;
@@ -51,13 +49,33 @@
     catch (error) { showNotice(error.message, true); $('stash-items').innerHTML = `<div class="stash-empty">${esc(error.message)}</div>`; }
   };
   const field = (label, input) => `<label>${esc(label)}${input}</label>`;
+  const customCategoryOption = 'Altele / Personalizat';
+  const categoryField = (value = 'Arme') => {
+    const current = String(value || '').trim();
+    const selected = stashCategories.includes(current) ? current : customCategoryOption;
+    const customValue = selected === customCategoryOption ? current : '';
+    const options = [...stashCategories, customCategoryOption];
+    return field('Categorie', `<select name="category" data-stash-category required>${options.map((category) => `<option value="${esc(category)}" ${category === selected ? 'selected' : ''}>${esc(category)}</option>`).join('')}</select>`) + `<label data-stash-custom-wrap hidden>Categorie personalizată<input name="custom_category" data-stash-custom-category maxlength="60" value="${esc(customValue)}" placeholder="Ex: Cărți, materiale, telefoane"></label>`;
+  };
   const openModal = (mode, item = null) => {
     modalMode = mode; editingItem = item;
     const title = { item: item ? 'Editează articolul' : 'Adaugă în stash', request: 'Trimite cerere din stash', donation: 'Donează către stash' }[mode];
     $('stash-modal-title').textContent = title;
-    if (mode === 'item') $('stash-form-fields').innerHTML = field('Articol', `<input name="title" maxlength="140" required value="${esc(item?.title || '')}">`) + field('Categorie', `<input name="category" maxlength="60" required value="${esc(item?.category || 'General')}">`) + `<div class="grid grid-cols-2 gap-3">${field('Cantitate', `<input name="quantity" type="number" min="0" step="0.01" required value="${esc(item?.quantity ?? 1)}">`)}${field('Unitate', `<input name="unit" maxlength="20" value="${esc(item?.unit || 'buc.')}">`)}</div>` + field('Status', `<select name="status"><option value="available" ${item?.status === 'available' ? 'selected' : ''}>Disponibil</option><option value="reserved" ${item?.status === 'reserved' ? 'selected' : ''}>Rezervat</option><option value="out" ${item?.status === 'out' ? 'selected' : ''}>Epuizat</option></select>`) + field('Detalii', `<textarea name="description" maxlength="4000">${esc(item?.description || '')}</textarea>`);
+    if (mode === 'item') $('stash-form-fields').innerHTML = field('Articol', `<input name="title" maxlength="140" required value="${esc(item?.title || '')}">`) + categoryField(item?.category || 'Arme') + `<div class="grid grid-cols-2 gap-3">${field('Cantitate', `<input name="quantity" type="number" min="0" step="0.01" required value="${esc(item?.quantity ?? 1)}">`)}${field('Unitate', `<input name="unit" maxlength="20" value="${esc(item?.unit || 'buc.')}">`)}</div>` + field('Status', `<select name="status"><option value="available" ${item?.status === 'available' ? 'selected' : ''}>Disponibil</option><option value="reserved" ${item?.status === 'reserved' ? 'selected' : ''}>Rezervat</option><option value="out" ${item?.status === 'out' ? 'selected' : ''}>Epuizat</option></select>`) + field('Detalii', `<textarea name="description" maxlength="4000">${esc(item?.description || '')}</textarea>`);
     if (mode === 'request') $('stash-form-fields').innerHTML = field('Alege articolul (opțional)', `<select name="stash_item_id"><option value="">Cerere generală</option>${state.items.filter((entry) => entry.status !== 'archived').map((entry) => `<option value="${esc(entry.id)}">${esc(entry.title)} · ${esc(entry.quantity)} ${esc(entry.unit)}</option>`).join('')}</select>`) + field('Articol solicitat', `<input name="item_title" maxlength="140" placeholder="Completează dacă nu alegi de mai sus">`) + field('Cantitate', '<input name="quantity" type="number" min="0.01" step="0.01" required value="1">') + field('Notă', '<textarea name="note" maxlength="2000" placeholder="Pentru ce este necesar?"></textarea>');
-    if (mode === 'donation') $('stash-form-fields').innerHTML = field('Ce donezi?', '<input name="title" maxlength="140" required>') + field('Categorie', '<input name="category" maxlength="60" required value="Donație">') + `<div class="grid grid-cols-2 gap-3">${field('Cantitate', '<input name="quantity" type="number" min="0.01" step="0.01" required value="1">')}${field('Unitate', '<input name="unit" maxlength="20" value="buc.">')}</div>` + field('Notă', '<textarea name="note" maxlength="4000" placeholder="Detalii pentru persoana care aprobă donația"></textarea>');
+    if (mode === 'donation') $('stash-form-fields').innerHTML = field('Ce donezi?', '<input name="title" maxlength="140" required>') + categoryField('Arme') + `<div class="grid grid-cols-2 gap-3">${field('Cantitate', '<input name="quantity" type="number" min="0.01" step="0.01" required value="1">')}${field('Unitate', '<input name="unit" maxlength="20" value="buc.">')}</div>` + field('Notă', '<textarea name="note" maxlength="4000" placeholder="Detalii pentru persoana care aprobă donația"></textarea>');
+    const categorySelect = $('stash-form-fields').querySelector('[data-stash-category]');
+    const customCategoryWrap = $('stash-form-fields').querySelector('[data-stash-custom-wrap]');
+    const customCategoryInput = $('stash-form-fields').querySelector('[data-stash-custom-category]');
+    if (categorySelect && customCategoryWrap && customCategoryInput) {
+      const syncCategory = () => {
+        const isCustom = categorySelect.value === customCategoryOption;
+        customCategoryWrap.hidden = !isCustom;
+        customCategoryInput.required = isCustom;
+      };
+      categorySelect.addEventListener('change', syncCategory);
+      syncCategory();
+    }
     $('stash-modal').hidden = false;
     $('stash-form').querySelector('input,select,textarea')?.focus();
   };
@@ -66,10 +84,19 @@
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget).entries());
     try {
-      if (modalMode === 'item') await api(editingItem ? 'update_item' : 'create_item', editingItem ? { id: editingItem.id, ...values } : values);
-      if (modalMode === 'request') await api('create_request', values);
-      if (modalMode === 'donation') await api('create_donation', values);
+      if (modalMode === 'item' || modalMode === 'donation') {
+        if (values.category === customCategoryOption) {
+          values.category = String(values.custom_category || '').trim();
+          if (values.category.length < 2) throw new Error('Completează categoria personalizată.');
+        }
+        delete values.custom_category;
+      }
+      let result;
+      if (modalMode === 'item') result = await api(editingItem ? 'update_item' : 'create_item', editingItem ? { id: editingItem.id, ...values } : values);
+      if (modalMode === 'request') result = await api('create_request', values);
+      if (modalMode === 'donation') result = await api('create_donation', values);
       const wasDonation = modalMode === 'donation'; closeModal(); showNotice(wasDonation ? 'Donația a fost trimisă pentru aprobare.' : 'Modificările au fost salvate.'); await load();
+      if (result?.webhook && (!result.webhook.configured || result.webhook.failed > 0)) showNotice('Datele au fost salvate, dar webhookul Discord nu a fost livrat. Verifică ruta și activează webhookul potrivit în administrarea organizației.', true);
     } catch (error) { showNotice(error.message, true); }
   };
   const setTab = (tab) => { document.querySelectorAll('[data-stash-tab]').forEach((button) => button.classList.toggle('active', button.dataset.stashTab === tab)); $('stash-items-panel').hidden = tab !== 'items'; $('stash-requests-panel').hidden = tab !== 'requests'; $('stash-donations-panel').hidden = tab !== 'donations'; };

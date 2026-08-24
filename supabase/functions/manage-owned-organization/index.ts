@@ -50,12 +50,13 @@ const fullOnlyPageFeatures = new Map([
   ['calculatorilegal.html', 'illegal_calculator'],
   ['locatiiilegale.html', 'illegal_locations'],
   ['marketplace-ilegal.html', 'illegal_marketplace'],
-  ['minigames.html', 'illegal_minigames']
+  ['minigames.html', 'illegal_minigames'],
+  ['stash.html', 'stash']
 ]);
 const standardPackageFeatures = new Set([
   'core', 'announcements', 'requests', 'contracts', 'reports', 'legal_marketplace',
   'legal_tools', 'assistant', 'status_live', 'announcements_departments',
-  'requests_departments', 'discipline_departments', 'stash'
+  'requests_departments', 'discipline_departments'
 ]);
 
 const packageAllowsFeature = (packageValue: any, feature: string) =>
