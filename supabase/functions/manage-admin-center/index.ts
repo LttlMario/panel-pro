@@ -261,7 +261,7 @@ Deno.serve(async request=>{
       const [profileResult, shiftsResult, absencesResult, auditResult] = await Promise.all([
         db.from('users').select('discord_id,username,display_name,avatar,avatar_url').eq('discord_id', target).maybeSingle(),
         db.from('shifts').select('id,status,shift_type,date,start_time,end_time,duration,created_at').eq('organization_id', organizationId).eq('discord_id', target).order('created_at', { ascending: false }).limit(100),
-        db.from('absences').select('id,notice_type,status,reason,notes,start_at,end_at,created_at').eq('organization_id', organizationId).eq('discord_id', target).order('created_at', { ascending: false }).limit(100),
+        db.from('absences').select('id,notice_type,reason,notes,start_at,end_at,created_at').eq('organization_id', organizationId).eq('discord_id', target).order('created_at', { ascending: false }).limit(100),
         db.from('admin_audit_log').select('id,action,target_type,target_id,details,created_at,actor_name,actor_discord_id').eq('organization_id', organizationId).or(`actor_discord_id.eq.${target},target_id.eq.${target}`).order('created_at', { ascending: false }).limit(100),
       ]);
       for (const result of [profileResult, shiftsResult, absencesResult, auditResult]) if (result.error) throw result.error;
