@@ -1235,14 +1235,14 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 ['marketplace.html', '🛒', 'Marketplace'],
                 ['calculator.html', '🧮', 'Calculator'],
                 ['bucatarie.html', '🍳', 'Bucătărie'],
-                ['craftmecanics.html', '🔨', 'Craft Mecanic'],
-                ['stash.html', '📦', 'Stash organizație']
+                ['craftmecanics.html', '🔨', 'Craft Mecanic']
             ]],
             ['ilegal', 'Resurse ilegale', [
                 ['calculatorilegal.html', '🧮', 'Calculator Ilegal'],
                 ['locatiiilegale.html', '🗺️', 'Locații Ilegale'],
                 ['marketplace-ilegal.html', '🚨', 'Black Market'],
-                ['minigames.html', '🎮', 'Minigames']
+                ['minigames.html', '🎮', 'Minigames'],
+                ['stash.html', '📦', 'Stash organizație']
             ]],
             ['administratie', 'Administrație', [
                 ['logs.html', '🧾', 'Loguri'],
