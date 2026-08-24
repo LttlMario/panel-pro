@@ -6,7 +6,7 @@ const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-
 
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
 const normalizeBlackMarketName=(value:unknown)=>String(value??'').replace(/^\s*\d{1,12}\s+/,'').replace(/^\s*\d{1,12}\s*[|:/#-]\s*/,'').replace(/\s*[|:/#-]\s*\d{1,12}\s*$/,'').replace(/\s+\d{1,12}\s*$/,'').replace(/\s*[[(]\s*\d{1,12}\s*[\])]\s*$/,'').replace(/\s{2,}/g,' ').trim();
-const allowedCommunityReactions=new Set(['✅','👍','❤️','🤔']);
+const allowedCommunityReactions=new Set(['✅','❌','👍','❤️','🤔']);
 Deno.serve(async(req)=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return reply({error:'Method not allowed'},405);let stage='request';try{
  stage='parse_body';
  const body=await req.json();
