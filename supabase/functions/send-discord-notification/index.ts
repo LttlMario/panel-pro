@@ -351,7 +351,9 @@ if (request.method === 'OPTIONS') {
 
     let config: any = null;
 
-    if (finalChannel !== 'illegal_marketplace') {
+    const globalMarketplaceChannel = ['marketplace', 'illegal_marketplace'].includes(finalChannel);
+
+    if (!globalMarketplaceChannel) {
       const {
         data: organizationConfig,
         error: configError
@@ -587,7 +589,7 @@ if (finalChannel === 'requests_departments') {
 
 let webhooks: string[];
 
-if (finalChannel === 'illegal_marketplace') {
+if (['marketplace', 'illegal_marketplace'].includes(finalChannel)) {
   const { data: activeOrganizations, error: organizationsError } = await db
     .from('organizations')
     .select('id')
@@ -597,23 +599,24 @@ if (finalChannel === 'illegal_marketplace') {
 
   const organizationIds = (activeOrganizations || []).map((organization: any) => organization.id);
   if (!organizationIds.length) {
-    throw new Error('Nu există organizații active pentru Marketplace ilegal.');
+    throw new Error(`Nu există organizații active pentru ${finalChannel === 'marketplace' ? 'Marketplace' : 'Marketplace ilegal'}.`);
   }
 
   const { data: settingsRows, error: settingsError } = await db
     .from('organization_settings')
-    .select('organization_id, webhook_routes, illegal_marketplace_webhook_url, illegal_marketplace_secondary_webhook_url')
+    .select('organization_id, webhook_routes, marketplace_webhook_url, marketplace_secondary_webhook_url, illegal_marketplace_webhook_url, illegal_marketplace_secondary_webhook_url')
     .in('organization_id', organizationIds);
 
   if (settingsError) throw settingsError;
 
   webhooks = [...new Set(
-    (settingsRows || []).flatMap((settings: any) => [
-      settings.webhook_routes?.illegal_marketplace?.primary?.url,
-      settings.webhook_routes?.illegal_marketplace?.secondary?.url,
-      settings.illegal_marketplace_webhook_url,
-      settings.illegal_marketplace_secondary_webhook_url
-    ]).filter(Boolean).map(String)
+    (settingsRows || []).flatMap((settings: any) => {
+      const route = settings.webhook_routes?.[finalChannel] || {};
+      const legacy = finalChannel === 'marketplace'
+        ? [settings.marketplace_webhook_url, settings.marketplace_secondary_webhook_url]
+        : [settings.illegal_marketplace_webhook_url, settings.illegal_marketplace_secondary_webhook_url];
+      return [route.primary?.url, route.secondary?.url, ...legacy].filter(Boolean).map(String);
+    })
   )];
 
   if (!webhooks.length) {
