@@ -23,8 +23,9 @@ Deno.serve(async request=>{
       .eq('discord_id', discordUser.id)
       .eq('active', true)
       .maybeSingle();
+    const normalizedPanelRole = String(currentMember?.panel_role || '').trim().toLocaleLowerCase('ro-RO');
     const isOrganizationManager = isPlatformAdmin || Number(currentMember?.permission_level || 0) >= 90
-      || /owner|administrator|admin/i.test(String(currentMember?.panel_role || ''));
+      || new Set(['owner', 'administrator', 'administrator organizație', 'administrator organizatie', 'admin']).has(normalizedPanelRole);
     const textValue = (value: unknown, max: number) => String(value ?? '').trim().slice(0, max);
     const safeUrl = (value: unknown) => {
       const raw = textValue(value, 500);
@@ -108,7 +109,7 @@ Deno.serve(async request=>{
         branding: brandingResult.data?.value || {},
         is_manager: isOrganizationManager,
         members: (membersResult.data || []).map((member: any) => ({ ...profileMap.get(String(member.discord_id)), ...member })),
-        audit: auditResult.data || [],
+        audit: isOrganizationManager ? (auditResult.data || []) : [],
         notifications,
         stats: {
           members: counts[0], total_shifts: counts[1], active_shifts: counts[2], active_absences: counts[3],
@@ -143,6 +144,7 @@ Deno.serve(async request=>{
     }
 
     if (body.action === 'org_export') {
+      if (!isOrganizationManager) return reply({ error: 'Exporturile sunt disponibile doar ownerului sau administratorului organizației.' }, 403);
       const kind = textValue(body.kind, 30);
       const queries: Record<string, Promise<any>> = {
         members: db.from('organization_members').select('discord_id,panel_role,permission_level,active,last_verified_at,created_at').eq('organization_id', organizationId).order('created_at', { ascending: true }).limit(1000),
@@ -240,6 +242,7 @@ Deno.serve(async request=>{
     }
 
     if (body.action === 'org_backup') {
+      if (!isOrganizationManager) return reply({ error: 'Backupul este disponibil doar ownerului sau administratorului organizației.' }, 403);
       const [organization, settings, roles, guilds, members] = await Promise.all([
         db.from('organizations').select('id,name,slug,description,logo_url,banner_url,active,lifecycle_status').eq('id', organizationId).single(),
         db.from('app_settings').select('key,value').eq('organization_id', organizationId),
