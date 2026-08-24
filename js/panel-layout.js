@@ -3,6 +3,10 @@ const panelNativeAndroid = /Android/i.test(navigator.userAgent || '') && (
     window.Capacitor?.isNativePlatform?.() === true || /;\s*wv\)/i.test(navigator.userAgent || '')
 );
 if (panelNativeAndroid) document.documentElement.classList.add('panel-android-native');
+window.panelCloseLegacyMobileMenu = window.panelCloseLegacyMobileMenu || function panelCloseLegacyMobileMenu() {
+    document.getElementById('mobile-menu')?.classList.add('-translate-x-full');
+    document.getElementById('mobile-menu-backdrop')?.classList.add('hidden');
+};
 if (document.head && !document.head.querySelector('meta[http-equiv="Content-Security-Policy"]')) {
     const panelCsp = document.createElement('meta');
     panelCsp.httpEquiv = 'Content-Security-Policy';
@@ -308,11 +312,18 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             }
             html.panel-android-native body.panel-global-shell { min-width:0 !important; overflow-x:hidden !important; }
             html.panel-android-native body.panel-shared-sidebar-page { padding-left:0 !important; }
+            html.panel-android-native .panel-responsive-sidebar,
+            html.panel-android-native #panel-shared-sidebar { display:none !important; }
             html.panel-android-native body.panel-shared-sidebar-page > #panel-shared-sidebar,
             html.panel-android-native body.panel-shared-sidebar-page > #panel-shared-sidebar.is-collapsed { display:none !important; }
             html.panel-android-native #panel-mobile-menu { display:block !important; }
             html.panel-android-native #panel-mobile-backdrop { display:none !important; }
+            html.panel-android-native #panel-mobile-menu:not(.is-open) { transform:translateX(-102%) !important; }
             html.panel-android-native .panel-mobile-toggle { display:flex !important; }
+            html.panel-android-native #app .main-sidebar { display:none !important; }
+            html.panel-android-native #map-container-wrapper .control-sidebar { display:none !important; }
+            html.panel-android-native #map-container-wrapper .control-sidebar.mobile-open { display:flex !important; }
+            html.panel-android-native #map-container-wrapper .sidebar:not(.open) { right:-420px !important; }
             html.panel-android-native body.panel-global-shell > div:has(main) {
                 width:100% !important;
                 max-width:100% !important;
@@ -460,6 +471,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
 
         // Dashboard are deja propriul meniu mobil, păstrat pentru compatibilitate.
         if (document.getElementById('mobile-menu')) {
+            window.panelCloseLegacyMobileMenu();
             resolveOrganizationAdminVisibility(navigation);
             return;
         }
@@ -480,10 +492,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const closeMobileMenu = () => {
             mobileMenu.classList.remove('is-open');
             backdrop.style.display = 'none';
-            const legacyMenu = document.getElementById('mobile-menu');
-            const legacyBackdrop = document.getElementById('mobile-menu-backdrop');
-            legacyMenu?.classList.add('-translate-x-full');
-            legacyBackdrop?.classList.add('hidden');
+            window.panelCloseLegacyMobileMenu();
             document.body.classList.remove('panel-mobile-menu-open');
             document.body.style.overflow = '';
         };
