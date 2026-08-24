@@ -18,8 +18,9 @@ const limitText = (value: unknown, max: number) => String(value ?? '').trim().sl
 const normalizeKind = (value: unknown) => String(value ?? '').trim().toLowerCase();
 
 const secretKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
-const webhookUrlForTarget = async (db: any, target: string) => {
-  const name = target === 'secondary' ? 'public_community_webhook_secondary' : 'public_community_webhook_primary';
+const webhookUrlForTarget = async (db: any, kind: string, target: string) => {
+  const prefix = kind === 'rating' ? 'public_rating_webhook_' : 'public_community_webhook_';
+  const name = `${prefix}${target === 'secondary' ? 'secondary' : 'primary'}`;
   return (await getPlatformSecret(db, name)).replace(/\/$/, '');
 };
 const postUrl = (kind: string, id: string) => `${site}/${kind === 'rating' ? 'rate-panel.html' : 'suggestii.html'}?post=${encodeURIComponent(id)}`;
@@ -54,7 +55,7 @@ async function syncDiscordEmbeds(db: any, post: any) {
   let sent = 0;
   let failed = 0;
   for (const target of ['primary', 'secondary']) {
-    const url = await webhookUrlForTarget(db, target);
+    const url = await webhookUrlForTarget(db, post.kind, target);
     if (!url) continue;
     const previous = existing.find((item: any) => item?.target === target && item?.id);
     try {
@@ -84,7 +85,7 @@ async function deleteDiscordEmbeds(db: any, post: any) {
   const refs = Array.isArray(post.discord_message_ids) ? post.discord_message_ids : [];
   await Promise.all(refs.map(async (ref: any) => {
     if (!ref?.target || !ref?.id) return;
-    const url = await webhookUrlForTarget(db, String(ref.target));
+    const url = await webhookUrlForTarget(db, post.kind, String(ref.target));
     if (!url) return;
     try { await fetch(`${url}/messages/${encodeURIComponent(String(ref.id))}`, { method: 'DELETE' }); } catch (_) {}
   }));
@@ -130,7 +131,7 @@ Deno.serve(async (request) => {
     if (action === 'test_webhook') {
       if (!platformAdmin) return reply({ error: 'Doar administratorul platformei poate testa webhookurile globale.' }, 403);
       const target = String(body.target || 'primary') === 'secondary' ? 'secondary' : 'primary';
-      const url = await webhookUrlForTarget(db, target);
+      const url = await webhookUrlForTarget(db, 'suggestion', target);
       if (!url) return reply({ error: `Webhookul global ${target} nu este configurat în Secrete platformă.` }, 409);
       const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: '✅ Test webhook global Panel Pro.', allowed_mentions: { parse: [] } }) });
       if (!response.ok) return reply({ error: `Discord a răspuns cu HTTP ${response.status}.` }, 400);
