@@ -43,7 +43,7 @@ const allowedPages = new Map([
   ['asistent.html', 'Asistent Panel']
 ]);
 const allowedAssistantPages = new Set([...allowedPages.keys()]);
-const allowedActionKeys = new Set(['anunturi.publish', 'cereri.organization', 'cereri.departments']);
+const allowedActionKeys = new Set(['anunturi.publish', 'marketplace.delete', 'cereri.organization', 'cereri.departments']);
 const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
 const fullOnlyPageFeatures = new Map([
   ['calculatorilegal.html', 'illegal_calculator'],

@@ -515,6 +515,7 @@ if(
    */
   const allowedActions = new Set([
     'anunturi.publish',
+    'marketplace.delete',
     'cereri.organization',
     'cereri.departments'
   ]);

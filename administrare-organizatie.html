@@ -270,7 +270,7 @@
       const renderOwnerActionPermissions = () => {
         const host = $('owner-action-permissions'), roles = permissionRoles();
         if (!roles.length) { host.innerHTML = '<div class="owner-permission-card text-xs text-slate-400">Alege mai întâi rolurile Discord.</div>'; return; }
-        const groups = [['anunturi.publish', 'Publicare anunțuri și sondaje', 'Cine poate scrie, modifica sau șterge anunțuri.'], ...(ownerAllowsFeature('requests_organization') ? [['cereri.organization', 'Cereri → Organizație', 'Cine trimite cererile către organizație.']] : []), ['cereri.departments', 'Cereri → Birouri / Angajați', 'Cine trimite cererile către birouri și angajați.']];
+        const groups = [['anunturi.publish', 'Publicare anunțuri și sondaje', 'Cine poate scrie, modifica sau șterge anunțuri.'], ['marketplace.delete', 'Ștergere anunțuri Marketplace', 'Cine poate șterge anunțuri din Marketplace legal și Black Market.'], ...(ownerAllowsFeature('requests_organization') ? [['cereri.organization', 'Cereri → Organizație', 'Cine trimite cererile către organizație.']] : []), ['cereri.departments', 'Cereri → Birouri / Angajați', 'Cine trimite cererile către birouri și angajați.']];
         host.innerHTML = groups.map(([key, title, help]) => `<div class="owner-permission-card"><b class="text-sm">${esc(title)}</b><p class="mt-1 text-xs text-slate-400">${esc(help)}</p><div class="mt-3 flex flex-wrap gap-2" data-owner-action-host="${esc(key)}"></div></div>`).join('');
         groups.forEach(([key]) => checkboxList(host.querySelector(`[data-owner-action-host="${key}"]`), actionPermissions, key, roles, 'action'));
       };

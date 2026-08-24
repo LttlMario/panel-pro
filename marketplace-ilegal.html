@@ -193,8 +193,32 @@
 
         let editingMarketplaceId = null;
         let marketplaceItems = [];
+        let marketplaceDeleteAccess = false;
         const MARKETPLACE_PANEL_URL = 'https://lttlmario.github.io/panel-pro/marketplace-ilegal.html';
         let marketplaceFocusHandled = false;
+
+        async function incarcaAccesStergereMarketplace() {
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-community-posts`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        apikey: SUPABASE_KEY,
+                        authorization: `Bearer ${SUPABASE_KEY}`,
+                        'x-panel-session': localStorage.getItem('panel_session_token') || ''
+                    },
+                    body: JSON.stringify({
+                        action: 'marketplace_access',
+                        access_token: window.getPanelDiscordAccessToken?.()
+                    })
+                });
+                if (!response.ok) return;
+                const result = await response.json();
+                marketplaceDeleteAccess = result.can_delete === true;
+            } catch (_) {
+                marketplaceDeleteAccess = false;
+            }
+        }
 
         function normalizeBlackMarketName(value) {
             return String(value || '')
@@ -441,6 +465,7 @@
             }
             toggleTipActiune();
             toggleCategorie();
+            await incarcaAccesStergereMarketplace();
             incarcaAnunturi();
             aboneazaLaMarketplaceRealtime();
         });
@@ -528,7 +553,9 @@
                     poateAdministra ||
                     String(item.created_by_discord_id || '') === String(currentUser.discord_id || '');
                 const poateSterge =
-                    poateEdita;
+                    poateAdministra ||
+                    marketplaceDeleteAccess ||
+                    String(item.created_by_discord_id || '') === String(currentUser.discord_id || '');
 
                 let imaginiHtml = '';
                 let listaImaginiFinala = [];

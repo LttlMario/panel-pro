@@ -154,6 +154,30 @@
             organization_id: '',
             organization_name: ''
         };
+        let marketplaceDeleteAccess = false;
+
+        async function incarcaAccesStergereMarketplace() {
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-community-posts`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        apikey: SUPABASE_KEY,
+                        authorization: `Bearer ${SUPABASE_KEY}`,
+                        'x-panel-session': localStorage.getItem('panel_session_token') || ''
+                    },
+                    body: JSON.stringify({
+                        action: 'marketplace_access',
+                        access_token: window.getPanelDiscordAccessToken?.()
+                    })
+                });
+                if (!response.ok) return;
+                const result = await response.json();
+                marketplaceDeleteAccess = result.can_delete === true;
+            } catch (_) {
+                marketplaceDeleteAccess = false;
+            }
+        }
 
         // Gestionare Imagini Multiple prin Paste (Maxim 5)
         let imaginiCurente = [];
@@ -323,6 +347,7 @@
                 });
             }
 
+            await incarcaAccesStergereMarketplace();
             incarcaAnunturi();
             aboneazaLaMarketplaceRealtime();
         });
@@ -401,7 +426,7 @@
                 const esteAdministrator = typeof isPlatformAdmin === 'function' && isPlatformAdmin();
                 const apartineOrganizatieiActive =
                     String(item.organization_id || '') === String(currentUser.organization_id || '');
-                const poateSterge = esteAdministrator || (
+                const poateSterge = esteAdministrator || marketplaceDeleteAccess || (
                     apartineOrganizatieiActive &&
                     String(item.created_by_discord_id || '') === String(currentUser.discord_id || '')
                 );

@@ -105,6 +105,11 @@ const allowedAnnouncementPublishRoles =
         ? actionPermissions['anunturi.publish'].map(String)
         : [];
 
+const allowedMarketplaceDeleteRoles =
+    Array.isArray(actionPermissions['marketplace.delete'])
+        ? actionPermissions['marketplace.delete'].map(String)
+        : [];
+
 const sessionDiscordRoleIds =
     Array.isArray(session.discord_role_ids)
         ? session.discord_role_ids.map(String)
@@ -135,6 +140,17 @@ const roleIdsFromActivePanelRole = activePanelRole
         .filter(Boolean)
     : [];
 const effectiveDiscordRoleIds = [...new Set([...sessionDiscordRoleIds, ...roleIdsFromActivePanelRole])];
+
+const canDeleteMarketplaceByRole =
+    isPlatformAdmin ||
+    effectiveDiscordRoleIds.some(roleId => allowedMarketplaceDeleteRoles.includes(roleId));
+
+if (body.action === 'marketplace_access') {
+    return reply({
+        can_delete: canDeleteMarketplaceByRole,
+        platform_admin: isPlatformAdmin
+    });
+}
 
 const hasAnnouncementPageAccess =
     isPlatformAdmin ||
@@ -536,7 +552,7 @@ const own = async (id:string) => {
    const {data:item,error:itemError}=await itemQuery.maybeSingle();
    if(itemError)throw itemError;
    if(!item)throw new Error('Anunțul nu mai există sau nu este accesibil.');
-   if(!isPlatformAdmin&&String(item.created_by_discord_id||'')!==String(du.id))return reply({error:'Poți șterge numai anunțurile publicate de tine.'},403);
+   if(!isPlatformAdmin && !canDeleteMarketplaceByRole && String(item.created_by_discord_id||'')!==String(du.id))return reply({error:'Nu ai permisiunea de a șterge acest anunț.'},403);
    const deleteQuery=db.from(table).delete().eq('id',body.item_id);
    if(!globalMarketplace)deleteQuery.eq('organization_id',organizationId);
    if(globalMarketplace)deleteQuery.is('organization_id',null);
