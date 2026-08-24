@@ -58,6 +58,11 @@ h1 em, h2 em { color:var(--cyan); font-style:normal; }
 @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; }.button,.package-link span { transition:none; }.button:hover { transform:none; } }
 
 .demo-nav-link { color:var(--cyan)!important; font-weight:800; }
+.check-list { gap:11px; font-size:14px; line-height:1.45; }
+.check-list li { padding-left:22px; }
+.check-list .package-template-benefit { color:#f4fbff; font-weight:800; }
+.package-card .check-list .package-template-benefit:before { content:'✦'; color:#5ce1e6; }
+.package-card-featured .check-list .package-template-benefit:before { color:#c4b5fd; }
 .package-pricing { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-top:21px; padding:15px 16px; border:1px solid rgba(92,225,230,.22); border-radius:12px; background:rgba(92,225,230,.06); }
 .package-pricing>div { display:grid; gap:4px; }
 .package-pricing strong { color:#ecfeff; font-size:19px; letter-spacing:-.02em; }
