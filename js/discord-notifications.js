@@ -7,10 +7,6 @@
     window.sendPanelDiscord = async (channel, payload, options = {}) => {
         const accessToken = window.getPanelDiscordAccessToken?.() || '';
 
-        if (!accessToken) {
-            throw new Error('Sesiunea Discord lipsește. Autentifică-te din nou.');
-        }
-
         // Reface automat contextul dacă panelul a păstrat tokenul, dar a
         // pierdut organizația activă din localStorage.
         if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
@@ -38,7 +34,7 @@
             body = payload;
 
             body.append('_panel_channel', channel);
-            body.append('_panel_access_token', accessToken);
+            if (accessToken) body.append('_panel_access_token', accessToken);
             body.append('_panel_organization_id', organizationId);
         } else {
             // Pentru notificările JSON normale.
@@ -48,7 +44,6 @@
                 channel,
                 payload,
                 message_key: options?.messageKey ? String(options.messageKey) : '',
-                access_token: accessToken,
                 organization_id: organizationId
             });
         }
