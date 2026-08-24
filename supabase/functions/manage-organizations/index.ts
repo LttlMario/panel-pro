@@ -526,7 +526,8 @@ if(
     'stash.request',
     'stash.manage_requests',
     'stash.donate',
-    'stash.approve_donation'
+    'stash.approve_donation',
+    'stash.log'
   ]);
 
   const actionRules = Object.fromEntries(
@@ -827,11 +828,11 @@ if (Array.isArray(body.roles)) {
       const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_package',value:{code,unlimited,expires_at:expiresAt,features},updated_at:nowIso()},{onConflict:'organization_id,key'});
       if(error)throw error;
       if(code!=='full'){
-        const restricted=[['action_permissions',{...(body.action_permissions||{}),'cereri.organization':[],'stash.write':[],'stash.request':[],'stash.manage_requests':[],'stash.donate':[],'stash.approve_donation':[]}],['communication_permissions',{organization:{read:[],write:[]}}],['discipline_permissions',{organization:{read:[],write:[],sanction:[]}}]] as any[];
+        const restricted=[['action_permissions',{...(body.action_permissions||{}),'cereri.organization':[],'stash.write':[],'stash.request':[],'stash.manage_requests':[],'stash.donate':[],'stash.approve_donation':[],'stash.log':[]}],['communication_permissions',{organization:{read:[],write:[]}}],['discipline_permissions',{organization:{read:[],write:[],sanction:[]}}]] as any[];
         for(const [key,value] of restricted){
           const {data:existing}=await db.from('app_settings').select('value').eq('organization_id',organizationId).eq('key',key).maybeSingle();
           if(!existing)continue;
-          const next=key==='action_permissions'?{...(existing.value||{}),'cereri.organization':[],'stash.write':[],'stash.request':[],'stash.manage_requests':[],'stash.donate':[],'stash.approve_donation':[]}:{...(existing.value||{}),organization:value.organization};
+          const next=key==='action_permissions'?{...(existing.value||{}),'cereri.organization':[],'stash.write':[],'stash.request':[],'stash.manage_requests':[],'stash.donate':[],'stash.approve_donation':[],'stash.log':[]}:{...(existing.value||{}),organization:value.organization};
           const {error:permissionError}=await db.from('app_settings').update({value:next,updated_at:nowIso()}).eq('organization_id',organizationId).eq('key',key);
           if(permissionError)throw permissionError;
         }

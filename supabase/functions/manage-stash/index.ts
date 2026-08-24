@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
+import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -59,6 +60,28 @@ const sendDiscordWebhook = async (db: any, organizationId: string, routeKey: str
 const actorDisplayName = async (db: any, discordId: string) => {
   const { data } = await db.from('users').select('display_name,username').eq('discord_id', discordId).maybeSingle();
   return text(data?.display_name || data?.username || discordId, 120);
+};
+
+const isOrganizationOwner = async (db: any, organizationId: string, discordId: string) => {
+  const { data: guild, error: guildError } = await db.from('organization_guilds')
+    .select('guild_id')
+    .eq('organization_id', organizationId)
+    .eq('kind', 'primary')
+    .eq('enabled', true)
+    .maybeSingle();
+  if (guildError || !guild?.guild_id) return false;
+  const botToken = await getPlatformSecret(db, 'discord_bot_token');
+  if (!botToken) return false;
+  try {
+    const response = await fetch(`https://discord.com/api/v10/guilds/${guild.guild_id}`, {
+      headers: { Authorization: `Bot ${botToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)' }
+    });
+    if (!response.ok) return false;
+    const discordGuild = await response.json();
+    return String(discordGuild?.owner_id || '') === String(discordId);
+  } catch (_) {
+    return false;
+  }
 };
 
 const itemEmbed = (item: any, title = 'Actualizare Stash') => ({
@@ -137,32 +160,46 @@ Deno.serve(async (req) => {
       if (!allowed(permission)) throw new Error('Nu ai permisiunea necesară pentru această acțiune.');
     };
     const name = await actorDisplayName(db, session.discord_id);
+    const isOwner = session.is_platform_admin || await isOrganizationOwner(db, organizationId, session.discord_id);
+    const canDeleteOwn = (row: any, field: string) => session.is_platform_admin || isOwner || String(row?.[field] || '') === String(session.discord_id);
     const access = {
-      read: allowed('read'),
+      read: allowed('read') || isOwner,
       write: allowed('write'),
       request: allowed('request'),
       manage_requests: allowed('manage_requests'),
       donate: allowed('donate'),
-      approve_donation: allowed('approve_donation')
+      approve_donation: allowed('approve_donation'),
+      log: allowed('log') || isOwner,
+      owner: isOwner
     };
 
     if (action === 'load') {
-      if (!access.read && !access.request && !access.donate && !access.approve_donation) need('read');
-      const [itemsResult, requestsResult, donationsResult] = await Promise.all([
+      if (!access.read && !access.request && !access.donate && !access.approve_donation && !access.log) need('read');
+      const [itemsResult, requestsResult, donationsResult, archivesResult] = await Promise.all([
         access.read
           ? db.from('organization_stash_items').select('*').eq('organization_id', organizationId).neq('status', 'archived').order('created_at', { ascending: false }).limit(300)
           : Promise.resolve({ data: [], error: null }),
-        access.manage_requests || access.request
+        access.manage_requests || access.request || isOwner
           ? db.from('organization_stash_requests').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(300)
           : Promise.resolve({ data: [], error: null }),
-        access.approve_donation || access.donate
+        access.approve_donation || access.donate || isOwner
           ? db.from('organization_stash_donations').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(300)
+          : Promise.resolve({ data: [], error: null }),
+        access.log
+          ? db.from('organization_stash_items').select('*').eq('organization_id', organizationId).eq('status', 'archived').order('updated_at', { ascending: false }).limit(300)
           : Promise.resolve({ data: [], error: null })
       ]);
-      if (itemsResult.error || requestsResult.error || donationsResult.error) throw itemsResult.error || requestsResult.error || donationsResult.error;
-      const requests = access.manage_requests ? requestsResult.data || [] : (requestsResult.data || []).filter((row: any) => row.requested_by_discord_id === session.discord_id);
-      const donations = access.approve_donation ? donationsResult.data || [] : (donationsResult.data || []).filter((row: any) => row.donated_by_discord_id === session.discord_id);
-      return reply({ ok: true, access, items: itemsResult.data || [], requests, donations });
+      if (itemsResult.error || requestsResult.error || donationsResult.error || archivesResult.error) throw itemsResult.error || requestsResult.error || donationsResult.error || archivesResult.error;
+      const requests = access.manage_requests || isOwner ? requestsResult.data || [] : (requestsResult.data || []).filter((row: any) => row.requested_by_discord_id === session.discord_id);
+      const donations = access.approve_donation || isOwner ? donationsResult.data || [] : (donationsResult.data || []).filter((row: any) => row.donated_by_discord_id === session.discord_id);
+      return reply({
+        ok: true,
+        access,
+        items: (itemsResult.data || []).map((row: any) => ({ ...row, can_delete: canDeleteOwn(row, 'created_by_discord_id') })),
+        requests: requests.map((row: any) => ({ ...row, can_delete: canDeleteOwn(row, 'requested_by_discord_id') })),
+        donations: donations.map((row: any) => ({ ...row, can_delete: canDeleteOwn(row, 'donated_by_discord_id') })),
+        archives: archivesResult.data || []
+      });
     }
 
     if (action === 'create_item') {
@@ -203,6 +240,18 @@ Deno.serve(async (req) => {
       return reply({ ok: true, item: data, webhook });
     }
 
+    if (action === 'delete_item') {
+      if (!validId(body.id)) return reply({ error: 'Articolul este invalid.' }, 400);
+      const { data: item, error: itemError } = await db.from('organization_stash_items').select('*').eq('organization_id', organizationId).eq('id', body.id).maybeSingle();
+      if (itemError) throw itemError;
+      if (!item) return reply({ error: 'Articolul nu mai există.' }, 404);
+      if (!canDeleteOwn(item, 'created_by_discord_id')) return reply({ error: 'Doar autorul, proprietarul organizației sau administratorul global poate șterge acest articol.' }, 403);
+      const { error } = await db.from('organization_stash_items').delete().eq('organization_id', organizationId).eq('id', body.id);
+      if (error) throw error;
+      const webhook = await sendDiscordWebhook(db, organizationId, 'stash', itemEmbed(item, 'Articol șters din Stash'));
+      return reply({ ok: true, deleted_id: body.id, webhook });
+    }
+
     if (action === 'create_request') {
       need('request');
       const itemId = validId(body.stash_item_id) ? String(body.stash_item_id) : null;
@@ -228,6 +277,18 @@ Deno.serve(async (req) => {
       if (error) throw error;
       const webhook = await sendDiscordWebhook(db, organizationId, 'stash_requests', requestEmbed(data, body.status === 'approved' ? 'Cerere aprobată' : body.status === 'rejected' ? 'Cerere respinsă' : 'Cerere actualizată'));
       return reply({ ok: true, request: data, webhook });
+    }
+
+    if (action === 'delete_request') {
+      if (!validId(body.id)) return reply({ error: 'Cererea este invalidă.' }, 400);
+      const { data: request, error: requestError } = await db.from('organization_stash_requests').select('*').eq('organization_id', organizationId).eq('id', body.id).maybeSingle();
+      if (requestError) throw requestError;
+      if (!request) return reply({ error: 'Cererea nu mai există.' }, 404);
+      if (!canDeleteOwn(request, 'requested_by_discord_id')) return reply({ error: 'Doar autorul, proprietarul organizației sau administratorul global poate șterge această cerere.' }, 403);
+      const { error } = await db.from('organization_stash_requests').delete().eq('organization_id', organizationId).eq('id', body.id);
+      if (error) throw error;
+      const webhook = await sendDiscordWebhook(db, organizationId, 'stash_requests', requestEmbed(request, 'Cerere ștearsă din Stash'));
+      return reply({ ok: true, deleted_id: body.id, webhook });
     }
 
     if (action === 'create_donation') {
@@ -262,6 +323,18 @@ Deno.serve(async (req) => {
       }
       const webhook = await sendDiscordWebhook(db, organizationId, 'stash_donations', donationEmbed(updated, body.status === 'approved' ? 'Donație aprobată' : 'Donație respinsă'));
       return reply({ ok: true, donation: updated, webhook });
+    }
+
+    if (action === 'delete_donation') {
+      if (!validId(body.id)) return reply({ error: 'Donația este invalidă.' }, 400);
+      const { data: donation, error: donationError } = await db.from('organization_stash_donations').select('*').eq('organization_id', organizationId).eq('id', body.id).maybeSingle();
+      if (donationError) throw donationError;
+      if (!donation) return reply({ error: 'Donația nu mai există.' }, 404);
+      if (!canDeleteOwn(donation, 'donated_by_discord_id')) return reply({ error: 'Doar autorul, proprietarul organizației sau administratorul global poate șterge această donație.' }, 403);
+      const { error } = await db.from('organization_stash_donations').delete().eq('organization_id', organizationId).eq('id', body.id);
+      if (error) throw error;
+      const webhook = await sendDiscordWebhook(db, organizationId, 'stash_donations', donationEmbed(donation, 'Donație ștearsă din Stash'));
+      return reply({ ok: true, deleted_id: body.id, webhook });
     }
 
     return reply({ error: 'Acțiunea Stash este necunoscută.' }, 400);

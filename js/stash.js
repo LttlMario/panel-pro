@@ -2,7 +2,7 @@
   const cfg = window.PANEL_SUPABASE_CONFIG || {};
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-  let state = { access: {}, items: [], requests: [], donations: [] };
+  let state = { access: {}, items: [], requests: [], donations: [], archives: [] };
   let modalMode = '';
   let editingItem = null;
 
@@ -23,17 +23,23 @@
     const host = $('stash-items');
     if (!state.access.read) { host.innerHTML = '<div class="stash-empty">Nu ai acces la inventarul acestui stash.</div>'; return; }
     if (!state.items.length) { host.innerHTML = '<div class="stash-empty">Nu există încă articole în stash.</div>'; return; }
-    host.innerHTML = state.items.map((item) => `<article class="stash-item">${itemTitle(item)}${item.description ? `<div class="stash-desc">${esc(item.description)}</div>` : ''}</article>`).join('');
+    host.innerHTML = state.items.map((item) => `<article class="stash-item">${itemTitle(item)}${item.description ? `<div class="stash-desc">${esc(item.description)}</div>` : ''}${item.can_delete ? `<div class="stash-actions"><button class="stash-btn danger" data-delete-item="${esc(item.id)}">Șterge articolul</button></div>` : ''}</article>`).join('');
   };
   const renderRequests = () => {
     const host = $('stash-requests');
     if (!state.requests.length) { host.innerHTML = '<div class="stash-empty">Nu există cereri.</div>'; return; }
-    host.innerHTML = state.requests.map((request) => `<div class="stash-row"><div><b class="text-slate-100">${esc(request.item_title)}</b><div class="stash-muted">${esc(request.requested_by_name)} · ${esc(request.quantity)} buc. ${request.note ? `· ${esc(request.note)}` : ''}</div></div><span class="stash-pill ${statusClass(request.status)}">${esc(statusLabel[request.status] || request.status)}</span>${state.access.manage_requests && request.status === 'pending' ? `<div class="stash-actions"><button class="stash-btn primary" data-request-status="approved" data-request-id="${esc(request.id)}">Aprobă</button><button class="stash-btn danger" data-request-status="rejected" data-request-id="${esc(request.id)}">Respinge</button></div>` : '<span></span>'}</div>`).join('');
+    host.innerHTML = state.requests.map((request) => `<div class="stash-row"><div><b class="text-slate-100">${esc(request.item_title)}</b><div class="stash-muted">${esc(request.requested_by_name)} · ${esc(request.quantity)} buc. ${request.note ? `· ${esc(request.note)}` : ''}</div></div><span class="stash-pill ${statusClass(request.status)}">${esc(statusLabel[request.status] || request.status)}</span><div class="stash-actions">${state.access.manage_requests && request.status === 'pending' ? `<button class="stash-btn primary" data-request-status="approved" data-request-id="${esc(request.id)}">Aprobă</button><button class="stash-btn danger" data-request-status="rejected" data-request-id="${esc(request.id)}">Respinge</button>` : ''}${request.can_delete ? `<button class="stash-btn danger" data-delete-request="${esc(request.id)}">Șterge</button>` : ''}</div></div>`).join('');
   };
   const renderDonations = () => {
     const host = $('stash-donations');
     if (!state.donations.length) { host.innerHTML = '<div class="stash-empty">Nu există donații.</div>'; return; }
-    host.innerHTML = state.donations.map((donation) => `<div class="stash-row"><div><b class="text-slate-100">${esc(donation.title)}</b><div class="stash-muted">${esc(donation.donated_by_name)} · ${esc(donation.quantity)} ${esc(donation.unit)}${donation.note ? ` · ${esc(donation.note)}` : ''}</div></div><span class="stash-pill ${statusClass(donation.status)}">${esc(statusLabel[donation.status] || donation.status)}</span>${state.access.approve_donation && donation.status === 'pending' ? `<div class="stash-actions"><button class="stash-btn primary" data-donation-status="approved" data-donation-id="${esc(donation.id)}">Aprobă și postează</button><button class="stash-btn danger" data-donation-status="rejected" data-donation-id="${esc(donation.id)}">Respinge</button></div>` : '<span></span>'}</div>`).join('');
+    host.innerHTML = state.donations.map((donation) => `<div class="stash-row"><div><b class="text-slate-100">${esc(donation.title)}</b><div class="stash-muted">${esc(donation.donated_by_name)} · ${esc(donation.quantity)} ${esc(donation.unit)}${donation.note ? ` · ${esc(donation.note)}` : ''}</div></div><span class="stash-pill ${statusClass(donation.status)}">${esc(statusLabel[donation.status] || donation.status)}</span><div class="stash-actions">${state.access.approve_donation && donation.status === 'pending' ? `<button class="stash-btn primary" data-donation-status="approved" data-donation-id="${esc(donation.id)}">Aprobă și postează</button><button class="stash-btn danger" data-donation-status="rejected" data-donation-id="${esc(donation.id)}">Respinge</button>` : ''}${donation.can_delete ? `<button class="stash-btn danger" data-delete-donation="${esc(donation.id)}">Șterge</button>` : ''}</div></div>`).join('');
+  };
+  const renderArchives = () => {
+    const host = $('stash-archives');
+    if (!state.access.log) { host.innerHTML = '<div class="stash-empty">Nu ai acces la jurnalul arhivelor.</div>'; return; }
+    if (!state.archives.length) { host.innerHTML = '<div class="stash-empty">Nu există articole arhivate.</div>'; return; }
+    host.innerHTML = state.archives.map((item) => `<div class="stash-row"><div><b class="text-slate-100">${esc(item.title)}</b><div class="stash-muted">${esc(item.category)} · ${esc(item.quantity)} ${esc(item.unit)} · ${esc(item.created_by_name)}</div></div><span class="stash-pill">Arhivat</span><time class="stash-muted">${esc(item.updated_at ? new Date(item.updated_at).toLocaleString('ro-RO') : '')}</time></div>`).join('');
   };
   const renderAccess = () => {
     $('stash-add').hidden = !state.access.write;
@@ -41,11 +47,12 @@
     $('stash-donate').hidden = !state.access.donate;
     document.querySelector('[data-stash-tab="requests"]').hidden = !state.access.request && !state.access.manage_requests;
     document.querySelector('[data-stash-tab="donations"]').hidden = !state.access.donate && !state.access.approve_donation;
+    document.querySelector('[data-stash-tab="archives"]').hidden = !state.access.log;
   };
   const load = async () => {
     showNotice('');
     $('stash-items').innerHTML = '<div class="stash-empty">Se încarcă…</div>';
-    try { state = await api('load'); renderAccess(); renderItems(); renderRequests(); renderDonations(); }
+    try { state = await api('load'); renderAccess(); renderItems(); renderRequests(); renderDonations(); renderArchives(); }
     catch (error) { showNotice(error.message, true); $('stash-items').innerHTML = `<div class="stash-empty">${esc(error.message)}</div>`; }
   };
   const field = (label, input) => `<label>${esc(label)}${input}</label>`;
@@ -99,7 +106,7 @@
       if (result?.webhook && (!result.webhook.configured || result.webhook.failed > 0)) showNotice('Datele au fost salvate, dar webhookul Discord nu a fost livrat. Verifică ruta și activează webhookul potrivit în administrarea organizației.', true);
     } catch (error) { showNotice(error.message, true); }
   };
-  const setTab = (tab) => { document.querySelectorAll('[data-stash-tab]').forEach((button) => button.classList.toggle('active', button.dataset.stashTab === tab)); $('stash-items-panel').hidden = tab !== 'items'; $('stash-requests-panel').hidden = tab !== 'requests'; $('stash-donations-panel').hidden = tab !== 'donations'; };
+  const setTab = (tab) => { document.querySelectorAll('[data-stash-tab]').forEach((button) => button.classList.toggle('active', button.dataset.stashTab === tab)); $('stash-items-panel').hidden = tab !== 'items'; $('stash-requests-panel').hidden = tab !== 'requests'; $('stash-donations-panel').hidden = tab !== 'donations'; $('stash-archives-panel').hidden = tab !== 'archives'; };
   document.addEventListener('click', async (event) => {
     const target = event.target.closest('button'); if (!target) return;
     if (target.dataset.stashTab) return setTab(target.dataset.stashTab);
@@ -110,6 +117,9 @@
     if (target.id === 'stash-cancel') return closeModal();
     if (target.dataset.editItem) return openModal('item', state.items.find((item) => item.id === target.dataset.editItem));
     if (target.dataset.archiveItem && confirm('Arhivezi acest articol din stash?')) { try { await api('archive_item', { id: target.dataset.archiveItem }); showNotice('Articolul a fost arhivat.'); await load(); } catch (error) { showNotice(error.message, true); } return; }
+    if (target.dataset.deleteItem && confirm('Ștergi definitiv acest articol din stash?')) { try { await api('delete_item', { id: target.dataset.deleteItem }); showNotice('Articolul a fost șters.'); await load(); } catch (error) { showNotice(error.message, true); } return; }
+    if (target.dataset.deleteRequest && confirm('Ștergi definitiv această cerere?')) { try { await api('delete_request', { id: target.dataset.deleteRequest }); showNotice('Cererea a fost ștearsă.'); await load(); } catch (error) { showNotice(error.message, true); } return; }
+    if (target.dataset.deleteDonation && confirm('Ștergi definitiv această donație?')) { try { await api('delete_donation', { id: target.dataset.deleteDonation }); showNotice('Donația a fost ștearsă.'); await load(); } catch (error) { showNotice(error.message, true); } return; }
     if (target.dataset.requestStatus) { try { await api('update_request', { id: target.dataset.requestId, status: target.dataset.requestStatus }); showNotice('Statusul cererii a fost actualizat.'); await load(); } catch (error) { showNotice(error.message, true); } return; }
     if (target.dataset.donationStatus) { try { await api('update_donation', { id: target.dataset.donationId, status: target.dataset.donationStatus }); showNotice(target.dataset.donationStatus === 'approved' ? 'Donația a fost aprobată și postată în stash.' : 'Donația a fost respinsă.'); await load(); } catch (error) { showNotice(error.message, true); } }
   });

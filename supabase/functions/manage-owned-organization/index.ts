@@ -44,7 +44,7 @@ const allowedPages = new Map([
   ['stash.html', 'Stash organizație']
 ]);
 const allowedAssistantPages = new Set([...allowedPages.keys()]);
-const allowedActionKeys = new Set(['anunturi.publish', 'marketplace.delete', 'cereri.organization', 'cereri.departments', 'stash.write', 'stash.request', 'stash.manage_requests', 'stash.donate', 'stash.approve_donation']);
+const allowedActionKeys = new Set(['anunturi.publish', 'marketplace.delete', 'cereri.organization', 'cereri.departments', 'stash.write', 'stash.request', 'stash.manage_requests', 'stash.donate', 'stash.approve_donation', 'stash.log']);
 const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
 const fullOnlyPageFeatures = new Map([
   ['calculatorilegal.html', 'illegal_calculator'],
