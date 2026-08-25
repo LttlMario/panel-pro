@@ -75,7 +75,7 @@ h1 em, h2 em { color:var(--cyan); font-style:normal; }
 .package-discounts>div { display:grid; grid-template-columns:45px 1fr auto; gap:8px; align-items:center; }
 .package-discounts b { color:#e6f0fc; font-size:12px; font-weight:800; }
 .package-discounts small { color:#c2cfdf; font-size:12px; font-weight:800; text-align:right; }
-.package-discounts-featured b { color:#ddd6fe; }
+.package-discounts-featured b { color:#ddd6fe; }.package-discount-offer { margin-top:2px; padding-top:8px; border-top:1px solid rgba(92,225,230,.18); }.package-discount-offer b { color:#7cf0b7 !important; }.package-discount-offer small { color:#8feac2 !important; }
 @media (max-width:680px) { .package-pricing { align-items:flex-start; flex-direction:column; gap:8px; }.package-pricing small { text-align:left; }.package-discounts>div { grid-template-columns:45px 1fr; }.package-discounts small { grid-column:2; text-align:left; margin-top:-5px; } }
 .demo-nav-link span { font-size:15px; }
 .demo-invite { padding:0 0 70px; }

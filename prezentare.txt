@@ -66,7 +66,7 @@ reactivare fără pierderea datelor.
 
 Ofertă promoțională pentru prima lună: 2.160 Gold sau 1.080.000$.
 
-Începând cu luna a doua, tariful Standard este de 4.000 Gold sau 2.000.000$ pe lună.
+Începând cu luna a doua, tariful Standard este de 4.000 Gold sau 2.000.000$ pe lună. La plata pentru minimum 3 luni, tariful din luna a doua și următoarele beneficiază de 20% reducere: 3.200 Gold sau 1.600.000$ pe lună.
 
 Pachetul Standard este potrivit pentru o organizație care dorește toate funcțiile importante într-o singură structură, cu o configurare simplă și eficientă.
 
@@ -112,7 +112,7 @@ funcții avansate cu acces controlat, în funcție de permisiunile organizației
 
 Ofertă promoțională pentru prima lună: 4.440 Gold sau 2.220.000$.
 
-Începând cu luna a doua, tariful Full este de 6.000 Gold sau 3.000.000$ pe lună.
+Începând cu luna a doua, tariful Full este de 6.000 Gold sau 3.000.000$ pe lună. La plata pentru minimum 3 luni, tariful din luna a doua și următoarele beneficiază de 20% reducere: 4.800 Gold sau 2.400.000$ pe lună.
 
 Pachetul Full este recomandat organizațiilor care folosesc mai multe structuri, au mai multe roluri și doresc o administrare mai complexă și mai bine automatizată.
 
