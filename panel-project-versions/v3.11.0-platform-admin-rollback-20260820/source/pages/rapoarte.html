@@ -122,7 +122,7 @@
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                             <div>
                                 <h3 class="text-base font-bold text-emerald-400">Administrare pontaje active</h3>
-                                <p class="text-xs text-slate-400 mt-1">Vizualizează pontajele în desfășurare și oprește o tură atunci c�nd este necesar.</p>
+                                <p class="text-xs text-slate-400 mt-1">Vizualizează pontajele în desfășurare și oprește o tură atunci când este necesar.</p>
                             </div>
                             <button onclick="fetchActiveShifts()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer">↻ Actualizează</button>
                         </div>
@@ -207,7 +207,7 @@
                                 <span>📋</span>
                                 <span>Centralizator General Ture (Cu opțiune de ștergere)</span>
                             </h3>
-                            <span id="table-count-badge" class="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-lg border border-slate-700">0 r�nduri</span>
+                            <span id="table-count-badge" class="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-lg border border-slate-700">0 rânduri</span>
                         </div>
 
                         <div class="max-h-[514px] overflow-y-auto overflow-x-auto">
@@ -242,7 +242,7 @@
             <div><h3 class="text-base font-bold text-slate-100">Editează tura</h3><p class="text-xs text-slate-400 mt-1">Modifică datele unei ture înregistrate.</p></div>
             <input id="admin-shift-id" type="hidden">
             <div class="grid grid-cols-2 gap-3"><label class="text-xs text-slate-300">Data<input id="admin-shift-date" type="date" required class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"></label><label class="text-xs text-slate-300">Tip<select id="admin-shift-type" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"><option value="zi">Zi</option><option value="noapte">Noapte</option></select></label></div>
-            <div class="grid grid-cols-2 gap-3"><label class="text-xs text-slate-300">Început<input id="admin-shift-start" type="time" required class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"></label><label class="text-xs text-slate-300">Sf�rșit<input id="admin-shift-end" type="time" required class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"></label></div>
+            <div class="grid grid-cols-2 gap-3"><label class="text-xs text-slate-300">Început<input id="admin-shift-start" type="time" required class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"></label><label class="text-xs text-slate-300">Sfârșit<input id="admin-shift-end" type="time" required class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"></label></div>
             <div class="flex justify-end gap-2 pt-2"><button type="button" onclick="closeAdminShiftModal()" class="px-4 py-2 rounded-xl text-xs bg-slate-800 text-slate-300">Anulează</button><button class="px-4 py-2 rounded-xl text-xs bg-emerald-600 text-white">Salvează</button></div>
         </form>
     </div>
@@ -449,7 +449,7 @@
             if (isActionProcessing) return;
 
             if (!selectedShiftType) {
-                alert('Te rog selectează mai înt�i o tură validă!');
+                alert('Te rog selectează mai întâi o tură validă!');
                 return;
             }
 
@@ -1046,7 +1046,7 @@ async function forceStopActiveShift(shiftId) {
             const tbody = document.getElementById('reports-table-body');
             const badge = document.getElementById('table-count-badge');
 
-            badge.textContent = `${filteredShiftsData.length} r�nduri`;
+            badge.textContent = `${filteredShiftsData.length} rânduri`;
 
             if (filteredShiftsData.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">Nicio tură găsită cu filtrele selectate.</td></tr>`;
@@ -1063,7 +1063,7 @@ async function forceStopActiveShift(shiftId) {
                         typeBadge = `<span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md">${shift.shift_type || 'N/A'}</span>`;
                     }
 
-                    // Am adăugat butonul de ștergere pe fiecare r�nd din tabel
+                    // Am adăugat butonul de ștergere pe fiecare rând din tabel
                     html += `
                         <tr class="hover:bg-slate-800/40 transition">
                             <td class="p-2.5 font-semibold text-emerald-400 truncate max-w-[130px]" title="${shift.mechanic_name}">
@@ -1203,7 +1203,7 @@ async function forceStopActiveShift(shiftId) {
             const shiftType = document.getElementById('filter-shift-type').value;
 
             if (shiftType !== 'zi' && shiftType !== 'noapte') {
-                alert('Selectează mai înt�i „Doar Ture de Zi” sau „Doar Ture de Noapte”, apoi apasă Aplică.');
+                alert('Selectează mai întâi „Doar Ture de Zi” sau „Doar Ture de Noapte”, apoi apasă Aplică.');
                 return;
             }
 
@@ -1291,7 +1291,7 @@ async function forceStopActiveShift(shiftId) {
         async function triggerAutomaticSundayReport(todayDateStr) {
             if (allShiftsData.length === 0) return;
 
-            const success = await sendReportToDiscordWebhook(allShiftsData, "🔔 Raport Săptăm�nal Automat (Duminică - 19:00)");
+            const success = await sendReportToDiscordWebhook(allShiftsData, "🔔 Raport Săptămânal Automat (Duminică - 19:00)");
             if (success) {
                 localStorage.setItem('last_auto_report_date', todayDateStr);
             }

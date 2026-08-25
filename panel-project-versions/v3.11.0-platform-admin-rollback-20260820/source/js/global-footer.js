@@ -192,7 +192,7 @@
     setDialog(
       `<p>Panelul este dezvoltat și întreținut în timpul liber. Donațiile sunt complet opționale, iar orice contribuție ajută la continuarea dezvoltării.</p>
        <p class="psd-note">Plata se deschide pe pagina oficială Revolut într-un tab nou.</p>`,
-      `<button class="psd-button psd-secondary" type="button" data-action="cancel">Mai t�rziu</button>
+      `<button class="psd-button psd-secondary" type="button" data-action="cancel">Mai târziu</button>
        <button class="psd-button psd-primary" type="button" data-action="open-revolut">💳 Continuă către Revolut</button>`
     );
   }
