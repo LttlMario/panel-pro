@@ -365,7 +365,7 @@
         }
 
         .result-card .item-value.is-non-zero {
-            color: #f87171;
+            color: #f87171 !important;
         }
 
         .calculator-number {
@@ -1644,6 +1644,7 @@ const upgradeChains = {
                     if (element) {
                         element.textContent = "0";
                         element.classList.remove('is-non-zero');
+                        element.style.color = 'var(--success)';
                     }
 
                 });
@@ -1667,8 +1668,10 @@ const upgradeChains = {
                         title.textContent = mat;
                         const value = document.createElement('div');
                         value.className = 'item-value';
-                        value.classList.toggle('is-non-zero', Number(directCost[mat]) !== 0);
-                        value.textContent = String(directCost[mat]);
+                        const directAmount = Number(directCost[mat]);
+                        value.classList.toggle('is-non-zero', directAmount !== 0);
+                        value.style.color = directAmount !== 0 ? '#f87171' : 'var(--success)';
+                        value.textContent = String(directAmount);
                         card.append(title, value);
                         directGrid.appendChild(card);
                     }
@@ -1692,7 +1695,9 @@ const upgradeChains = {
                         ? accumulated[accumulatedKey]
                         : 0;
                     resultElement.textContent = rawAmount;
-                    resultElement.classList.toggle('is-non-zero', Number(rawAmount) !== 0);
+                    const hasRawAmount = Number(rawAmount) !== 0;
+                    resultElement.classList.toggle('is-non-zero', hasRawAmount);
+                    resultElement.style.color = hasRawAmount ? '#f87171' : 'var(--success)';
                 
                 });
             } else {
