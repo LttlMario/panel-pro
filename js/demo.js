@@ -41,33 +41,33 @@ let currentDemoKey = 'dashboard';
 const transientDemoItems = { marketplace: [], blackmarket: [], anunturi: [], requests: [], contractImages1: [], contractImages2: [], marketImages: [], blackImages: [] };
 const demoState = { shiftType: 'zi', shiftStatus: 'stopped', shiftSeconds: 0, shiftTimer: null };
 const craftGallery = [
-  ['1.png', 'Unelte x 10', 'Set de unelte esențiale pentru activitățile de mecanică.'],
-  ['2.png', 'Masă de lucru Mecanic', 'Stație principală pentru unelte și piese auto.'],
-  ['3.png', 'Limitator de viteză', 'Modul utilitar pentru reglarea vitezei maxime.'],
-  ['4.png', 'Set cauciucuri', 'Set complet de anvelope pentru înlocuire.'],
-  ['5.png', 'Kit de reparații avansat', 'Echipament complex pentru reparații capitale.'],
-  ['6.png', 'Jante Addon 80', 'Model custom de jante addon.'],
-  ['7.png', 'Jante Addon 85', 'Model custom de jante addon.'],
-  ['36.png', 'Jante Addon 68', 'Model custom de jante addon.'],
-  ['37.png', 'Jante Addon 69', 'Model custom de jante addon.'],
-  ['38.png', 'Jante Addon 70', 'Model custom de jante addon.'],
-  ['39.png', 'Jante Addon 71', 'Model custom de jante addon.'],
-  ['40.png', 'Jante Addon 72', 'Model custom de jante addon.'],
-  ['41.png', 'Jante Addon 92', 'Model custom de jante addon.'],
-  ['42.png', 'Set roți', 'Pachet standard de roți pregătit pentru montaj.'],
-  ['43.png', 'Set roți Runflat', 'Set de roți cu tehnologie Runflat.'],
-  ['44.png', 'Jante Addon 79', 'Model custom de jante addon.']
+  ['Unelte x 10', 'Set de unelte demonstrativ pentru activitățile de mecanică.', '⚙️'],
+  ['Masă de lucru Mecanic', 'Stație demonstrativă pentru unelte și piese auto.', '🛠️'],
+  ['Limitator de viteză', 'Modul fictiv pentru reglarea vitezei maxime.', '◈'],
+  ['Set cauciucuri', 'Set demonstrativ de anvelope pentru înlocuire.', '◉'],
+  ['Kit de reparații avansat', 'Echipament fictiv pentru reparații capitale.', '🔧'],
+  ['Jante Addon 80', 'Model demonstrativ de jantă addon.', '◌'],
+  ['Jante Addon 85', 'Model demonstrativ de jantă addon.', '◌'],
+  ['Jante Addon 68', 'Model demonstrativ de jantă addon.', '◌'],
+  ['Jante Addon 69', 'Model demonstrativ de jantă addon.', '◌'],
+  ['Jante Addon 70', 'Model demonstrativ de jantă addon.', '◌'],
+  ['Jante Addon 71', 'Model demonstrativ de jantă addon.', '◌'],
+  ['Jante Addon 72', 'Model demonstrativ de jantă addon.', '◌'],
+  ['Jante Addon 92', 'Model demonstrativ de jantă addon.', '◌'],
+  ['Set roți', 'Pachet fictiv de roți pregătit pentru montaj.', '◎'],
+  ['Set roți Runflat', 'Set demonstrativ de roți cu tehnologie Runflat.', '◎'],
+  ['Jante Addon 79', 'Model demonstrativ de jantă addon.', '◌']
 ];
 
 function renderAssetGallery(key) {
   const gallery = document.getElementById('asset-gallery');
   const search = document.getElementById('gallery-search');
   if (!gallery || !search) return;
-  const assets = key === 'craft' ? craftGallery : Array.from({ length: 29 }, (_, index) => [`bucatarie${index + 1}.jpg`, `Bucătărie ${index + 1}`, `Imaginea ${index + 1} din galeria de bucătărie.`]);
+  const assets = key === 'craft' ? craftGallery : Array.from({ length: 29 }, (_, index) => [`Bucătărie ${index + 1}`, `Element demonstrativ ${index + 1} din galeria de bucătărie.`, '♨️']);
   const draw = (query = '') => {
     const value = query.toLocaleLowerCase('ro-RO');
-    gallery.innerHTML = assets.filter(([, title, description]) => `${title} ${description}`.toLocaleLowerCase('ro-RO').includes(value)).map(([file, title, description]) => `<article class="asset-card"><img src="img/${file}" alt="${escapeHtml(title)}"><div><b>${escapeHtml(title)}</b><small>${escapeHtml(description)}</small></div></article>`).join('');
-    gallery.querySelectorAll('.asset-card img').forEach((image) => image.addEventListener('click', () => showToast(`${image.alt} — previzualizare demo, fără acțiuni.`)));
+    gallery.innerHTML = assets.filter(([title, description]) => `${title} ${description}`.toLocaleLowerCase('ro-RO').includes(value)).map(([title, description, icon]) => `<article class="asset-card"><div class="asset-placeholder" role="img" aria-label="${escapeHtml(title)}">${escapeHtml(icon)}</div><div><b>${escapeHtml(title)}</b><small>${escapeHtml(description)}</small></div></article>`).join('');
+    gallery.querySelectorAll('.asset-placeholder').forEach((placeholder) => placeholder.addEventListener('click', () => showToast(`${placeholder.getAttribute('aria-label')} — previzualizare demo, fără acțiuni.`)));
   };
   search.addEventListener('input', () => draw(search.value));
   draw();

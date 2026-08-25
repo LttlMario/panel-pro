@@ -116,7 +116,7 @@ Deno.serve(async request=>{
           safeCountRows('shifts', (q) => q.eq('organization_id', organizationId).in('status', ['active', 'paused'])),
           safeCountRows('absences', (q) => q.eq('organization_id', organizationId).gte('end_at', nowIso)),
           safeCountRows('community_posts', (q) => q.eq('organization_id', organizationId)),
-          safeCountRows('marketplace', (q) => q),
+          safeCountRows('marketplace', (q) => q.eq('organization_id', organizationId)),
           safeCountRows('marketplace_ilegal', (q) => q.is('organization_id', null)),
           safeCountRows('organization_stash_items', (q) => q.eq('organization_id', organizationId).neq('status', 'archived')),
         ])
@@ -154,7 +154,7 @@ Deno.serve(async request=>{
         db.from('shifts').select('id,discord_id,colleague_name,status,shift_type,date,created_at').eq('organization_id', organizationId).or(`colleague_name.ilike.${pattern},discord_id.ilike.${pattern}`).order('created_at', { ascending: false }).limit(25),
         db.from('absences').select('id,discord_id,colleague_name,notice_type,status,created_at').eq('organization_id', organizationId).or(`colleague_name.ilike.${pattern},reason.ilike.${pattern},discord_id.ilike.${pattern}`).order('created_at', { ascending: false }).limit(25),
         db.from('community_posts').select('id,title,content,post_type,created_at').eq('organization_id', organizationId).or(`title.ilike.${pattern},content.ilike.${pattern}`).order('created_at', { ascending: false }).limit(25),
-        db.from('marketplace').select('id,nume,display_name,produse,pret,created_at,organization_id').or(`nume.ilike.${pattern},display_name.ilike.${pattern},produse.ilike.${pattern}`).order('created_at', { ascending: false }).limit(25),
+        db.from('marketplace').select('id,nume,display_name,produse,pret,created_at,organization_id').eq('organization_id', organizationId).or(`nume.ilike.${pattern},display_name.ilike.${pattern},produse.ilike.${pattern}`).order('created_at', { ascending: false }).limit(25),
         db.from('marketplace_ilegal').select('id,nume,produse,pret,created_at').is('organization_id', null).or(`nume.ilike.${pattern},produse.ilike.${pattern}`).order('created_at', { ascending: false }).limit(25),
       ]);
       const memberIds = (usersResult.data || []).map((member: any) => String(member.discord_id));
@@ -177,7 +177,7 @@ Deno.serve(async request=>{
         members: db.from('organization_members').select('discord_id,panel_role,permission_level,active,last_verified_at,created_at').eq('organization_id', organizationId).order('created_at', { ascending: true }).limit(1000),
         shifts: db.from('shifts').select('discord_id,colleague_name,status,shift_type,date,start_time,end_time,duration,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(5000),
         absences: db.from('absences').select('discord_id,colleague_name,notice_type,status,reason,notes,start_at,end_at,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(2000),
-        marketplace: db.from('marketplace').select('nume,display_name,tip_actiune,produse,pret,organization_id,created_at').order('created_at', { ascending: false }).limit(1000),
+        marketplace: db.from('marketplace').select('nume,display_name,tip_actiune,produse,pret,organization_id,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(1000),
         audit: db.from('admin_audit_log').select('actor_name,actor_discord_id,action,target_type,target_id,details,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(2000),
       };
       if (!queries[kind]) return reply({ error: 'Export invalid.' }, 400);

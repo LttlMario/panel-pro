@@ -58,11 +58,11 @@ button { font:inherit; }
 .night-policy-note b { color:#f5dfa6; }
 .policy-disabled { opacity:.45; cursor:not-allowed!important; }
 .map-card { background-size:cover; background-position:center; }
-.map-card:before { background:linear-gradient(180deg,rgba(3,8,15,.06),rgba(3,8,15,.82)),url('../img/gtav.jpg') center/cover; transform:none; opacity:.92; }
-.map-card:after { display:none; }
-.map-one:before { background-image:linear-gradient(180deg,rgba(3,8,15,.06),rgba(3,8,15,.82)),url('../img/gtav.jpg'); }
-.map-two:before { background-image:linear-gradient(180deg,rgba(3,8,15,.06),rgba(3,8,15,.82)),url('../img/cayo.jpg'); transform:none; }
-.map-three:before { background-image:linear-gradient(180deg,rgba(3,8,15,.06),rgba(3,8,15,.82)),url('../img/maldive.jpg'); transform:none; }
+.map-card:before { background:repeating-linear-gradient(34deg,transparent 0 18px,rgba(109,156,198,.14) 19px 21px,transparent 22px 42px),repeating-linear-gradient(112deg,transparent 0 27px,rgba(92,225,230,.1) 28px 30px,transparent 31px 58px); transform:rotate(-12deg) scale(1.25); opacity:.72; }
+.map-card:after { display:block; background:linear-gradient(124deg,transparent 0 35%,rgba(247,198,107,.16) 36% 37%,transparent 38% 64%,rgba(92,225,230,.16) 65% 66%,transparent 67%); }
+.map-one:before { transform:rotate(-12deg) scale(1.25); }
+.map-two:before { transform:rotate(26deg) scale(1.3); }
+.map-three:before { transform:rotate(-42deg) scale(1.35); }
 .demo-mobile-backdrop { display:none; }
 
 @media (max-width:900px) {
@@ -115,3 +115,8 @@ button { font:inherit; }
 :root[data-demo-theme="light"] .demo-nav-item.is-active { color:#075f68; background:rgba(7,141,152,.12); }
 :root[data-demo-theme="light"] .demo-guide { color:#486678; background:rgba(7,141,152,.07); }
 :root[data-demo-theme="light"] .demo-mobile-backdrop.is-open { background:rgba(20,32,48,.35); }
+
+/* Demo galleries use abstract placeholders only; no panel assets are exposed. */
+.asset-placeholder { display:grid; place-items:center; width:100%; height:88px; border-bottom:1px solid #223750; color:var(--cyan); background:linear-gradient(135deg,rgba(92,225,230,.08),rgba(122,167,255,.08)),repeating-linear-gradient(135deg,transparent 0 14px,rgba(126,170,207,.1) 15px 17px,transparent 18px 30px); cursor:default; font-size:29px; }
+.asset-placeholder:hover { background:linear-gradient(135deg,rgba(92,225,230,.14),rgba(122,167,255,.13)),repeating-linear-gradient(135deg,transparent 0 14px,rgba(126,170,207,.16) 15px 17px,transparent 18px 30px); }
+.asset-card div:last-child { padding:9px; }
