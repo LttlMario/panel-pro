@@ -351,6 +351,14 @@
             color: var(--success);
         }
 
+        .result-card .item-value.is-non-zero {
+            color: #f87171 !important;
+        }
+
+        .result-card .item-value.is-zero {
+            color: var(--success) !important;
+        }
+
         .result-card .item-value.gold {
             color: var(--warning);
         }
@@ -953,6 +961,21 @@
             calculateAll();
         }
 
+        function setResultColor(element, numericValue) {
+            const isNonZero = Number(numericValue) !== 0;
+            element.classList.toggle('is-non-zero', isNonZero);
+            element.classList.toggle('is-zero', !isNonZero);
+            element.style.color = isNonZero ? '#f87171' : 'var(--success)';
+        }
+
+        function updateNumericResultColors() {
+            document.querySelectorAll('#calculator-results [id^="res_"], #calculator-results [id^="plic_res_"], #calculator-results [id^="weed_res_"], #calculator-results [id^="mush_res_"], #calculator-results [id^="raw_"]').forEach(element => {
+                const match = String(element.textContent || '').match(/-?\d+(?:[.,]\d+)?/);
+                const numericValue = match ? Number(match[0].replace(',', '.')) : 0;
+                setResultColor(element, numericValue);
+            });
+        }
+
         function showMobileResults() {
             const firstResult = document.querySelector('.result-box.active');
             if (!firstResult) {
@@ -1315,21 +1338,26 @@
                 const smelteryGrid = document.getElementById('smelteryResultsGrid');
                 smelteryGrid.innerHTML = '';
 
-                const addSmelteryCard = (title, value) => {
+                const addSmelteryCard = (title, value, isNumeric = false) => {
                     const card = document.createElement('div');
                     card.className = 'result-card';
-                    card.innerHTML = `<div class="item-title">${title}</div><div class="item-value">${value}</div>`;
+                    const valueElement = document.createElement('div');
+                    valueElement.className = 'item-value';
+                    valueElement.textContent = value;
+                    if (isNumeric) setResultColor(valueElement, value);
+                    card.innerHTML = `<div class="item-title">${title}</div>`;
+                    card.appendChild(valueElement);
                     smelteryGrid.appendChild(card);
                 };
 
                 addSmelteryCard('Produs', smelteryRecipe.name);
                 addSmelteryCard('Rețetă', smelteryRecipe.equation);
-                addSmelteryCard('Cantitate dorită', formatNr(smelteryQty));
-                addSmelteryCard('Loturi necesare', smelteryCrafts);
-                addSmelteryCard('Cantitate produsă', smelteryCrafts * smelteryRecipe.produces);
+                addSmelteryCard('Cantitate dorită', formatNr(smelteryQty), true);
+                addSmelteryCard('Loturi necesare', smelteryCrafts, true);
+                addSmelteryCard('Cantitate produsă', smelteryCrafts * smelteryRecipe.produces, true);
 
                 for (const material in smelteryMaterials) {
-                    addSmelteryCard(material, formatNr(smelteryMaterials[material]));
+                    addSmelteryCard(material, formatNr(smelteryMaterials[material]), true);
                 }
             } else {
                 boxSmeltery.classList.remove('active');
@@ -1355,6 +1383,8 @@
             } else {
                 boxRawMaterials.classList.remove('active');
             }
+
+            updateNumericResultColors();
         }
     </script>
     <script src="js/global-footer.js"></script>
