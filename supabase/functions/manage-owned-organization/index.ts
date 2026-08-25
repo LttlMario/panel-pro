@@ -255,7 +255,7 @@ Deno.serve(async (request) => {
     let candidates: any[] = [];
     if (requestedOrganizationId) {
       const [{ data: organization }, { data: guild }] = await Promise.all([
-        db.from('organizations').select('id,name,slug,code,illegal_name,address,description,logo_url,active,lifecycle_status').eq('id', requestedOrganizationId).maybeSingle(),
+        db.from('organizations').select('id,name,slug,code,illegal_name,address,description,logo_url,active,lifecycle_status,deactivation_reason,deactivated_at,last_discord_check_at,last_discord_check_status').eq('id', requestedOrganizationId).maybeSingle(),
         db.from('organization_guilds').select('organization_id,guild_id,guild_name,kind,enabled').eq('organization_id', requestedOrganizationId).eq('kind', 'primary').eq('enabled', true).maybeSingle()
       ]);
       if (organization && guild) candidates = [{ organization, guild }];
@@ -267,7 +267,7 @@ Deno.serve(async (request) => {
       const ids = [...new Set((guilds || []).map((item: any) => String(item.organization_id)).filter(Boolean))];
       if (ids.length) {
         const { data: organizations, error: organizationError } = await db.from('organizations')
-          .select('id,name,slug,code,illegal_name,address,description,logo_url,active,lifecycle_status')
+          .select('id,name,slug,code,illegal_name,address,description,logo_url,active,lifecycle_status,deactivation_reason,deactivated_at,last_discord_check_at,last_discord_check_status')
           .in('id', ids);
         if (organizationError) throw organizationError;
         candidates = (guilds || []).map((guild: any) => ({
@@ -292,7 +292,7 @@ Deno.serve(async (request) => {
       const fallbackOrganizationId = requestedOrganizationId;
       if (!fallbackOrganizationId) return reply({ error: 'Administratorul platformei trebuie să selecteze o organizație.' }, 400);
       const { data: fallbackOrganization, error: fallbackError } = await db.from('organizations')
-        .select('id,name,slug,code,illegal_name,address,description,logo_url,active,lifecycle_status')
+        .select('id,name,slug,code,illegal_name,address,description,logo_url,active,lifecycle_status,deactivation_reason,deactivated_at,last_discord_check_at,last_discord_check_status')
         .eq('id', fallbackOrganizationId).maybeSingle();
       if (fallbackError) throw fallbackError;
       if (!fallbackOrganization) return reply({ error: 'Organizația selectată nu există.' }, 404);
@@ -542,7 +542,7 @@ Deno.serve(async (request) => {
     }
 
     const { data: updatedOrganization, error: updatedError } = await db.from('organizations')
-      .select('id,name,slug,code,illegal_name,address,description,logo_url,active,lifecycle_status')
+      .select('id,name,slug,code,illegal_name,address,description,logo_url,active,lifecycle_status,deactivation_reason,deactivated_at,last_discord_check_at,last_discord_check_status')
       .eq('id', organizationId).single();
     if (updatedError) throw updatedError;
     const updatedState = await loadSettings();

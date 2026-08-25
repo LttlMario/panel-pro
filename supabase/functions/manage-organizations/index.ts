@@ -7,6 +7,35 @@ import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 const headers={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers});
 const audit=async(db:any,session:any,action:string,targetId:string,details:unknown={})=>{await db.from('admin_audit_log').insert({organization_id:targetId,actor_discord_id:session.discord_id,action,target_type:'organization',target_id:targetId,details});};
+const synchronizePackageExpiration=async(db:any,organizationId:string,expiresAt:string|null)=>{
+  const {data:packageSetting,error:packageError}=await db.from('app_settings').select('value').eq('organization_id',organizationId).eq('key','organization_package').maybeSingle();
+  if(packageError)throw packageError;
+  if(!packageSetting||packageSetting.value?.unlimited===true)return;
+  const packageValue={...(packageSetting.value||{}),expires_at:expiresAt};
+  const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_package',value:packageValue,updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});
+  if(error)throw error;
+};
+const updateOrganizationAccess=async(db:any,session:any,organizationId:string,expiresAt:string|null,requestedActive:boolean,action='organization_access_changed')=>{
+  const {data:previousAccess,error:previousAccessError}=await db.from('app_settings').select('value').eq('organization_id',organizationId).eq('key','organization_access').maybeSingle();
+  if(previousAccessError)throw previousAccessError;
+  const now=new Date().toISOString();
+  const expired=Boolean(expiresAt&&Date.parse(expiresAt)<=Date.now());
+  const effectiveActive=requestedActive&&!expired;
+  const {data:organization,error:organizationError}=await db.from('organizations').update({
+    active:effectiveActive,
+    deactivation_reason:effectiveActive?null:expired?'expired':'manual',
+    deactivated_at:effectiveActive?null:now,
+    deactivated_by_discord_id:effectiveActive?null:session.discord_id,
+    updated_at:now
+  }).eq('id',organizationId).select('id').maybeSingle();
+  if(organizationError)throw organizationError;
+  if(!organization)throw new Error('Organizația nu există.');
+  const {error:accessError}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_access',value:{expires_at:expiresAt},updated_at:now},{onConflict:'organization_id,key'});
+  if(accessError)throw accessError;
+  await synchronizePackageExpiration(db,organizationId,expiresAt);
+  await audit(db,session,action,organizationId,{active:effectiveActive,expires_at:expiresAt,previous_expires_at:previousAccess?.value?.expires_at||null});
+  return {active:effectiveActive,expires_at:expiresAt};
+};
 const slugify=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60);
 const webhookChannels=new Set([
   'organization',
@@ -153,7 +182,7 @@ Deno.serve(async request=>{
       });
     }
     if(body.action==='platform_overview'){
-      const {data:organizations,error:organizationsError}=await db.from('organizations').select('id,name,slug,code,lifecycle_status,active,grace_until,created_at,updated_at').order('name');
+      const {data:organizations,error:organizationsError}=await db.from('organizations').select('id,name,slug,code,lifecycle_status,active,grace_until,deactivation_reason,deactivated_at,deactivated_by_discord_id,last_discord_check_at,last_discord_check_status,created_at,updated_at').order('name');
       if(organizationsError)throw organizationsError;
       const ids=(organizations||[]).map((organization:any)=>organization.id);
       const [{data:guildRows,error:guildError},{data:roleRows,error:roleError},{data:settingsRows,error:settingsError},{data:appRows,error:appError}]=await Promise.all([
@@ -444,7 +473,7 @@ if (settingsError) {
   throw settingsError;
 }
       await db.from('app_settings').upsert({organization_id:organizationId,key:'pontaj_config',value:{maxHours:12,dayEndTime:'19:59',nightEndTime:'23:00',excludeBreaks:false}},{onConflict:'organization_id,key'});
-      if(body.access){const expiresAt=String(body.access.expires_at||'').trim();if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))throw new Error('Data expirării este invalidă.');const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_access',value:{expires_at:expiresAt||null},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;if(!expiresAt||Date.parse(expiresAt)>Date.now())await db.from('organizations').update({active:true,updated_at:new Date().toISOString()}).eq('id',organizationId);}
+      if(body.access){const expiresAt=String(body.access.expires_at||'').trim()||null;if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))throw new Error('Data expirării este invalidă.');await updateOrganizationAccess(db,session,organizationId,expiresAt,true);}
       if(body.contract_template){const title=String(body.contract_template.title||'').trim(),template=String(body.contract_template.template||'').trim();if(title.length<2)throw new Error('Numele contractului este obligatoriu.');if(template.length<20)throw new Error('Textul contractului este prea scurt.');const allowed=['{{COMPANY}}','{{ADDRESS}}','{{MANAGER}}','{{EMPLOYEE_NAME}}','{{CNP}}','{{PHONE}}','{{POSITION}}','{{SALARY}}','{{PROGRAM}}','{{START_DATE}}','{{CONTRACT_NUMBER}}'];const unknown=[...template.matchAll(/{{[A-Z0-9_]+}}/g)].map(match=>match[0]).filter(value=>!allowed.includes(value));if(unknown.length)throw new Error(`Câmpuri necunoscute în contract: ${[...new Set(unknown)].join(', ')}`);const defaults=body.contract_template.defaults&&typeof body.contract_template.defaults==='object'?body.contract_template.defaults:{};const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'contract_template',value:{title,template,defaults:{salary:String(defaults.salary||'').trim()||null}},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;}
       if(body.page_permissions && typeof body.page_permissions === 'object'){
   const allowedPages = new Set([
@@ -867,14 +896,12 @@ if (Array.isArray(body.roles)) {
     }
     if(body.action==='extend'){
       const organizationId=String(body.organization_id||'').trim(),expiresAt=String(body.expires_at||'').trim();if(!validOrganizationId(organizationId)||Number.isNaN(Date.parse(expiresAt))||Date.parse(expiresAt)<=Date.now())return reply({error:'Alege o dată viitoare pentru prelungire.'},400);
-      const {data,error}=await db.from('organizations').update({active:true,updated_at:new Date().toISOString()}).eq('id',organizationId).select('id').maybeSingle();if(error)throw error;if(!data)return reply({error:'Organizația nu există.'},404);
-      const {error:settingError}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_access',value:{expires_at:expiresAt},updated_at:nowIso()},{onConflict:'organization_id,key'});if(settingError)throw settingError;await audit(db,session,'organization_access_extended',organizationId,{expires_at:expiresAt});return reply({ok:true,expires_at:expiresAt});
+      const result=await updateOrganizationAccess(db,session,organizationId,expiresAt,true,'organization_access_extended');return reply({ok:true,active:result.active,expires_at:expiresAt});
     }
     if(body.action==='set_access'){
-      const organizationId=String(body.organization_id||'').trim(),expiresAt=String(body.expires_at||'').trim(),active=body.active!==false;
+      const organizationId=String(body.organization_id||'').trim(),expiresAt=String(body.expires_at||'').trim()||null,active=body.active!==false;
       if(!validOrganizationId(organizationId))return reply({error:'ID-ul organizației este invalid.'},400);if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))return reply({error:'Data expirării este invalidă.'},400);
-      const effectiveActive=active&&(!expiresAt||Date.parse(expiresAt)>Date.now());const {data,error}=await db.from('organizations').update({active:effectiveActive,updated_at:new Date().toISOString()}).eq('id',organizationId).select('id').maybeSingle();if(error)throw error;if(!data)return reply({error:'Organizația nu există.'},404);
-      const {error:settingError}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_access',value:{expires_at:expiresAt||null},updated_at:nowIso()},{onConflict:'organization_id,key'});if(settingError)throw settingError;await audit(db,session,'organization_access_changed',organizationId,{active:effectiveActive,expires_at:expiresAt||null});return reply({ok:true,active:effectiveActive,expires_at:expiresAt||null});
+      const result=await updateOrganizationAccess(db,session,organizationId,expiresAt,active);return reply({ok:true,active:result.active,expires_at:expiresAt});
     }
     if(body.action==='delete'){
       const organizationId=String(body.organization_id||'').trim();

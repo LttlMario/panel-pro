@@ -155,7 +155,25 @@ Deno.serve(async (request) => {
     const { data: mappings, error: mappingError } = mappingResult;
     if (mappingError) throw mappingError;
     const expiredIds=new Set((accessRows||[]).filter((row:any)=>row.key==='organization_access'&&row.value?.expires_at&&Date.parse(String(row.value.expires_at))<=Date.now()).map((row:any)=>String(row.organization_id))),packageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='organization_package').map((row:any)=>[String(row.organization_id),row.value||{}])),pageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),assistantPageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='assistant_page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),actionSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='action_permissions').map((row:any)=>[String(row.organization_id),row.value||{}]));
-     if(expiredIds.size)await db.from('organizations').update({active:false,updated_at:new Date().toISOString()}).in('id',[...expiredIds]);
+     if(expiredIds.size){
+       const now=new Date().toISOString();
+       const {data:changedOrganizations,error:expirationError}=await db.from('organizations').update({active:false,deactivation_reason:'expired',deactivated_at:now,deactivated_by_discord_id:null,updated_at:now}).in('id',[...expiredIds]).eq('active',true).select('id');
+       if(expirationError)throw expirationError;
+       await Promise.all((changedOrganizations||[]).map((organization:any)=>Promise.all([
+         db.from('admin_audit_log').insert({organization_id:organization.id,actor_discord_id:null,actor_name:'system',action:'organization_access_expired',target_type:'organization',target_id:organization.id,details:{source:'sync_discord_role'}}),
+         db.from('organization_lifecycle_events').insert({organization_id:organization.id,event_type:'organization_access_expired',actor_discord_id:null,details:{source:'sync_discord_role'}})
+       ])));
+     }
+     const futureAccessIds=new Set((accessRows||[]).filter((row:any)=>row.key==='organization_access'&&row.value?.expires_at&&Date.parse(String(row.value.expires_at))>Date.now()).map((row:any)=>String(row.organization_id)));
+     if(futureAccessIds.size){
+       const now=new Date().toISOString();
+       const {data:reconciledOrganizations,error:reconcileError}=await db.from('organizations').update({active:true,deactivation_reason:null,deactivated_at:null,deactivated_by_discord_id:null,updated_at:now}).in('id',[...futureAccessIds]).eq('active',false).eq('deactivation_reason','expired').select('id');
+       if(reconcileError)throw reconcileError;
+       await Promise.all((reconciledOrganizations||[]).map((organization:any)=>Promise.all([
+         db.from('admin_audit_log').insert({organization_id:organization.id,actor_discord_id:null,actor_name:'system',action:'organization_access_reconciled',target_type:'organization',target_id:organization.id,details:{source:'sync_discord_role'}}),
+         db.from('organization_lifecycle_events').insert({organization_id:organization.id,event_type:'organization_access_reconciled',actor_discord_id:null,details:{source:'sync_discord_role'}})
+       ])));
+     }
      const inactiveOrganizationIds=new Set(scopedGuilds.filter((item:any)=>item.organizations?.active===false&&!expiredIds.has(String(item.organization_id))).map((item:any)=>String(item.organization_id)));
 
     const matches = new Map<string, {

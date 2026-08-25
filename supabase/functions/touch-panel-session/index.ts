@@ -21,13 +21,52 @@ const sha256 = async (value: string) =>
     )
   ).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 
-const revokeOrganizationAccess = async (db: any, organizationId: string, discordId: string, now: string) => {
+const recordSystemAccessEvent = async (db: any, organizationId: string, action: string, details: Record<string, unknown>) => {
+  try {
+    await Promise.all([
+      db.from('admin_audit_log').insert({
+        organization_id: organizationId,
+        actor_discord_id: null,
+        actor_name: 'system',
+        action,
+        target_type: 'organization',
+        target_id: organizationId,
+        details,
+      }),
+      db.from('organization_lifecycle_events').insert({
+        organization_id: organizationId,
+        event_type: action,
+        actor_discord_id: null,
+        details,
+      }),
+    ]);
+  } catch (error) {
+    console.error('Could not record system organization access event:', error);
+  }
+};
+
+const revokeExpiredOrganizationAccess = async (db: any, organizationId: string, now: string) => {
   await Promise.all([
-    db.from('organizations').update({ active: false, updated_at: now }).eq('id', organizationId),
+    db.from('organizations').update({
+      active: false,
+      deactivation_reason: 'expired',
+      deactivated_at: now,
+      deactivated_by_discord_id: null,
+      updated_at: now,
+    }).eq('id', organizationId).eq('active', true),
+    db.from('organization_members').update({ active: false, last_verified_at: now })
+      .eq('organization_id', organizationId).eq('active', true),
+    db.from('panel_sessions').update({ revoked_at: now })
+      .eq('organization_id', organizationId).eq('is_platform_admin', false).is('revoked_at', null),
+  ]);
+};
+
+const revokeMemberAccess = async (db: any, organizationId: string, discordId: string, now: string) => {
+  await Promise.all([
     db.from('organization_members').update({ active: false, last_verified_at: now })
       .eq('organization_id', organizationId).eq('discord_id', discordId).eq('active', true),
     db.from('panel_sessions').update({ revoked_at: now })
-      .eq('organization_id', organizationId).eq('is_platform_admin', false).is('revoked_at', null),
+      .eq('organization_id', organizationId).eq('discord_id', discordId).eq('is_platform_admin', false).is('revoked_at', null),
   ]);
 };
 
@@ -70,16 +109,35 @@ Deno.serve(async (request) => {
     const organizationId = String(session.organization_id || '');
     const discordId = String(session.discord_id || '');
     const [{ data: organization, error: organizationError }, { data: accessSetting, error: accessError }] = await Promise.all([
-      db.from('organizations').select('id,active').eq('id', organizationId).maybeSingle(),
+      db.from('organizations').select('id,active,deactivation_reason').eq('id', organizationId).maybeSingle(),
       db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_access').maybeSingle(),
     ]);
     if (organizationError) throw organizationError;
     if (accessError) throw accessError;
 
     const accessExpiresAt = String(accessSetting?.value?.expires_at || '');
-    if (!organization?.active || (accessExpiresAt && Date.parse(accessExpiresAt) <= Date.now())) {
-      await revokeOrganizationAccess(db, organizationId, discordId, now);
-      return reply({ error: 'Organizația este dezactivată sau expirată.', code: 'ORGANIZATION_REVOKED' }, 403);
+    if (accessExpiresAt && Date.parse(accessExpiresAt) <= Date.now()) {
+      const wasActive = organization?.active === true;
+      await revokeExpiredOrganizationAccess(db, organizationId, now);
+      if (wasActive) {
+        await recordSystemAccessEvent(db, organizationId, 'organization_access_expired', {
+          expires_at: accessExpiresAt,
+          source: 'touch_panel_session',
+        });
+      }
+      return reply({ error: 'Perioada organizației a expirat.', code: 'ORGANIZATION_EXPIRED' }, 403);
+    }
+    if (!organization?.active && organization?.deactivation_reason === 'expired' && accessExpiresAt && Date.parse(accessExpiresAt) > Date.now()) {
+      const { data: repairedOrganization, error: repairError } = await db.from('organizations').update({ active: true, deactivation_reason: null, deactivated_at: null, deactivated_by_discord_id: null, updated_at: now }).eq('id', organizationId).eq('active', false).eq('deactivation_reason', 'expired').select('id').maybeSingle();
+      if (repairError) throw repairError;
+      if (repairedOrganization) {
+        organization.active = true;
+        organization.deactivation_reason = null;
+        await recordSystemAccessEvent(db, organizationId, 'organization_access_reconciled', { expires_at: accessExpiresAt, source: 'touch_panel_session' });
+      }
+    }
+    if (!organization?.active) {
+      return reply({ error: 'Organizația este dezactivată.', code: 'ORGANIZATION_DISABLED' }, 403);
     }
 
     const { data: guild, error: guildError } = await db
@@ -91,8 +149,10 @@ Deno.serve(async (request) => {
       .maybeSingle();
     if (guildError) throw guildError;
     if (!guild?.guild_id) {
-      await revokeOrganizationAccess(db, organizationId, discordId, now);
-      return reply({ error: 'Serverul Discord al organizației nu mai este configurat.', code: 'ORGANIZATION_REVOKED' }, 403);
+      await revokeMemberAccess(db, organizationId, discordId, now);
+      await db.from('organizations').update({ last_discord_check_at: now, last_discord_check_status: 'guild_not_configured' }).eq('id', organizationId);
+      await recordSystemAccessEvent(db, organizationId, 'organization_discord_check_failed', { status: 'guild_not_configured', discord_id: discordId });
+      return reply({ error: 'Serverul Discord al organizației nu mai este configurat pentru acest cont.', code: 'DISCORD_GUILD_NOT_CONFIGURED' }, 403);
     }
 
     const discordBotToken = await getPlatformSecret(db, 'discord_bot_token');
@@ -106,8 +166,10 @@ Deno.serve(async (request) => {
     // sunt tratate ca verificare amânată, pentru a nu deloga utilizatorii la o
     // problemă temporară a botului sau a API-ului Discord.
     if (guildResponse.status === 404) {
-      await revokeOrganizationAccess(db, organizationId, discordId, now);
-      return reply({ error: 'Serverul Discord al organizației nu mai există. Accesul a fost revocat.', code: 'DISCORD_GUILD_REMOVED' }, 403);
+      await revokeMemberAccess(db, organizationId, discordId, now);
+      await db.from('organizations').update({ last_discord_check_at: now, last_discord_check_status: 'guild_not_found' }).eq('id', organizationId);
+      await recordSystemAccessEvent(db, organizationId, 'organization_discord_check_failed', { status: 'guild_not_found', guild_id: guildId, discord_id: discordId });
+      return reply({ error: 'Serverul Discord al organizației nu a fost găsit. Sesiunea ta a fost revocată, dar organizația nu a fost dezactivată.', code: 'DISCORD_GUILD_NOT_FOUND' }, 403);
     }
     if (!guildResponse.ok) {
       const { error } = await db.from('panel_sessions').update({ last_seen_at: now }).eq('token_hash', tokenHash);
@@ -119,17 +181,21 @@ Deno.serve(async (request) => {
       headers: discordHeaders(discordBotToken),
     });
     if (memberResponse.status === 404) {
-      await revokeOrganizationAccess(db, organizationId, discordId, now);
-      return reply({ error: 'Nu mai ești membru pe serverul Discord al organizației. Accesul a fost revocat.', code: 'DISCORD_MEMBER_REMOVED' }, 403);
+      await revokeMemberAccess(db, organizationId, discordId, now);
+      await db.from('organizations').update({ last_discord_check_at: now, last_discord_check_status: 'member_not_found' }).eq('id', organizationId);
+      await recordSystemAccessEvent(db, organizationId, 'organization_discord_check_failed', { status: 'member_not_found', guild_id: guildId, discord_id: discordId });
+      return reply({ error: 'Nu mai ești membru pe serverul Discord al organizației. Sesiunea ta a fost revocată, dar organizația nu a fost dezactivată.', code: 'DISCORD_MEMBER_REMOVED' }, 403);
     }
     if (!memberResponse.ok) {
       const { error } = await db.from('panel_sessions').update({ last_seen_at: now }).eq('token_hash', tokenHash);
       if (error) throw error;
+      await db.from('organizations').update({ last_discord_check_at: now, last_discord_check_status: 'deferred' }).eq('id', organizationId);
       return reply({ ok: true, last_seen_at: now, verification: 'deferred' });
     }
 
     const { error } = await db.from('panel_sessions').update({ last_seen_at: now }).eq('token_hash', tokenHash);
     if (error) throw error;
+    await db.from('organizations').update({ last_discord_check_at: now, last_discord_check_status: 'ok' }).eq('id', organizationId);
     return reply({ ok: true, last_seen_at: now, verification: 'live' });
   } catch (error) {
     return reply({ error: error instanceof Error ? error.message : 'Eroare necunoscută.' }, 500);

@@ -54,7 +54,25 @@ Deno.serve(async (request) => {
   const now = new Date();
   const { data: accessRows } = await supabase.from('app_settings').select('organization_id,value').eq('key', 'organization_access');
   const expiredOrganizationIds = (accessRows || []).filter((row: any) => row.value?.expires_at && Date.parse(String(row.value.expires_at)) <= now.getTime()).map((row: any) => row.organization_id);
-  if (expiredOrganizationIds.length) await supabase.from('organizations').update({ active: false, updated_at: now.toISOString() }).in('id', expiredOrganizationIds);
+  if (expiredOrganizationIds.length) {
+    const nowIso = now.toISOString();
+    const { data: changedOrganizations, error: expirationError } = await supabase.from('organizations')
+      .update({
+        active: false,
+        deactivation_reason: 'expired',
+        deactivated_at: nowIso,
+        deactivated_by_discord_id: null,
+        updated_at: nowIso,
+      })
+      .in('id', expiredOrganizationIds)
+      .eq('active', true)
+      .select('id');
+    if (expirationError) return new Response(JSON.stringify({ error: expirationError.message }), { status: 500, headers: corsHeaders });
+    await Promise.all((changedOrganizations || []).map((organization: any) => Promise.all([
+      supabase.from('admin_audit_log').insert({ organization_id: organization.id, actor_discord_id: null, actor_name: 'system', action: 'organization_access_expired', target_type: 'organization', target_id: organization.id, details: { source: 'close_expired_shifts' } }),
+      supabase.from('organization_lifecycle_events').insert({ organization_id: organization.id, event_type: 'organization_access_expired', actor_discord_id: null, details: { source: 'close_expired_shifts' } }),
+    ])));
+  }
   // Preluăm atât turele care trebuie închise, cât și turele închise automat
   // pentru care confirmarea Discord nu a fost încă livrată.
   const { data: expired, error } = await supabase.from('shifts').select('*')

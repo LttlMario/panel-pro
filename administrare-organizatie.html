@@ -183,12 +183,13 @@
         const date = new Date(value);
         return Number.isNaN(date.getTime()) ? 'Dată invalidă' : date.toLocaleString('ro-RO', { dateStyle: 'medium', timeStyle: 'short' });
       };
-      const renderAccess = (access, packageState, active) => {
-        const expiresAt = access?.expires_at || packageState?.expires_at || '';
+      const renderAccess = (access, packageState, active, deactivationReason) => {
+        const expiresAt = access?.expires_at || '';
         const expired = expiresAt && Date.parse(expiresAt) <= Date.now();
         ownerPackageCode = String(packageState?.code || 'standard').toLowerCase();
         $('owner-package-status').textContent = String(packageState?.code || 'standard').toUpperCase();
-        $('owner-access-status').textContent = expired ? 'Expirat — aplică voucher' : (active === false ? 'Dezactivat' : 'Activ');
+        const statusLabel = expired ? 'Expirat — aplică voucher' : active === false ? (deactivationReason === 'expired' ? 'Expirat' : deactivationReason === 'manual' ? 'Dezactivat manual' : 'Dezactivat') : 'Activ';
+        $('owner-access-status').textContent = statusLabel;
         $('owner-access-status').className = `mt-1 block text-sm ${expired || active === false ? 'text-rose-300' : 'text-emerald-300'}`;
         $('owner-expires-status').textContent = formatExpiry(expiresAt);
         document.querySelectorAll('[data-owner-webhook-fieldset]').forEach((fieldset) => { fieldset.hidden = ownerPackageCode !== 'full' && fullOnlyWebhookKeys.has(fieldset.dataset.ownerWebhookFieldset); });
@@ -318,7 +319,7 @@
           $('owner-org-description').value = org.description || '';
           $('owner-panel-url').value = data.settings?.panel_public_url || '';
           $('owner-org-logo').value = org.logo_url || '';
-          renderAccess(data.access, data.package, org.active);
+          renderAccess(data.access, data.package, org.active, org.deactivation_reason);
           const contract = data.contract_template || {};
           $('owner-contract-title').value = contract.title || '';
           $('owner-contract-salary').value = contract.defaults?.salary || '';
@@ -366,7 +367,7 @@
            const updatedDiscipline = data.discipline_permissions && typeof data.discipline_permissions === 'object' ? data.discipline_permissions : {};
            disciplinePermissions = { organization: { read: Array.isArray(updatedDiscipline.organization?.read) ? updatedDiscipline.organization.read.map(String) : [], write: Array.isArray(updatedDiscipline.organization?.write) ? updatedDiscipline.organization.write.map(String) : [], sanction: Array.isArray(updatedDiscipline.organization?.sanction) ? updatedDiscipline.organization.sanction.map(String) : [] }, departments: { read: Array.isArray(updatedDiscipline.departments?.read) ? updatedDiscipline.departments.read.map(String) : [], write: Array.isArray(updatedDiscipline.departments?.write) ? updatedDiscipline.departments.write.map(String) : [], sanction: Array.isArray(updatedDiscipline.departments?.sanction) ? updatedDiscipline.departments.sanction.map(String) : [] } };
            renderAllPermissions();
-           renderAccess(data.access, data.package, data.organization?.active);
+           renderAccess(data.access, data.package, data.organization?.active, data.organization?.deactivation_reason);
            saveOwnerDraft();
            $('owner-status').textContent = 'Modificările au fost salvate.';
           localStorage.setItem('panel_active_organization', JSON.stringify(data.organization || {}));
