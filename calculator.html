@@ -364,7 +364,7 @@
             color: var(--success);
         }
 
-        #box_direct .result-card .item-value {
+        .result-card .item-value.is-non-zero {
             color: #f87171;
         }
 
@@ -507,7 +507,6 @@
                                 <span class="item-name">Cantitate</span>
                                 <input type="number" id="mecanicQty" min="0" step="1" value="0" placeholder="0">
                             </div>
-                            <div id="mecanicRecipeHint" class="text-xs text-slate-400 mt-3" aria-live="polite"></div>
                         </div>
                     </div>
 
@@ -1154,23 +1153,6 @@ const upgradeChains = {
                     select.appendChild(option);
                 });
 
-            updateMecanicRecipeHint();
-        }
-
-        function formatRecipe(recipe) {
-            if (!recipe || recipe.incomplete || !recipe.base) return 'Rețeta nu este completată încă.';
-            return Object.entries(recipe.base)
-                .map(([material, amount]) => `<span class="calculator-number">${amount}x</span> ${material}`)
-                .join(' + ');
-        }
-
-        function updateMecanicRecipeHint() {
-            const select = document.getElementById('mecanicItemSelect');
-            const hint = document.getElementById('mecanicRecipeHint');
-            if (!select || !hint) return;
-            const recipe = recipesMecanic?.[select.value];
-            hint.innerHTML = recipe ? `Rețetă: ${formatRecipe(recipe)}` : '';
-            hint.classList.toggle('text-amber-300', Boolean(recipe?.incomplete));
         }
 
         function toggleCategory(catId) {
@@ -1289,7 +1271,6 @@ const upgradeChains = {
             if (croitorQty) croitorQty.value = 0;
             const subBox = document.getElementById('subOptionsBox');
             if (subBox) subBox.classList.remove('active');
-            updateMecanicRecipeHint();
             calculateAll();
         }
 
@@ -1309,7 +1290,6 @@ const upgradeChains = {
             const subBox = document.getElementById('subOptionsBox');
             subBox.classList.remove('active');
 
-            updateMecanicRecipeHint();
             calculateAll();
         }
 
@@ -1663,6 +1643,7 @@ const upgradeChains = {
 
                     if (element) {
                         element.textContent = "0";
+                        element.classList.remove('is-non-zero');
                     }
 
                 });
@@ -1686,6 +1667,7 @@ const upgradeChains = {
                         title.textContent = mat;
                         const value = document.createElement('div');
                         value.className = 'item-value';
+                        value.classList.toggle('is-non-zero', Number(directCost[mat]) !== 0);
                         value.textContent = String(directCost[mat]);
                         card.append(title, value);
                         directGrid.appendChild(card);
@@ -1706,9 +1688,11 @@ const upgradeChains = {
                         key => getNormalizedKey(key) === normalizedName
                     );
 
-                    resultElement.textContent = accumulatedKey
+                    const rawAmount = accumulatedKey
                         ? accumulated[accumulatedKey]
                         : 0;
+                    resultElement.textContent = rawAmount;
+                    resultElement.classList.toggle('is-non-zero', Number(rawAmount) !== 0);
                 
                 });
             } else {
