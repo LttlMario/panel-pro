@@ -6,6 +6,8 @@ Pachet Standard
 
 Pachetul Standard este recomandat organizațiilor mici și medii care au nevoie de un panel complet și ușor de administrat.
 
+Pachetul Standard include acces pe web și în aplicațiile mobile pentru iOS și Android.
+
 Include:
 
 1 server Discord conectat la panel;
@@ -73,6 +75,8 @@ Pachetul Standard este potrivit pentru o organizație care dorește toate funcț
 Pachet Full
 
 Pachetul Full este destinat organizațiilor mai mari sau celor care au nevoie de mai mult control, flexibilitate și posibilități de extindere.
+
+Pachetul Full include acces pe web și în aplicațiile mobile pentru iOS și Android.
 
 Include toate funcțiile din pachetul Standard, plus:
 
