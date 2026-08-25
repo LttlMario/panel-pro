@@ -3,6 +3,10 @@ const panelNativeAndroid = /Android/i.test(navigator.userAgent || '') && (
     window.Capacitor?.isNativePlatform?.() === true || /;\s*wv\)/i.test(navigator.userAgent || '')
 );
 if (panelNativeAndroid) document.documentElement.classList.add('panel-android-native');
+const panelNativeIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent || '') || (
+    navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+);
+if (panelNativeIOS) document.documentElement.classList.add('panel-ios-device');
 window.panelCloseLegacyMobileMenu = window.panelCloseLegacyMobileMenu || function panelCloseLegacyMobileMenu() {
     document.getElementById('mobile-menu')?.classList.add('-translate-x-full');
     document.getElementById('mobile-menu-backdrop')?.classList.add('hidden');
@@ -241,6 +245,10 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             #panel-mobile-backdrop { display:none; position:fixed; inset:0; z-index:4000; background:rgba(2,6,23,.78); backdrop-filter:blur(3px); }
             #panel-mobile-menu { position:fixed; inset:0 auto 0 0; z-index:4001; width:min(288px,86vw); background:#0f172a; border-right:1px solid #1e293b; transform:translateX(-102%); transition:transform .2s ease; box-shadow:16px 0 40px rgba(0,0,0,.45); overflow:auto; }
             #panel-mobile-menu.is-open { transform:translateX(0); }
+            html.panel-ios-device body.panel-shared-sidebar-page { padding-left:0 !important; }
+            html.panel-ios-device body.panel-shared-sidebar-page > #panel-shared-sidebar { display:none !important; }
+            html.panel-ios-device body.panel-global-shell > div:has(main) { width:100% !important; max-width:100% !important; margin-left:0 !important; padding-left:0 !important; }
+            html.panel-ios-device body.panel-global-shell > div:has(main) > main { width:100% !important; max-width:none !important; margin-left:0 !important; }
             #panel-mobile-menu .panel-mobile-top { height:64px; padding:0 18px; border-bottom:1px solid #1e293b; display:flex; align-items:center; justify-content:space-between; }
             #panel-mobile-menu .panel-mobile-nav { padding:16px; }
             .panel-mobile-toggle { display:none; position:relative; z-index:40; width:40px; height:40px; flex:none; align-items:center; justify-content:center; border:1px solid #334155; border-radius:12px; background:#020617; color:#e2e8f0; font-size:18px; cursor:pointer; }
@@ -433,7 +441,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             sidebar.classList.toggle('is-collapsed', effectiveCollapsed);
             if (main?.classList.contains('ml-72')) main.style.marginLeft = isMobileViewport ? '' : (effectiveCollapsed ? '5.25rem' : originalMainMargin);
             if (document.body.classList.contains('panel-shared-sidebar-page')) {
-                document.body.style.setProperty('padding-left', isMobileViewport ? '0px' : (effectiveCollapsed ? '5.25rem' : '245px'), isMobileViewport);
+                document.body.style.setProperty('padding-left', isMobileViewport ? '0px' : (effectiveCollapsed ? '5.25rem' : '245px'), isMobileViewport ? 'important' : '');
             }
             if (isMobileViewport) {
                 main?.style.setProperty('margin-left', '0px', 'important');
@@ -516,6 +524,14 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         });
         mobileMenu.querySelector('button').addEventListener('click', closeMobileMenu);
         backdrop.addEventListener('click', closeMobileMenu);
+        const closeOnOutsideInteraction = (event) => {
+            if (!mobileMenu.classList.contains('is-open')) return;
+            const target = event.target;
+            if (target instanceof Node && (mobileMenu.contains(target) || target.closest?.('.panel-mobile-toggle'))) return;
+            closeMobileMenu();
+        };
+        document.addEventListener('pointerdown', closeOnOutsideInteraction, true);
+        document.addEventListener('touchstart', closeOnOutsideInteraction, { capture: true, passive: true });
         mobileNav.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMobileMenu));
 
         const header = document.querySelector('header');

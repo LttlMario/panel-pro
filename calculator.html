@@ -10,7 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
     <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
     <script src="js/permissions.js?v=4.6.2"></script>
-    <script src="js/panel-layout.js?v=4.27.0"></script>
+    <script src="js/panel-layout.js?v=4.28.0"></script>
     <script src="js/craft-mechanic-recipes.js?v=20260825-craft-calculator"></script>
     <style>
         :root {
@@ -361,7 +361,12 @@
         .result-card .item-value {
             font-size: 1.1rem;
             font-weight: 700;
-            color: var(--success);
+            color: #f87171;
+        }
+
+        .calculator-number {
+            color: #f87171;
+            font-weight: 800;
         }
 
         .result-card .item-value.gold {
@@ -535,6 +540,7 @@
                             <div class="result-card"><div class="item-title">Țeavă</div><div class="item-value" id="res_teava">0</div></div>
                             <div class="result-card"><div class="item-title">Butelie</div><div class="item-value" id="res_butelie">0</div></div>
                             <div class="result-card"><div class="item-title">Oțel</div><div class="item-value" id="res_otel">0</div></div>
+                            <div class="result-card"><div class="item-title">Cărbune</div><div class="item-value" id="res_carbune">0</div></div>
                             <div class="result-card"><div class="item-title">Aur</div><div class="item-value" id="res_aur">0</div></div>
                             <div class="result-card"><div class="item-title">Diamant</div><div class="item-value" id="res_diamant">0</div></div>
                             <div class="result-card">
@@ -1076,6 +1082,13 @@ const upgradeChains = {
             (window.PANEL_CRAFT_MECHANIC_RECIPES || []).map(recipe => [recipe.id, recipe])
         );
 
+        // Referințe din Calculator Ilegal / Topitorie:
+        // 1 Oțel = 1 Fier + 1 Cărbune; 1 Arc = 1 Aluminiu.
+        const recipesTopitorie = {
+            otel: { name: "Oțel", base: { "Fier": 1, "Cărbune": 1 } },
+            arc: { name: "Arc", base: { "Aluminiu": 1 } }
+        };
+
         const materialKeys = [
             "Plastic",
             "Undiță normală",
@@ -1086,6 +1099,7 @@ const upgradeChains = {
             "Teava",
             "Butelie",
             "Otel",
+            "Cărbune",
             "Aur",
             "Diamant",
 
@@ -1142,7 +1156,7 @@ const upgradeChains = {
         function formatRecipe(recipe) {
             if (!recipe || recipe.incomplete || !recipe.base) return 'Rețeta nu este completată încă.';
             return Object.entries(recipe.base)
-                .map(([material, amount]) => `${amount}x ${material}`)
+                .map(([material, amount]) => `<span class="calculator-number">${amount}x</span> ${material}`)
                 .join(' + ');
         }
 
@@ -1151,7 +1165,7 @@ const upgradeChains = {
             const hint = document.getElementById('mecanicRecipeHint');
             if (!select || !hint) return;
             const recipe = recipesMecanic?.[select.value];
-            hint.textContent = recipe ? `Rețetă: ${formatRecipe(recipe)}` : '';
+            hint.innerHTML = recipe ? `Rețetă: ${formatRecipe(recipe)}` : '';
             hint.classList.toggle('text-amber-300', Boolean(recipe?.incomplete));
         }
 
@@ -1451,6 +1465,19 @@ const upgradeChains = {
                         getNormalizedKey(recipesMecanic[key].name) === getNormalizedKey(itemName)
                     ) {
                         recipe = recipesMecanic[key];
+                        break;
+                    }
+                }
+            }
+
+            // cauta în referințele Topitorie / Calculator Ilegal
+            if (!recipe) {
+                for (const key in recipesTopitorie) {
+                    if (
+                        getNormalizedKey(key) === getNormalizedKey(itemName) ||
+                        getNormalizedKey(recipesTopitorie[key].name) === getNormalizedKey(itemName)
+                    ) {
+                        recipe = recipesTopitorie[key];
                         break;
                     }
                 }
