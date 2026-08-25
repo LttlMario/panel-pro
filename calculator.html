@@ -9,8 +9,9 @@
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
     <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
-    <script src="js/permissions.js?v=4.6.0"></script>
+    <script src="js/permissions.js?v=4.6.2"></script>
     <script src="js/panel-layout.js?v=4.27.0"></script>
+    <script src="js/craft-mechanic-recipes.js?v=20260825-craft-calculator"></script>
     <style>
         :root {
             --bg-main: #030712;
@@ -423,6 +424,7 @@
                                     <option value="plicuri">Plicuri goale (x10)</option>
                                     <option value="aprinzator">Aprinzător</option>
                                     <option value="cleste">Clește</option>
+                                    <option value="tableta_hacking">Tabletă de hacking</option>
                                     <option value="flash_drive">Flash drive de hack</option>
                                     <option value="lockpick">Lockpick (x5)</option>
                                     <option value="cauciuc_1">Cauciuc x1</option>
@@ -480,16 +482,24 @@
                     </div>
 
                     <!-- Categorie Craft Mecanic -->
-                   <div class="category-group">
-                        <a href="craftmecanics.html"
-                           style="text-decoration:none;color:inherit;display:block;">
-                            <div class="category-header">
-                                <span style="display:flex;align-items:center;gap:8px;">
-                                    <span>🔧</span>
-                                    Craft Mecanic
-                                </span>
+                    <div class="category-group" id="cat-mecanic">
+                        <div class="category-header" onclick="toggleCategory('cat-mecanic')">
+                            <span style="display:flex;align-items:center;gap:8px;">
+                                <span>🔧</span>
+                                Craft Mecanic
+                            </span>
+                        </div>
+                        <div class="category-content" id="mecanicForm">
+                            <div class="item-row" style="margin-bottom: 8px;">
+                                <span class="item-name">Obiect</span>
+                                <select id="mecanicItemSelect" onchange="onMecanicItemChange()" style="width: 100%;"></select>
                             </div>
-                        </a>
+                            <div class="item-row">
+                                <span class="item-name">Cantitate</span>
+                                <input type="number" id="mecanicQty" min="0" step="1" value="0" placeholder="0">
+                            </div>
+                            <div id="mecanicRecipeHint" class="text-xs text-slate-400 mt-3" aria-live="polite"></div>
+                        </div>
                     </div>
 
                     <div class="btn-container">
@@ -541,7 +551,12 @@
                             <div class="result-card"><div class="item-title">Copac Cedru</div><div class="item-value" id="res_copac_cedru">0</div></div>
                             <div class="result-card"><div class="item-title">USB</div><div class="item-value" id="res_usb">0</div></div>
                             <div class="result-card"><div class="item-title">Keycard</div><div class="item-value" id="res_keycard">0</div></div>
+                            <div class="result-card"><div class="item-title">Card albastru</div><div class="item-value" id="res_card_albastru">0</div></div>
+                            <div class="result-card"><div class="item-title">Card roșu</div><div class="item-value" id="res_card_rosu">0</div></div>
                             <div class="result-card"><div class="item-title">Cip</div><div class="item-value" id="res_cip">0</div></div>
+                            <div class="result-card"><div class="item-title">Cip vechi</div><div class="item-value" id="res_cip_vechi">0</div></div>
+                            <div class="result-card"><div class="item-title">Cip clasic</div><div class="item-value" id="res_cip_clasic">0</div></div>
+                            <div class="result-card"><div class="item-title">Cip nou</div><div class="item-value" id="res_cip_nou">0</div></div>
                             <div class="result-card"><div class="item-title">Clești</div><div class="item-value" id="res_clesti">0</div></div>
                             <div class="result-card"><div class="item-title">Bumbac</div><div class="item-value" id="res_bumbac">0</div></div>
                             <div class="result-card"><div class="item-title">Ață</div><div class="item-value" id="res_ata">0</div></div>
@@ -549,6 +564,13 @@
                             <div class="result-card"><div class="item-title">Cauciuc</div><div class="item-value" id="res_cauciuc">0</div></div>
                             <div class="result-card"><div class="item-title">Fibră</div><div class="item-value" id="res_fibra">0</div></div>
                             <div class="result-card"><div class="item-title">Sfoară</div><div class="item-value" id="res_sfoara">0</div></div>
+                            <div class="result-card"><div class="item-title">Arc</div><div class="item-value" id="res_arc">0</div></div>
+                            <div class="result-card"><div class="item-title">Plumb</div><div class="item-value" id="res_plumb">0</div></div>
+                            <div class="result-card"><div class="item-title">Safir</div><div class="item-value" id="res_safir">0</div></div>
+                            <div class="result-card"><div class="item-title">Emerald</div><div class="item-value" id="res_emerald">0</div></div>
+                            <div class="result-card"><div class="item-title">Rubin</div><div class="item-value" id="res_rubin">0</div></div>
+                            <div class="result-card"><div class="item-title">Blueprint</div><div class="item-value" id="res_blueprint">0</div></div>
+                            <div class="result-card"><div class="item-title">Set jante aluminiu</div><div class="item-value" id="res_set_jante_aluminiu">0</div></div>
                         </div>
                     </div>
                 </div>
@@ -562,9 +584,10 @@
         const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
 
         document.addEventListener('DOMContentLoaded', async () => {
-        
+
             await initializePanelLayout();
-        
+
+            populateMecanicOptions();
             onItemChange();
             calculateAll();
         
@@ -791,6 +814,26 @@ const upgradeChains = {
                     "Fier": 2,
                     "Aluminiu": 4,
                     "Plastic": 5
+                }
+            },
+
+            "tableta_hacking": {
+                name: "Tabletă de hacking",
+                base: {
+                    "Card albastru": 2,
+                    "Cip vechi": 3,
+                    "Cip clasic": 3,
+                    "Cip nou": 3
+                }
+            },
+
+            "flash_drive": {
+                name: "Flash drive de hack",
+                base: {
+                    "USB": 1,
+                    "Card roșu": 1,
+                    "Cip nou": 5,
+                    "Cabluri x10": 5
                 }
             },
 
@@ -1029,6 +1072,10 @@ const upgradeChains = {
 
         };
 
+        const recipesMecanic = Object.fromEntries(
+            (window.PANEL_CRAFT_MECHANIC_RECIPES || []).map(recipe => [recipe.id, recipe])
+        );
+
         const materialKeys = [
             "Plastic",
             "Undiță normală",
@@ -1050,8 +1097,14 @@ const upgradeChains = {
             "Copac Cedru",
 
             "USB",
+            "Tabletă",
             "Keycard",
+            "Card albastru",
+            "Card roșu",
             "Cip",
+            "Cip vechi",
+            "Cip clasic",
+            "Cip nou",
             "Clesti",
 
             "Bumbac",
@@ -1059,8 +1112,48 @@ const upgradeChains = {
             "Aloe Vera",
             "Cauciuc",
             "Fibra",
-            "Sfoara"
+            "Sfoara",
+            "Arc",
+            "Plumb",
+            "Safir",
+            "Emerald",
+            "Rubin",
+            "Blueprint",
+            "Set jante aluminiu"
         ];
+
+        function populateMecanicOptions() {
+            const select = document.getElementById('mecanicItemSelect');
+            if (!select) return;
+
+            select.replaceChildren();
+            (window.PANEL_CRAFT_MECHANIC_RECIPES || [])
+                .filter(recipe => !recipe.componentOnly)
+                .forEach(recipe => {
+                    const option = document.createElement('option');
+                    option.value = recipe.id;
+                    option.textContent = recipe.name;
+                    select.appendChild(option);
+                });
+
+            updateMecanicRecipeHint();
+        }
+
+        function formatRecipe(recipe) {
+            if (!recipe || recipe.incomplete || !recipe.base) return 'Rețeta nu este completată încă.';
+            return Object.entries(recipe.base)
+                .map(([material, amount]) => `${amount}x ${material}`)
+                .join(' + ');
+        }
+
+        function updateMecanicRecipeHint() {
+            const select = document.getElementById('mecanicItemSelect');
+            const hint = document.getElementById('mecanicRecipeHint');
+            if (!select || !hint) return;
+            const recipe = recipesMecanic?.[select.value];
+            hint.textContent = recipe ? `Rețetă: ${formatRecipe(recipe)}` : '';
+            hint.classList.toggle('text-amber-300', Boolean(recipe?.incomplete));
+        }
 
         function toggleCategory(catId) {
             const currentElement = document.getElementById(catId);
@@ -1154,6 +1247,8 @@ const upgradeChains = {
 
             const croitorQty = document.getElementById('croitorQty');
             if (croitorQty) croitorQty.value = 0;
+            const mecanicQty = document.getElementById('mecanicQty');
+            if (mecanicQty) mecanicQty.value = 0;
 
             calculateAll();
         }
@@ -1161,9 +1256,22 @@ const upgradeChains = {
         function onCroitorItemChange() {
             const masaQty = document.getElementById('masaQty');
             if (masaQty) masaQty.value = 0;
+            const mecanicQty = document.getElementById('mecanicQty');
+            if (mecanicQty) mecanicQty.value = 0;
             const subBox = document.getElementById('subOptionsBox');
             if (subBox) subBox.classList.remove('active');
 
+            calculateAll();
+        }
+
+        function onMecanicItemChange() {
+            const masaQty = document.getElementById('masaQty');
+            const croitorQty = document.getElementById('croitorQty');
+            if (masaQty) masaQty.value = 0;
+            if (croitorQty) croitorQty.value = 0;
+            const subBox = document.getElementById('subOptionsBox');
+            if (subBox) subBox.classList.remove('active');
+            updateMecanicRecipeHint();
             calculateAll();
         }
 
@@ -1174,6 +1282,8 @@ const upgradeChains = {
 
             document.getElementById('masaItemSelect').value = "ziptip";
             document.getElementById('croitorItemSelect').selectedIndex = 0;
+            const mecanicSelect = document.getElementById('mecanicItemSelect');
+            if (mecanicSelect?.options.length) mecanicSelect.selectedIndex = 0;
 
             const ownedSelect = document.getElementById('ownedVariantSelect');
             ownedSelect.innerHTML = '<option value="none">Nu, pornesc de la zero</option>';
@@ -1181,6 +1291,7 @@ const upgradeChains = {
             const subBox = document.getElementById('subOptionsBox');
             subBox.classList.remove('active');
 
+            updateMecanicRecipeHint();
             calculateAll();
         }
 
@@ -1332,9 +1443,22 @@ const upgradeChains = {
                 }
             }
 
+            // cauta în Craft Mecanic
+            if (!recipe) {
+                for (const key in recipesMecanic) {
+                    if (
+                        getNormalizedKey(key) === getNormalizedKey(itemName) ||
+                        getNormalizedKey(recipesMecanic[key].name) === getNormalizedKey(itemName)
+                    ) {
+                        recipe = recipesMecanic[key];
+                        break;
+                    }
+                }
+            }
+
 
             // daca este material final
-            if (!recipe) {
+            if (!recipe || recipe.incomplete || !recipe.base) {
                 addRawMaterial(itemName, qty, accumulated);
                 return;
             }
@@ -1365,11 +1489,13 @@ const upgradeChains = {
 
             const croitorItemKey = document.getElementById('croitorItemSelect').value;
             const croitorQtyVal = document.getElementById('croitorQty').value;
-            
+            const mecanicItemKey = document.getElementById('mecanicItemSelect')?.value;
+            const mecanicQtyVal = document.getElementById('mecanicQty')?.value || '';
+
             let hasItem = false;
             let activeQty = 0;
             let directCost = {};
-            let directCostMultiplier = 1;
+            let incompleteRecipe = false;
             
             let accumulated = {};
             materialKeys.forEach(m => accumulated[m] = 0);
@@ -1377,7 +1503,6 @@ const upgradeChains = {
             if (masaItemKey && masaQtyVal !== '' && !isNaN(masaQtyVal) && parseFloat(masaQtyVal) > 0) {
                 hasItem = true;
                 activeQty = parseFloat(masaQtyVal);
-                directCostMultiplier = activeQty;
                 let currentRecipe = recipesMasa[masaItemKey];
 
                 let chainType = null;
@@ -1480,6 +1605,21 @@ const upgradeChains = {
                     }
                 }
             }
+
+            if (mecanicItemKey && mecanicQtyVal !== '' && !isNaN(mecanicQtyVal) && parseFloat(mecanicQtyVal) > 0) {
+                hasItem = true;
+                activeQty = parseFloat(mecanicQtyVal);
+                const currentRecipe = recipesMecanic[mecanicItemKey];
+
+                if (currentRecipe?.incomplete || !currentRecipe?.base) {
+                    incompleteRecipe = true;
+                } else {
+                    for (const [material, amount] of Object.entries(currentRecipe.base)) {
+                        directCost[material] = amount * activeQty;
+                        resolveMaterialTree(material, amount * activeQty, accumulated);
+                    }
+                }
+            }
             const boxDirect = document.getElementById('box_direct');
             const boxRawMaterials = document.getElementById('box_raw_materials');
             const directGrid = document.getElementById('directResultsGrid');
@@ -1501,17 +1641,24 @@ const upgradeChains = {
                 boxRawMaterials.classList.add('active');
 
                 directGrid.innerHTML = '';
-                for (let mat in directCost) {
-                    let card = document.createElement('div');
-                    card.className = 'result-card';
-                    const title = document.createElement('div');
-                    title.className = 'item-title';
-                    title.textContent = mat;
-                    const value = document.createElement('div');
-                    value.className = 'item-value';
-                    value.textContent = String(directCost[mat]);
-                    card.append(title, value);
-                    directGrid.appendChild(card);
+                if (incompleteRecipe) {
+                    const message = document.createElement('div');
+                    message.className = 'text-amber-300 text-sm';
+                    message.textContent = `Rețeta pentru ${recipesMecanic[mecanicItemKey]?.name || 'acest obiect'} nu este completată încă.`;
+                    directGrid.appendChild(message);
+                } else {
+                    for (let mat in directCost) {
+                        let card = document.createElement('div');
+                        card.className = 'result-card';
+                        const title = document.createElement('div');
+                        title.className = 'item-title';
+                        title.textContent = mat;
+                        const value = document.createElement('div');
+                        value.className = 'item-value';
+                        value.textContent = String(directCost[mat]);
+                        card.append(title, value);
+                        directGrid.appendChild(card);
+                    }
                 }
 
                 materialKeys.forEach(materialName => {
@@ -1541,11 +1688,21 @@ const upgradeChains = {
 
         document.getElementById('masaQty').addEventListener('input', function() {
             if (this.value > 0) document.getElementById('croitorQty').value = 0;
+            if (this.value > 0) document.getElementById('mecanicQty').value = 0;
             calculateAll();
         });
 
         document.getElementById('croitorQty').addEventListener('input', function() {
             if (this.value > 0) document.getElementById('masaQty').value = 0;
+            if (this.value > 0) document.getElementById('mecanicQty').value = 0;
+            calculateAll();
+        });
+
+        document.getElementById('mecanicQty').addEventListener('input', function() {
+            if (this.value > 0) {
+                document.getElementById('masaQty').value = 0;
+                document.getElementById('croitorQty').value = 0;
+            }
             calculateAll();
         });
     </script>

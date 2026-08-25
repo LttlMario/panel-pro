@@ -569,6 +569,17 @@ function getDefaultAllowedPage() {
 
 
     // --------------------------------------------------------
+    // PAGINI GLOBALE / CENTRUL ORGANIZAȚIEI
+    // --------------------------------------------------------
+
+    // Aceste pagini nu depind de lista allowed_pages a organizației.
+    // Verificarea de sesiune de mai sus rămâne obligatorie, dar un rol Discord
+    // fără pagini configurate nu trebuie să le facă invizibile sau inaccesibile.
+    if (GlobalPublicPages.has(currentPage) || OrganizationHubPages.has(currentPage)) {
+        return;
+    }
+
+    // --------------------------------------------------------
     // UTILIZATOR FĂRĂ PAGINI
     // --------------------------------------------------------
 
