@@ -1,5 +1,5 @@
 (function () {
-    const markerPattern = /[ÃÂÄÅÈâðï\uFFFD]/;
+    const markerPattern = /(?:[ÃÂÄÅÈðï][\u0080-\u00ff]|â[\u0080-\u00ff]|\uFFFD)/;
     const windows1252Bytes = {
         '€': 0x80, '‚': 0x82, 'ƒ': 0x83, '„': 0x84, '…': 0x85, '†': 0x86, '‡': 0x87,
         'ˆ': 0x88, '‰': 0x89, 'Š': 0x8a, '‹': 0x8b, 'Œ': 0x8c, 'Ž': 0x8e,

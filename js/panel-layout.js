@@ -575,7 +575,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     function ensureTextNormalizer() {
         if (document.querySelector('script[data-panel-text-normalizer]')) return;
         const script = document.createElement('script');
-        script.src = 'js/text-normalizer.js?v=1.0.0';
+        script.src = 'js/text-normalizer.js?v=1.0.1';
         script.dataset.panelTextNormalizer = 'true';
         document.head.appendChild(script);
     }
