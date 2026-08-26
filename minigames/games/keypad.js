@@ -6,7 +6,7 @@ MG.register('keypad', {
         const len = 6;
         const code = Array.from({ length: len }, () => api.randInt(0, 9));
 
-        let guess = [], tries = 0, ended = false;
+        let guess = [], tries = 0, ended = false, feedbackPending = false;
 
         const box = document.createElement('div');
         box.style.cssText = 'display:flex;gap:28px;align-items:flex-start;';
@@ -31,7 +31,8 @@ MG.register('keypad', {
                 const d = document.createElement('div');
                 d.style.cssText = `flex:1;height:46px;border:1px solid var(--line);border-radius:6px;
                     display:grid;place-items:center;font-size:22px;font-family:var(--mono);
-                    color:var(--accent);${guess[i] !== undefined ? 'border-color:var(--accent);' : ''}`;
+                    color:var(--accent);transition:opacity .22s ease,transform .22s ease,background .22s ease,box-shadow .22s ease;
+                    ${guess[i] !== undefined ? 'border-color:var(--accent);' : ''}`;
                 d.textContent = guess[i] !== undefined ? guess[i] : '·';
                 entryEl.appendChild(d);
             }
@@ -44,7 +45,7 @@ MG.register('keypad', {
             padEl.appendChild(b);
         });
         function press(k) {
-            if (ended) return;
+            if (ended || feedbackPending) return;
             if (k === '⌫') { guess.pop(); renderEntry(); return; }
             if (k === '✓') { submit(); return; }
             if (guess.length < len) { guess.push(k); renderEntry(); }
@@ -66,7 +67,34 @@ MG.register('keypad', {
             histEl.appendChild(row);
 
             tries++;
-            if (exact === len) { ended = true; api.stopTimer(); api.setTag('UNLOCKED'); setTimeout(() => api.succeed(), 300); return; }
+            const exactCells = Array.from(entryEl.children).filter((cell, i) => guess[i] === code[i]);
+            if (exactCells.length) {
+                feedbackPending = true;
+                exactCells.forEach((cell) => {
+                    cell.style.borderColor = 'var(--success)';
+                    cell.style.color = 'var(--success)';
+                    cell.style.background = 'rgba(57,217,138,.14)';
+                    cell.style.boxShadow = '0 0 18px rgba(57,217,138,.5)';
+                });
+                if (exact === len) {
+                    ended = true;
+                    api.stopTimer();
+                    api.setTag('UNLOCKED');
+                    setTimeout(() => {
+                        exactCells.forEach((cell) => { cell.style.opacity = '0'; cell.style.transform = 'scale(.78)'; });
+                        api.succeed();
+                    }, 1000);
+                    return;
+                }
+                setTimeout(() => {
+                    exactCells.forEach((cell) => { cell.style.opacity = '0'; cell.style.transform = 'scale(.78)'; });
+                    feedbackPending = false;
+                    guess = [];
+                    renderEntry();
+                    api.setTag('TRY ' + (tries + 1));
+                }, 1000);
+                return;
+            }
             guess = []; renderEntry();
             api.setTag('TRY ' + (tries + 1));
         }
