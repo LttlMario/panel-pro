@@ -1,17 +1,18 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
+import { packageAllowsPage as packagePageAllowed, resolvePackageFeatures } from '../_shared/package-features.ts';
 
 const headers = { 'Access-Control-Allow-Origin': 'https://lttlmario.github.io', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Content-Type': 'application/json' };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const randomToken = () => { const bytes = crypto.getRandomValues(new Uint8Array(32)); return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', ''); };
 const sha256 = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 const avatarUrl = (id: string, avatar?: string | null) => avatar ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png` : 'https://panel-management.netlify.app//img/logo-192.png';
-const allowedPages = new Set(['index.html', 'anunturi.html', 'pontaj.html', 'cereri.html', 'calculator.html', 'bucatarie.html', 'contracte.html', 'calculatorilegal.html', 'craftmecanics.html', 'locatiiilegale.html', 'marketplace.html', 'marketplace-ilegal.html', 'rapoarte.html', 'status-live.html', 'asistent.html', 'stash.html']);
-const fullOnlyPages = new Set(['calculatorilegal.html', 'locatiiilegale.html', 'marketplace-ilegal.html']);
-const sanitizePagePermissions = (raw: unknown, fullPackage: boolean) => {
+const allowedPages = new Set(['index.html', 'anunturi.html', 'pontaj.html', 'cereri.html', 'calculator.html', 'bucatarie.html', 'contracte.html', 'calculatorilegal.html', 'craftmecanics.html', 'locatiiilegale.html', 'marketplace.html', 'marketplace-ilegal.html', 'minigames.html', 'rapoarte.html', 'status-live.html', 'asistent.html', 'stash.html']);
+const pageFeatures = new Map([['calculatorilegal.html', 'illegal_calculator'], ['locatiiilegale.html', 'illegal_locations'], ['marketplace-ilegal.html', 'illegal_marketplace'], ['minigames.html', 'illegal_minigames'], ['stash.html', 'stash']]);
+const sanitizePagePermissions = (raw: unknown, packageFeatures: Set<string>) => {
   if (!raw || typeof raw !== 'object') return {};
   return Object.fromEntries(Object.entries(raw as Record<string, any>)
-    .filter(([page]) => allowedPages.has(page) && (fullPackage || !fullOnlyPages.has(page)))
+    .filter(([page]) => allowedPages.has(page) && packagePageAllowed(page, { code: packageCode }))
     .map(([page, ids]) => [page, [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((id) => /^\d{15,22}$/.test(id)))]]));
 };
 
@@ -50,18 +51,20 @@ Deno.serve(async (req) => {
     const roles = Array.isArray(body.roles) && body.roles.length ? body.roles : (mappings || []).map((item: any) => ({ id: item.discord_role_id, name: item.discord_role_name, panel_role: item.panel_role }));
     if (!roles.length) return reply({ error: 'Configurează și salvează cel puțin un rol.' }, 400);
     const { data: packageSetting } = await db.from('app_settings').select('value').eq('organization_id', id).eq('key', 'organization_package').maybeSingle();
-    const premium = packageSetting?.value?.code === 'full';
+    const packageCode = String(packageSetting?.value?.code || 'standard').toLowerCase();
+    const packageFeatures = new Set(resolvePackageFeatures({ code: packageCode }));
+    const premium = packageCode === 'full';
     if (!premium && roles.length > 10) return reply({ error: 'Standard permite maximum 10 roluri.' }, 400);
     const { data: guilds } = await db.from('organization_guilds').select('id').eq('organization_id', id).eq('enabled', true);
     if (!guilds?.length) return reply({ error: 'Adaugă un Guild Discord înainte de activare.' }, 400);
     if (!premium && guilds.length > 1) return reply({ error: 'Standard permite un singur server.' }, 400);
     let pages = body.page_permissions && typeof body.page_permissions === 'object' ? body.page_permissions : null;
     if (!pages) { const { data } = await db.from('app_settings').select('value').eq('organization_id', id).eq('key', 'page_permissions').maybeSingle(); pages = data?.value || {}; }
-    const { error: pageError } = await db.from('app_settings').upsert({ organization_id: id, key: 'page_permissions', value: sanitizePagePermissions(pages, premium), updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+    const { error: pageError } = await db.from('app_settings').upsert({ organization_id: id, key: 'page_permissions', value: sanitizePagePermissions(pages, packageFeatures), updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
     if (pageError) throw pageError;
     const { error: statusError } = await db.from('organizations').update({ lifecycle_status: 'active', active: true, updated_at: new Date().toISOString() }).eq('id', id);
     if (statusError) throw statusError;
-    await db.from('organization_lifecycle_events').insert({ organization_id: id, event_type: 'organization_finalized', actor_discord_id: actor.discord_id, details: { package: premium ? 'full' : 'standard', role_count: roles.length } });
+    await db.from('organization_lifecycle_events').insert({ organization_id: id, event_type: 'organization_finalized', actor_discord_id: actor.discord_id, details: { package: packageCode, role_count: roles.length } });
 
     if (verifiedDiscordUser) {
       const { data: activeOrganization } = await db.from('organizations').select('id,name,slug,address,logo_url,banner_url,active').eq('id', id).single();

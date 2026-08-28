@@ -71,7 +71,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     }
     if (window.location.pathname.endsWith('organizatii.html')) { const requestScript=document.createElement('script');requestScript.src='js/organization-request-fix.js?v=3.10.0';document.head.appendChild(requestScript); const script=document.createElement('script');script.src='js/package-limits.js?v=3.10.0';document.head.appendChild(script); }
     if (window.location.pathname.endsWith('admin.html')) { const script=document.createElement('script');script.src='js/admin-organization-center.js';document.head.appendChild(script); }
-    if (window.location.pathname.endsWith('anunturi.html')) { const script=document.createElement('script');script.src='js/anunturi-permissions.js';document.head.appendChild(script); }
     let globalSearchTimer = null;
     let globalSearchRequest = 0;
 

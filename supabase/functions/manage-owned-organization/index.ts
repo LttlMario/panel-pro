@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { isPlatformAdminAccount } from '../_shared/platform-admin.ts';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
+import { packageAllowsPage as packagePageAllowed, resolvePackageFeatures } from '../_shared/package-features.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
@@ -46,6 +47,8 @@ const allowedPages = new Map([
 const allowedAssistantPages = new Set([...allowedPages.keys()]);
 const allowedActionKeys = new Set(['anunturi.publish', 'marketplace.delete', 'cereri.organization', 'cereri.departments', 'stash.write', 'stash.request', 'stash.manage_requests', 'stash.donate', 'stash.approve_donation', 'stash.log']);
 const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
+const operationsWebhookChannels = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'illegal_marketplace', 'organization_expiration']);
+const standardWebhookChannels = new Set(['departments', 'pontaj', 'weekly_reports', 'contracts', 'contract_identity_weekly', 'marketplace', 'fines_departments', 'warnings_departments', 'sanctions_departments', 'status_live', 'organization_expiration']);
 const fullOnlyPageFeatures = new Map([
   ['calculatorilegal.html', 'illegal_calculator'],
   ['locatiiilegale.html', 'illegal_locations'],
@@ -60,8 +63,14 @@ const standardPackageFeatures = new Set([
 ]);
 
 const packageAllowsFeature = (packageValue: any, feature: string) =>
-  String(packageValue?.code || 'standard').toLowerCase() === 'full'
-  || standardPackageFeatures.has(feature);
+  resolvePackageFeatures(packageValue).includes(feature);
+
+const packageAllowsWebhook = (packageValue: any, channel: string) => {
+  const code = String(packageValue?.code || 'standard').toLowerCase();
+  if (code === 'operations') return operationsWebhookChannels.has(channel);
+  if (code === 'standard') return standardWebhookChannels.has(channel);
+  return true;
+};
 
 const normalizeContract = (raw: unknown) => {
   if (raw === undefined) return undefined;
@@ -396,9 +405,7 @@ Deno.serve(async (request) => {
     const webhookRoutes = body.webhook_routes === undefined
       ? (settings.webhook_routes || {})
       : mergeWebhookRoutes(settings.webhook_routes, body.webhook_routes);
-    const packageWebhookRoutes = String(state.package?.code || 'standard').toLowerCase() === 'full'
-      ? webhookRoutes
-      : Object.fromEntries(Object.entries(webhookRoutes).filter(([channel]) => !fullOnlyWebhookChannels.has(channel)));
+    const packageWebhookRoutes = Object.fromEntries(Object.entries(webhookRoutes).filter(([channel]) => packageAllowsWebhook(state.package, channel)));
     const settingsPatch = {
       organization_id: organizationId,
       discord_client_id: String(settings.discord_client_id ?? ''),
@@ -437,7 +444,7 @@ Deno.serve(async (request) => {
       }
       const { data: packageSetting, error: packageError } = await db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_package').maybeSingle();
       if (packageError) throw packageError;
-      if (packageSetting?.value?.code !== 'full' && body.roles.length > 10) return reply({ error: 'Pachetul Standard permite maximum 10 roluri.' }, 400);
+      if (packageSetting?.value?.code !== 'full' && body.roles.length > 10) return reply({ error: 'Pachetele Standard și Operations permit maximum 10 roluri.' }, 400);
 
       const seen = new Set<string>();
       const cleanRoles = body.roles.map((rawRole: any, index: number) => {
@@ -476,7 +483,7 @@ Deno.serve(async (request) => {
       }
       const pageRules = Object.fromEntries(
         Object.entries(body.page_permissions)
-          .filter(([page]) => allowedPages.has(page) && (!fullOnlyPageFeatures.has(page) || packageAllowsFeature(currentState.package, fullOnlyPageFeatures.get(page)!)))
+          .filter(([page]) => allowedPages.has(page) && packagePageAllowed(page, currentState.package))
           .map(([page, ids]: any) => [
             page,
             [...new Set((Array.isArray(ids) ? ids : [])
@@ -502,10 +509,11 @@ Deno.serve(async (request) => {
           .filter(([action]) => allowedActionKeys.has(action))
           .map(([action, ids]) => [action, cleanRoleIds(ids, savedRoleIds)])
       ) as Record<string, string[]>;
-      if (!(currentState.package?.code === 'full' || currentState.package?.features?.includes?.('requests_organization'))) {
+      if (!packageAllowsFeature(currentState.package, 'requests_organization')) {
         actionRules['cereri.organization'] = [];
       }
       const organizationRequestRoles = new Set(actionRules['cereri.organization'] || []);
+      if (!packageAllowsFeature(currentState.package, 'requests_departments')) actionRules['cereri.departments'] = [];
       actionRules['cereri.departments'] = (actionRules['cereri.departments'] || []).filter((id) => !organizationRequestRoles.has(id));
       const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'action_permissions', value: actionRules, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
       if (error) throw error;
@@ -513,7 +521,7 @@ Deno.serve(async (request) => {
     if (body.assistant_page_permissions !== undefined) {
       const assistantRules = Object.fromEntries(
         Object.entries(body.assistant_page_permissions && typeof body.assistant_page_permissions === 'object' ? body.assistant_page_permissions : {})
-          .filter(([page]) => allowedAssistantPages.has(page) && (!fullOnlyPageFeatures.has(page) || packageAllowsFeature(currentState.package, fullOnlyPageFeatures.get(page)!)))
+          .filter(([page]) => allowedAssistantPages.has(page) && packagePageAllowed(page, currentState.package))
           .map(([page, ids]) => [page, cleanRoleIds(ids, savedRoleIds)])
       );
       const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'assistant_page_permissions', value: assistantRules, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
@@ -525,7 +533,8 @@ Deno.serve(async (request) => {
         read: cleanRoleIds(input[audience]?.read, savedRoleIds),
         write: cleanRoleIds(input[audience]?.write, savedRoleIds)
       }]));
-      if (!(currentState.package?.code === 'full' || currentState.package?.features?.includes?.('announcements_organization'))) communicationRules.organization = { read: [], write: [] };
+      if (!packageAllowsFeature(currentState.package, 'announcements_organization')) communicationRules.organization = { read: [], write: [] };
+      if (!packageAllowsFeature(currentState.package, 'announcements_departments')) communicationRules.departments = { read: [], write: [] };
       const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'communication_permissions', value: communicationRules, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
       if (error) throw error;
     }
@@ -536,7 +545,8 @@ Deno.serve(async (request) => {
         write: cleanRoleIds(input[audience]?.write, savedRoleIds),
         sanction: cleanRoleIds(input[audience]?.sanction, savedRoleIds)
       }]));
-      if (!(currentState.package?.code === 'full' || currentState.package?.features?.includes?.('discipline_organization'))) disciplineRules.organization = { read: [], write: [], sanction: [] };
+      if (!packageAllowsFeature(currentState.package, 'discipline_organization')) disciplineRules.organization = { read: [], write: [], sanction: [] };
+      if (!packageAllowsFeature(currentState.package, 'discipline_departments')) disciplineRules.departments = { read: [], write: [], sanction: [] };
       const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'discipline_permissions', value: disciplineRules, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
       if (error) throw error;
     }

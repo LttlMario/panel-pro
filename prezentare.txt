@@ -1,149 +1,112 @@
-Prezentare Panel
+# Prezentare Panel Pro
+
+## STANDARD
+
+Soluția ideală pentru organizațiile care doresc să își digitalizeze activitatea și să automatizeze procesele esențiale.
+
+Pachetul Standard este destinat unei singure organizații și include acces pe web, în aplicația mobilă Android și în aplicația mobilă iOS.
+
+### Include:
+
+- Sistem complet de autentificare
+- Dashboard modern
+- Sistem de pontaj
+- Cereri și învoiri
+- Management membri
+- Marketplace intern
+- Calculator operațional
+- Modul informațional
+- Anunțuri interne
+- Bucătărie / Rețete interne
+- Asistent integrat
+- Rapoarte
+- Sistem de loguri
+- Sistem de permisiuni
+- Configurarea organizației
+- 1 server Discord conectat la panel
+- Maximum 10 roluri configurabile
+- Numele și codul organizației
+- Adresă de lucru pentru contracte
+- Logo și banner personalizat
+- Contracte
+- Webhook-uri pentru funcțiile principale
+- Perioadă de activare limitată sau nelimitată
+- Administrarea organizației proprii
+- Configurarea paginilor și permisiunilor pentru fiecare rol
+- Vouchere unice
+- Activare pe ID-ul serverului
+- Protecție împotriva reutilizării voucherelor
+- Suspendare și reactivare
+- Notificări înainte de expirare
+- Păstrarea organizației și a datelor după expirare
+- Statusuri Draft, Activă, Grație și Pauză
+- Reactivare fără pierderea datelor
+- Integrare completă cu o singură aplicație albastră
+- Notificări automate
+- Compatibilitate PC și Mobile
+- Actualizări gratuite
+
+### Preț
+
+4.000 Gold sau 2.000.000$
+
+## PREMIUM
+
+Pachetul complet, destinat organizațiilor care doresc control total și administrarea mai multor organizații dintr-o singură platformă.
+
+Pachetul Premium include tot ce se regăsește în Standard, cu acces pe web, în aplicația mobilă Android și în aplicația mobilă iOS.
+
+### Funcții exclusive:
+
+- Management complet Multi-Organizație
+- Administrarea mai multor organizații dintr-un singur panel
+- Baze de date independente pentru fiecare organizație
+- Configurări separate pentru fiecare organizație
+- Marketplace dedicat fiecărei organizații
+- Roluri și permisiuni independente
+- Webhook-uri individuale pentru fiecare organizație
+- Statistici și rapoarte separate
+- Module operaționale dedicate utilizatorilor autorizați
+- Automatizări avansate între panel și aplicația albastră
+- Control centralizat asupra tuturor organizațiilor
+- Prioritate la actualizările majore
+- Integrare simultană cu două aplicații albastre, fiecare cu propriile roluri, webhook-uri și configurări independente
+- 2 servere Discord conectate: principal și secundar
+- 2 template-uri Discord, câte unul pentru fiecare server
+- Roluri nelimitate și webhook-uri separate
+- Acces extins la toate modulele panelului
+- Marketplace și resurse configurate avansat
+- Sincronizare și administrare avansată a membrilor
+- Disciplină și comunicare separate pe structuri
+- Audit, diagnostic și rapoarte extinse
+- Automatizări pentru expirare și notificări
+- Import și export de configurație
+- Branding complet pentru organizație
+- Posibilitate de extindere fără modificarea structurii organizației
+- Configurare avansată a accesului pe roluri
+- Funcții avansate cu acces controlat în funcție de permisiunile organizației
+
+### Preț
+
+6.000 Gold sau 3.000.000$
+
+## Toate pachetele includ
+
+- Actualizări gratuite ale platformei
+- Compatibilitate PC și Mobile
+- Interfață modernă și intuitivă
+- Sistem avansat de permisiuni
+- Automatizări și notificări în timp real
+- Suport pentru instalare și configurare
+- Configurare individuală pentru fiecare organizație
+- Păstrarea datelor organizației
+- Administrare centralizată din panel
+- Integrare cu serverele Discord
 
-Panelul oferă organizației un sistem complet de administrare, comunicare și gestionare a activităților, conectat la aplicația albastră și configurat în funcție de necesități. Este disponibil pe web și în aplicații mobile pentru Android și iOS.
+## Contact
 
-Pachet Standard
+Nu ești sigur ce variantă ți se potrivește?
 
-Pachetul Standard este recomandat organizațiilor mici și medii care au nevoie de un panel complet și ușor de administrat.
+Contactează-mă în privat și te voi ajuta să alegi pachetul potrivit organizației tale.
 
-Pachetul Standard include acces pe web și în aplicațiile mobile pentru iOS și Android.
-
-Include:
-
-1 server Discord conectat la panel;
-
-maximum 10 roluri configurabile;
-
-numele și codul organizației;
-
-adresă de lucru pentru contracte;
-
-logo și banner personalizat;
-
-Dashboard;
-
-Anunțuri;
-
-Pontaj;
-
-Cereri și învoiri;
-
-Calculator;
-
-Bucătărie;
-
-Craft Mecanic;
-
-Marketplace;
-
-Contracte;
-
-Rapoarte;
-
-Asistent;
-
-webhook-uri pentru funcțiile principale;
-
-perioadă de activare limitată sau nelimitată;
-
-suspendare și reactivare;
-
-notificări înainte de expirare;
-
-administrarea organizației proprii;
-
-configurarea paginilor și permisiunilor pentru fiecare rol;
-
-vouchere unice;
-
-activare pe ID-ul serverului;
-
-protecție împotriva reutilizării voucherelor;
-
-păstrarea organizației și a datelor după expirare;
-
-statusuri Draft, Activă, Grație și Pauză;
-
-reactivare fără pierderea datelor.
-
-Ofertă promoțională pentru prima lună: 2.160 Gold sau 1.080.000$.
-
-Pentru o singură lună după promoție, tariful Standard este normal: 4.000 Gold sau 2.000.000$ pe lună. La plata pentru 2 luni, luna a doua are 20% reducere: 3.200 Gold sau 1.600.000$. La plata pentru minimum 3 luni, reducerea din luna a doua și următoarele crește la 25%: 3.000 Gold sau 1.500.000$ pe lună.
-
-Pachetul Standard este potrivit pentru o organizație care dorește toate funcțiile importante într-o singură structură, cu o configurare simplă și eficientă.
-
-Pachet Full
-
-Pachetul Full este destinat organizațiilor mai mari sau celor care au nevoie de mai mult control, flexibilitate și posibilități de extindere.
-
-Pachetul Full include acces pe web și în aplicațiile mobile pentru iOS și Android.
-
-Include toate funcțiile din pachetul Standard, plus:
-
-2 servere Discord conectate la panel: principal și secundar;
-
-roluri nelimitate;
-
-webhook-uri separate pentru ambele servere;
-
-acces extins la toate modulele panelului;
-
-configurare avansată pentru Marketplace și resursele organizației;
-
-sincronizare avansată a rolurilor;
-
-administrare avansată a membrilor;
-
-audit extins;
-
-diagnostic complet;
-
-rapoarte extinse;
-
-asistent cu acces la toate paginile permise;
-
-automatizări pentru expirare și notificări;
-
-import și export de configurație;
-
-branding complet pentru organizație;
-
-posibilitatea de extindere fără modificarea structurii organizației;
-
-configurare avansată a accesului pe roluri;
-
-funcții avansate cu acces controlat, în funcție de permisiunile organizației.
-
-Ofertă promoțională pentru prima lună: 4.440 Gold sau 2.220.000$.
-
-Pentru o singură lună după promoție, tariful Full este normal: 6.000 Gold sau 3.000.000$ pe lună. La plata pentru 2 luni, luna a doua are 20% reducere: 4.800 Gold sau 2.400.000$. La plata pentru minimum 3 luni, reducerea din luna a doua și următoarele crește la 25%: 4.500 Gold sau 2.250.000$ pe lună.
-
-Pachetul Full este recomandat organizațiilor care folosesc mai multe structuri, au mai multe roluri și doresc o administrare mai complexă și mai bine automatizată.
-
-Siguranță și administrare
-
-Ambele pachete beneficiază de:
-
-activare controlată prin voucher;
-
-configurare individuală pentru fiecare organizație;
-
-permisiuni separate pentru fiecare rol;
-
-notificări automate;
-
-posibilitatea de suspendare și reactivare;
-
-păstrarea datelor organizației;
-
-administrare centralizată din panel;
-
-integrare cu serverele Discord;
-
-posibilitatea de personalizare în funcție de necesitățile organizației.
-
-Diferența principală este nivelul de extindere: Standard oferă o structură completă pentru un singur server Discord, iar Full oferă două servere Discord, roluri nelimitate și funcții avansate de administrare și automatizare.
-
-Pentru activare, este necesară configurarea organizației, alegerea pachetului și asocierea serverului sau serverelor Discord la panel.
-
-Contact pentru activare: Little Mario — 765 4321.
+Little Mario · 765 4321 · Discord

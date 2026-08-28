@@ -116,6 +116,35 @@ const sessionDiscordRoleIds =
         ? session.discord_role_ids.map(String)
         : [];
 
+// Accesul la Anunțuri nu are nevoie de fallback-ul pentru rolul organizațional
+// sau de mapările folosite de Marketplace/Disciplină. Returnăm rapid configurația
+// deja încărcată și evităm două interogări suplimentare la fiecare deschidere.
+if (body.action === 'announcement_access') {
+    const announcementAudienceRoles = (audience:string, kind:'read'|'write') =>
+        Array.isArray(communicationPermissions?.[audience]?.[kind])
+            ? communicationPermissions[audience][kind].map(String)
+            : [];
+    const announcementCanForAudience = (audience:string, kind:'read'|'write') =>
+        hasCommunicationFeature(audience) && (isPlatformAdmin || sessionDiscordRoleIds.some(roleId => announcementAudienceRoles(audience, kind).includes(roleId)));
+    const announcementPageAccess =
+        isPlatformAdmin || sessionDiscordRoleIds.some(roleId => allowedAnnouncementRoles.includes(roleId));
+    const announcementPublishAccess =
+        isPlatformAdmin || sessionDiscordRoleIds.some(roleId => allowedAnnouncementPublishRoles.includes(roleId));
+    const readAudiences = isPlatformAdmin
+        ? ['organization', 'departments']
+        : ['organization', 'departments'].filter(audience => announcementCanForAudience(audience, 'read'));
+    const writeAudiences = isPlatformAdmin
+        ? ['organization', 'departments']
+        : ['organization', 'departments'].filter(audience => announcementCanForAudience(audience, 'write'));
+    return reply({
+        read: communicationSetting ? readAudiences.length > 0 : announcementPageAccess,
+        write: communicationSetting ? writeAudiences.length > 0 : announcementPublishAccess,
+        read_audiences: communicationSetting ? readAudiences : (announcementPageAccess ? ['organization', 'departments'].filter(hasCommunicationFeature) : []),
+        write_audiences: communicationSetting ? writeAudiences : (announcementPublishAccess ? ['organization', 'departments'].filter(hasCommunicationFeature) : []),
+        platform_admin: isPlatformAdmin
+    });
+}
+
 // Permisiunile disciplinare sunt configurate pe rolurile Discord, însă rolul
 // organizațional activ este păstrat în members. Îl folosim ca fallback pentru
 // sesiunile create înainte ca proprietarul să salveze ultima configurație.
@@ -273,15 +302,6 @@ const readAudiences = isPlatformAdmin
 const writeAudiences = isPlatformAdmin
     ? ['organization','departments']
     : ['organization','departments'].filter(audience => hasCommunicationFeature(audience) && canForAudience(audience,'write'));
-if (body.action === 'announcement_access') {
-    return reply({
-        read: communicationSetting ? readAudiences.length > 0 : hasAnnouncementPageAccess,
-        write: communicationSetting ? writeAudiences.length > 0 : canPublishAnnouncements,
-        read_audiences: communicationSetting ? readAudiences : (hasAnnouncementPageAccess ? ['organization','departments'].filter(hasCommunicationFeature) : []),
-        write_audiences: communicationSetting ? writeAudiences : (canPublishAnnouncements ? ['organization','departments'].filter(hasCommunicationFeature) : []),
-        platform_admin: isPlatformAdmin
-    });
-}
 if (body.action === 'discipline_access') {
     const departmentsAccess = { read: canDiscipline('departments', 'read'), write: canDiscipline('departments', 'write'), sanction: canDiscipline('departments', 'sanction'), own: true };
     return reply({

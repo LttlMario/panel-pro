@@ -1,5 +1,4 @@
 (() => {
-  const isFinesPage = false;
   const URL=window.PANEL_SUPABASE_CONFIG.url;
   const KEY=window.PANEL_SUPABASE_CONFIG.publishableKey;
   const db = window.createPanelSupabaseClient();
@@ -7,12 +6,14 @@
   let posts=[], filter='all', editing=null, draft=null;
   let canWriteAnnouncements = false;
   let isPlatformAdmin = false;
-  let readAudiences = ['organization', 'departments'];
-  let writeAudiences = ['organization', 'departments'];
+  let readAudiences = [];
+  let writeAudiences = [];
   let organizationId = null;
   let organizationReady = null;
+  let loadPromise = null;
+  const communityQueryTimeoutMs = 15000;
   const $=s=>document.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const invoke=async(body)=>{const token=window.getPanelDiscordAccessToken?.()||'',panelSession=localStorage.getItem('panel_session_token')||'';if(!panelSession){requestFreshLogin();throw new Error('Sesiunea securizată a panelului lipsește. Autentifică-te din nou.')}const res=await fetch(`${URL}/functions/v1/manage-community-posts`,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:`Bearer ${KEY}`,'x-panel-session':panelSession},body:JSON.stringify({...body,...(token?{access_token:token}:{})})});let json={};try{json=await res.json()}catch{json={}}if(res.status===401){requestFreshLogin();throw new Error('Sesiunea panelului a expirat. Autentifică-te din nou.')}if(!res.ok){
+  const invoke=async(body)=>{const token=window.getPanelDiscordAccessToken?.()||'',panelSession=localStorage.getItem('panel_session_token')||'';if(!panelSession){requestFreshLogin();throw new Error('Sesiunea securizată a panelului lipsește. Autentifică-te din nou.')}const controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),communityQueryTimeoutMs);let res;try{res=await fetch(`${URL}/functions/v1/manage-community-posts`,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:`Bearer ${KEY}`,'x-panel-session':panelSession},body:JSON.stringify({...body,...(token?{access_token:token}:{})}),signal:controller.signal})}catch(error){if(error?.name==='AbortError')throw new Error('Verificarea permisiunilor a durat prea mult. Verifică internetul și încearcă din nou.');throw error}finally{window.clearTimeout(timeout)}let json={};try{json=await res.json()}catch{json={}}if(res.status===401){requestFreshLogin();throw new Error('Sesiunea panelului a expirat. Autentifică-te din nou.')}if(!res.ok){
     console.error("EDGE ERROR RESPONSE:", json);
     throw new Error(
         json.error ||
@@ -21,25 +22,23 @@
         `Operația a eșuat. Cod HTTP: ${res.status}`
     );
 }return json};
+  const showFeedMessage=(message,retry=false)=>{const feed=$('#feed');if(!feed)return;feed.innerHTML=`<div class="empty">${esc(message)}${retry?'<br><button type="button" class="btn secondary" data-retry-community style="margin-top:14px">Încearcă din nou</button>':''}</div>`;feed.querySelector('[data-retry-community]')?.addEventListener('click',()=>load())};
+  async function runCommunityQuery(factory, timeoutMessage='Încărcarea anunțurilor a durat prea mult.'){const controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),communityQueryTimeoutMs);try{return await factory(controller.signal)}catch(error){if(error?.name==='AbortError')throw new Error(timeoutMessage);throw error}finally{window.clearTimeout(timeout)}}
   function requestFreshLogin(){sessionStorage.setItem('panel_return_after_login',location.href);setTimeout(()=>{location.href='login.html?v=20260819-session-return-fix'},700)}
   async function loadAnnouncementAccess() {
       try {
-          const access = await invoke({ action: 'announcement_access', section: isFinesPage ? 'fines' : 'announcements' });
+          const access = await invoke({ action: 'announcement_access', section: 'announcements' });
 
           const canRead = access?.read === true;
           const canWrite = access?.write === true;
 
           canWriteAnnouncements = canWrite;
           isPlatformAdmin = access?.platform_admin === true;
-          readAudiences = Array.isArray(access?.read_audiences) ? access.read_audiences : (canRead ? ['organization', 'departments'] : []);
-          writeAudiences = Array.isArray(access?.write_audiences) ? access.write_audiences : (canWrite ? ['organization', 'departments'] : []);
+          readAudiences = Array.isArray(access?.read_audiences) ? access.read_audiences.map(String).filter(Boolean) : [];
+          writeAudiences = Array.isArray(access?.write_audiences) ? access.write_audiences.map(String).filter(Boolean) : [];
 
           if (!canRead) {
-              $('#feed').innerHTML = `
-                  <div class="empty">
-                      Nu ai permisiunea de a accesa Anunțuri & Sondaje.
-                  </div>
-              `;
+              showFeedMessage('Nu ai permisiunea de a accesa Anunțuri & Sondaje.');
 
             canWriteAnnouncements = false;
             $('#create-button').hidden = true;
@@ -64,6 +63,7 @@
           );
         canWriteAnnouncements = false;
         $('#create-button').hidden = true;
+        showFeedMessage(error.message || 'Permisiunile pentru Anunțuri nu sunt disponibile momentan.', true);
 
         return {
             read: false,
@@ -72,60 +72,61 @@
       }
   }
 
-async function load() {
+async function loadNow() {
     if (!organizationId) {
         console.error('Nu există organization_id activ.');
 
-        $('#feed').innerHTML = `
-            <div class="empty">
-                Nu a fost identificată organizația activă.
-            </div>
-        `;
+        showFeedMessage('Nu a fost identificată organizația activă.');
 
         return;
     }
 
     // Audiența este filtrată în query, înainte ca datele să ajungă în browser.
     // Filtrarea doar în render ar permite unui utilizator să descarce datele celeilalte audiențe.
-    const postResult = await db
+    const postResult = await runCommunityQuery((signal) => db
         .from('community_posts')
-        .select('*')
+        .select('id,post_type,audience,title,content,author_discord_id,author_name,discord_message_id,created_at,updated_at')
         .eq('organization_id', organizationId)
         .in('audience', readAudiences)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .abortSignal(signal));
+    if (postResult.error) {
+        showFeedMessage(`Nu pot citi anunțurile din Supabase: ${postResult.error.message || postResult.error.code || 'eroare necunoscută'}`, true);
+        return;
+    }
 
     const postIds = (postResult.data || []).map(post => post.id).filter(Boolean);
-    const [optionResult, reactionResult, voteResult, memberResult] = await Promise.all([
-        postIds.length ? db.from('community_poll_options').select('*').eq('organization_id', organizationId).in('post_id', postIds) : Promise.resolve({ data: [], error: null }),
-        postIds.length ? db.from('community_reactions').select('*').eq('organization_id', organizationId).in('post_id', postIds) : Promise.resolve({ data: [], error: null }),
-        postIds.length ? db.from('community_poll_votes').select('*').eq('organization_id', organizationId).in('post_id', postIds) : Promise.resolve({ data: [], error: null }),
-        db.from('organization_members').select('discord_id').eq('organization_id', organizationId).eq('active', true)
+    if (!postIds.length) {
+        posts = [];
+        render();
+        return;
+    }
+
+    const pollPostIds = (postResult.data || []).filter(post => post.post_type === 'poll').map(post => post.id).filter(Boolean);
+    const [optionResult, reactionResult, voteResult] = await Promise.all([
+        pollPostIds.length ? runCommunityQuery((signal) => db.from('community_poll_options').select('id,post_id,option_text,position').eq('organization_id', organizationId).in('post_id', pollPostIds).abortSignal(signal)) : Promise.resolve({ data: [], error: null }),
+        runCommunityQuery((signal) => db.from('community_reactions').select('post_id,user_discord_id,reaction').eq('organization_id', organizationId).in('post_id', postIds).abortSignal(signal)),
+        pollPostIds.length ? runCommunityQuery((signal) => db.from('community_poll_votes').select('post_id,option_id,user_discord_id').eq('organization_id', organizationId).in('post_id', pollPostIds).abortSignal(signal)) : Promise.resolve({ data: [], error: null })
     ]);
 
-    const memberIds = [...new Set((memberResult.data || [])
-        .map(member => String(member.discord_id || '').trim())
+    const voterIds = [...new Set((voteResult.data || [])
+        .map(vote => String(vote.user_discord_id || '').trim())
         .filter(Boolean))];
-    const userResult = memberResult.error || !memberIds.length
-        ? { data: [], error: memberResult.error || null }
-        : await db.from('users').select('discord_id,display_name,username').in('discord_id', memberIds);
+    const userResult = voterIds.length
+        ? await runCommunityQuery((signal) => db.from('users').select('discord_id,display_name,username').in('discord_id', voterIds).abortSignal(signal))
+        : { data: [], error: null };
 
     const error =
         postResult.error ||
         optionResult.error ||
         reactionResult.error ||
         voteResult.error ||
-        memberResult.error ||
         userResult.error;
 
     if (error) {
         console.error('Eroare încărcare anunțuri:', error);
 
-        $('#feed').innerHTML = `
-            <div class="empty">
-                Nu pot citi datele din Supabase:
-                ${esc(error.message || error.code || 'eroare necunoscută')}
-            </div>
-        `;
+        showFeedMessage(`Nu pot citi datele din Supabase: ${error.message || error.code || 'eroare necunoscută'}`, true);
 
         return;
     }
@@ -173,7 +174,16 @@ async function load() {
             }
         }, 100);
     }
-}  function render(){const visible=posts
+}
+async function load(){
+    if (loadPromise) return loadPromise;
+    loadPromise = loadNow().catch((error) => {
+        console.error('Eroare neașteptată la încărcarea anunțurilor:', error);
+        showFeedMessage(error.message || 'Anunțurile nu au putut fi încărcate momentan.', true);
+    }).finally(() => { loadPromise = null; });
+    return loadPromise;
+  }
+  function render(){const visible=posts
 .filter(Boolean)
 .filter(p =>
     filter==='all' ||

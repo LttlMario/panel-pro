@@ -300,6 +300,7 @@
             platform_admin: false
         };
         let canManagePontaj = false;
+        let reportsAreOrganizationScoped = false;
         let adminAbsences = [];
         let activeShiftsData = [];
 
@@ -339,6 +340,9 @@
                     .maybeSingle();
 
                 let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
+                const activeOrganization = typeof getActiveOrganization === 'function' ? getActiveOrganization() : null;
+                const packageCode = String(activeUser.active_organization?.package_code || activeOrganization?.package_code || activeUser.package_code || 'standard').toLowerCase();
+                reportsAreOrganizationScoped = packageCode === 'operations' || activeUser.platform_admin === true;
 
                 currentUser.discord_id = activeUser.discord_id || activeUser.id || '';
                 currentUser.display_name =
@@ -367,7 +371,7 @@
                     currentUser.display_name || String(currentUser.discord_id).trim();
 
 
-                canManagePontaj = Boolean(currentUser.organization_id) && (
+                canManagePontaj = Boolean(currentUser.organization_id) && reportsAreOrganizationScoped && (
                     isPlatformAdmin() ||
                     canAccessPage('rapoarte.html')
                 );
@@ -952,6 +956,8 @@ async function forceStopActiveShift(shiftId) {
                     .select('id, organization_id, discord_id, colleague_name, date, start_time, end_time, duration, created_at, shift_type, duration_ms')
                     .eq('organization_id', currentUser.organization_id)
                     .order('created_at', { ascending: false });
+
+                if (!reportsAreOrganizationScoped) data = (data || []).filter((shift) => String(shift.discord_id || '') === String(currentUser.discord_id || ''));
 
                 if (error) throw error;
 

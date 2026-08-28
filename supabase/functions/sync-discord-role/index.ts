@@ -615,6 +615,12 @@ return reply({
     action_permissions:
       active.action_permissions,
 
+    package_code:
+      active.package_code,
+
+    package_features:
+      active.package_features,
+
     assistant_allowed_pages:
       active.assistant_allowed_pages,
 

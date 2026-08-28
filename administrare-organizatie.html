@@ -145,11 +145,17 @@
       let communicationPermissions = { organization: { read: [], write: [] }, departments: { read: [], write: [] } };
       let disciplinePermissions = { organization: { read: [], write: [], sanction: [] }, departments: { read: [], write: [], sanction: [] } };
       let ownerPackageCode = 'standard';
-      const standardPackageFeatures = new Set(['core', 'announcements', 'requests', 'contracts', 'reports', 'legal_marketplace', 'legal_tools', 'assistant', 'status_live', 'announcements_departments', 'requests_departments', 'discipline_departments']);
+      const standardPackageFeatures = new Set(['core', 'contracts', 'reports', 'legal_marketplace', 'legal_tools', 'announcements_departments', 'discipline_departments']);
+      const operationsPackageFeatures = new Set(['core', 'announcements_organization', 'requests_organization', 'reports', 'discipline_organization', 'illegal_calculator', 'illegal_locations', 'illegal_marketplace', 'illegal_minigames']);
+      const standardWebhookKeys = new Set(['departments', 'pontaj', 'weekly_reports', 'contracts', 'contract_identity_weekly', 'marketplace', 'fines_departments', 'warnings_departments', 'sanctions_departments', 'status_live', 'organization_expiration']);
+      const operationsWebhookKeys = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'illegal_marketplace', 'organization_expiration']);
+      const standardPages = new Set(['index.html', 'pontaj.html', 'anunturi.html', 'calculator.html', 'bucatarie.html', 'contracte.html', 'craftmecanics.html', 'marketplace.html', 'rapoarte.html']);
+      const operationsPages = new Set(['index.html', 'pontaj.html', 'anunturi.html', 'cereri.html', 'calculatorilegal.html', 'locatiiilegale.html', 'marketplace-ilegal.html', 'minigames.html', 'rapoarte.html']);
       const fullOnlyWebhookKeys = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
       const fullOnlyPageFeatures = new Map([['calculatorilegal.html', 'illegal_calculator'], ['locatiiilegale.html', 'illegal_locations'], ['marketplace-ilegal.html', 'illegal_marketplace'], ['minigames.html', 'illegal_minigames'], ['stash.html', 'stash']]);
-      const ownerAllowsFeature = (feature) => ownerPackageCode === 'full' || standardPackageFeatures.has(feature);
-      const ownerAllowsPage = (page) => !fullOnlyPageFeatures.has(page) || ownerAllowsFeature(fullOnlyPageFeatures.get(page));
+      const ownerAllowsFeature = (feature) => ownerPackageCode === 'full' || (ownerPackageCode === 'operations' ? operationsPackageFeatures.has(feature) : standardPackageFeatures.has(feature));
+      const ownerAllowsWebhook = (key) => ownerPackageCode === 'full' || (ownerPackageCode === 'operations' ? operationsWebhookKeys.has(key) : standardWebhookKeys.has(key));
+      const ownerAllowsPage = (page) => ownerPackageCode === 'full' ? true : ownerPackageCode === 'operations' ? operationsPages.has(page) : standardPages.has(page);
 
       $('owner-name').textContent = user?.display_name || user?.username || 'Cont Discord';
       $('owner-username').textContent = user?.username ? '@' + user.username : 'Sesiune Discord';
@@ -192,9 +198,9 @@
         $('owner-access-status').textContent = statusLabel;
         $('owner-access-status').className = `mt-1 block text-sm ${expired || active === false ? 'text-rose-300' : 'text-emerald-300'}`;
         $('owner-expires-status').textContent = formatExpiry(expiresAt);
-        document.querySelectorAll('[data-owner-webhook-fieldset]').forEach((fieldset) => { fieldset.hidden = ownerPackageCode !== 'full' && fullOnlyWebhookKeys.has(fieldset.dataset.ownerWebhookFieldset); });
+        document.querySelectorAll('[data-owner-webhook-fieldset]').forEach((fieldset) => { fieldset.hidden = !ownerAllowsWebhook(fieldset.dataset.ownerWebhookFieldset); });
       };
-      const collectWebhooks = () => { const routes = {}; document.querySelectorAll('[data-owner-webhook]').forEach((input) => { const key = input.dataset.ownerWebhook, target = input.dataset.target; if (ownerPackageCode !== 'full' && fullOnlyWebhookKeys.has(key)) return; const url = input.value.trim(), enabled = document.querySelector(`[data-owner-webhook-enabled="${key}"][data-target="${target}"]`)?.checked === true; routes[key] ||= {}; routes[key][target] = { enabled, url }; }); return routes; };
+      const collectWebhooks = () => { const routes = {}; document.querySelectorAll('[data-owner-webhook]').forEach((input) => { const key = input.dataset.ownerWebhook, target = input.dataset.target; if (!ownerAllowsWebhook(key)) return; const url = input.value.trim(), enabled = document.querySelector(`[data-owner-webhook-enabled="${key}"][data-target="${target}"]`)?.checked === true; routes[key] ||= {}; routes[key][target] = { enabled, url }; }); return routes; };
       const fillWebhooks = (routes) => { document.querySelectorAll('[data-owner-webhook]').forEach((input) => { const route = routes?.[input.dataset.ownerWebhook]?.[input.dataset.target] || {}; input.value = route.url || ''; const checkbox = document.querySelector(`[data-owner-webhook-enabled="${input.dataset.ownerWebhook}"][data-target="${input.dataset.target}"]`); if (checkbox) checkbox.checked = route.enabled === true && Boolean(route.url); }); };
       const ownerDraftKey = () => organizationId ? `panel_local_owner_organization:${organizationId}` : '';
       const readOwnerDraft = () => {
@@ -271,21 +277,21 @@
       const renderOwnerActionPermissions = () => {
         const host = $('owner-action-permissions'), roles = permissionRoles();
         if (!roles.length) { host.innerHTML = '<div class="owner-permission-card text-xs text-slate-400">Alege mai întâi rolurile Discord.</div>'; return; }
-      const groups = [['anunturi.publish', 'Publicare anunțuri și sondaje', 'Cine poate scrie, modifica sau șterge anunțuri.'], ['marketplace.delete', 'Ștergere anunțuri Marketplace', 'Cine poate șterge anunțuri din Marketplace legal și Black Market.'], ['stash.write', 'Stash — postează și gestionează', 'Cine poate adăuga, modifica și arhiva articole din stash.'], ['stash.request', 'Stash — trimite cereri', 'Cine poate trimite cereri pentru articole din stash.'], ['stash.manage_requests', 'Stash — aprobă cereri', 'Cine poate aproba, respinge și finaliza cererile.'], ['stash.donate', 'Stash — donează', 'Cine poate trimite donații către stash.'], ['stash.approve_donation', 'Stash — aprobă donații', 'Cine verifică donațiile și le postează în stash.'], ['stash.log', 'Stash — jurnal arhive', 'Cine poate vedea articolele arhivate din jurnalul Stash.'], ...(ownerAllowsFeature('requests_organization') ? [['cereri.organization', 'Cereri → Organizație', 'Cine trimite cererile către organizație.']] : []), ['cereri.departments', 'Cereri → Birouri / Angajați', 'Cine trimite cererile către birouri și angajați.']];
+        const groups = [['anunturi.publish', 'Publicare anunțuri și sondaje', 'Cine poate scrie, modifica sau șterge anunțuri.'], ...(ownerAllowsFeature('legal_marketplace') ? [['marketplace.delete', 'Ștergere anunțuri Marketplace', 'Cine poate șterge anunțuri din Marketplace legal.']] : []), ...(ownerAllowsFeature('requests_organization') ? [['cereri.organization', 'Cereri → Organizație', 'Cine trimite cererile către organizație.']] : [])];
         host.innerHTML = groups.map(([key, title, help]) => `<div class="owner-permission-card"><b class="text-sm">${esc(title)}</b><p class="mt-1 text-xs text-slate-400">${esc(help)}</p><div class="mt-3 flex flex-wrap gap-2" data-owner-action-host="${esc(key)}"></div></div>`).join('');
         groups.forEach(([key]) => checkboxList(host.querySelector(`[data-owner-action-host="${key}"]`), actionPermissions, key, roles, 'action'));
       };
       const renderOwnerCommunicationPermissions = () => {
         const host = $('owner-communication-permissions'), roles = permissionRoles();
         if (!roles.length) { host.innerHTML = ''; return; }
-        const audiences = [...(ownerAllowsFeature('announcements_organization') ? [['organization', 'Organizație / Mafia']] : []), ['departments', 'Birouri / Angajați']];
+        const audiences = [...(ownerAllowsFeature('announcements_organization') ? [['organization', 'Organizație / Mafia']] : []), ...(ownerAllowsFeature('announcements_departments') ? [['departments', 'Birouri / Angajați']] : [])];
         host.innerHTML = '<h3 class="text-sm font-black text-amber-200">Comunicări — cine poate citi și scrie</h3>' + audiences.map(([audience, label]) => `<div class="mt-3 rounded-xl border border-slate-700 p-3"><b class="text-xs">${esc(label)}</b><div class="mt-2 text-[11px] text-slate-400">Poate citi</div><div class="mt-1 flex flex-wrap gap-2" data-owner-communication-host="${audience}-read"></div><div class="mt-2 text-[11px] text-slate-400">Poate scrie</div><div class="mt-1 flex flex-wrap gap-2" data-owner-communication-host="${audience}-write"></div></div>`).join('');
         audiences.forEach(([audience]) => ['read', 'write'].forEach((kind) => checkboxList(host.querySelector(`[data-owner-communication-host="${audience}-${kind}"]`), communicationPermissions[audience], kind, roles, 'communication')));
       };
       const renderOwnerDisciplinePermissions = () => {
         const host = $('owner-discipline-permissions'), roles = permissionRoles();
         if (!roles.length) { host.innerHTML = ''; return; }
-        const audiences = [...(ownerAllowsFeature('discipline_organization') ? [['organization', 'Organizație / Mafia']] : []), ['departments', 'Birouri / Angajați']];
+        const audiences = [...(ownerAllowsFeature('discipline_organization') ? [['organization', 'Organizație / Mafia']] : []), ...(ownerAllowsFeature('discipline_departments') ? [['departments', 'Birouri / Angajați']] : [])];
         host.innerHTML = '<h3 class="text-sm font-black text-amber-200">Disciplină — citire, avertismente și sancțiuni</h3>' + audiences.map(([audience, label]) => `<div class="mt-3 rounded-xl border border-slate-700 p-3"><b class="text-xs">${esc(label)}</b><div class="mt-2 text-[11px] text-slate-400">Poate vedea</div><div class="mt-1 flex flex-wrap gap-2" data-owner-discipline-host="${audience}-read"></div><div class="mt-2 text-[11px] text-slate-400">Poate emite avertismente</div><div class="mt-1 flex flex-wrap gap-2" data-owner-discipline-host="${audience}-write"></div><div class="mt-2 text-[11px] text-slate-400">Poate aplica sancțiuni</div><div class="mt-1 flex flex-wrap gap-2" data-owner-discipline-host="${audience}-sanction"></div></div>`).join('');
         audiences.forEach(([audience]) => ['read', 'write', 'sanction'].forEach((kind) => checkboxList(host.querySelector(`[data-owner-discipline-host="${audience}-${kind}"]`), disciplinePermissions[audience], kind, roles, 'discipline')));
       };

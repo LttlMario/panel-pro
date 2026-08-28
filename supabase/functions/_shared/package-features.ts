@@ -22,26 +22,37 @@ export const PACKAGE_FEATURES = Object.freeze({
 });
 
 export const STANDARD_PACKAGE_FEATURES = Object.freeze([
-  'core', 'announcements', 'requests', 'contracts', 'reports',
-  'legal_marketplace', 'legal_tools', 'assistant', 'status_live',
-  'announcements_departments', 'requests_departments', 'discipline_departments'
+  'core', 'contracts', 'reports', 'legal_marketplace', 'legal_tools',
+  'announcements_departments', 'discipline_departments'
 ]);
 
 export const FULL_PACKAGE_FEATURES = Object.freeze(Object.keys(PACKAGE_FEATURES));
+export const OPERATIONS_PACKAGE_FEATURES = Object.freeze([
+  'core', 'announcements_organization', 'requests_organization', 'reports', 'discipline_organization',
+  'illegal_calculator', 'illegal_locations', 'illegal_marketplace', 'illegal_minigames'
+]);
 
 export function resolvePackageFeatures(packageValue: any = {}) {
   if (packageValue?.code === 'full') return [...FULL_PACKAGE_FEATURES];
+  if (packageValue?.code === 'operations') return [...OPERATIONS_PACKAGE_FEATURES];
   // Standard is intentionally closed: a stored JSON value must never be able
   // to unlock Full-only pages or organization-level discipline by accident.
   return [...STANDARD_PACKAGE_FEATURES];
 }
 
+export function packageLabel(packageValue: any = {}) {
+  return packageValue?.code === 'full' ? 'Full' : packageValue?.code === 'operations' ? 'Operations' : 'Standard';
+}
+
 export function packageAllowsPage(page: string, packageValue: any = {}) {
   if (page === 'index.html' || page === 'pontaj.html') return true;
-  const feature = Object.entries(PACKAGE_FEATURES).find(([, config]: any) => config.pages.includes(page))?.[0];
-  return Boolean(feature && resolvePackageFeatures(packageValue).includes(feature));
+  const enabledFeatures = resolvePackageFeatures(packageValue);
+  const pageFeatures = Object.entries(PACKAGE_FEATURES)
+    .filter(([, config]: any) => config.pages.includes(page))
+    .map(([feature]) => feature);
+  return pageFeatures.some((feature) => enabledFeatures.includes(feature));
 }
 
 export function packageCatalogForClient() {
-  return Object.fromEntries(Object.entries(PACKAGE_FEATURES).map(([key, config]: any) => [key, { label: config.label, pages: [...config.pages], standard: STANDARD_PACKAGE_FEATURES.includes(key), full: true }]));
+  return Object.fromEntries(Object.entries(PACKAGE_FEATURES).map(([key, config]: any) => [key, { label: config.label, pages: [...config.pages], standard: STANDARD_PACKAGE_FEATURES.includes(key), operations: OPERATIONS_PACKAGE_FEATURES.includes(key), full: true }]));
 }

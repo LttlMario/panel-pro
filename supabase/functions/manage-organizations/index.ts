@@ -1,7 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 import { getPlatformAdminDiscordIds, isPlatformAdminAccount } from '../_shared/platform-admin.ts';
-import { FULL_PACKAGE_FEATURES, PACKAGE_FEATURES, packageCatalogForClient, resolvePackageFeatures, STANDARD_PACKAGE_FEATURES } from '../_shared/package-features.ts';
+import { FULL_PACKAGE_FEATURES, OPERATIONS_PACKAGE_FEATURES, PACKAGE_FEATURES, packageAllowsPage as packagePageAllowed, packageCatalogForClient, resolvePackageFeatures, STANDARD_PACKAGE_FEATURES } from '../_shared/package-features.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
@@ -228,7 +228,7 @@ Deno.serve(async request=>{
         organizationsWithDetails.push({
           ...organization,
           access:{expires_at:expiresAt},
-          package:{code:['standard','full'].includes(String(packageValue.code))?String(packageValue.code):'standard',unlimited:packageValue.unlimited===true,expires_at:packageValue.expires_at||null,features:resolvePackageFeatures(packageValue)},
+          package:{code:['standard','operations','full'].includes(String(packageValue.code))?String(packageValue.code):'standard',unlimited:packageValue.unlimited===true,expires_at:packageValue.expires_at||null,features:resolvePackageFeatures(packageValue)},
           guilds:guilds.map((guild:any)=>({guild_id:guild.guild_id,guild_name:guild.guild_name,kind:guild.kind,enabled:guild.enabled!==false})),
           roles:roles.map((role:any)=>({guild_id:role.guild_id,discord_role_id:role.discord_role_id,discord_role_name:role.discord_role_name,panel_role:role.panel_role,enabled:role.enabled!==false})),
           metrics:{members,active_sessions:activeSessions,active_shifts:activeShifts,active_absences:activeAbsences,audit_events:auditCount,last_audit:lastAudit.data||null},
@@ -683,7 +683,7 @@ if (Array.isArray(body.roles)) {
     .maybeSingle();
   if (packageError) throw packageError;
   if (organizationPackage?.value?.code !== 'full' && body.roles.length > 10) {
-    throw new Error('Pachetul Standard permite maximum 10 roluri.');
+    throw new Error('Pachetele Standard și Operations permit maximum 10 roluri.');
   }
 
   /*
@@ -849,14 +849,14 @@ if (Array.isArray(body.roles)) {
     if(body.action==='set_package'){
       const organizationId=String(body.organization_id||'').trim();
       const code=String(body.package_code||'standard');
-      if(!validOrganizationId(organizationId)||!['standard','full'].includes(code))return reply({error:'Organizația sau pachetul este invalidă.'},400);
+      if(!validOrganizationId(organizationId)||!['standard','operations','full'].includes(code))return reply({error:'Organizația sau pachetul este invalidă.'},400);
       const unlimited=body.unlimited===true;
       const expiresAt=unlimited?null:String(body.expires_at||'').trim()||null;
       if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))return reply({error:'Data expirării pachetului este invalidă.'},400);
-      const features=code==='full'?[...FULL_PACKAGE_FEATURES]:[...STANDARD_PACKAGE_FEATURES];
+      const features=code==='full'?[...FULL_PACKAGE_FEATURES]:code==='operations'?[...OPERATIONS_PACKAGE_FEATURES]:[...STANDARD_PACKAGE_FEATURES];
       const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_package',value:{code,unlimited,expires_at:expiresAt,features},updated_at:nowIso()},{onConflict:'organization_id,key'});
       if(error)throw error;
-      if(code!=='full'){
+      if(code==='standard'){
         const restricted=[['action_permissions',{...(body.action_permissions||{}),'cereri.organization':[],'stash.write':[],'stash.request':[],'stash.manage_requests':[],'stash.donate':[],'stash.approve_donation':[],'stash.log':[]}],['communication_permissions',{organization:{read:[],write:[]}}],['discipline_permissions',{organization:{read:[],write:[],sanction:[]}}]] as any[];
         for(const [key,value] of restricted){
           const {data:existing}=await db.from('app_settings').select('value').eq('organization_id',organizationId).eq('key',key).maybeSingle();
@@ -866,12 +866,32 @@ if (Array.isArray(body.roles)) {
           if(permissionError)throw permissionError;
         }
       }
-      if(code!=='full'){
+      if(code==='operations'){
+        const restricted=[['action_permissions',{'cereri.departments':[]}],['communication_permissions',{departments:{read:[],write:[]}}],['discipline_permissions',{departments:{read:[],write:[],sanction:[]}}]] as any[];
+        for(const [key,value] of restricted){
+          const {data:existing}=await db.from('app_settings').select('value').eq('organization_id',organizationId).eq('key',key).maybeSingle();
+          if(!existing)continue;
+          const next={...(existing.value||{}),...(key==='action_permissions'?{'cereri.departments':[]}:{departments:value.departments})};
+          const {error:permissionError}=await db.from('app_settings').update({value:next,updated_at:nowIso()}).eq('organization_id',organizationId).eq('key',key);
+          if(permissionError)throw permissionError;
+        }
+      }
+      if(code==='standard'){
         const fullOnlyPages=new Set(['calculatorilegal.html','locatiiilegale.html','marketplace-ilegal.html','minigames.html','stash.html']);
         for(const key of ['page_permissions','assistant_page_permissions']){
           const {data:existing}=await db.from('app_settings').select('value').eq('organization_id',organizationId).eq('key',key).maybeSingle();
           if(!existing||!existing.value||typeof existing.value!=='object')continue;
           const value=Object.fromEntries(Object.entries(existing.value).filter(([page])=>!fullOnlyPages.has(page)));
+          const {error:permissionError}=await db.from('app_settings').update({value,updated_at:nowIso()}).eq('organization_id',organizationId).eq('key',key);
+          if(permissionError)throw permissionError;
+        }
+      }
+      if(code!=='full'){
+        const visiblePages=new Set(['index.html','pontaj.html']);
+        for(const key of ['page_permissions','assistant_page_permissions']){
+          const {data:existing}=await db.from('app_settings').select('value').eq('organization_id',organizationId).eq('key',key).maybeSingle();
+          if(!existing||!existing.value||typeof existing.value!=='object')continue;
+          const value=Object.fromEntries(Object.entries(existing.value).filter(([page])=>visiblePages.has(page)||packagePageAllowed(page,{code})));
           const {error:permissionError}=await db.from('app_settings').update({value,updated_at:nowIso()}).eq('organization_id',organizationId).eq('key',key);
           if(permissionError)throw permissionError;
         }
@@ -892,7 +912,7 @@ if (Array.isArray(body.roles)) {
       const id=String(body.voucher_id||'').trim();const reason=String(body.reason||'Revocat de administrator').trim().slice(0,200);if(!id)return reply({error:'Voucherul lipsește.'},400);const {data,error}=await db.from('organization_vouchers').update({revoked_at:nowIso(),revoked_by_discord_id:session.discord_id,revoked_reason:reason||'Revocat de administrator'}).eq('id',id).is('redeemed_at',null).is('revoked_at',null).select('id,code,revoked_at').maybeSingle();if(error)throw error;if(!data)return reply({error:'Voucherul nu există, a fost folosit sau a fost deja revocat.'},404);if(validOrganizationId(String(session.organization_id||'')))await db.from('admin_audit_log').insert({organization_id:session.organization_id,actor_discord_id:session.discord_id,action:'organization_voucher_revoked',target_type:'voucher',target_id:String(data.id),details:{code:data.code,reason,operation:'revoke_voucher'}});return reply({ok:true,revoked:data});
     }
     if(body.action==='generate_vouchers'){
-      const packageCode=String(body.package_code||'standard');const count=Math.max(1,Math.min(100,Number(body.count)||1));const duration=Math.max(1,Math.min(3650,Number(body.duration_days)||30));const guildId=String(body.guild_id||'').trim();if(!['standard','full'].includes(packageCode))return reply({error:'Pachet invalid.'},400);if(guildId&&!/^\d{15,22}$/.test(guildId))return reply({error:'Guild ID invalid.'},400);const features=packageCode==='full'?[...FULL_PACKAGE_FEATURES]:[...STANDARD_PACKAGE_FEATURES];const redemptionDeadline=new Date(Date.now()+365*86400000).toISOString();const rows:any[]=[];for(let i=0;i<count;i++){const bytes=crypto.getRandomValues(new Uint8Array(9));const code=`${packageCode.toUpperCase()}-${Array.from(bytes).map(value=>value.toString(36).padStart(2,'0')).join('').slice(0,12).toUpperCase()}`;rows.push({code,package_code:packageCode,features,duration_days:duration,expires_at:redemptionDeadline,guild_id:guildId||null,created_by_discord_id:session.discord_id});}const {data,error}=await db.from('organization_vouchers').insert(rows).select('code,package_code,features,duration_days,guild_id,expires_at,created_at');if(error)throw error;if(validOrganizationId(String(session.organization_id||''))){await db.from('admin_audit_log').insert({organization_id:session.organization_id,actor_discord_id:session.discord_id,action:'organization_vouchers_generated',target_type:'voucher_batch',target_id:null,details:{package_code:packageCode,count:rows.length,duration_days:duration,guild_id:guildId||null,redemption_deadline:redemptionDeadline}});}return reply({ok:true,vouchers:data||[]});
+      const packageCode=String(body.package_code||'standard');const count=Math.max(1,Math.min(100,Number(body.count)||1));const duration=Math.max(1,Math.min(3650,Number(body.duration_days)||30));const guildId=String(body.guild_id||'').trim();if(!['standard','operations','full'].includes(packageCode))return reply({error:'Pachet invalid.'},400);if(guildId&&!/^\d{15,22}$/.test(guildId))return reply({error:'Guild ID invalid.'},400);const features=packageCode==='full'?[...FULL_PACKAGE_FEATURES]:packageCode==='operations'?[...OPERATIONS_PACKAGE_FEATURES]:[...STANDARD_PACKAGE_FEATURES];const redemptionDeadline=new Date(Date.now()+365*86400000).toISOString();const rows:any[]=[];for(let i=0;i<count;i++){const bytes=crypto.getRandomValues(new Uint8Array(9));const code=`${packageCode.toUpperCase()}-${Array.from(bytes).map(value=>value.toString(36).padStart(2,'0')).join('').slice(0,12).toUpperCase()}`;rows.push({code,package_code:packageCode,features,duration_days:duration,expires_at:redemptionDeadline,guild_id:guildId||null,created_by_discord_id:session.discord_id});}const {data,error}=await db.from('organization_vouchers').insert(rows).select('code,package_code,features,duration_days,guild_id,expires_at,created_at');if(error)throw error;if(validOrganizationId(String(session.organization_id||''))){await db.from('admin_audit_log').insert({organization_id:session.organization_id,actor_discord_id:session.discord_id,action:'organization_vouchers_generated',target_type:'voucher_batch',target_id:null,details:{package_code:packageCode,count:rows.length,duration_days:duration,guild_id:guildId||null,redemption_deadline:redemptionDeadline}});}return reply({ok:true,vouchers:data||[]});
     }
     if(body.action==='extend'){
       const organizationId=String(body.organization_id||'').trim(),expiresAt=String(body.expires_at||'').trim();if(!validOrganizationId(organizationId)||Number.isNaN(Date.parse(expiresAt))||Date.parse(expiresAt)<=Date.now())return reply({error:'Alege o dată viitoare pentru prelungire.'},400);
