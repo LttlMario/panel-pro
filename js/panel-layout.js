@@ -1770,3 +1770,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     header.appendChild(wrapper);
 });
+
+// Păstrează pachetul Operations disponibil în generatorul de vouchere, inclusiv în copiile mai vechi ale paginii.
+document.addEventListener('DOMContentLoaded', () => {
+    const packageSelect = document.getElementById('package');
+    if (!packageSelect || packageSelect.querySelector('option[value="operations"]')) return;
+    const operationsOption = document.createElement('option');
+    operationsOption.value = 'operations';
+    operationsOption.textContent = 'Operations';
+    packageSelect.insertBefore(operationsOption, packageSelect.querySelector('option[value="full"]'));
+});
