@@ -66,6 +66,66 @@
         { id: 'jante_addon_191', name: 'Jante addon 191', base: wheel(20, 15, 40) }
     ];
 
+    const imageById = Object.freeze({
+        unelte_x10: '1.png',
+        masa_crafting_mecanic: '2.png',
+        limitator_viteza: '3.png',
+        set_cauciucuri: '4.png',
+        kit_reparat_avansat: '5.png',
+        jante_addon_80: '6.png',
+        jante_addon_85: '7.png',
+        jante_addon_98: '8.png',
+        xenon_albastru: '9.png',
+        xenon_albastru_deschis: '10.png',
+        xenon_verde: '11.png',
+        xenon_verde_deschis: '12.png',
+        xenon_galben_deschis: '13.png',
+        xenon_galben: '14.png',
+        xenon_portocaliu: '15.png',
+        xenon_rosu: '16.png',
+        xenon_roz_deschis: '17.png',
+        xenon_roz: '18.png',
+        xenon_mov: '19.png',
+        xenon_mov_deschis: '20.png',
+        turometru_tb_numeric: '21.png',
+        turometru_gmc: '22.png',
+        jante_addon_55: '23.png',
+        jante_addon_56: '24.png',
+        jante_addon_57: '25.png',
+        jante_addon_58: '26.png',
+        jante_addon_59: '27.png',
+        jante_addon_60: '28.png',
+        jante_addon_61: '29.png',
+        jante_addon_62: '30.png',
+        jante_addon_63: '31.png',
+        jante_addon_64: '32.png',
+        jante_addon_65: '33.png',
+        jante_addon_66: '34.png',
+        jante_addon_67: '35.png',
+        jante_addon_68: '36.png',
+        jante_addon_69: '37.png',
+        jante_addon_70: '38.png',
+        jante_addon_71: '39.png',
+        jante_addon_72: '40.png',
+        jante_addon_92: '41.png',
+        set_roti: '42.png',
+        set_roti_runflat: '43.png',
+        jante_addon_79: '44.png',
+        jante_addon_96: '45.png',
+        jante_addon_97: '46.png',
+        jante_addon_100: '47.png',
+        jante_addon_101: '48.png',
+        jante_addon_124: '49.png',
+        jante_addon_125: '50.png',
+        jante_addon_126: '51.png',
+        jante_addon_191: '52.png'
+    });
+
+    const recipesWithImages = recipes.map(recipe => ({
+        ...recipe,
+        image: imageById[recipe.id] || null
+    }));
+
     // Ingredientul apare în rețeta pentru „Set roți”, dar nu este o intrare
     // separată în lista cerută. Formula este preluată din calculatorul de
     // topitorie: 1 jantă de aluminiu = 10 aluminiu; setul conține 4 jante.
@@ -73,5 +133,5 @@
         { id: 'set_jante_aluminiu', name: 'Set jante aluminiu', base: { Aluminiu: 40 }, componentOnly: true }
     ];
 
-    window.PANEL_CRAFT_MECHANIC_RECIPES = Object.freeze([...recipes, ...componentRecipes]);
+    window.PANEL_CRAFT_MECHANIC_RECIPES = Object.freeze([...recipesWithImages, ...componentRecipes]);
 })();

@@ -317,6 +317,41 @@
             gap: 20px;
         }
 
+        .mechanic-result-layout {
+            display: none;
+            grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .mechanic-result-layout.active {
+            display: grid;
+        }
+
+        .mechanic-result-preview {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 12px;
+            text-align: center;
+        }
+
+        .mechanic-result-preview-title {
+            color: var(--text-main);
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .mechanic-result-preview img {
+            display: block;
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: contain;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.55);
+        }
+
         .result-box {
             background-color: var(--bg-input);
             border: 1px solid var(--border-color);
@@ -388,6 +423,17 @@
 
         .sub-options-box.active {
             display: block;
+        }
+
+        @media (max-width: 760px) {
+            .mechanic-result-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .mechanic-result-preview {
+                width: min(100%, 260px);
+                margin: 0 auto;
+            }
         }
     </style>
     <link rel="stylesheet" href="css/global-footer.css">
@@ -522,9 +568,15 @@
                     <button type="button" class="mobile-edit-selection" onclick="showMobileCalculator()">✕ Închide rezultatele</button>
                     
                     <!-- Box 1: Necesar Ingrediente Directe -->
-                    <div class="result-box" id="box_direct">
-                        <h3>Necesar Specific Obiect Selectat (Ingrediente Directe)</h3>
-                        <div class="grid-results" id="directResultsGrid"></div>
+                    <div class="mechanic-result-layout" id="mechanicResultLayout">
+                        <div class="result-box" id="box_direct">
+                            <h3>Necesar Specific Obiect Selectat (Ingrediente Directe)</h3>
+                            <div class="grid-results" id="directResultsGrid"></div>
+                        </div>
+                        <aside class="mechanic-result-preview" id="mechanicResultPreview" hidden aria-label="Imaginea obiectului selectat">
+                            <div class="mechanic-result-preview-title" id="mechanicResultPreviewTitle"></div>
+                            <img id="mechanicResultPreviewImage" alt="" loading="lazy">
+                        </aside>
                     </div>
 
                     <!-- Box 2: Total Materiale Brute / Resurse Finale -->
@@ -1493,7 +1545,28 @@ const upgradeChains = {
         }
 
         
-        
+        function updateMechanicalResultPreview(recipe, hasResults) {
+            const layout = document.getElementById('mechanicResultLayout');
+            const preview = document.getElementById('mechanicResultPreview');
+            const title = document.getElementById('mechanicResultPreviewTitle');
+            const image = document.getElementById('mechanicResultPreviewImage');
+
+            if (!layout || !preview || !title || !image || !recipe?.image) {
+                layout?.classList.toggle('active', Boolean(hasResults));
+                if (preview) preview.hidden = true;
+                return;
+            }
+
+            title.textContent = recipe.name || '';
+            image.alt = recipe.name || 'Imagine obiect craft mecanic';
+            image.src = `img/${recipe.image}`;
+            image.onerror = () => {
+                layout.classList.remove('active');
+                preview.hidden = true;
+            };
+            preview.hidden = false;
+            layout.classList.add('active');
+        }
 
         function calculateAll() {
             const masaItemKey = document.getElementById('masaItemSelect').value;
@@ -1509,6 +1582,7 @@ const upgradeChains = {
             let activeQty = 0;
             let directCost = {};
             let incompleteRecipe = false;
+            let selectedMechanicalRecipe = null;
             
             let accumulated = {};
             materialKeys.forEach(m => accumulated[m] = 0);
@@ -1623,6 +1697,7 @@ const upgradeChains = {
                 hasItem = true;
                 activeQty = parseFloat(mecanicQtyVal);
                 const currentRecipe = recipesMecanic[mecanicItemKey];
+                selectedMechanicalRecipe = currentRecipe || null;
 
                 if (currentRecipe?.incomplete || !currentRecipe?.base) {
                     incompleteRecipe = true;
@@ -1636,6 +1711,7 @@ const upgradeChains = {
             const boxDirect = document.getElementById('box_direct');
             const boxRawMaterials = document.getElementById('box_raw_materials');
             const directGrid = document.getElementById('directResultsGrid');
+            updateMechanicalResultPreview(selectedMechanicalRecipe, hasItem);
 
                 materialKeys.forEach(materialName => {
 
