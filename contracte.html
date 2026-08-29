@@ -229,8 +229,8 @@
                         <div id="employeeExportStatus" class="text-[11px] text-slate-500">Se încarcă lista angajaților…</div>
                         <div class="max-h-72 overflow-auto rounded-lg border border-slate-800">
                             <table class="w-full text-left text-[11px]">
-                                <thead class="sticky top-0 bg-slate-900 text-slate-400"><tr><th class="p-2"></th><th class="p-2">Nume</th><th class="p-2">CNP</th><th class="p-2">Status</th><th class="p-2">Export</th></tr></thead>
-                                <tbody id="employeeExportRows"><tr><td colspan="5" class="p-3 text-slate-500">Se încarcă…</td></tr></tbody>
+                                <thead class="sticky top-0 bg-slate-900 text-slate-400"><tr><th class="p-2"></th><th class="p-2">Nume</th><th class="p-2">CNP</th><th class="p-2">Status</th><th class="p-2">Export</th><th class="p-2">Acțiuni</th></tr></thead>
+                                <tbody id="employeeExportRows"><tr><td colspan="6" class="p-3 text-slate-500">Se încarcă…</td></tr></tbody>
                             </table>
                         </div>
                     </section>
@@ -365,6 +365,7 @@ Semnătură:`;
         };
         let currentUser = JSON.parse(localStorage.getItem('discord_user')) || JSON.parse(localStorage.getItem('workforce_user')) || { display_name: 'Admin', role: 'admin' };
         let employeeExportState = { employees: [], discord_members: [], last_manual_export: null };
+        let employeeExportLoading = false;
 
         function contractApi(action, payload = {}) {
             const config = window.PANEL_SUPABASE_CONFIG;
@@ -442,6 +443,8 @@ Semnătură:`;
             document.getElementById('exportManualContracts')?.addEventListener('click', () => copyEmployeeExport(false));
             document.getElementById('sendManualDiscordExport')?.addEventListener('click', () => sendManualDiscordExport());
             loadEmployeeExportPanel();
+            window.setInterval(() => { if (!document.hidden) loadEmployeeExportPanel(true); }, 60000);
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) loadEmployeeExportPanel(true); });
         });
 
         function setDefaultDate() {
@@ -539,21 +542,38 @@ Semnătură:`;
             const rows = document.getElementById('employeeExportRows');
             if (!rows) return;
             const visible = filteredEmployeeRows();
-            rows.innerHTML = visible.length ? visible.map((employee) => `<tr class="border-t border-slate-800/80"><td class="p-2"><input type="checkbox" data-employee-export-id="${escapeContractHtml(employee.id)}" class="accent-cyan-500"></td><td class="p-2 font-semibold text-slate-200">${escapeContractHtml(employee.full_name)}</td><td class="p-2 font-mono text-amber-200">${escapeContractHtml(employee.cnp)}</td><td class="p-2 ${employee.status === 'active' ? 'text-emerald-300' : 'text-rose-300'}">${employee.status === 'active' ? 'Activ' : 'Plecat'}</td><td class="p-2 text-slate-500">${employee.has_manual_export ? `Da · ${new Date(employee.last_manual_export_at).toLocaleDateString('ro-RO')}` : 'Nu'}</td></tr>`).join('') : '<tr><td colspan="5" class="p-3 text-slate-500">Nu există angajați pentru filtrul ales.</td></tr>';
+            rows.innerHTML = visible.length ? visible.map((employee) => `<tr class="border-t border-slate-800/80"><td class="p-2"><input type="checkbox" data-employee-export-id="${escapeContractHtml(employee.id)}" class="accent-cyan-500"></td><td class="p-2 font-semibold text-slate-200">${escapeContractHtml(employee.full_name)}</td><td class="p-2 font-mono text-amber-200">${escapeContractHtml(employee.cnp)}</td><td class="p-2 ${employee.status === 'active' ? 'text-emerald-300' : 'text-rose-300'}">${employee.status === 'active' ? 'Activ' : 'Fost angajat'}</td><td class="p-2 text-slate-500">${employee.has_manual_export ? `Da · ${new Date(employee.last_manual_export_at).toLocaleDateString('ro-RO')}` : 'Nu'}</td><td class="p-2"><button type="button" data-delete-employee-id="${escapeContractHtml(employee.id)}" data-delete-employee-name="${escapeContractHtml(employee.full_name)}" class="rounded border border-rose-800/70 px-2 py-1 text-[10px] font-bold text-rose-300 hover:bg-rose-950/50">Șterge</button></td></tr>`).join('') : '<tr><td colspan="6" class="p-3 text-slate-500">Nu există angajați pentru filtrul ales.</td></tr>';
+            rows.querySelectorAll('[data-delete-employee-id]').forEach((button) => button.addEventListener('click', () => deleteEmployee(button.dataset.deleteEmployeeId, button.dataset.deleteEmployeeName, button)));
             const status = document.getElementById('employeeExportStatus');
             if (status) status.textContent = `${employeeExportState.employees.length} angajați salvați · ${employeeExportState.employees.filter((item) => !item.has_manual_export).length} disponibili pentru primul export${employeeExportState.last_manual_export ? ` · ultimul export: ${new Date(employeeExportState.last_manual_export.created_at).toLocaleString('ro-RO')}` : ''}`;
         }
 
-        async function loadEmployeeExportPanel() {
+        async function loadEmployeeExportPanel(silent = false) {
+            if (employeeExportLoading) return;
+            employeeExportLoading = true;
             const status = document.getElementById('employeeExportStatus');
-            if (status) status.textContent = 'Se actualizează lista angajaților…';
+            if (status && !silent) status.textContent = 'Se actualizează lista angajaților…';
             try {
                 employeeExportState = await contractApi('list');
                 syncContractCounterFromDatabase(employeeExportState.contracts || []);
                 renderDiscordMemberOptions(employeeExportState.discord_members || []);
                 renderEmployeeExportRows();
             } catch (error) {
-                if (status) status.textContent = error.message || 'Lista angajaților nu a putut fi încărcată.';
+                if (status && !silent) status.textContent = error.message || 'Lista angajaților nu a putut fi încărcată.';
+            } finally {
+                employeeExportLoading = false;
+            }
+        }
+
+        async function deleteEmployee(employeeId, employeeName, button) {
+            if (!confirm(`Ștergi ${employeeName || 'acest angajat'} din lista curentă? Istoricul contractelor și al exporturilor va rămâne păstrat.`)) return;
+            if (button) { button.disabled = true; button.textContent = 'Se șterge…'; }
+            try {
+                await contractApi('delete_employee', { employee_id: employeeId });
+                await loadEmployeeExportPanel();
+            } catch (error) {
+                alert(error.message || 'Angajatul nu a putut fi șters.');
+                if (button) { button.disabled = false; button.textContent = 'Șterge'; }
             }
         }
 
