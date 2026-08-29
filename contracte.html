@@ -466,9 +466,30 @@ Semnătură:`;
                 counter = 1;
             } else {
                 counter = parseInt(counter, 10);
+                // Migrează contorul blocat la 1 de versiunea anterioară, după primul contract salvat.
+                if (counter === 1) {
+                    counter = 2;
+                    localStorage.setItem(contractCounterKey(), counter);
+                }
             }
 
             currentContractNumber = formatContractNumber(new Date(), counter);
+            document.getElementById('contractNumberDisplay').innerText = currentContractNumber;
+        }
+
+        function syncContractCounterFromDatabase(contracts) {
+            const today = new Date();
+            const prefix = `CN-${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}-`;
+            const highest = (contracts || []).reduce((max, contract) => {
+                const number = String(contract?.contract_number || '');
+                if (!number.startsWith(prefix)) return max;
+                const suffix = Number.parseInt(number.slice(prefix.length), 10);
+                return Number.isFinite(suffix) ? Math.max(max, suffix) : max;
+            }, 0);
+            const stored = Number.parseInt(localStorage.getItem(contractCounterKey()) || '1', 10);
+            const next = Math.max(Number.isFinite(stored) && stored > 0 ? stored : 1, highest + 1);
+            if (next > 1 || localStorage.getItem(contractCounterKey())) localStorage.setItem(contractCounterKey(), String(next));
+            currentContractNumber = formatContractNumber(today, next);
             document.getElementById('contractNumberDisplay').innerText = currentContractNumber;
         }
 
@@ -483,7 +504,7 @@ Semnătură:`;
             let counter = localStorage.getItem(contractCounterKey());
 
             if (!counter) {
-                counter = 1;
+                counter = 2;
             } else {
                 counter = parseInt(counter, 10) + 1;
             }
@@ -528,6 +549,7 @@ Semnătură:`;
             if (status) status.textContent = 'Se actualizează lista angajaților…';
             try {
                 employeeExportState = await contractApi('list');
+                syncContractCounterFromDatabase(employeeExportState.contracts || []);
                 renderDiscordMemberOptions(employeeExportState.discord_members || []);
                 renderEmployeeExportRows();
             } catch (error) {
@@ -637,6 +659,7 @@ Semnătură:`;
             const displayNameToRender = currentUser.display_name || currentUser.username || '';
             document.getElementById('manager').value = displayNameToRender;
             setDefaultDate();
+            loadOrInitContractNumber();
             document.getElementById('contractPreview').innerText = 'Completați formularul și apăsați "Generează Contract" pentru a vizualiza documentul final.';
             document.getElementById('statusIndicator').innerText = 'Formular resetat';
             document.getElementById('statusIndicator').style.color = '#f59e0b';
