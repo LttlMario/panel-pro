@@ -12,8 +12,9 @@
   let organizationReady = null;
   let loadPromise = null;
   const communityQueryTimeoutMs = 15000;
+  const announcementCacheTtlMs = 120000;
   const $=s=>document.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const invoke=async(body)=>{const token=window.getPanelDiscordAccessToken?.()||'',panelSession=localStorage.getItem('panel_session_token')||'';if(!panelSession){requestFreshLogin();throw new Error('Sesiunea securizată a panelului lipsește. Autentifică-te din nou.')}const controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),communityQueryTimeoutMs);let res;try{res=await fetch(`${URL}/functions/v1/manage-community-posts`,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:`Bearer ${KEY}`,'x-panel-session':panelSession},body:JSON.stringify({...body,...(token?{access_token:token}:{})}),signal:controller.signal})}catch(error){if(error?.name==='AbortError')throw new Error('Verificarea permisiunilor a durat prea mult. Verifică internetul și încearcă din nou.');throw error}finally{window.clearTimeout(timeout)}let json={};try{json=await res.json()}catch{json={}}if(res.status===401){requestFreshLogin();throw new Error('Sesiunea panelului a expirat. Autentifică-te din nou.')}if(!res.ok){
+  const invoke=async(body)=>{const token=window.getPanelDiscordAccessToken?.()||'',panelSession=localStorage.getItem('panel_session_token')||'';if(!panelSession){requestFreshLogin();throw new Error('Sesiunea securizată a panelului lipsește. Autentifică-te din nou.')}const controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),communityQueryTimeoutMs);let res;try{res=await fetch(`${URL}/functions/v1/manage-community-posts`,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:`Bearer ${KEY}`,'x-panel-session':panelSession},body:JSON.stringify({...body,...(token?{access_token:token}:{})}),signal:controller.signal})}catch(error){if(error?.name==='AbortError')throw new Error('Verificarea permisiunilor a durat prea mult. Verifică internetul și încearcă din nou.');if(error instanceof TypeError)throw new Error('Nu pot contacta Supabase pentru această acțiune. Verifică internetul și încearcă din nou.');throw error}finally{window.clearTimeout(timeout)}let json={};try{json=await res.json()}catch{json={}}if(res.status===401){requestFreshLogin();throw new Error('Sesiunea panelului a expirat. Autentifică-te din nou.')}if(!res.ok){
     console.error("EDGE ERROR RESPONSE:", json);
     throw new Error(
         json.error ||
@@ -23,8 +24,11 @@
     );
 }return json};
   const showFeedMessage=(message,retry=false)=>{const feed=$('#feed');if(!feed)return;feed.innerHTML=`<div class="empty">${esc(message)}${retry?'<br><button type="button" class="btn secondary" data-retry-community style="margin-top:14px">Încearcă din nou</button>':''}</div>`;feed.querySelector('[data-retry-community]')?.addEventListener('click',()=>load())};
-  async function runCommunityQuery(factory, timeoutMessage='Încărcarea anunțurilor a durat prea mult.'){const controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),communityQueryTimeoutMs);try{return await factory(controller.signal)}catch(error){if(error?.name==='AbortError')throw new Error(timeoutMessage);throw error}finally{window.clearTimeout(timeout)}}
+  async function runCommunityQuery(factory, timeoutMessage='Încărcarea anunțurilor a durat prea mult.'){const controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),communityQueryTimeoutMs);try{return await factory(controller.signal)}catch(error){if(error?.name==='AbortError')throw new Error(timeoutMessage);if(error instanceof TypeError)throw new Error('Supabase răspunde greu sau conexiunea a fost întreruptă. Încearcă din nou.');throw error}finally{window.clearTimeout(timeout)}}
   function requestFreshLogin(){sessionStorage.setItem('panel_return_after_login',location.href);setTimeout(()=>{location.href='login.html?v=20260819-session-return-fix'},700)}
+  function announcementCacheKey(){return `panel-announcements:${organizationId}:${user.discord_id||user.id||'session'}:${readAudiences.slice().sort().join(',')}`}
+  function loadAnnouncementCache(){try{const cached=JSON.parse(sessionStorage.getItem(announcementCacheKey())||'null');if(!cached||Date.now()-Number(cached.savedAt)>announcementCacheTtlMs||!Array.isArray(cached.posts))return false;posts=cached.posts;render();return true}catch(error){console.warn('Cache-ul local pentru anunțuri nu este disponibil:',error);return false}}
+  function saveAnnouncementCache(){try{sessionStorage.setItem(announcementCacheKey(),JSON.stringify({savedAt:Date.now(),posts}))}catch(error){console.warn('Cache-ul local pentru anunțuri nu a putut fi salvat:',error)}}
   async function loadAnnouncementAccess() {
       try {
           const access = await invoke({ action: 'announcement_access', section: 'announcements' });
@@ -99,6 +103,7 @@ async function loadNow() {
     if (!postIds.length) {
         posts = [];
         render();
+        saveAnnouncementCache();
         return;
     }
 
@@ -155,6 +160,7 @@ async function loadNow() {
     }));
 
     render();
+    saveAnnouncementCache();
 
     const wanted =
         new URLSearchParams(location.search).get('post');
@@ -177,7 +183,7 @@ async function loadNow() {
 }
 async function load(){
     if (loadPromise) return loadPromise;
-    loadPromise = loadNow().catch((error) => {
+    loadPromise = Promise.resolve().then(() => { loadAnnouncementCache(); return loadNow(); }).catch((error) => {
         console.error('Eroare neașteptată la încărcarea anunțurilor:', error);
         showFeedMessage(error.message || 'Anunțurile nu au putut fi încărcate momentan.', true);
     }).finally(() => { loadPromise = null; });

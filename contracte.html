@@ -106,7 +106,7 @@
                     <form id="contractForm" onsubmit="return false;" class="space-y-4">
                         <div class="space-y-1.5">
                             <label class="text-xs font-medium text-slate-400">Companie</label>
-                            <input type="text" id="company" value="S.C. Familia Es Todo S.R.L." class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
+                            <input type="text" id="company" placeholder="Numele organizației active" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
                         </div>
 
                         <div class="space-y-1.5">
@@ -386,7 +386,7 @@ Semnătură:`;
             try {
                 const organization = window.getActiveOrganization?.();
                 const db = window.createPanelSupabaseClient?.();
-                if (organization?.name) document.getElementById('company').value = organization.name;
+                setCompanyFromActiveOrganization();
                 const organizationId = String(
                     organization?.id ||
                     window.getActiveOrganizationId?.() ||
@@ -673,7 +673,7 @@ Semnătură:`;
 
         function resetForm() {
             document.getElementById('contractForm').reset();
-            document.getElementById('company').value = 'S.C. Familia Es Todo S.R.L.';
+            setCompanyFromActiveOrganization();
             document.getElementById('salary').value = '100 lei/lună';
             document.getElementById('schedule').value = '20:00-23:00';
             const displayNameToRender = currentUser.display_name || currentUser.username || '';
@@ -687,6 +687,12 @@ Semnătură:`;
 
             clearPasteZone(1);
             clearPasteZone(2);
+        }
+
+        function setCompanyFromActiveOrganization() {
+            const organizationName = String(window.getActiveOrganization?.()?.name || '').trim();
+            const companyInput = document.getElementById('company');
+            if (companyInput) companyInput.value = organizationName;
         }
 
         function showToast() {

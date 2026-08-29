@@ -89,6 +89,14 @@ Deno.serve(async request=>{
         return result;
       } catch (error) { console.error(`organization hub query failed: ${label}`, error); return { data: fallback, error: null }; }
     };
+    const redactSensitive = (value: any): any => {
+      if (Array.isArray(value)) return value.map(redactSensitive);
+      if (!value || typeof value !== 'object') return typeof value === 'string' && /^https:\/\/(?:discord(?:app)?\.com)\/api\/webhooks\/\d+\/[^\s]+$/i.test(value) ? 'REDACTAT_WEBHOOK_URL' : value;
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [
+        key,
+        /(webhook|token|secret|password|private[_-]?key|api[_-]?key)/i.test(key) ? '[REDACTAT]' : redactSensitive(item)
+      ]));
+    };
     const buildOrganizationBackup = async () => {
       const [organization, settings, roles, guilds, members] = await Promise.all([
         db.from('organizations').select('id,name,slug,description,logo_url,banner_url,active,lifecycle_status').eq('id', organizationId).single(),
@@ -98,7 +106,21 @@ Deno.serve(async request=>{
         db.from('organization_members').select('*').eq('organization_id', organizationId),
       ]);
       for (const result of [organization, settings, roles, guilds, members]) if (result.error) throw result.error;
-      return { schemaVersion: 2, exportedAt: new Date().toISOString(), organization: organization.data, settings: settings.data || [], roles: roles.data || [], guilds: guilds.data || [], members: members.data || [] };
+      const tableNames = [
+        'shifts', 'absences', 'community_posts', 'community_poll_options', 'community_poll_votes', 'community_reactions',
+        'disciplinary_warnings', 'disciplinary_sanctions', 'organization_employees', 'organization_contracts',
+        'contract_export_batches', 'marketplace', 'illegal_locations', 'panel_notifications', 'admin_audit_log'
+      ];
+      const tableResults = await Promise.all(tableNames.map((table) => safeOptionalQuery(
+        db.from(table).select('*').eq('organization_id', organizationId), [], table
+      )));
+      const records: Record<string, any[]> = Object.fromEntries(tableNames.map((table, index) => [table, tableResults[index].data || []]));
+      const batchIds = records.contract_export_batches.map((batch: any) => batch.id).filter(Boolean);
+      const exportItems = batchIds.length
+        ? await safeOptionalQuery(db.from('contract_export_items').select('*').in('batch_id', batchIds), [], 'contract_export_items')
+        : { data: [] };
+      records.contract_export_items = exportItems.data || [];
+      return redactSensitive({ schemaVersion: 3, exportedAt: new Date().toISOString(), organization: organization.data, settings: settings.data || [], roles: roles.data || [], guilds: guilds.data || [], members: members.data || [], records });
     };
 
     if (body.action === 'org_hub') {
@@ -280,6 +302,60 @@ Deno.serve(async request=>{
       if (error) throw error;
       await db.from('admin_audit_log').insert({ organization_id: organizationId, actor_discord_id: discordUser.id, actor_name: actorName, action: 'organization_backup_snapshot', target_type: 'app_settings', target_id: 'organization_backup_snapshot', details: { automatic: true } });
       return reply({ ok: true, exportedAt: snapshot.exportedAt });
+    }
+
+    if (body.action === 'org_restore') {
+      if (!isOrganizationManager) return reply({ error: 'Restaurarea este disponibilă doar ownerului sau administratorului organizației.' }, 403);
+      const backup = body.backup && typeof body.backup === 'object' ? body.backup : null;
+      if (!backup || ![2, 3].includes(Number(backup.schemaVersion)) || String(backup.organization?.id || '') !== String(organizationId)) {
+        return reply({ error: 'Backup invalid sau creat pentru o altă organizație.' }, 400);
+      }
+      const organization = backup.organization || {};
+      const { error: organizationError } = await db.from('organizations').update({
+        name: textValue(organization.name, 120),
+        description: textValue(organization.description, 1000) || null,
+        logo_url: safeUrl(organization.logo_url),
+        banner_url: safeUrl(organization.banner_url),
+        updated_at: new Date().toISOString(),
+      }).eq('id', organizationId);
+      if (organizationError) throw organizationError;
+
+      const sensitiveSetting = (key: unknown, value: unknown) => {
+        const serialized = JSON.stringify(value ?? '');
+        return /(webhook|token|secret|password|private[_-]?key|api[_-]?key)/i.test(String(key || ''))
+          || serialized.includes('[REDACTAT]')
+          || serialized.includes('REDACTAT_WEBHOOK_URL');
+      };
+      const settings = Array.isArray(backup.settings)
+        ? backup.settings.filter((item: any) => item && item.key && item.key !== 'organization_backup_snapshot' && !sensitiveSetting(item.key, item.value)).map((item: any) => ({ organization_id: organizationId, key: String(item.key).slice(0, 120), value: item.value, updated_at: new Date().toISOString() }))
+        : [];
+      if (settings.length) {
+        const { error } = await db.from('app_settings').upsert(settings, { onConflict: 'organization_id,key' });
+        if (error) throw error;
+      }
+      const restoreSimple = async (table: string, rows: any[]) => {
+        const safeRows = rows.filter((row: any) => row && row.id && String(row.organization_id || organizationId) === String(organizationId)).map((row: any) => ({ ...row, organization_id: organizationId }));
+        if (!safeRows.length) return 0;
+        const { error } = await db.from(table).upsert(safeRows, { onConflict: 'id' });
+        if (error) throw error;
+        return safeRows.length;
+      };
+      const records = backup.records && typeof backup.records === 'object' ? backup.records : {};
+      const restored: Record<string, number> = {};
+      for (const table of ['organization_employees', 'organization_contracts', 'community_posts', 'community_poll_options', 'community_reactions', 'community_poll_votes', 'disciplinary_warnings', 'disciplinary_sanctions', 'shifts', 'absences', 'marketplace', 'illegal_locations', 'panel_notifications']) {
+        restored[table] = await restoreSimple(table, Array.isArray(records[table]) ? records[table] : []);
+      }
+      const batches = Array.isArray(records.contract_export_batches) ? records.contract_export_batches : [];
+      restored.contract_export_batches = await restoreSimple('contract_export_batches', batches);
+      const batchIds = new Set(batches.map((row: any) => String(row.id)).filter(Boolean));
+      const exportItems = Array.isArray(records.contract_export_items) ? records.contract_export_items.filter((row: any) => row?.id && batchIds.has(String(row.batch_id))) : [];
+      if (exportItems.length) {
+        const { error } = await db.from('contract_export_items').upsert(exportItems, { onConflict: 'id' });
+        if (error) throw error;
+      }
+      restored.contract_export_items = exportItems.length;
+      await db.from('admin_audit_log').insert({ organization_id: organizationId, actor_discord_id: discordUser.id, actor_name: actorName, action: 'organization_backup_restored', target_type: 'organization', target_id: organizationId, details: { restored, destructive_delete: false } });
+      return reply({ ok: true, restored, message: 'Backup restaurat fără ștergerea datelor existente.' });
     }
 
     if(['notifications','mark_read'].includes(String(body.action||''))){

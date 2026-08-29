@@ -5,8 +5,7 @@
 
 window.PANEL_DISCORD_CONFIG = Object.freeze({
     organization: Object.freeze({
-        id: "familia-es-todo",
-        name: "Familia Es Todo"
+        id: "familia-es-todo"
     }),
 
     clientId: "1531023771211792384",

@@ -60,6 +60,25 @@ window.clearPanelDiscordAccessToken = function clearPanelDiscordAccessToken() {
 // Toate cererile către tabele transmit sesiunea opacă verificată de RLS.
 // Refolosim clientul pentru a evita mai multe GoTrueClient-uri în aceeași pagină.
 let panelSupabaseClientCache = null;
+const panelSupabaseBaseFetch = window.fetch.bind(window);
+const panelSupabaseReliableFetch = async (input, init = {}) => {
+    const method = String(init.method || (typeof input !== 'string' ? input?.method : '') || 'GET').toUpperCase();
+    const retryable = ['GET', 'HEAD', 'OPTIONS'].includes(method);
+    const attempts = retryable ? 3 : 1;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+        try {
+            const response = await panelSupabaseBaseFetch(input, init);
+            if (attempt + 1 < attempts && [408, 425, 429, 500, 502, 503, 504].includes(response.status)) {
+                await new Promise((resolve) => window.setTimeout(resolve, 250 * (attempt + 1)));
+                continue;
+            }
+            return response;
+        } catch (error) {
+            if (attempt + 1 >= attempts) throw error;
+            await new Promise((resolve) => window.setTimeout(resolve, 250 * (attempt + 1)));
+        }
+    }
+};
 
 window.createPanelSupabaseClient = function createPanelSupabaseClient() {
     const config = window.PANEL_SUPABASE_CONFIG;
@@ -71,7 +90,7 @@ window.createPanelSupabaseClient = function createPanelSupabaseClient() {
                 const headers = new Headers(init.headers || {});
                 const sessionToken = localStorage.getItem('panel_session_token') || '';
                 if (sessionToken) headers.set('X-Panel-Session', sessionToken);
-                return window.fetch(input, { ...init, headers });
+                return panelSupabaseReliableFetch(input, { ...init, headers });
             }
         },
         auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
