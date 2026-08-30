@@ -669,12 +669,15 @@ html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-sh
     opacity: .48;
     animation: seasonal-breathe 5s ease-in-out infinite;
 }
-html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell > *,
-html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main,
-html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell #panel-shared-sidebar,
-html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell .panel-global-header {
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell > div:has(main),
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell > main {
     position: relative;
     z-index: 1;
+}
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell #panel-shared-sidebar,
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell #panel-mobile-menu {
+    position: fixed !important;
+    z-index: 30 !important;
 }
 html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main,
 html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell > div:has(main) {
@@ -685,6 +688,14 @@ html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="non
 html[data-seasonal-intensity="discreet"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::before { opacity: .14; }
 html[data-seasonal-intensity="intense"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::before { opacity: .42; }
 html[data-panel-theme="dark"][data-seasonal-intensity="intense"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::before { opacity: .24; }
+
+/* Robotul rămâne singurul element flotant din colț; tema nu mai adaugă
+   niciun simbol lângă el. */
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::after {
+    content: none !important;
+    display: none !important;
+    animation: none !important;
+}
 
 html[data-seasonal-theme]:not([data-seasonal-theme="none"]) .panel-global-header {
     background: color-mix(in srgb, var(--seasonal-surface) 92%, #070b14) !important;
