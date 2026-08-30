@@ -641,9 +641,9 @@
                             <h3>Necesar Specific Obiect Selectat (Ingrediente Directe)</h3>
                             <div class="grid-results" id="directResultsGrid"></div>
                         </div>
-                        <aside class="croitorie-result-preview" id="croitorieResultPreview" hidden aria-label="Imaginea obiectului de croitorie selectat">
+                        <aside class="croitorie-result-preview" id="croitorieResultPreview" hidden aria-label="Imaginea obiectului selectat">
                             <div class="croitorie-result-preview-title" id="croitorieResultPreviewTitle"></div>
-                            <button type="button" class="croitorie-result-preview-trigger" onclick="openCroitorieImagePreview()" aria-label="Mărește imaginea obiectului de croitorie">
+                            <button type="button" class="croitorie-result-preview-trigger" onclick="openCroitorieImagePreview()" aria-label="Mărește imaginea obiectului selectat">
                                 <img id="croitorieResultPreviewImage" alt="" loading="lazy">
                             </button>
                         </aside>
@@ -1221,6 +1221,38 @@ const upgradeChains = {
             parasuta: 'croitorie8.jpg'
         });
 
+        const craftImageByItem = Object.freeze({
+            ziptip: 'craft1.png',
+            momeala: 'craft2.png',
+            undita_plastic: 'craft3.png',
+            undita_cupru: 'craft4.png',
+            undita_aluminiu: 'craft5.png',
+            undita_fier: 'craft6.png',
+            placa_mesteacan: 'craft7.png',
+            placa_stejar: 'craft8.png',
+            placa_cedru: 'craft9.png',
+            teava: 'craft10.png',
+            plicuri: 'craft11.png',
+            aprinzator: 'craft12.png',
+            cleste: 'craft13.png',
+            tableta_hacking: 'craft14.png',
+            flash_drive: 'craft15.png',
+            lockpick: 'craft16.png',
+            cauciuc_1: 'craft17.png',
+            cauciuc_2: 'craft18.png',
+            cauciuc_3: 'craft19.png',
+            tarnacop_cupru: 'craft20.png',
+            tarnacop_fier: 'craft21.png',
+            tarnacop_otel: 'craft22.png',
+            tarnacop_aur: 'craft23.png',
+            tarnacop_diamant: 'craft24.png',
+            topor_cupru: 'craft25.png',
+            topor_fier: 'craft26.png',
+            topor_otel: 'craft27.png',
+            topor_aur: 'craft28.png',
+            topor_diamant: 'craft29.png'
+        });
+
         const recipesMecanic = Object.fromEntries(
             (window.PANEL_CRAFT_MECHANIC_RECIPES || []).map(recipe => [recipe.id, recipe])
         );
@@ -1468,12 +1500,14 @@ const upgradeChains = {
                 .replace(/^_|_$/g, "");
         }
 
-        function updateCroitorieResultPreview(itemKey, recipe, hasCroitorieResults, mechanicRecipe, hasMecanicResults) {
+        function updateCroitorieResultPreview(masaItemKey, masaRecipe, hasMasaResults, itemKey, recipe, hasCroitorieResults, mechanicRecipe, hasMecanicResults) {
             const preview = document.getElementById('croitorieResultPreview');
             const title = document.getElementById('croitorieResultPreviewTitle');
             const image = document.getElementById('croitorieResultPreviewImage');
-            const selectedRecipe = hasCroitorieResults ? recipe : (hasMecanicResults ? mechanicRecipe : null);
-            const imageFile = hasCroitorieResults ? croitorieImageByItem[itemKey] : selectedRecipe?.image;
+            const selectedRecipe = hasMasaResults ? masaRecipe : (hasCroitorieResults ? recipe : (hasMecanicResults ? mechanicRecipe : null));
+            const imageFile = hasMasaResults
+                ? craftImageByItem[masaItemKey]
+                : (hasCroitorieResults ? croitorieImageByItem[itemKey] : selectedRecipe?.image);
 
             if (!preview || !title || !image || !selectedRecipe?.name || !imageFile) {
                 if (preview) preview.hidden = true;
@@ -1832,6 +1866,9 @@ const upgradeChains = {
             const hasCroitorieResults = croitorQtyVal !== '' && !isNaN(croitorQtyVal) && parseFloat(croitorQtyVal) > 0;
             const hasMecanicResults = mecanicQtyVal !== '' && !isNaN(mecanicQtyVal) && parseFloat(mecanicQtyVal) > 0;
             updateCroitorieResultPreview(
+                masaItemKey,
+                recipesMasa[masaItemKey],
+                hasMasaResults,
                 croitorItemKey,
                 recipesCroitor[croitorItemKey],
                 hasCroitorieResults,
