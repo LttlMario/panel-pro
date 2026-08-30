@@ -1,0 +1,53 @@
+/* Aspecte tematice controlate de administratorul platformei per organizație. */
+body::before {
+    position: fixed;
+    top: 12px;
+    right: 18px;
+    z-index: 40;
+    pointer-events: none;
+    font-size: 22px;
+    line-height: 1;
+    opacity: .48;
+}
+
+html[data-seasonal-theme="winter"] body {
+    background-image: radial-gradient(circle at 8% 0%, rgba(56, 189, 248, .18), transparent 34%), radial-gradient(circle at 95% 100%, rgba(129, 230, 217, .10), transparent 38%);
+}
+html[data-seasonal-theme="winter"] body::before { content: "❄️"; }
+html[data-seasonal-theme="winter"] #panel-shared-sidebar,
+html[data-seasonal-theme="winter"] .panel-global-header { border-color: rgba(125, 211, 252, .42) !important; }
+
+html[data-seasonal-theme="christmas"] body {
+    background-image: radial-gradient(circle at 8% 0%, rgba(239, 68, 68, .17), transparent 34%), radial-gradient(circle at 95% 100%, rgba(34, 197, 94, .13), transparent 38%);
+}
+html[data-seasonal-theme="christmas"] body::before { content: "🎄"; }
+html[data-seasonal-theme="christmas"] #panel-shared-sidebar,
+html[data-seasonal-theme="christmas"] .panel-global-header { border-color: rgba(248, 113, 113, .42) !important; }
+
+html[data-seasonal-theme="easter"] body {
+    background-image: radial-gradient(circle at 8% 0%, rgba(244, 114, 182, .15), transparent 34%), radial-gradient(circle at 95% 100%, rgba(250, 204, 21, .12), transparent 38%);
+}
+html[data-seasonal-theme="easter"] body::before { content: "🐣"; }
+html[data-seasonal-theme="easter"] #panel-shared-sidebar,
+html[data-seasonal-theme="easter"] .panel-global-header { border-color: rgba(244, 114, 182, .38) !important; }
+
+html[data-seasonal-theme="halloween"] body {
+    background-image: radial-gradient(circle at 8% 0%, rgba(249, 115, 22, .18), transparent 34%), radial-gradient(circle at 95% 100%, rgba(124, 58, 237, .14), transparent 38%);
+}
+html[data-seasonal-theme="halloween"] body::before { content: "🎃"; }
+html[data-seasonal-theme="halloween"] #panel-shared-sidebar,
+html[data-seasonal-theme="halloween"] .panel-global-header { border-color: rgba(251, 146, 60, .42) !important; }
+
+html[data-seasonal-theme="summer"] body {
+    background-image: radial-gradient(circle at 8% 0%, rgba(250, 204, 21, .18), transparent 34%), radial-gradient(circle at 95% 100%, rgba(45, 212, 191, .12), transparent 38%);
+}
+html[data-seasonal-theme="summer"] body::before { content: "☀️"; }
+html[data-seasonal-theme="summer"] #panel-shared-sidebar,
+html[data-seasonal-theme="summer"] .panel-global-header { border-color: rgba(250, 204, 21, .40) !important; }
+
+html[data-seasonal-theme="spring"] body {
+    background-image: radial-gradient(circle at 8% 0%, rgba(74, 222, 128, .15), transparent 34%), radial-gradient(circle at 95% 100%, rgba(244, 114, 182, .12), transparent 38%);
+}
+html[data-seasonal-theme="spring"] body::before { content: "🌸"; }
+html[data-seasonal-theme="spring"] #panel-shared-sidebar,
+html[data-seasonal-theme="spring"] .panel-global-header { border-color: rgba(74, 222, 128, .38) !important; }

@@ -394,6 +394,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         document.body.dataset.panelPage = currentPage;
         addStyles();
         ensurePanelVisualTheme();
+        ensureSeasonalThemeStyles();
+        applySeasonalTheme({});
         ensureTextNormalizer();
         ensureBrandAssets();
         ensureGlobalHeader();
@@ -569,6 +571,21 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         link.href = 'css/panel-demo-theme.css?v=1.0.0';
         link.dataset.panelVisualTheme = 'true';
         document.head.appendChild(link);
+    }
+
+    function ensureSeasonalThemeStyles() {
+        if (document.querySelector('link[data-panel-seasonal-theme]')) return;
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'css/seasonal-themes.css?v=1.0.0';
+        link.dataset.panelSeasonalTheme = 'true';
+        document.head.appendChild(link);
+    }
+
+    function applySeasonalTheme(value) {
+        const allowed = new Set(['none', 'winter', 'christmas', 'easter', 'halloween', 'summer', 'spring']);
+        const code = value?.enabled === true && allowed.has(String(value.code || '')) ? String(value.code) : 'none';
+        document.documentElement.dataset.seasonalTheme = code;
     }
 
     function ensureTextNormalizer() {
@@ -1048,6 +1065,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             if (!response.ok) return;
             const result = await response.json();
             const organization = result.organization || {};
+            applySeasonalTheme(result.seasonal_theme || {});
             const accent = /^#[0-9a-f]{6}$/i.test(String(result.branding?.accent || '')) ? String(result.branding.accent) : '';
             if (accent) {
                 document.documentElement.style.setProperty('--accent', accent);
@@ -1055,7 +1073,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             }
             const active = window.getActiveOrganization?.();
             if (active && organization.id === active.id) {
-                const merged = { ...active, ...organization };
+                const merged = { ...active, ...organization, seasonal_theme: result.seasonal_theme || {} };
                 localStorage.setItem('panel_active_organization', JSON.stringify(merged));
                 const organizations = JSON.parse(localStorage.getItem('panel_organizations') || '[]');
                 localStorage.setItem('panel_organizations', JSON.stringify(organizations.map((item) => item.id === merged.id ? { ...item, ...merged } : item)));
