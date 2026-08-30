@@ -2,7 +2,7 @@ const serverStatusUrl = 'https://fivem.gta5.ro/dynamic.json';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization,apikey,content-type',
+  'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
   'Access-Control-Allow-Methods': 'GET,OPTIONS',
   'Cache-Control': 'no-store',
   'Content-Type': 'application/json',
