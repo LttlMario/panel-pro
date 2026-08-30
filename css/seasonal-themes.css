@@ -601,14 +601,14 @@ html[data-seasonal-theme="easter"] {
 }
 html[data-seasonal-theme="autumn"] {
     --seasonal-label: "Toamnă activă";
-    --seasonal-symbol: "◆";
+    --seasonal-symbol: "🍂";
     --seasonal-backdrop: radial-gradient(ellipse at 6% 0%, rgba(245, 158, 11, .21), transparent 31%), radial-gradient(ellipse at 92% 100%, rgba(153, 27, 27, .18), transparent 36%), linear-gradient(135deg, #26150c 0%, #1d1110 50%, #140e12 100%);
     --seasonal-particles: radial-gradient(ellipse 8px 4px at 35% 40%, rgba(245, 158, 11, .68) 0 52%, transparent 58%), radial-gradient(ellipse 7px 4px at 72% 63%, rgba(220, 90, 36, .62) 0 52%, transparent 58%), radial-gradient(ellipse 6px 3px at 18% 82%, rgba(153, 27, 27, .58) 0 52%, transparent 58%);
     --seasonal-animation: seasonal-leaves 24s ease-in-out infinite alternate;
 }
 html[data-seasonal-theme="halloween"] {
     --seasonal-label: "Halloween activ";
-    --seasonal-symbol: "☾";
+    --seasonal-symbol: "🎃";
     --seasonal-backdrop: radial-gradient(ellipse at 9% 2%, rgba(249, 115, 22, .2), transparent 29%), radial-gradient(ellipse at 90% 92%, rgba(124, 58, 237, .18), transparent 36%), linear-gradient(135deg, #160d23 0%, #100c1b 48%, #090b17 100%);
     --seasonal-particles: radial-gradient(circle, rgba(251, 146, 60, .66) 0 1.7px, transparent 2.6px), radial-gradient(circle, rgba(167, 139, 250, .54) 0 1.4px, transparent 2.3px);
     --seasonal-animation: seasonal-fog 17s ease-in-out infinite alternate;
