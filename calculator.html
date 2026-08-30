@@ -1468,21 +1468,22 @@ const upgradeChains = {
                 .replace(/^_|_$/g, "");
         }
 
-        function updateCroitorieResultPreview(itemKey, recipe, hasCroitorieResults) {
+        function updateCroitorieResultPreview(itemKey, recipe, hasCroitorieResults, mechanicRecipe, hasMecanicResults) {
             const preview = document.getElementById('croitorieResultPreview');
             const title = document.getElementById('croitorieResultPreviewTitle');
             const image = document.getElementById('croitorieResultPreviewImage');
-            const imageFile = croitorieImageByItem[itemKey];
+            const selectedRecipe = hasCroitorieResults ? recipe : (hasMecanicResults ? mechanicRecipe : null);
+            const imageFile = hasCroitorieResults ? croitorieImageByItem[itemKey] : selectedRecipe?.image;
 
-            if (!preview || !title || !image || !hasCroitorieResults || !recipe?.name || !imageFile) {
+            if (!preview || !title || !image || !selectedRecipe?.name || !imageFile) {
                 if (preview) preview.hidden = true;
                 if (image) image.removeAttribute('src');
                 closeCroitorieImagePreview();
                 return;
             }
 
-            title.textContent = recipe.name;
-            image.alt = recipe.name;
+            title.textContent = selectedRecipe.name;
+            image.alt = selectedRecipe.name;
             image.src = `img/${imageFile}`;
             image.onerror = () => {
                 preview.hidden = true;
@@ -1831,7 +1832,9 @@ const upgradeChains = {
             updateCroitorieResultPreview(
                 croitorItemKey,
                 recipesCroitor[croitorItemKey],
-                croitorQtyVal !== '' && !isNaN(croitorQtyVal) && parseFloat(croitorQtyVal) > 0
+                croitorQtyVal !== '' && !isNaN(croitorQtyVal) && parseFloat(croitorQtyVal) > 0,
+                recipesMecanic[mecanicItemKey],
+                mecanicQtyVal !== '' && !isNaN(mecanicQtyVal) && parseFloat(mecanicQtyVal) > 0
             );
 
                 materialKeys.forEach(materialName => {
