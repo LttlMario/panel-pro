@@ -391,6 +391,67 @@ html[data-seasonal-theme="spring"] body.panel-global-shell main .button::after,
 html[data-seasonal-theme="spring"] body.panel-global-shell main button::after,
 html[data-seasonal-theme="spring"] body.panel-global-shell main a[class*="rounded"]::after { content: "✿"; color: #f9a8d4; }
 
+/* Sidebar-ul este în afara lui main, deci primește aceeași decorațiune
+   tematică fără să fie nevoie de imagini suplimentare sau tile-uri. */
+html[data-seasonal-theme] body.panel-global-shell .button,
+html[data-seasonal-theme] body.panel-global-shell button,
+html[data-seasonal-theme] body.panel-global-shell a[class*="rounded"],
+html[data-seasonal-theme] body.panel-global-shell #panel-shared-sidebar .nav-link,
+html[data-seasonal-theme] body.panel-global-shell #panel-mobile-menu .nav-link {
+    position: relative;
+    overflow: visible !important;
+}
+html[data-seasonal-theme] body.panel-global-shell .button::after,
+html[data-seasonal-theme] body.panel-global-shell button::after,
+html[data-seasonal-theme] body.panel-global-shell a[class*="rounded"]::after,
+html[data-seasonal-theme] body.panel-global-shell #panel-shared-sidebar .nav-link::after,
+html[data-seasonal-theme] body.panel-global-shell #panel-mobile-menu .nav-link::after {
+    position: absolute;
+    top: -7px;
+    right: 9px;
+    z-index: 3;
+    pointer-events: none;
+    font-size: 11px;
+    line-height: 1;
+    opacity: .88;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,.4));
+}
+html[data-seasonal-theme="winter"] body.panel-global-shell .button::after,
+html[data-seasonal-theme="winter"] body.panel-global-shell button::after,
+html[data-seasonal-theme="winter"] body.panel-global-shell a[class*="rounded"]::after,
+html[data-seasonal-theme="winter"] body.panel-global-shell #panel-shared-sidebar .nav-link::after,
+html[data-seasonal-theme="winter"] body.panel-global-shell #panel-mobile-menu .nav-link::after { content: "❄"; color: #bae6fd; }
+html[data-seasonal-theme="christmas"] body.panel-global-shell .button::after,
+html[data-seasonal-theme="christmas"] body.panel-global-shell button::after,
+html[data-seasonal-theme="christmas"] body.panel-global-shell a[class*="rounded"]::after,
+html[data-seasonal-theme="christmas"] body.panel-global-shell #panel-shared-sidebar .nav-link::after,
+html[data-seasonal-theme="christmas"] body.panel-global-shell #panel-mobile-menu .nav-link::after { content: "✦"; color: #86efac; }
+html[data-seasonal-theme="easter"] body.panel-global-shell .button::after,
+html[data-seasonal-theme="easter"] body.panel-global-shell button::after,
+html[data-seasonal-theme="easter"] body.panel-global-shell a[class*="rounded"]::after,
+html[data-seasonal-theme="easter"] body.panel-global-shell #panel-shared-sidebar .nav-link::after,
+html[data-seasonal-theme="easter"] body.panel-global-shell #panel-mobile-menu .nav-link::after { content: "•"; color: #fde047; font-size: 18px; top: -10px; }
+html[data-seasonal-theme="autumn"] body.panel-global-shell .button::after,
+html[data-seasonal-theme="autumn"] body.panel-global-shell button::after,
+html[data-seasonal-theme="autumn"] body.panel-global-shell a[class*="rounded"]::after,
+html[data-seasonal-theme="autumn"] body.panel-global-shell #panel-shared-sidebar .nav-link::after,
+html[data-seasonal-theme="autumn"] body.panel-global-shell #panel-mobile-menu .nav-link::after { content: "🍂"; font-size: 12px; top: -9px; }
+html[data-seasonal-theme="halloween"] body.panel-global-shell .button::after,
+html[data-seasonal-theme="halloween"] body.panel-global-shell button::after,
+html[data-seasonal-theme="halloween"] body.panel-global-shell a[class*="rounded"]::after,
+html[data-seasonal-theme="halloween"] body.panel-global-shell #panel-shared-sidebar .nav-link::after,
+html[data-seasonal-theme="halloween"] body.panel-global-shell #panel-mobile-menu .nav-link::after { content: "🎃"; font-size: 11px; top: -8px; }
+html[data-seasonal-theme="summer"] body.panel-global-shell .button::after,
+html[data-seasonal-theme="summer"] body.panel-global-shell button::after,
+html[data-seasonal-theme="summer"] body.panel-global-shell a[class*="rounded"]::after,
+html[data-seasonal-theme="summer"] body.panel-global-shell #panel-shared-sidebar .nav-link::after,
+html[data-seasonal-theme="summer"] body.panel-global-shell #panel-mobile-menu .nav-link::after { content: "✦"; color: #fde68a; }
+html[data-seasonal-theme="spring"] body.panel-global-shell .button::after,
+html[data-seasonal-theme="spring"] body.panel-global-shell button::after,
+html[data-seasonal-theme="spring"] body.panel-global-shell a[class*="rounded"]::after,
+html[data-seasonal-theme="spring"] body.panel-global-shell #panel-shared-sidebar .nav-link::after,
+html[data-seasonal-theme="spring"] body.panel-global-shell #panel-mobile-menu .nav-link::after { content: "✿"; color: #f9a8d4; }
+
 /* Acțiunea de salvare din administrare rămâne mereu vizibilă și contrastantă. */
 html[data-seasonal-theme] body.panel-global-shell main [data-seasonal-theme-editor] button.button.primary {
     display: inline-flex !important;
