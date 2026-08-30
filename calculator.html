@@ -1829,12 +1829,15 @@ const upgradeChains = {
             const boxDirect = document.getElementById('box_direct');
             const boxRawMaterials = document.getElementById('box_raw_materials');
             const directGrid = document.getElementById('directResultsGrid');
+            const hasMasaResults = masaQtyVal !== '' && !isNaN(masaQtyVal) && parseFloat(masaQtyVal) > 0;
+            const hasCroitorieResults = croitorQtyVal !== '' && !isNaN(croitorQtyVal) && parseFloat(croitorQtyVal) > 0;
+            const hasMecanicResults = mecanicQtyVal !== '' && !isNaN(mecanicQtyVal) && parseFloat(mecanicQtyVal) > 0;
             updateCroitorieResultPreview(
                 croitorItemKey,
                 recipesCroitor[croitorItemKey],
-                croitorQtyVal !== '' && !isNaN(croitorQtyVal) && parseFloat(croitorQtyVal) > 0,
+                hasCroitorieResults || (!hasMasaResults && !hasMecanicResults),
                 recipesMecanic[mecanicItemKey],
-                mecanicQtyVal !== '' && !isNaN(mecanicQtyVal) && parseFloat(mecanicQtyVal) > 0
+                hasMecanicResults
             );
 
                 materialKeys.forEach(materialName => {
