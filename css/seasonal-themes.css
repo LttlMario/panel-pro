@@ -317,3 +317,25 @@ html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="non
 html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) .panel-global-header {
     background-color: #060a11 !important;
 }
+
+/* Acțiunea de salvare din administrare rămâne mereu vizibilă și contrastantă. */
+html[data-seasonal-theme] body.panel-global-shell main [data-seasonal-theme-editor] button.button.primary {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    margin-top: 12px;
+    border: 1px solid var(--seasonal-primary) !important;
+    background: linear-gradient(135deg, var(--seasonal-primary), var(--seasonal-secondary)) !important;
+    background-image: linear-gradient(135deg, var(--seasonal-primary), var(--seasonal-secondary)) !important;
+    color: #07111d !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    text-shadow: none !important;
+}
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main [data-seasonal-theme-editor] button.button.primary {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--seasonal-primary) 72%, #07111d), color-mix(in srgb, var(--seasonal-secondary) 72%, #07111d)) !important;
+    background-image: linear-gradient(135deg, color-mix(in srgb, var(--seasonal-primary) 72%, #07111d), color-mix(in srgb, var(--seasonal-secondary) 72%, #07111d)) !important;
+    color: #f8fafc !important;
+    box-shadow: 0 5px 18px color-mix(in srgb, var(--seasonal-primary) 24%, transparent) !important;
+}
