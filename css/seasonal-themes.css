@@ -145,6 +145,22 @@ html[data-seasonal-theme] body.panel-global-shell main {
 }
 html[data-seasonal-theme] body::before { content: "" !important; opacity: 0 !important; }
 
+/* Cadrul sezonier este un singur wallpaper al paginii. Nu îl lăsăm pe
+   containerele de conținut, deoarece acestea pot avea înălțimi diferite și
+   pot face imaginea să pară repetată sau lipită în mai multe bucăți. */
+html[data-seasonal-theme] body.panel-global-shell {
+    background-color: var(--seasonal-bg) !important;
+    background-image: var(--seasonal-frame) !important;
+    background-repeat: no-repeat !important;
+    background-position: center top !important;
+    background-size: cover !important;
+    background-attachment: fixed !important;
+}
+html[data-seasonal-theme] body.panel-global-shell main {
+    background-image: none !important;
+    background-color: transparent !important;
+}
+
 @media (max-width: 767px) {
     html[data-seasonal-theme] body.panel-global-shell main { background-size: 100% 100%; background-attachment: scroll; }
 }
@@ -317,6 +333,63 @@ html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="non
 html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) .panel-global-header {
     background-color: #060a11 !important;
 }
+
+/* Și în modul întunecat rămâne un singur cadru, doar mai întunecat. */
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell {
+    background-color: #03050a !important;
+    background-image: linear-gradient(rgba(0,0,0,.36), rgba(0,0,0,.36)), var(--seasonal-frame) !important;
+    background-repeat: no-repeat !important;
+    background-position: center top !important;
+    background-size: cover !important;
+    background-attachment: fixed !important;
+}
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main {
+    background-image: none !important;
+    background-color: transparent !important;
+}
+
+/* Decorațiuni discrete deasupra butoanelor: rămân în afara textului și nu
+   blochează clickul. Fiecare temă are propriul simbol. */
+html[data-seasonal-theme] body.panel-global-shell main .button,
+html[data-seasonal-theme] body.panel-global-shell main button,
+html[data-seasonal-theme] body.panel-global-shell main a[class*="rounded"] {
+    position: relative;
+    overflow: visible !important;
+}
+html[data-seasonal-theme] body.panel-global-shell main .button::after,
+html[data-seasonal-theme] body.panel-global-shell main button::after,
+html[data-seasonal-theme] body.panel-global-shell main a[class*="rounded"]::after {
+    position: absolute;
+    top: -9px;
+    right: 10px;
+    z-index: 3;
+    pointer-events: none;
+    font-size: 12px;
+    line-height: 1;
+    opacity: .9;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,.35));
+}
+html[data-seasonal-theme="winter"] body.panel-global-shell main .button::after,
+html[data-seasonal-theme="winter"] body.panel-global-shell main button::after,
+html[data-seasonal-theme="winter"] body.panel-global-shell main a[class*="rounded"]::after { content: "❄"; color: #bae6fd; }
+html[data-seasonal-theme="christmas"] body.panel-global-shell main .button::after,
+html[data-seasonal-theme="christmas"] body.panel-global-shell main button::after,
+html[data-seasonal-theme="christmas"] body.panel-global-shell main a[class*="rounded"]::after { content: "✦"; color: #86efac; }
+html[data-seasonal-theme="easter"] body.panel-global-shell main .button::after,
+html[data-seasonal-theme="easter"] body.panel-global-shell main button::after,
+html[data-seasonal-theme="easter"] body.panel-global-shell main a[class*="rounded"]::after { content: "•"; color: #fde047; font-size: 20px; top: -12px; }
+html[data-seasonal-theme="autumn"] body.panel-global-shell main .button::after,
+html[data-seasonal-theme="autumn"] body.panel-global-shell main button::after,
+html[data-seasonal-theme="autumn"] body.panel-global-shell main a[class*="rounded"]::after { content: "🍂"; font-size: 13px; top: -11px; }
+html[data-seasonal-theme="halloween"] body.panel-global-shell main .button::after,
+html[data-seasonal-theme="halloween"] body.panel-global-shell main button::after,
+html[data-seasonal-theme="halloween"] body.panel-global-shell main a[class*="rounded"]::after { content: "🎃"; font-size: 12px; top: -10px; }
+html[data-seasonal-theme="summer"] body.panel-global-shell main .button::after,
+html[data-seasonal-theme="summer"] body.panel-global-shell main button::after,
+html[data-seasonal-theme="summer"] body.panel-global-shell main a[class*="rounded"]::after { content: "✦"; color: #fde68a; }
+html[data-seasonal-theme="spring"] body.panel-global-shell main .button::after,
+html[data-seasonal-theme="spring"] body.panel-global-shell main button::after,
+html[data-seasonal-theme="spring"] body.panel-global-shell main a[class*="rounded"]::after { content: "✿"; color: #f9a8d4; }
 
 /* Acțiunea de salvare din administrare rămâne mereu vizibilă și contrastantă. */
 html[data-seasonal-theme] body.panel-global-shell main [data-seasonal-theme-editor] button.button.primary {
