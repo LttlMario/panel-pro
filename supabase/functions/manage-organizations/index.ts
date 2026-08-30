@@ -231,7 +231,7 @@ Deno.serve(async request=>{
           ...organization,
           access:{expires_at:expiresAt},
           package:{code:['standard','operations','full'].includes(String(packageValue.code))?String(packageValue.code):'standard',unlimited:packageValue.unlimited===true,expires_at:packageValue.expires_at||null,features:resolvePackageFeatures(packageValue)},
-          theme:{enabled:themeValue.enabled===true,code:seasonalThemeCodes.has(String(themeValue.code||''))?String(themeValue.code):'none',updated_at:themeValue.updated_at||null},
+          theme:{enabled:themeValue.enabled===true,code:seasonalThemeCodes.has(String(themeValue.code||''))?String(themeValue.code):'none',intensity:['discreet','normal','intense'].includes(String(themeValue.intensity||''))?String(themeValue.intensity):'normal',updated_at:themeValue.updated_at||null},
           guilds:guilds.map((guild:any)=>({guild_id:guild.guild_id,guild_name:guild.guild_name,kind:guild.kind,enabled:guild.enabled!==false})),
           roles:roles.map((role:any)=>({guild_id:role.guild_id,discord_role_id:role.discord_role_id,discord_role_name:role.discord_role_name,panel_role:role.panel_role,enabled:role.enabled!==false})),
           metrics:{members,active_sessions:activeSessions,active_shifts:activeShifts,active_absences:activeAbsences,audit_events:auditCount,last_audit:lastAudit.data||null},
@@ -927,15 +927,15 @@ if (Array.isArray(body.roles)) {
       const result=await updateOrganizationAccess(db,session,organizationId,expiresAt,active);return reply({ok:true,active:result.active,expires_at:expiresAt});
     }
     if(body.action==='set_theme'){
-      const organizationId=String(body.organization_id||'').trim(),enabled=body.enabled===true,requestedCode=String(body.theme||'none').trim().toLowerCase();
+      const organizationId=String(body.organization_id||'').trim(),enabled=body.enabled===true,requestedCode=String(body.theme||'none').trim().toLowerCase(),intensity=['discreet','normal','intense'].includes(String(body.intensity||''))?String(body.intensity):'normal';
       if(!validOrganizationId(organizationId))return reply({error:'ID-ul organizației este invalid.'},400);
       if(!seasonalThemeCodes.has(requestedCode))return reply({error:'Tema aleasă nu este disponibilă.'},400);
-      const theme={enabled,code:enabled&&requestedCode!=='none'?requestedCode:'none',updated_at:nowIso()};
+      const theme={enabled,code:enabled&&requestedCode!=='none'?requestedCode:'none',intensity,updated_at:nowIso()};
       const {data:organization,error:organizationError}=await db.from('organizations').select('id').eq('id',organizationId).maybeSingle();
       if(organizationError)throw organizationError;if(!organization)return reply({error:'Organizația nu există.'},404);
       const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_theme',value:theme,updated_at:theme.updated_at},{onConflict:'organization_id,key'});
       if(error)throw error;
-      await audit(db,session,'organization_theme_changed',organizationId,{enabled:theme.enabled,theme:theme.code});
+      await audit(db,session,'organization_theme_changed',organizationId,{enabled:theme.enabled,theme:theme.code,intensity:theme.intensity});
       return reply({ok:true,theme});
     }
     if(body.action==='delete'){

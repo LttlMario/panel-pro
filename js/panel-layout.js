@@ -11,16 +11,19 @@
         const active = JSON.parse(localStorage.getItem('panel_active_organization') || 'null');
         const seasonal = active?.seasonal_theme || active?.theme || {};
         const code = seasonal.enabled === true && allowedSeasonal.has(String(seasonal.code || '')) ? String(seasonal.code) : 'none';
+        const intensity = ['discreet', 'normal', 'intense'].includes(String(seasonal.intensity || '')) ? String(seasonal.intensity) : 'normal';
         document.documentElement.dataset.seasonalTheme = code;
+        document.documentElement.dataset.seasonalIntensity = intensity;
     } catch (_) {
         document.documentElement.dataset.seasonalTheme = 'none';
+        document.documentElement.dataset.seasonalIntensity = 'normal';
     }
 })();
 
 /* Stilurile sezoniere sunt introduse în head în timpul parsării, nu după
    încărcarea conținutului, pentru a elimina flash-ul temei originale. */
 if (document.readyState === 'loading' && document.head && !document.head.querySelector('link[data-panel-seasonal-theme]')) {
-    document.write('<link rel="stylesheet" href="css/seasonal-themes.css?v=2.1.0" data-panel-seasonal-theme="true">');
+    document.write('<link rel="stylesheet" href="css/seasonal-themes.css?v=2.2.0" data-panel-seasonal-theme="true">');
 }
 
 const panelNativeAndroid = /Android/i.test(navigator.userAgent || '') && (
@@ -606,7 +609,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (document.querySelector('link[data-panel-seasonal-theme]')) return;
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = 'css/seasonal-themes.css?v=2.1.0';
+        link.href = 'css/seasonal-themes.css?v=2.2.0';
         link.dataset.panelSeasonalTheme = 'true';
         document.head.appendChild(link);
     }
@@ -614,8 +617,12 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     function applySeasonalTheme(value) {
         const allowed = new Set(['none', 'winter', 'christmas', 'easter', 'autumn', 'halloween', 'summer', 'spring']);
         const code = value?.enabled === true && allowed.has(String(value.code || '')) ? String(value.code) : 'none';
+        const intensity = ['discreet', 'normal', 'intense'].includes(String(value?.intensity || '')) ? String(value.intensity) : 'normal';
         document.documentElement.dataset.seasonalTheme = code;
+        document.documentElement.dataset.seasonalIntensity = intensity;
     }
+
+    window.panelApplySeasonalThemePreview = window.panelApplySeasonalThemePreview || applySeasonalTheme;
 
     function ensureTextNormalizer() {
         if (document.querySelector('script[data-panel-text-normalizer]')) return;

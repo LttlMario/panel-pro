@@ -574,3 +574,190 @@ html[data-seasonal-theme] body.panel-global-shell #panel-mobile-menu .nav-link.b
     border-left-color: var(--seasonal-primary) !important;
     box-shadow: inset 0 1px 0 color-mix(in srgb, var(--seasonal-primary) 18%, transparent), inset 3px 0 var(--seasonal-primary) !important;
 }
+
+/* Skin tematic complet: fără wallpaper întins, fără ornamente repetate pe
+   butoane. Atmosfera este formată din gradient, particule și un singur
+   accent decorativ în margine, astfel încât zona de conținut să rămână clară. */
+html[data-seasonal-theme="winter"] {
+    --seasonal-label: "Iarnă activă";
+    --seasonal-symbol: "✦";
+    --seasonal-backdrop: radial-gradient(ellipse at 8% 0%, rgba(56, 189, 248, .22), transparent 30%), radial-gradient(ellipse at 92% 100%, rgba(103, 232, 249, .13), transparent 34%), linear-gradient(135deg, #071827 0%, #071522 48%, #06111e 100%);
+    --seasonal-particles: radial-gradient(circle, rgba(224, 242, 254, .90) 0 1.4px, transparent 1.9px), radial-gradient(circle, rgba(125, 211, 252, .68) 0 1px, transparent 1.7px);
+    --seasonal-animation: seasonal-snow 22s linear infinite;
+}
+html[data-seasonal-theme="christmas"] {
+    --seasonal-label: "Crăciun activ";
+    --seasonal-symbol: "✦";
+    --seasonal-backdrop: radial-gradient(ellipse at 13% 0%, rgba(239, 68, 68, .18), transparent 30%), radial-gradient(ellipse at 90% 100%, rgba(34, 197, 94, .14), transparent 34%), linear-gradient(135deg, #190d16 0%, #121626 52%, #081a1a 100%);
+    --seasonal-particles: radial-gradient(circle, rgba(248, 113, 113, .82) 0 2px, transparent 2.7px), radial-gradient(circle, rgba(134, 239, 172, .75) 0 1.6px, transparent 2.4px), radial-gradient(circle, rgba(254, 240, 138, .75) 0 1.2px, transparent 2px);
+    --seasonal-animation: seasonal-twinkle 3.8s ease-in-out infinite alternate;
+}
+html[data-seasonal-theme="easter"] {
+    --seasonal-label: "Paște activ";
+    --seasonal-symbol: "•";
+    --seasonal-backdrop: radial-gradient(ellipse at 10% 0%, rgba(244, 114, 182, .17), transparent 31%), radial-gradient(ellipse at 90% 100%, rgba(250, 204, 21, .13), transparent 34%), linear-gradient(135deg, #1b1426 0%, #17162a 50%, #10211e 100%);
+    --seasonal-particles: radial-gradient(ellipse 8px 5px, rgba(249, 168, 212, .58) 0 55%, transparent 61%), radial-gradient(ellipse 5px 8px, rgba(253, 230, 138, .54) 0 55%, transparent 61%), radial-gradient(circle, rgba(134, 239, 172, .48) 0 2px, transparent 2.8px);
+    --seasonal-animation: seasonal-pastel 18s ease-in-out infinite alternate;
+}
+html[data-seasonal-theme="autumn"] {
+    --seasonal-label: "Toamnă activă";
+    --seasonal-symbol: "◆";
+    --seasonal-backdrop: radial-gradient(ellipse at 6% 0%, rgba(245, 158, 11, .21), transparent 31%), radial-gradient(ellipse at 92% 100%, rgba(153, 27, 27, .18), transparent 36%), linear-gradient(135deg, #26150c 0%, #1d1110 50%, #140e12 100%);
+    --seasonal-particles: radial-gradient(ellipse 8px 4px at 35% 40%, rgba(245, 158, 11, .68) 0 52%, transparent 58%), radial-gradient(ellipse 7px 4px at 72% 63%, rgba(220, 90, 36, .62) 0 52%, transparent 58%), radial-gradient(ellipse 6px 3px at 18% 82%, rgba(153, 27, 27, .58) 0 52%, transparent 58%);
+    --seasonal-animation: seasonal-leaves 24s ease-in-out infinite alternate;
+}
+html[data-seasonal-theme="halloween"] {
+    --seasonal-label: "Halloween activ";
+    --seasonal-symbol: "☾";
+    --seasonal-backdrop: radial-gradient(ellipse at 9% 2%, rgba(249, 115, 22, .2), transparent 29%), radial-gradient(ellipse at 90% 92%, rgba(124, 58, 237, .18), transparent 36%), linear-gradient(135deg, #160d23 0%, #100c1b 48%, #090b17 100%);
+    --seasonal-particles: radial-gradient(circle, rgba(251, 146, 60, .66) 0 1.7px, transparent 2.6px), radial-gradient(circle, rgba(167, 139, 250, .54) 0 1.4px, transparent 2.3px);
+    --seasonal-animation: seasonal-fog 17s ease-in-out infinite alternate;
+}
+html[data-seasonal-theme="summer"] {
+    --seasonal-label: "Vară activă";
+    --seasonal-symbol: "✦";
+    --seasonal-backdrop: radial-gradient(ellipse at 8% 0%, rgba(250, 204, 21, .21), transparent 30%), radial-gradient(ellipse at 92% 100%, rgba(45, 212, 191, .15), transparent 35%), linear-gradient(135deg, #201b09 0%, #17140a 50%, #0b1d1b 100%);
+    --seasonal-particles: radial-gradient(circle, rgba(254, 240, 138, .65) 0 1.5px, transparent 2.5px), radial-gradient(circle, rgba(45, 212, 191, .48) 0 1.2px, transparent 2px);
+    --seasonal-animation: seasonal-sparkle 12s ease-in-out infinite alternate;
+}
+html[data-seasonal-theme="spring"] {
+    --seasonal-label: "Primăvară activă";
+    --seasonal-symbol: "✿";
+    --seasonal-backdrop: radial-gradient(ellipse at 8% 0%, rgba(74, 222, 128, .18), transparent 30%), radial-gradient(ellipse at 92% 100%, rgba(244, 114, 182, .15), transparent 35%), linear-gradient(135deg, #0b2119 0%, #0d1d1b 50%, #111526 100%);
+    --seasonal-particles: radial-gradient(ellipse 7px 4px, rgba(244, 114, 182, .58) 0 55%, transparent 62%), radial-gradient(ellipse 5px 8px, rgba(134, 239, 172, .52) 0 55%, transparent 62%), radial-gradient(circle, rgba(253, 224, 71, .42) 0 1.5px, transparent 2.4px);
+    --seasonal-animation: seasonal-petals 19s ease-in-out infinite alternate;
+}
+
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell {
+    position: relative;
+    isolation: isolate;
+    background-color: var(--seasonal-bg) !important;
+    background-image: var(--seasonal-backdrop) !important;
+    background-repeat: no-repeat !important;
+    background-size: cover !important;
+    background-attachment: fixed !important;
+}
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::before {
+    content: "" !important;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: .28;
+    background-image: var(--seasonal-particles);
+    background-size: 142px 176px, 227px 251px;
+    background-position: 0 0, 42px 68px;
+    animation: var(--seasonal-animation);
+}
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::after {
+    content: var(--seasonal-symbol) !important;
+    position: fixed;
+    right: clamp(18px, 3vw, 46px);
+    bottom: clamp(18px, 4vw, 52px);
+    z-index: 0;
+    pointer-events: none;
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    border: 1px solid color-mix(in srgb, var(--seasonal-primary) 24%, transparent);
+    border-radius: 24px;
+    color: color-mix(in srgb, var(--seasonal-secondary) 78%, white);
+    background: radial-gradient(circle, color-mix(in srgb, var(--seasonal-primary) 18%, transparent), transparent 70%);
+    box-shadow: 0 0 45px color-mix(in srgb, var(--seasonal-primary) 18%, transparent), inset 0 0 28px color-mix(in srgb, var(--seasonal-primary) 8%, transparent);
+    font-size: 25px;
+    opacity: .48;
+    animation: seasonal-breathe 5s ease-in-out infinite;
+}
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell > *,
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main,
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell #panel-shared-sidebar,
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell .panel-global-header {
+    position: relative;
+    z-index: 1;
+}
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main,
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell > div:has(main) {
+    background: transparent !important;
+}
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::before { opacity: .16; }
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::after { opacity: .27; }
+html[data-seasonal-intensity="discreet"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::before { opacity: .14; }
+html[data-seasonal-intensity="intense"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::before { opacity: .42; }
+html[data-panel-theme="dark"][data-seasonal-intensity="intense"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::before { opacity: .24; }
+
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) .panel-global-header {
+    background: color-mix(in srgb, var(--seasonal-surface) 92%, #070b14) !important;
+    border-bottom-color: color-mix(in srgb, var(--seasonal-primary) 35%, #22314a) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .16) !important;
+}
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) .panel-global-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) .panel-global-title::after {
+    content: var(--seasonal-label);
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 0 10px;
+    border: 1px solid color-mix(in srgb, var(--seasonal-primary) 36%, #26364d);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--seasonal-primary) 10%, transparent);
+    color: color-mix(in srgb, var(--seasonal-secondary) 78%, #e2e8f0);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    white-space: nowrap;
+}
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) main .card,
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) main .panel,
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) main article,
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) main section[class*="bg-slate-900"] {
+    background: color-mix(in srgb, var(--seasonal-surface) 82%, #080f1d) !important;
+    border-color: color-mix(in srgb, var(--seasonal-primary) 24%, #22314a) !important;
+    box-shadow: 0 16px 38px rgba(0, 0, 0, .16) !important;
+    backdrop-filter: blur(8px);
+}
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) main .button,
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) main button,
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) main a[class*="rounded"] {
+    border-color: color-mix(in srgb, var(--seasonal-primary) 26%, #334155) !important;
+    box-shadow: 0 5px 16px rgba(0, 0, 0, .12) !important;
+}
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) main .button:hover,
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) main button:hover,
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) main a[class*="rounded"]:hover {
+    border-color: var(--seasonal-primary) !important;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--seasonal-primary) 20%, transparent) !important;
+}
+html[data-seasonal-theme]:not([data-seasonal-theme="none"]) [data-seasonal-theme-preview] {
+    margin-top: 16px;
+    padding: 15px 17px;
+    border: 1px solid color-mix(in srgb, var(--seasonal-primary) 36%, #26364d);
+    border-radius: 16px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--seasonal-primary) 15%, var(--seasonal-surface)), color-mix(in srgb, var(--seasonal-secondary) 8%, #08111f));
+}
+.seasonal-theme-preview { display: grid; gap: 5px; }
+.seasonal-theme-preview-kicker { color: var(--seasonal-primary, #67e8f9); font-size: 9px; font-weight: 900; letter-spacing: .14em; }
+.seasonal-theme-preview strong { color: #f8fafc; font-size: 13px; }
+.seasonal-theme-preview small { color: #94a3b8; font-size: 11px; line-height: 1.45; }
+
+@keyframes seasonal-snow { from { background-position: 0 -30px, 42px 68px; } to { background-position: 0 260px, 42px 390px; } }
+@keyframes seasonal-twinkle { from { opacity: .18; transform: translateY(0); } to { opacity: .58; transform: translateY(4px); } }
+@keyframes seasonal-pastel { from { background-position: 0 0, 42px 68px; } to { background-position: 24px 30px, 12px 100px; } }
+@keyframes seasonal-leaves { from { background-position: 0 0, 42px 68px; } to { background-position: 42px 28px, 0 102px; } }
+@keyframes seasonal-fog { from { opacity: .16; transform: translateX(-8px); } to { opacity: .38; transform: translateX(8px); } }
+@keyframes seasonal-sparkle { from { background-position: 0 0, 42px 68px; } to { background-position: 18px -12px, 70px 38px; } }
+@keyframes seasonal-petals { from { background-position: 0 0, 42px 68px; } to { background-position: 30px 18px, 10px 82px; } }
+@keyframes seasonal-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+@media (max-width: 700px) {
+    html[data-seasonal-theme]:not([data-seasonal-theme="none"]) .panel-global-title::after { display: none; }
+    html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::after { right: 14px; bottom: 14px; width: 56px; height: 56px; font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::before,
+    html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::after { animation: none !important; }
+}
