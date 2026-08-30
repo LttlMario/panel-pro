@@ -51,3 +51,70 @@ html[data-seasonal-theme="spring"] body {
 html[data-seasonal-theme="spring"] body::before { content: "🌸"; }
 html[data-seasonal-theme="spring"] #panel-shared-sidebar,
 html[data-seasonal-theme="spring"] .panel-global-header { border-color: rgba(74, 222, 128, .38) !important; }
+
+/* Diferențe vizibile între teme: fiecare temă își schimbă suprafețele,
+   accentul, meniul activ și bara de titlu, nu doar fundalul. */
+html[data-seasonal-theme="winter"] { --seasonal-bg: #061522; --seasonal-surface: #0a2236; --seasonal-primary: #38bdf8; --seasonal-secondary: #67e8f9; --seasonal-line: rgba(125, 211, 252, .55); }
+html[data-seasonal-theme="christmas"] { --seasonal-bg: #180b12; --seasonal-surface: #29121a; --seasonal-primary: #ef4444; --seasonal-secondary: #4ade80; --seasonal-line: rgba(248, 113, 113, .58); }
+html[data-seasonal-theme="easter"] { --seasonal-bg: #1a1020; --seasonal-surface: #2b1930; --seasonal-primary: #f472b6; --seasonal-secondary: #facc15; --seasonal-line: rgba(244, 114, 182, .56); }
+html[data-seasonal-theme="halloween"] { --seasonal-bg: #140b22; --seasonal-surface: #25133a; --seasonal-primary: #fb923c; --seasonal-secondary: #a78bfa; --seasonal-line: rgba(251, 146, 60, .58); }
+html[data-seasonal-theme="summer"] { --seasonal-bg: #171506; --seasonal-surface: #2a2410; --seasonal-primary: #facc15; --seasonal-secondary: #2dd4bf; --seasonal-line: rgba(250, 204, 21, .58); }
+html[data-seasonal-theme="spring"] { --seasonal-bg: #081b14; --seasonal-surface: #102b22; --seasonal-primary: #4ade80; --seasonal-secondary: #f472b6; --seasonal-line: rgba(74, 222, 128, .55); }
+
+html[data-seasonal-theme] body.panel-global-shell,
+html[data-seasonal-theme] body.panel-global-shell main {
+    background-color: var(--seasonal-bg) !important;
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, .025), transparent 42%), radial-gradient(circle at 82% 4%, color-mix(in srgb, var(--seasonal-primary) 24%, transparent), transparent 34%), radial-gradient(circle at 12% 96%, color-mix(in srgb, var(--seasonal-secondary) 14%, transparent), transparent 38%) !important;
+}
+html[data-seasonal-theme] #panel-shared-sidebar {
+    background: linear-gradient(180deg, var(--seasonal-surface), rgba(7, 11, 20, .96) 72%) !important;
+    border-right-color: var(--seasonal-line) !important;
+    box-shadow: inset -4px 0 0 color-mix(in srgb, var(--seasonal-primary) 70%, transparent), 18px 0 45px rgba(0, 0, 0, .22) !important;
+}
+html[data-seasonal-theme] .panel-global-header {
+    background: linear-gradient(90deg, var(--seasonal-surface), rgba(7, 11, 20, .92)) !important;
+    border-bottom-color: var(--seasonal-line) !important;
+    box-shadow: 0 3px 0 color-mix(in srgb, var(--seasonal-primary) 65%, transparent) !important;
+}
+html[data-seasonal-theme] .panel-global-header::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 4px;
+    background: linear-gradient(90deg, var(--seasonal-primary), var(--seasonal-secondary), transparent 88%);
+    opacity: .95;
+    pointer-events: none;
+}
+html[data-seasonal-theme] #panel-shared-sidebar .nav-link.bg-emerald-500\/10,
+html[data-seasonal-theme] #panel-mobile-menu .nav-link.bg-emerald-500\/10 {
+    background: color-mix(in srgb, var(--seasonal-primary) 18%, transparent) !important;
+    box-shadow: inset 3px 0 var(--seasonal-primary) !important;
+    color: #fff !important;
+}
+html[data-seasonal-theme] #panel-shared-sidebar .nav-link.bg-emerald-500\/10 > span:first-child,
+html[data-seasonal-theme] #panel-mobile-menu .nav-link.bg-emerald-500\/10 > span:first-child { color: var(--seasonal-primary) !important; }
+html[data-seasonal-theme] #panel-shared-sidebar .panel-brand-logo { box-shadow: 0 0 0 4px color-mix(in srgb, var(--seasonal-primary) 22%, transparent) !important; }
+html[data-seasonal-theme] .panel-global-header h1,
+html[data-seasonal-theme] .panel-global-header h2,
+html[data-seasonal-theme] .panel-org-name { color: var(--seasonal-secondary) !important; }
+html[data-seasonal-theme] main .button.primary,
+html[data-seasonal-theme] main button[class*="bg-emerald"],
+html[data-seasonal-theme] main a[class*="bg-emerald"] {
+    background: linear-gradient(135deg, var(--seasonal-primary), var(--seasonal-secondary)) !important;
+    border-color: var(--seasonal-primary) !important;
+    color: #07111d !important;
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--seasonal-primary) 22%, transparent) !important;
+}
+html[data-seasonal-theme] main .card,
+html[data-seasonal-theme] main .panel,
+html[data-seasonal-theme] main article,
+html[data-seasonal-theme] main section[class*="bg-slate-900"] {
+    border-color: color-mix(in srgb, var(--seasonal-primary) 28%, #22314a) !important;
+}
+
+html[data-seasonal-theme="winter"] body::before { text-shadow: 0 0 18px #38bdf8; }
+html[data-seasonal-theme="christmas"] body::before { text-shadow: 0 0 18px #ef4444; }
+html[data-seasonal-theme="easter"] body::before { text-shadow: 0 0 18px #f472b6; }
+html[data-seasonal-theme="halloween"] body::before { text-shadow: 0 0 18px #fb923c; }
+html[data-seasonal-theme="summer"] body::before { text-shadow: 0 0 18px #facc15; }
+html[data-seasonal-theme="spring"] body::before { text-shadow: 0 0 18px #4ade80; }

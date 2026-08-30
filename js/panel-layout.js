@@ -577,7 +577,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (document.querySelector('link[data-panel-seasonal-theme]')) return;
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = 'css/seasonal-themes.css?v=1.0.0';
+        link.href = 'css/seasonal-themes.css?v=1.1.0';
         link.dataset.panelSeasonalTheme = 'true';
         document.head.appendChild(link);
     }
