@@ -529,3 +529,48 @@ html[data-seasonal-theme="spring"] body.panel-global-shell button::after,
 html[data-seasonal-theme="spring"] body.panel-global-shell a[class*="rounded"]::after,
 html[data-seasonal-theme="spring"] body.panel-global-shell #panel-shared-sidebar .nav-link::after,
 html[data-seasonal-theme="spring"] body.panel-global-shell #panel-mobile-menu .nav-link::after { background: linear-gradient(90deg, #4ade80, #86efac, #f472b6) !important; }
+
+/* Finisaj vizual: imaginea rămâne o atmosferă discretă, iar interfața
+   revine în prim-plan. Eliminăm ornamentele repetate de pe fiecare control
+   și păstrăm accentul sezonier integrat în borduri și stări hover/active. */
+html[data-seasonal-theme] body.panel-global-shell {
+    background-image: linear-gradient(rgba(3, 7, 18, .58), rgba(3, 7, 18, .58)), var(--seasonal-frame) !important;
+    background-blend-mode: normal !important;
+}
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell {
+    background-image: linear-gradient(rgba(0, 0, 0, .72), rgba(0, 0, 0, .72)), var(--seasonal-frame) !important;
+}
+html[data-seasonal-theme] body.panel-global-shell .button::after,
+html[data-seasonal-theme] body.panel-global-shell button::after,
+html[data-seasonal-theme] body.panel-global-shell a[class*="rounded"]::after,
+html[data-seasonal-theme] body.panel-global-shell #panel-shared-sidebar .nav-link::after,
+html[data-seasonal-theme] body.panel-global-shell #panel-mobile-menu .nav-link::after {
+    content: none !important;
+    display: none !important;
+}
+html[data-seasonal-theme] body.panel-global-shell .button,
+html[data-seasonal-theme] body.panel-global-shell button,
+html[data-seasonal-theme] body.panel-global-shell a[class*="rounded"] {
+    border-top-color: color-mix(in srgb, var(--seasonal-primary) 30%, #22314a) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .12) !important;
+}
+html[data-seasonal-theme] body.panel-global-shell .button:hover,
+html[data-seasonal-theme] body.panel-global-shell button:hover,
+html[data-seasonal-theme] body.panel-global-shell a[class*="rounded"]:hover {
+    border-top-color: var(--seasonal-primary) !important;
+    box-shadow: 0 7px 20px color-mix(in srgb, var(--seasonal-primary) 18%, transparent) !important;
+}
+html[data-seasonal-theme] body.panel-global-shell #panel-shared-sidebar .nav-link,
+html[data-seasonal-theme] body.panel-global-shell #panel-mobile-menu .nav-link {
+    border-top: 1px solid transparent !important;
+    border-left-color: transparent;
+    box-shadow: none !important;
+}
+html[data-seasonal-theme] body.panel-global-shell #panel-shared-sidebar .nav-link:hover,
+html[data-seasonal-theme] body.panel-global-shell #panel-mobile-menu .nav-link:hover,
+html[data-seasonal-theme] body.panel-global-shell #panel-shared-sidebar .nav-link.bg-emerald-500\/10,
+html[data-seasonal-theme] body.panel-global-shell #panel-mobile-menu .nav-link.bg-emerald-500\/10 {
+    border-top-color: color-mix(in srgb, var(--seasonal-primary) 72%, transparent) !important;
+    border-left-color: var(--seasonal-primary) !important;
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--seasonal-primary) 18%, transparent), inset 3px 0 var(--seasonal-primary) !important;
+}
