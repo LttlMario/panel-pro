@@ -38,6 +38,13 @@ html[data-seasonal-theme="halloween"] body::before { content: "🎃"; }
 html[data-seasonal-theme="halloween"] #panel-shared-sidebar,
 html[data-seasonal-theme="halloween"] .panel-global-header { border-color: rgba(251, 146, 60, .42) !important; }
 
+html[data-seasonal-theme="autumn"] body {
+    background-image: radial-gradient(circle at 8% 0%, rgba(245, 158, 11, .2), transparent 34%), radial-gradient(circle at 95% 100%, rgba(153, 27, 27, .16), transparent 38%);
+}
+html[data-seasonal-theme="autumn"] body::before { content: "🍂"; }
+html[data-seasonal-theme="autumn"] #panel-shared-sidebar,
+html[data-seasonal-theme="autumn"] .panel-global-header { border-color: rgba(245, 158, 11, .46) !important; }
+
 html[data-seasonal-theme="summer"] body {
     background-image: radial-gradient(circle at 8% 0%, rgba(250, 204, 21, .18), transparent 34%), radial-gradient(circle at 95% 100%, rgba(45, 212, 191, .12), transparent 38%);
 }
@@ -58,6 +65,7 @@ html[data-seasonal-theme="winter"] { --seasonal-bg: #061522; --seasonal-surface:
 html[data-seasonal-theme="christmas"] { --seasonal-bg: #180b12; --seasonal-surface: #29121a; --seasonal-primary: #ef4444; --seasonal-secondary: #4ade80; --seasonal-line: rgba(248, 113, 113, .58); }
 html[data-seasonal-theme="easter"] { --seasonal-bg: #1a1020; --seasonal-surface: #2b1930; --seasonal-primary: #f472b6; --seasonal-secondary: #facc15; --seasonal-line: rgba(244, 114, 182, .56); }
 html[data-seasonal-theme="halloween"] { --seasonal-bg: #140b22; --seasonal-surface: #25133a; --seasonal-primary: #fb923c; --seasonal-secondary: #a78bfa; --seasonal-line: rgba(251, 146, 60, .58); }
+html[data-seasonal-theme="autumn"] { --seasonal-bg: #211107; --seasonal-surface: #35200e; --seasonal-primary: #f59e0b; --seasonal-secondary: #dc5a24; --seasonal-line: rgba(245, 158, 11, .6); }
 html[data-seasonal-theme="summer"] { --seasonal-bg: #171506; --seasonal-surface: #2a2410; --seasonal-primary: #facc15; --seasonal-secondary: #2dd4bf; --seasonal-line: rgba(250, 204, 21, .58); }
 html[data-seasonal-theme="spring"] { --seasonal-bg: #081b14; --seasonal-surface: #102b22; --seasonal-primary: #4ade80; --seasonal-secondary: #f472b6; --seasonal-line: rgba(74, 222, 128, .55); }
 
@@ -116,6 +124,7 @@ html[data-seasonal-theme="winter"] body::before { text-shadow: 0 0 18px #38bdf8;
 html[data-seasonal-theme="christmas"] body::before { text-shadow: 0 0 18px #ef4444; }
 html[data-seasonal-theme="easter"] body::before { text-shadow: 0 0 18px #f472b6; }
 html[data-seasonal-theme="halloween"] body::before { text-shadow: 0 0 18px #fb923c; }
+html[data-seasonal-theme="autumn"] body::before { text-shadow: 0 0 18px #f59e0b; }
 html[data-seasonal-theme="summer"] body::before { text-shadow: 0 0 18px #facc15; }
 html[data-seasonal-theme="spring"] body::before { text-shadow: 0 0 18px #4ade80; }
 
@@ -125,6 +134,7 @@ html[data-seasonal-theme="winter"] body.panel-global-shell main { background-ima
 html[data-seasonal-theme="christmas"] body.panel-global-shell main { background-image: url("../img/seasonal/christmas-frame.png"), linear-gradient(135deg, rgba(255,255,255,.025), transparent 42%), radial-gradient(circle at 82% 4%, rgba(239,68,68,.24), transparent 34%), radial-gradient(circle at 12% 96%, rgba(74,222,128,.14), transparent 38%) !important; }
 html[data-seasonal-theme="easter"] body.panel-global-shell main { background-image: url("../img/seasonal/easter-frame.png"), linear-gradient(135deg, rgba(255,255,255,.025), transparent 42%), radial-gradient(circle at 82% 4%, rgba(244,114,182,.22), transparent 34%), radial-gradient(circle at 12% 96%, rgba(250,204,21,.14), transparent 38%) !important; }
 html[data-seasonal-theme="halloween"] body.panel-global-shell main { background-image: url("../img/seasonal/halloween-frame.png"), linear-gradient(135deg, rgba(255,255,255,.025), transparent 42%), radial-gradient(circle at 82% 4%, rgba(249,115,22,.25), transparent 34%), radial-gradient(circle at 12% 96%, rgba(167,139,250,.16), transparent 38%) !important; }
+html[data-seasonal-theme="autumn"] body.panel-global-shell main { background-image: url("../img/seasonal/autumn-frame.png"), linear-gradient(135deg, rgba(255,255,255,.025), transparent 42%), radial-gradient(circle at 82% 4%, rgba(245,158,11,.25), transparent 34%), radial-gradient(circle at 12% 96%, rgba(153,27,27,.16), transparent 38%) !important; }
 html[data-seasonal-theme="summer"] body.panel-global-shell main { background-image: url("../img/seasonal/summer-frame.png"), linear-gradient(135deg, rgba(255,255,255,.025), transparent 42%), radial-gradient(circle at 82% 4%, rgba(250,204,21,.24), transparent 34%), radial-gradient(circle at 12% 96%, rgba(45,212,191,.15), transparent 38%) !important; }
 html[data-seasonal-theme="spring"] body.panel-global-shell main { background-image: url("../img/seasonal/spring-frame.png"), linear-gradient(135deg, rgba(255,255,255,.025), transparent 42%), radial-gradient(circle at 82% 4%, rgba(74,222,128,.22), transparent 34%), radial-gradient(circle at 12% 96%, rgba(244,114,182,.15), transparent 38%) !important; }
 html[data-seasonal-theme] body.panel-global-shell main {
@@ -137,4 +147,172 @@ html[data-seasonal-theme] body::before { content: "" !important; opacity: 0 !imp
 
 @media (max-width: 767px) {
     html[data-seasonal-theme] body.panel-global-shell main { background-size: 100% 100%; background-attachment: scroll; }
+}
+
+/* Accente tematice pentru componentele din pagină. Sunt aplicate ca reflexe,
+   texturi și borduri în colțuri, fără elemente poziționate peste text. */
+html[data-seasonal-theme] body.panel-global-shell main .button,
+html[data-seasonal-theme] body.panel-global-shell main button,
+html[data-seasonal-theme] body.panel-global-shell main a[class*="rounded"] {
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease, background-image .2s ease;
+}
+html[data-seasonal-theme] body.panel-global-shell main .button:hover,
+html[data-seasonal-theme] body.panel-global-shell main button:hover,
+html[data-seasonal-theme] body.panel-global-shell main a[class*="rounded"]:hover {
+    transform: translateY(-1px);
+}
+html[data-seasonal-theme] body.panel-global-shell main .card,
+html[data-seasonal-theme] body.panel-global-shell main .panel,
+html[data-seasonal-theme] body.panel-global-shell main article,
+html[data-seasonal-theme] body.panel-global-shell main section[class*="bg-slate-900"] {
+    background-repeat: no-repeat !important;
+    background-size: 100% 100% !important;
+}
+html[data-seasonal-theme] #panel-shared-sidebar .nav-link,
+html[data-seasonal-theme] #panel-mobile-menu .nav-link {
+    border-left: 2px solid transparent;
+    transition: border-color .2s ease, background-color .2s ease, color .2s ease;
+}
+html[data-seasonal-theme] #panel-shared-sidebar .nav-link:hover,
+html[data-seasonal-theme] #panel-mobile-menu .nav-link:hover {
+    border-left-color: var(--seasonal-primary);
+    background-image: linear-gradient(90deg, color-mix(in srgb, var(--seasonal-primary) 12%, transparent), transparent 72%) !important;
+}
+
+html[data-seasonal-theme="winter"] body.panel-global-shell main .button,
+html[data-seasonal-theme="winter"] body.panel-global-shell main button,
+html[data-seasonal-theme="winter"] body.panel-global-shell main a[class*="rounded"] {
+    background-image: radial-gradient(circle at 93% 18%, rgba(224, 247, 255, .78) 0 2px, transparent 2.8px), radial-gradient(circle at 9% 82%, rgba(186, 230, 253, .62) 0 1.5px, transparent 2.5px), linear-gradient(135deg, rgba(56,189,248,.12), transparent 52%) !important;
+    box-shadow: inset 0 1px 0 rgba(224,247,255,.2), 0 0 16px rgba(56,189,248,.12);
+}
+html[data-seasonal-theme="winter"] body.panel-global-shell main .card,
+html[data-seasonal-theme="winter"] body.panel-global-shell main .panel,
+html[data-seasonal-theme="winter"] body.panel-global-shell main article,
+html[data-seasonal-theme="winter"] body.panel-global-shell main section[class*="bg-slate-900"] {
+    background-image: radial-gradient(circle at 100% 0%, rgba(186,230,253,.11), transparent 28%), radial-gradient(circle at 0% 100%, rgba(125,211,252,.08), transparent 30%) !important;
+    box-shadow: inset 0 1px 0 rgba(224,247,255,.08), 0 12px 30px rgba(2,132,199,.08);
+}
+
+html[data-seasonal-theme="christmas"] body.panel-global-shell main .button,
+html[data-seasonal-theme="christmas"] body.panel-global-shell main button,
+html[data-seasonal-theme="christmas"] body.panel-global-shell main a[class*="rounded"] {
+    background-image: radial-gradient(circle at 93% 18%, rgba(248,113,113,.78) 0 2px, transparent 2.8px), radial-gradient(circle at 9% 82%, rgba(74,222,128,.7) 0 2px, transparent 2.8px), linear-gradient(135deg, rgba(239,68,68,.12), transparent 52%) !important;
+    box-shadow: inset 0 1px 0 rgba(254,226,226,.18), 0 0 16px rgba(239,68,68,.12);
+}
+html[data-seasonal-theme="christmas"] body.panel-global-shell main .card,
+html[data-seasonal-theme="christmas"] body.panel-global-shell main .panel,
+html[data-seasonal-theme="christmas"] body.panel-global-shell main article,
+html[data-seasonal-theme="christmas"] body.panel-global-shell main section[class*="bg-slate-900"] {
+    background-image: radial-gradient(circle at 100% 0%, rgba(239,68,68,.12), transparent 28%), radial-gradient(circle at 0% 100%, rgba(74,222,128,.09), transparent 30%) !important;
+    box-shadow: inset 0 1px 0 rgba(254,226,226,.08), 0 12px 30px rgba(127,29,29,.1);
+}
+
+html[data-seasonal-theme="easter"] body.panel-global-shell main .button,
+html[data-seasonal-theme="easter"] body.panel-global-shell main button,
+html[data-seasonal-theme="easter"] body.panel-global-shell main a[class*="rounded"] {
+    background-image: radial-gradient(circle at 93% 18%, rgba(244,114,182,.72) 0 2px, transparent 2.8px), radial-gradient(circle at 9% 82%, rgba(250,204,21,.72) 0 2px, transparent 2.8px), linear-gradient(135deg, rgba(244,114,182,.1), transparent 52%) !important;
+    box-shadow: inset 0 1px 0 rgba(252,231,243,.18), 0 0 16px rgba(244,114,182,.1);
+}
+html[data-seasonal-theme="easter"] body.panel-global-shell main .card,
+html[data-seasonal-theme="easter"] body.panel-global-shell main .panel,
+html[data-seasonal-theme="easter"] body.panel-global-shell main article,
+html[data-seasonal-theme="easter"] body.panel-global-shell main section[class*="bg-slate-900"] {
+    background-image: radial-gradient(circle at 100% 0%, rgba(244,114,182,.1), transparent 28%), radial-gradient(circle at 0% 100%, rgba(250,204,21,.08), transparent 30%) !important;
+    box-shadow: inset 0 1px 0 rgba(252,231,243,.08), 0 12px 30px rgba(190,24,93,.08);
+}
+
+html[data-seasonal-theme="halloween"] body.panel-global-shell main .button,
+html[data-seasonal-theme="halloween"] body.panel-global-shell main button,
+html[data-seasonal-theme="halloween"] body.panel-global-shell main a[class*="rounded"] {
+    background-image: radial-gradient(circle at 93% 18%, rgba(251,146,60,.8) 0 2px, transparent 2.8px), radial-gradient(circle at 9% 82%, rgba(167,139,250,.72) 0 2px, transparent 2.8px), linear-gradient(135deg, rgba(249,115,22,.13), transparent 52%) !important;
+    box-shadow: inset 0 1px 0 rgba(255,237,213,.18), 0 0 18px rgba(249,115,22,.14);
+}
+html[data-seasonal-theme="halloween"] body.panel-global-shell main .card,
+html[data-seasonal-theme="halloween"] body.panel-global-shell main .panel,
+html[data-seasonal-theme="halloween"] body.panel-global-shell main article,
+html[data-seasonal-theme="halloween"] body.panel-global-shell main section[class*="bg-slate-900"] {
+    background-image: radial-gradient(circle at 100% 0%, rgba(249,115,22,.12), transparent 28%), radial-gradient(circle at 0% 100%, rgba(167,139,250,.1), transparent 30%) !important;
+    box-shadow: inset 0 1px 0 rgba(255,237,213,.08), 0 12px 30px rgba(124,58,237,.1);
+}
+
+html[data-seasonal-theme="autumn"] body.panel-global-shell main .button,
+html[data-seasonal-theme="autumn"] body.panel-global-shell main button,
+html[data-seasonal-theme="autumn"] body.panel-global-shell main a[class*="rounded"] {
+    background-image: radial-gradient(circle at 93% 18%, rgba(245,158,11,.8) 0 2px, transparent 2.8px), radial-gradient(circle at 9% 82%, rgba(153,27,27,.75) 0 2px, transparent 2.8px), linear-gradient(135deg, rgba(245,158,11,.13), transparent 52%) !important;
+    box-shadow: inset 0 1px 0 rgba(254,243,199,.18), 0 0 18px rgba(245,158,11,.14);
+}
+html[data-seasonal-theme="autumn"] body.panel-global-shell main .card,
+html[data-seasonal-theme="autumn"] body.panel-global-shell main .panel,
+html[data-seasonal-theme="autumn"] body.panel-global-shell main article,
+html[data-seasonal-theme="autumn"] body.panel-global-shell main section[class*="bg-slate-900"] {
+    background-image: radial-gradient(circle at 100% 0%, rgba(245,158,11,.13), transparent 28%), radial-gradient(circle at 0% 100%, rgba(153,27,27,.1), transparent 30%) !important;
+    box-shadow: inset 0 1px 0 rgba(254,243,199,.08), 0 12px 30px rgba(154,52,18,.12);
+}
+
+html[data-seasonal-theme="summer"] body.panel-global-shell main .button,
+html[data-seasonal-theme="summer"] body.panel-global-shell main button,
+html[data-seasonal-theme="summer"] body.panel-global-shell main a[class*="rounded"] {
+    background-image: radial-gradient(circle at 93% 18%, rgba(250,204,21,.78) 0 2px, transparent 2.8px), radial-gradient(circle at 9% 82%, rgba(45,212,191,.72) 0 2px, transparent 2.8px), linear-gradient(135deg, rgba(250,204,21,.12), transparent 52%) !important;
+    box-shadow: inset 0 1px 0 rgba(254,249,195,.18), 0 0 16px rgba(250,204,21,.12);
+}
+html[data-seasonal-theme="summer"] body.panel-global-shell main .card,
+html[data-seasonal-theme="summer"] body.panel-global-shell main .panel,
+html[data-seasonal-theme="summer"] body.panel-global-shell main article,
+html[data-seasonal-theme="summer"] body.panel-global-shell main section[class*="bg-slate-900"] {
+    background-image: radial-gradient(circle at 100% 0%, rgba(250,204,21,.11), transparent 28%), radial-gradient(circle at 0% 100%, rgba(45,212,191,.09), transparent 30%) !important;
+    box-shadow: inset 0 1px 0 rgba(254,249,195,.08), 0 12px 30px rgba(13,148,136,.08);
+}
+
+html[data-seasonal-theme="spring"] body.panel-global-shell main .button,
+html[data-seasonal-theme="spring"] body.panel-global-shell main button,
+html[data-seasonal-theme="spring"] body.panel-global-shell main a[class*="rounded"] {
+    background-image: radial-gradient(circle at 93% 18%, rgba(74,222,128,.75) 0 2px, transparent 2.8px), radial-gradient(circle at 9% 82%, rgba(244,114,182,.7) 0 2px, transparent 2.8px), linear-gradient(135deg, rgba(74,222,128,.11), transparent 52%) !important;
+    box-shadow: inset 0 1px 0 rgba(220,252,231,.18), 0 0 16px rgba(74,222,128,.11);
+}
+html[data-seasonal-theme="spring"] body.panel-global-shell main .card,
+html[data-seasonal-theme="spring"] body.panel-global-shell main .panel,
+html[data-seasonal-theme="spring"] body.panel-global-shell main article,
+html[data-seasonal-theme="spring"] body.panel-global-shell main section[class*="bg-slate-900"] {
+    background-image: radial-gradient(circle at 100% 0%, rgba(74,222,128,.1), transparent 28%), radial-gradient(circle at 0% 100%, rgba(244,114,182,.09), transparent 30%) !important;
+    box-shadow: inset 0 1px 0 rgba(220,252,231,.08), 0 12px 30px rgba(22,163,74,.08);
+}
+
+/* Modul întunecat al utilizatorului reduce lumina temei sezoniere fără să
+   întunece textul sau pictogramele. */
+html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main {
+    position: relative;
+    isolation: isolate;
+    background-color: #03050a !important;
+    background-blend-mode: normal !important;
+}
+html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: rgba(0,0,0,.24);
+}
+html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main > * {
+    position: relative;
+    z-index: 1;
+}
+html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main .card,
+html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main .panel,
+html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main article,
+html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main section[class*="bg-slate-900"] {
+    background-color: #080c14 !important;
+    box-shadow: inset 0 0 0 999px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.04), 0 12px 30px rgba(0,0,0,.22) !important;
+}
+html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main .button,
+html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main button,
+html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main a[class*="rounded"] {
+    box-shadow: inset 0 0 0 999px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.06), 0 0 14px rgba(0,0,0,.2) !important;
+}
+html[data-panel-theme="dark"][data-seasonal-theme] #panel-shared-sidebar,
+html[data-panel-theme="dark"][data-seasonal-theme] #panel-mobile-menu,
+html[data-panel-theme="dark"][data-seasonal-theme] .panel-global-header {
+    background-color: #060a11 !important;
 }

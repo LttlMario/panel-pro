@@ -1,7 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 import { getPlatformAdminDiscordIds, isPlatformAdminAccount } from '../_shared/platform-admin.ts';
-import { FULL_PACKAGE_FEATURES, OPERATIONS_PACKAGE_FEATURES, packageAllowsPage as packagePageAllowed, packageCatalogForClient, resolvePackageFeatures, STANDARD_PACKAGE_FEATURES } from '../_shared/package-features.ts';
+import { FULL_PACKAGE_FEATURES, OPERATIONS_PACKAGE_FEATURES, PACKAGE_FEATURES, packageAllowsPage as packagePageAllowed, packageCatalogForClient, resolvePackageFeatures, STANDARD_PACKAGE_FEATURES } from '../_shared/package-features.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
@@ -64,6 +64,7 @@ const webhookChannels=new Set([
 const discordBotHeaders=(bot:string)=>({Authorization:`Bot ${bot}`,'User-Agent':'PanelManagement/1.0 (+https://panel-management.netlify.app)'});
 const organizationIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const validOrganizationId=(value:unknown)=>organizationIdPattern.test(String(value||'').trim());
+const seasonalThemeCodes=new Set(['none','winter','christmas','easter','autumn','halloween','summer','spring']);
 const nowIso=()=>new Date().toISOString();
 const getClientIp=(request:Request)=>String(request.headers.get('cf-connecting-ip')||request.headers.get('x-forwarded-for')?.split(',')[0]||'unknown').trim().slice(0,120);
 const webhookFeature=(channel:string)=>{
@@ -189,7 +190,7 @@ Deno.serve(async request=>{
         ids.length?db.from('organization_guilds').select('organization_id,guild_id,guild_name,kind,enabled').in('organization_id',ids):Promise.resolve({data:[],error:null}),
         ids.length?db.from('organization_role_mappings').select('organization_id,guild_id,discord_role_id,discord_role_name,panel_role,enabled').in('organization_id',ids):Promise.resolve({data:[],error:null}),
         ids.length?db.from('organization_settings').select('organization_id,discord_client_id,panel_public_url,webhook_routes,updated_at').in('organization_id',ids):Promise.resolve({data:[],error:null}),
-        ids.length?db.from('app_settings').select('organization_id,key,value,updated_at').in('organization_id',ids).in('key',['organization_access','organization_package','page_permissions','action_permissions','discipline_permissions']):Promise.resolve({data:[],error:null})
+        ids.length?db.from('app_settings').select('organization_id,key,value,updated_at').in('organization_id',ids).in('key',['organization_access','organization_package','organization_theme','page_permissions','action_permissions','discipline_permissions']):Promise.resolve({data:[],error:null})
       ]);
       if(guildError||roleError||settingsError||appError)throw guildError||roleError||settingsError||appError;
       const now=Date.now();
@@ -211,6 +212,7 @@ Deno.serve(async request=>{
         if(lastAudit.error)throw lastAudit.error;
         const access=app.organization_access&&typeof app.organization_access==='object'?app.organization_access:{};
         const packageValue=app.organization_package&&typeof app.organization_package==='object'?app.organization_package:{};
+        const themeValue=app.organization_theme&&typeof app.organization_theme==='object'?app.organization_theme:{};
         const expiresAt=String(access.expires_at||'').trim()||null;
         const isExpired=Boolean(expiresAt&&Date.parse(expiresAt)<=now);
         const isDraft=organization.lifecycle_status==='draft';
@@ -229,6 +231,7 @@ Deno.serve(async request=>{
           ...organization,
           access:{expires_at:expiresAt},
           package:{code:['standard','operations','full'].includes(String(packageValue.code))?String(packageValue.code):'standard',unlimited:packageValue.unlimited===true,expires_at:packageValue.expires_at||null,features:resolvePackageFeatures(packageValue)},
+          theme:{enabled:themeValue.enabled===true,code:seasonalThemeCodes.has(String(themeValue.code||''))?String(themeValue.code):'none',updated_at:themeValue.updated_at||null},
           guilds:guilds.map((guild:any)=>({guild_id:guild.guild_id,guild_name:guild.guild_name,kind:guild.kind,enabled:guild.enabled!==false})),
           roles:roles.map((role:any)=>({guild_id:role.guild_id,discord_role_id:role.discord_role_id,discord_role_name:role.discord_role_name,panel_role:role.panel_role,enabled:role.enabled!==false})),
           metrics:{members,active_sessions:activeSessions,active_shifts:activeShifts,active_absences:activeAbsences,audit_events:auditCount,last_audit:lastAudit.data||null},
@@ -899,6 +902,9 @@ if (Array.isArray(body.roles)) {
       await audit(db,session,'organization_package_changed',organizationId,{code,unlimited,expires_at:expiresAt,features});
       return reply({ok:true,package:{code,unlimited,expires_at:expiresAt,features}});
     }
+    if(false && body.action==='set_package'){
+      const organizationId=String(body.organization_id||'').trim(),code=String(body.package_code||'standard');if(!validOrganizationId(organizationId)||!['standard','full'].includes(code))return reply({error:'Organizația sau pachetul este invalid.'},400);const unlimited=body.unlimited===true;const expiresAt=unlimited?null:String(body.expires_at||'').trim()||null;if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))return reply({error:'Data expirării pachetului este invalidă.'},400);const requestedFeatures=Array.isArray(body.features)?[...new Set(body.features.map(String).filter((feature:string)=>Object.prototype.hasOwnProperty.call(PACKAGE_FEATURES,feature)))]:null;const features=code==='full'?[...FULL_PACKAGE_FEATURES]:[...new Set([...STANDARD_PACKAGE_FEATURES,...(requestedFeatures||[])])];const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_package',value:{code,unlimited,expires_at:expiresAt,features},updated_at:nowIso()},{onConflict:'organization_id,key'});if(error)throw error;await audit(db,session,'organization_package_changed',organizationId,{code,unlimited,expires_at:expiresAt,features});return reply({ok:true,package:{code,unlimited,expires_at:expiresAt,features}});
+    }
     if(body.action==='list_vouchers'){
       const {data,error}=await db.from('organization_vouchers').select('id,code,package_code,features,duration_days,guild_id,organization_id,redeemed_organization_id,redeemed_by_discord_id,redeemed_at,expires_at,revoked_at,revoked_by_discord_id,revoked_reason,created_at').order('created_at',{ascending:false}).limit(500);if(error)throw error;return reply({ok:true,vouchers:data||[]});
     }
@@ -919,6 +925,18 @@ if (Array.isArray(body.roles)) {
       const organizationId=String(body.organization_id||'').trim(),expiresAt=String(body.expires_at||'').trim()||null,active=body.active!==false;
       if(!validOrganizationId(organizationId))return reply({error:'ID-ul organizației este invalid.'},400);if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))return reply({error:'Data expirării este invalidă.'},400);
       const result=await updateOrganizationAccess(db,session,organizationId,expiresAt,active);return reply({ok:true,active:result.active,expires_at:expiresAt});
+    }
+    if(body.action==='set_theme'){
+      const organizationId=String(body.organization_id||'').trim(),enabled=body.enabled===true,requestedCode=String(body.theme||'none').trim().toLowerCase();
+      if(!validOrganizationId(organizationId))return reply({error:'ID-ul organizației este invalid.'},400);
+      if(!seasonalThemeCodes.has(requestedCode))return reply({error:'Tema aleasă nu este disponibilă.'},400);
+      const theme={enabled,code:enabled&&requestedCode!=='none'?requestedCode:'none',updated_at:nowIso()};
+      const {data:organization,error:organizationError}=await db.from('organizations').select('id').eq('id',organizationId).maybeSingle();
+      if(organizationError)throw organizationError;if(!organization)return reply({error:'Organizația nu există.'},404);
+      const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_theme',value:theme,updated_at:theme.updated_at},{onConflict:'organization_id,key'});
+      if(error)throw error;
+      await audit(db,session,'organization_theme_changed',organizationId,{enabled:theme.enabled,theme:theme.code});
+      return reply({ok:true,theme});
     }
     if(body.action==='delete'){
       const organizationId=String(body.organization_id||'').trim();

@@ -1,4 +1,28 @@
 // Navigare comună pentru panel: meniu mobil și sidebar pliabil pe desktop.
+/* Aplică preferințele memorate înainte de primul paint, astfel încât tema
+   panelului și tema organizației să nu apară cu întârziere după navigare. */
+(() => {
+    const allowedSeasonal = new Set(['none', 'winter', 'christmas', 'easter', 'autumn', 'halloween', 'summer', 'spring']);
+    const panelTheme = localStorage.getItem('panel_theme') === 'dark' ? 'dark' : 'panel';
+    document.documentElement.dataset.panelTheme = panelTheme;
+    document.documentElement.dataset.theme = 'dark';
+    document.documentElement.classList.add('dark');
+    try {
+        const active = JSON.parse(localStorage.getItem('panel_active_organization') || 'null');
+        const seasonal = active?.seasonal_theme || active?.theme || {};
+        const code = seasonal.enabled === true && allowedSeasonal.has(String(seasonal.code || '')) ? String(seasonal.code) : 'none';
+        document.documentElement.dataset.seasonalTheme = code;
+    } catch (_) {
+        document.documentElement.dataset.seasonalTheme = 'none';
+    }
+})();
+
+/* Stilurile sezoniere sunt introduse în head în timpul parsării, nu după
+   încărcarea conținutului, pentru a elimina flash-ul temei originale. */
+if (document.readyState === 'loading' && document.head && !document.head.querySelector('link[data-panel-seasonal-theme]')) {
+    document.write('<link rel="stylesheet" href="css/seasonal-themes.css?v=1.5.0" data-panel-seasonal-theme="true">');
+}
+
 const panelNativeAndroid = /Android/i.test(navigator.userAgent || '') && (
     window.Capacitor?.isNativePlatform?.() === true || /;\s*wv\)/i.test(navigator.userAgent || '')
 );
@@ -395,7 +419,12 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         addStyles();
         ensurePanelVisualTheme();
         ensureSeasonalThemeStyles();
-        applySeasonalTheme({});
+        try {
+            const cached = JSON.parse(localStorage.getItem('panel_active_organization') || 'null');
+            applySeasonalTheme(cached?.seasonal_theme || cached?.theme || {});
+        } catch (_) {
+            applySeasonalTheme({});
+        }
         ensureTextNormalizer();
         ensureBrandAssets();
         ensureGlobalHeader();
@@ -577,13 +606,13 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (document.querySelector('link[data-panel-seasonal-theme]')) return;
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = 'css/seasonal-themes.css?v=1.3.0';
+        link.href = 'css/seasonal-themes.css?v=1.5.0';
         link.dataset.panelSeasonalTheme = 'true';
         document.head.appendChild(link);
     }
 
     function applySeasonalTheme(value) {
-        const allowed = new Set(['none', 'winter', 'christmas', 'easter', 'halloween', 'summer', 'spring']);
+        const allowed = new Set(['none', 'winter', 'christmas', 'easter', 'autumn', 'halloween', 'summer', 'spring']);
         const code = value?.enabled === true && allowed.has(String(value.code || '')) ? String(value.code) : 'none';
         document.documentElement.dataset.seasonalTheme = code;
     }
