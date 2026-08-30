@@ -61,13 +61,13 @@ html[data-seasonal-theme="spring"] .panel-global-header { border-color: rgba(74,
 
 /* Diferențe vizibile între teme: fiecare temă își schimbă suprafețele,
    accentul, meniul activ și bara de titlu, nu doar fundalul. */
-html[data-seasonal-theme="winter"] { --seasonal-bg: #061522; --seasonal-surface: #0a2236; --seasonal-primary: #38bdf8; --seasonal-secondary: #67e8f9; --seasonal-line: rgba(125, 211, 252, .55); }
-html[data-seasonal-theme="christmas"] { --seasonal-bg: #180b12; --seasonal-surface: #29121a; --seasonal-primary: #ef4444; --seasonal-secondary: #4ade80; --seasonal-line: rgba(248, 113, 113, .58); }
-html[data-seasonal-theme="easter"] { --seasonal-bg: #1a1020; --seasonal-surface: #2b1930; --seasonal-primary: #f472b6; --seasonal-secondary: #facc15; --seasonal-line: rgba(244, 114, 182, .56); }
-html[data-seasonal-theme="halloween"] { --seasonal-bg: #140b22; --seasonal-surface: #25133a; --seasonal-primary: #fb923c; --seasonal-secondary: #a78bfa; --seasonal-line: rgba(251, 146, 60, .58); }
-html[data-seasonal-theme="autumn"] { --seasonal-bg: #211107; --seasonal-surface: #35200e; --seasonal-primary: #f59e0b; --seasonal-secondary: #dc5a24; --seasonal-line: rgba(245, 158, 11, .6); }
-html[data-seasonal-theme="summer"] { --seasonal-bg: #171506; --seasonal-surface: #2a2410; --seasonal-primary: #facc15; --seasonal-secondary: #2dd4bf; --seasonal-line: rgba(250, 204, 21, .58); }
-html[data-seasonal-theme="spring"] { --seasonal-bg: #081b14; --seasonal-surface: #102b22; --seasonal-primary: #4ade80; --seasonal-secondary: #f472b6; --seasonal-line: rgba(74, 222, 128, .55); }
+html[data-seasonal-theme="winter"] { --seasonal-bg: #061522; --seasonal-surface: #0a2236; --seasonal-primary: #38bdf8; --seasonal-secondary: #67e8f9; --seasonal-line: rgba(125, 211, 252, .55); --seasonal-frame: url("../img/seasonal/winter-frame.png"); }
+html[data-seasonal-theme="christmas"] { --seasonal-bg: #180b12; --seasonal-surface: #29121a; --seasonal-primary: #ef4444; --seasonal-secondary: #4ade80; --seasonal-line: rgba(248, 113, 113, .58); --seasonal-frame: url("../img/seasonal/christmas-frame.png"); }
+html[data-seasonal-theme="easter"] { --seasonal-bg: #1a1020; --seasonal-surface: #2b1930; --seasonal-primary: #f472b6; --seasonal-secondary: #facc15; --seasonal-line: rgba(244, 114, 182, .56); --seasonal-frame: url("../img/seasonal/easter-frame.png"); }
+html[data-seasonal-theme="halloween"] { --seasonal-bg: #140b22; --seasonal-surface: #25133a; --seasonal-primary: #fb923c; --seasonal-secondary: #a78bfa; --seasonal-line: rgba(251, 146, 60, .58); --seasonal-frame: url("../img/seasonal/halloween-frame.png"); }
+html[data-seasonal-theme="autumn"] { --seasonal-bg: #211107; --seasonal-surface: #35200e; --seasonal-primary: #f59e0b; --seasonal-secondary: #dc5a24; --seasonal-line: rgba(245, 158, 11, .6); --seasonal-frame: url("../img/seasonal/autumn-frame.png"); }
+html[data-seasonal-theme="summer"] { --seasonal-bg: #171506; --seasonal-surface: #2a2410; --seasonal-primary: #facc15; --seasonal-secondary: #2dd4bf; --seasonal-line: rgba(250, 204, 21, .58); --seasonal-frame: url("../img/seasonal/summer-frame.png"); }
+html[data-seasonal-theme="spring"] { --seasonal-bg: #081b14; --seasonal-surface: #102b22; --seasonal-primary: #4ade80; --seasonal-secondary: #f472b6; --seasonal-line: rgba(74, 222, 128, .55); --seasonal-frame: url("../img/seasonal/spring-frame.png"); }
 
 html[data-seasonal-theme] body.panel-global-shell,
 html[data-seasonal-theme] body.panel-global-shell main {
@@ -281,13 +281,14 @@ html[data-seasonal-theme="spring"] body.panel-global-shell main section[class*="
 
 /* Modul întunecat al utilizatorului reduce lumina temei sezoniere fără să
    întunece textul sau pictogramele. */
-html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main {
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main {
     position: relative;
     isolation: isolate;
     background-color: #03050a !important;
     background-blend-mode: normal !important;
+    background-image: linear-gradient(rgba(0,0,0,.28), rgba(0,0,0,.28)), var(--seasonal-frame) !important;
 }
-html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main::after {
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -295,24 +296,24 @@ html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main:
     pointer-events: none;
     background: rgba(0,0,0,.24);
 }
-html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main > * {
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main > * {
     position: relative;
     z-index: 1;
 }
-html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main .card,
-html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main .panel,
-html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main article,
-html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main section[class*="bg-slate-900"] {
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main .card,
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main .panel,
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main article,
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main section[class*="bg-slate-900"] {
     background-color: #080c14 !important;
     box-shadow: inset 0 0 0 999px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.04), 0 12px 30px rgba(0,0,0,.22) !important;
 }
-html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main .button,
-html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main button,
-html[data-panel-theme="dark"][data-seasonal-theme] body.panel-global-shell main a[class*="rounded"] {
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main .button,
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main button,
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell main a[class*="rounded"] {
     box-shadow: inset 0 0 0 999px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.06), 0 0 14px rgba(0,0,0,.2) !important;
 }
-html[data-panel-theme="dark"][data-seasonal-theme] #panel-shared-sidebar,
-html[data-panel-theme="dark"][data-seasonal-theme] #panel-mobile-menu,
-html[data-panel-theme="dark"][data-seasonal-theme] .panel-global-header {
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) #panel-shared-sidebar,
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) #panel-mobile-menu,
+html[data-panel-theme="dark"][data-seasonal-theme]:not([data-seasonal-theme="none"]) .panel-global-header {
     background-color: #060a11 !important;
 }
