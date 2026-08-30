@@ -32,6 +32,39 @@
                 link.textContent = `Deschide ${engine.repairText(item.title || 'pagina')} →`;
                 bubble.appendChild(link);
             });
+        if (sender === 'assistant') {
+            const actions = document.createElement('div');
+            actions.className = 'mt-2 flex flex-wrap gap-2';
+            (Array.isArray(result.actions) ? result.actions : [])
+                .filter((item) => item?.page && engine?.isPageAllowed(item.page))
+                .slice(0, 4)
+                .forEach((item) => {
+                    const link = document.createElement('a');
+                    link.href = item.page;
+                    link.className = 'inline-flex items-center rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-xs font-semibold text-sky-300 hover:bg-sky-500/20';
+                    link.textContent = item.label || 'Deschide';
+                    actions.appendChild(link);
+                });
+            if (result.answer && !/^Salut!|^Cu plăcere!/.test(result.answer)) {
+                const feedback = document.createElement('div');
+                feedback.className = 'mt-2 flex items-center gap-2 text-[11px] text-slate-500';
+                feedback.textContent = 'Te-a ajutat răspunsul?';
+                ['Da', 'Nu'].forEach((label, index) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'rounded-md border border-slate-700 px-2 py-1 text-slate-400 hover:border-emerald-500/50 hover:text-emerald-300';
+                    button.textContent = index === 0 ? 'Răspuns util' : 'Nu m-a ajutat';
+                    button.addEventListener('click', async () => {
+                        button.disabled = true;
+                        const sent = await engine.sendFeedback({ question: result.question, answer: result.answer, helpful: index === 0, page: result.page });
+                        feedback.textContent = sent ? 'Mulțumesc pentru feedback!' : 'Feedbackul nu a putut fi trimis.';
+                    });
+                    feedback.appendChild(button);
+                });
+                actions.appendChild(feedback);
+            }
+            if (actions.childNodes.length) bubble.appendChild(actions);
+        }
         wrapper.appendChild(bubble);
         chat.appendChild(wrapper);
         chat.scrollTop = chat.scrollHeight;
@@ -58,6 +91,7 @@
         document.getElementById(typingId)?.remove();
         try {
             const result = await engine.answer(question);
+            result.question = question;
             createMessage(result.answer, 'assistant', result);
         } catch (error) {
             console.warn('Asistent: întrebarea nu a putut fi procesată.', error);

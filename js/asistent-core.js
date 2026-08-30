@@ -4,7 +4,7 @@
     'use strict';
     if (window.PanelAssistantCore) return;
 
-    const CACHE_VERSION = '12';
+    const CACHE_VERSION = '15';
     const INDEX_TTL_MS = 120000;
     const STOP_WORDS = new Set(['a', 'ai', 'al', 'ale', 'am', 'ar', 'are', 'as', 'asta', 'ca', 'care', 'ce', 'cea', 'cel', 'cu', 'cum', 'de', 'din', 'doar', 'este', 'eu', 'fi', 'in', 'la', 'mai', 'ma', 'mi', 'o', 'pe', 'pentru', 'pot', 'sa', 'se', 'si', 'sunt', 'un', 'una', 'unde', 'vreau']);
     const SYNONYMS = {
@@ -120,15 +120,16 @@
     }
 
     function selectedPages() {
-        const pages = currentUser()?.allowed_pages;
+        const user = currentUser() || {};
+        const pages = user.assistant_permissions_configured === true && Array.isArray(user.assistant_allowed_pages)
+            ? user.assistant_allowed_pages
+            : user.allowed_pages;
         return Array.isArray(pages)
             ? [...new Set(pages.map((page) => String(page || '').split('?')[0].split('#')[0].split('/').pop()).filter(Boolean))]
             : [];
     }
 
     function assistantPages() {
-        // Robotul moștenește exclusiv accesul normal al organizației.
-        // Nu există o listă separată de pagini pentru asistent.
         return selectedPages().filter((page) => ![
             'admin.html', 'logs.html', 'diagnostic.html', 'secrete-platforma.html', 'discord-configurare.html',
             'organizatii.html', 'vouchere.html', 'developer.html', 'administrare-organizatie.html'
@@ -141,8 +142,10 @@
 
         const entries = [];
         let lastMatch = null;
+        let lastRecipe = null;
         let indexPromise = null;
         let indexUpdatedAt = 0;
+        let remoteKnowledgeLoaded = false;
 
         function roleName() {
             if (typeof getEffectiveRoleLabel === 'function') {
@@ -222,6 +225,7 @@
                 answer: repairText(entry.answer),
                 keywords: keywordVariants([
                     ...(entry.keywords || []).map(repairText),
+                    entry.question,
                     entry.title,
                     entry.category,
                     entry.answer
@@ -236,6 +240,22 @@
         }
 
         (window.PANEL_ASSISTANT_KNOWLEDGE || []).forEach((entry) => addEntry(entry));
+
+        async function loadRemoteKnowledge() {
+            if (remoteKnowledgeLoaded || typeof window.panelRequestJson !== 'function') return;
+            remoteKnowledgeLoaded = true;
+            try {
+                const payload = await window.panelRequestJson('assistant-live?mode=knowledge', { method: 'GET', timeoutMs: 8000, retry: true });
+                (Array.isArray(payload?.entries) ? payload.entries : []).forEach((entry) => addEntry({
+                    ...entry,
+                    title: entry.title || entry.question,
+                    category: entry.category || 'Întrebări personalizate',
+                    keywords: [...(Array.isArray(entry.keywords) ? entry.keywords : []), entry.question]
+                }, 'remote'));
+            } catch (_error) {
+                // Întrebările standard rămân disponibile dacă serverul nu răspunde.
+            }
+        }
 
         function elementAllowed(element) {
             // Accesul este decis la nivel de pagină, prin allowed_pages.
@@ -346,9 +366,11 @@
 
         function clearIndexedPageEntries() {
             for (let index = entries.length - 1; index >= 0; index -= 1) {
-                if (entries[index].source === 'page') entries.splice(index, 1);
+                if (entries[index].source === 'page' || entries[index].source === 'remote') entries.splice(index, 1);
             }
             lastMatch = null;
+            lastRecipe = null;
+            remoteKnowledgeLoaded = false;
             indexUpdatedAt = 0;
         }
 
@@ -365,7 +387,7 @@
             }
             if (force) clearIndexedPageEntries();
             const pages = (window.PANEL_ASSISTANT_PAGES || []).filter((page) => isPageAllowed(page.file));
-            indexPromise = Promise.allSettled(pages.map(indexPage)).then(() => {
+            indexPromise = Promise.allSettled([loadRemoteKnowledge(), ...pages.map(indexPage)]).then(() => {
                 indexUpdatedAt = Date.now();
                 options.onIndexUpdate?.(entries.length, false);
                 return entries.length;
@@ -395,9 +417,10 @@
                 .sort((left, right) => right.score - left.score);
             const best = ranked[0];
             const pageMatches = new Map();
+            const minimumRelatedScore = Math.max(8, Number(best?.score || 0) * 0.62);
             ranked
                 .filter((item) => {
-                    if (item.score < 8 || !item.entry.page || !isPageAllowed(item.entry.page)) return false;
+                    if (item.score < minimumRelatedScore || !item.entry.page || !isPageAllowed(item.entry.page)) return false;
                     const source = searchableText(item.entry);
                     const sourceWords = source.split(' ');
                     return source.includes(query) || queryTokens.some((token) => sourceWords.includes(token) || sourceWords.some((word) => word.startsWith(token) || token.startsWith(word)));
@@ -415,7 +438,7 @@
                 });
             const groups = [...pageMatches.values()]
                 .sort((left, right) => right.score - left.score)
-                .slice(0, 6);
+                .slice(0, 3);
             return {
                 best,
                 groups,
@@ -434,6 +457,158 @@
             const pageMatch = exactPageMatch(cleanQuestion);
             if (pageMatch) return [{ page: pageMatch.file, title: pageMatch.label, matches: [] }];
             return collectPageMatches(cleanQuestion).links;
+        }
+
+        function recipeCatalog() {
+            const data = window.PANEL_ASSISTANT_CALCULATOR_DATA || {};
+            const craft = data.craft || {};
+            const result = [];
+            (craft.masa || []).forEach((recipe) => result.push({ ...recipe, category: 'Masă Crafting', page: 'calculator.html' }));
+            (craft.croitorie || []).forEach((recipe) => result.push({ ...recipe, category: 'Croitorie', page: 'calculator.html' }));
+            (craft.topitorie || []).forEach((recipe) => result.push({ ...recipe, category: 'Topitorie', page: 'calculatorilegal.html' }));
+            Object.entries(craft.chains || {}).forEach(([chain, recipes]) => recipes.forEach(([id, name, cost]) => result.push({ id, name, base: cost, category: 'Masă Crafting', page: 'calculator.html', chain })));
+            (window.PANEL_CRAFT_MECHANIC_RECIPES || []).forEach((recipe) => result.push({ ...recipe, category: 'Craft Mecanic', page: 'craftmecanics.html' }));
+            const illegal = data.illegal || {};
+            Object.entries(illegal.weapons || {}).forEach(([name, recipe]) => result.push({ ...recipe, id: `weapon_${normalize(name).replace(/ /g, '_')}`, name, category: 'Calculator ilegal · arme', page: 'calculatorilegal.html', kind: 'weapon' }));
+            Object.entries(illegal.ammo || {}).forEach(([name, recipe]) => result.push({ id: `ammo_${normalize(name).replace(/ /g, '_')}`, name, batch: recipe[0], casing: recipe[1], fill: recipe[2], category: 'Calculator ilegal · muniții', page: 'calculatorilegal.html', kind: 'ammo' }));
+            return result;
+        }
+
+        function quantityFromQuestion(question, fallback = 1) {
+            const value = String(question || '');
+            const match = value.match(/(?:pentru|la|x|cantitate(?:a)?|vreau|fac|am nevoie de)\s*(\d{1,4})\b|\b(\d{1,4})\s*(?:buc(?:ăți|ati)?|bucati|obiecte|unit[aă]ți)\b/i);
+            const quantity = Number(match?.[1] || match?.[2] || 0);
+            return Number.isFinite(quantity) && quantity > 0 ? Math.min(10000, Math.floor(quantity)) : Math.max(1, Number(fallback) || 1);
+        }
+
+        function findRecipe(question) {
+            const query = normalize(question);
+            if (!query) return null;
+            const catalog = recipeCatalog();
+            const exact = catalog.find((item) => normalize(item.name) === query || normalize(item.id) === query);
+            if (exact) return exact;
+            const kevlar = catalog.find((item) => query.includes('kevlar') && !query.includes('fibra') && normalize(item.name) === 'armura kevlar');
+            if (kevlar) return kevlar;
+            const scored = catalog.map((item) => {
+                const name = normalize(item.name);
+                const id = normalize(item.id);
+                let score = 0;
+                if (query.includes(name) || name.includes(query)) score += 90;
+                if (query.includes(id) || id.includes(query)) score += 65;
+                tokens(question).forEach((token) => {
+                    const best = Math.max(similarity(token, name), ...name.split(' ').map((word) => similarity(token, word)));
+                    if (best >= 0.66) score += best * 20;
+                });
+                return { item, score };
+            }).sort((a, b) => b.score - a.score);
+            return scored[0]?.score >= 24 ? scored[0].item : null;
+        }
+
+        function recipeByName(name) {
+            const query = normalize(name);
+            const catalog = recipeCatalog();
+            if (query === 'cauciuc') return catalog.find((item) => item.id === 'cauciuc_1') || null;
+            return catalog.find((item) => normalize(item.name) === query)
+                || catalog.find((item) => normalize(item.name).replace(/ x\d+$/, '') === query)
+                || null;
+        }
+
+        function addMaterial(target, name, amount) {
+            if (!name || !Number.isFinite(Number(amount)) || Number(amount) <= 0) return;
+            target[name] = (target[name] || 0) + Number(amount);
+        }
+
+        function resolveCraftMaterials(item, quantity, direct, raw, stack = new Set()) {
+            const amount = Math.max(0, Number(quantity) || 0);
+            if (!item || amount <= 0) return;
+            const key = `${normalize(item.name)}|${item.chain || ''}`;
+            if (stack.has(key)) { addMaterial(raw, item.name, amount); return; }
+            const produces = Math.max(1, Number(item.produces) || 1);
+            const crafts = Math.ceil(amount / produces);
+            const base = item.base || {};
+            Object.entries(base).forEach(([material, value]) => {
+                const total = Number(value) * crafts;
+                addMaterial(direct, material, total);
+                const dependency = normalize(material) === 'cauciuc'
+                    ? ([1, 2, 3].includes(total) ? recipeCatalog().find((candidate) => candidate.id === `cauciuc_${total}`) : null)
+                    : recipeByName(material);
+                const chainDependency = recipeCatalog().find((candidate) => normalize(candidate.name) === normalize(material));
+                if (dependency) {
+                    resolveCraftMaterials(dependency, total, {}, raw, new Set([...stack, key]));
+                } else if (chainDependency) {
+                    resolveCraftMaterials(chainDependency, total, {}, raw, new Set([...stack, key]));
+                } else {
+                    addMaterial(raw, material, total);
+                }
+            });
+        }
+
+        function makeCalculatorAction(item, quantity) {
+            const page = item.page === 'craftmecanics.html' ? item.page : item.page || 'calculator.html';
+            const target = page === 'calculatorilegal.html' ? `${page}#calculator` : `${page}?assistant_item=${encodeURIComponent(item.id || item.name)}&assistant_qty=${encodeURIComponent(quantity)}`;
+            return { type: 'open', label: 'Calculează', page: target };
+        }
+
+        function recipeResponse(question) {
+            const query = normalize(question);
+            let item = findRecipe(question);
+            if (!item?.name) item = null;
+            const hasRecipeWords = /\b(reteta|re[țt]et[ăa]|calculeaz|materiale|ingrediente|craft|fac|pentru|xenon|undita|kevlar|cabluri|arma|munitie|gloan[tț]e|topor|tarnacop|t[aă]rnacop)\b/.test(query);
+            const followUp = /\b(dar|si|iar|pentru|la)\b/.test(query) && (lastRecipe || /\b(kevlar|5|10|20|30)\b/.test(query));
+            if (!item && followUp && lastRecipe) item = lastRecipe.item;
+            if (!item || (!hasRecipeWords && !followUp)) return null;
+            const quantity = quantityFromQuestion(question, followUp && lastRecipe ? lastRecipe.quantity : 1);
+            lastRecipe = { item, quantity };
+            if (item.kind === 'weapon') return weaponRecipeResponse(item, quantity);
+            if (item.kind === 'ammo') return ammoRecipeResponse(item, quantity);
+            const direct = {};
+            const raw = {};
+            resolveCraftMaterials(item, quantity, direct, raw);
+            const directText = Object.entries(direct).filter(([, value]) => value > 0).map(([name, value]) => `${name} x${value}`).join(', ') || '—';
+            const rawText = Object.entries(raw).filter(([, value]) => value > 0).map(([name, value]) => `${name} x${value}`).join(', ') || '—';
+            const page = item.page || 'calculator.html';
+            const actions = [makeCalculatorAction(item, quantity), { type: 'open', label: 'Vezi rețeta', page: item.page === 'craftmecanics.html' ? `${page}?search=${encodeURIComponent(item.name)}` : page }];
+            return {
+                answer: `Pentru ${quantity} × ${item.name}:\n\nMateriale directe: ${directText}\nMateriale brute: ${rawText}\n\nAceste cantități sunt calculate după rețeta și randamentul din calculator.`,
+                page, title: item.name, links: [{ page, title: item.name }], actions
+            };
+        }
+
+        function weaponRecipeResponse(item, quantity) {
+            const data = window.PANEL_ASSISTANT_CALCULATOR_DATA?.illegal || {};
+            const counts = {};
+            (item.components || []).forEach((component) => addMaterial(counts, component, quantity));
+            const parts = (Number(item.parts) || 0) * quantity;
+            const componentParts = (item.components || []).reduce((sum, component) => sum + (data.componentCost?.[component] || 0), 0) * quantity;
+            const partCrafts = Math.ceil((parts + componentParts) / 2);
+            addMaterial(counts, 'Blueprint', (item.blueprint || 0) * quantity);
+            addMaterial(counts, 'Piese', parts + componentParts);
+            addMaterial(counts, 'Arc', partCrafts); addMaterial(counts, 'Oțel', partCrafts); addMaterial(counts, 'Plastic', partCrafts); addMaterial(counts, 'Scrap', partCrafts * 2);
+            ['gold', 'diamonds', 'rubies', 'emeralds'].forEach((key) => addMaterial(counts, key === 'gold' ? 'Aur' : key === 'diamonds' ? 'Diamante' : key === 'rubies' ? 'Rubine' : 'Emeralde', (item[key] || 0) * quantity));
+            return { answer: `Pentru ${quantity} × ${item.name}:\n\n${Object.entries(counts).filter(([, value]) => value > 0).map(([name, value]) => `${name} x${value}`).join(', ')}\n\nAm păstrat separat componentele și materialele brute, exact ca în Calculator Ilegal.`, page: item.page, title: item.name, links: [{ page: item.page, title: item.name }], actions: [makeCalculatorAction(item, quantity), { type: 'open', label: 'Vezi rețeta', page: item.page }] };
+        }
+
+        function ammoRecipeResponse(item, quantity) {
+            const batches = Math.ceil(quantity / Math.max(1, Number(item.batch) || 1));
+            const materials = {};
+            Object.entries(item.casing || {}).forEach(([name, value]) => addMaterial(materials, name, Number(value) * batches));
+            Object.entries(item.fill || {}).forEach(([name, value]) => addMaterial(materials, name, Number(value) * batches));
+            return { answer: `Pentru ${quantity} × ${item.name} ai nevoie de ${batches} lot${batches === 1 ? '' : 'uri'}:\n\n${Object.entries(materials).map(([name, value]) => `${name} x${value}`).join(', ')}.`, page: item.page, title: item.name, links: [{ page: item.page, title: item.name }], actions: [makeCalculatorAction(item, quantity), { type: 'open', label: 'Vezi rețeta', page: item.page }] };
+        }
+
+        async function liveShiftResponse(question) {
+            const query = normalize(question);
+            if (!/\b(cine.*(pontat|lucreaza|tura)|pontaje active|ture active|status.*live|cine este in tura)\b/.test(query)) return null;
+            if (!isPageAllowed('status-live.html') && !isPageAllowed('rapoarte.html')) return { answer: 'Nu ai permisiunea necesară pentru a vedea pontajele live.' };
+            try {
+                const payload = await window.panelRequestJson('assistant-live?mode=shifts', { method: 'GET', timeoutMs: 8000, retry: true });
+                const shifts = Array.isArray(payload?.shifts) ? payload.shifts : [];
+                const text = shifts.length ? shifts.map((shift) => `• ${shift.colleague_name || shift.discord_id} — ${shift.status === 'paused' ? 'în pauză' : 'în tură'}`).join('\n') : 'Nu există pontaje active în acest moment.';
+                return { answer: `Pontaje live:\n\n${text}`, page: 'status-live.html', title: 'Pontaje live', actions: [{ type: 'open', label: 'Deschide pagina', page: 'status-live.html' }] };
+            } catch (error) {
+                if (Number(error?.status) === 403) return { answer: 'Nu ai permisiunea necesară pentru a vedea pontajele live.' };
+                return { answer: 'Nu pot citi pontajele live chiar acum. Încearcă din nou în câteva secunde.' };
+            }
         }
 
         function specialResponse(question) {
@@ -493,6 +668,10 @@
             if (special) return special;
             const live = await liveServerResponse(cleanQuestion);
             if (live) return live;
+            const liveShifts = await liveShiftResponse(cleanQuestion);
+            if (liveShifts) return liveShifts;
+            const recipe = recipeResponse(cleanQuestion);
+            if (recipe) return recipe;
 
             await refreshIndex();
             const pageMatch = exactPageMatch(cleanQuestion);
@@ -510,6 +689,7 @@
                     page: pageMatch.file,
                     title: pageMatch.label,
                     links: [{ page: pageMatch.file, title: pageMatch.label }]
+                    , actions: [{ type: 'open', label: 'Deschide pagina', page: pageMatch.file }]
                 };
             }
 
@@ -533,8 +713,27 @@
                 answer: response,
                 page: isPageAllowed(best.entry.page) ? best.entry.page : '',
                 title: best.entry.title,
-                links
+                links,
+                actions: isPageAllowed(best.entry.page) ? [{ type: 'open', label: 'Deschide pagina', page: best.entry.page }] : []
             };
+        }
+
+        async function sendFeedback(payload) {
+            if (typeof window.panelRequestJson !== 'function') return false;
+            try {
+                await window.panelRequestJson('assistant-feedback', {
+                    method: 'POST',
+                    timeoutMs: 8000,
+                    retry: false,
+                    body: JSON.stringify({
+                        question: String(payload?.question || '').slice(0, 500),
+                        answer: String(payload?.answer || '').slice(0, 3000),
+                        helpful: Boolean(payload?.helpful),
+                        page: String(payload?.page || '').slice(0, 120)
+                    })
+                });
+                return true;
+            } catch (_error) { return false; }
         }
 
         return {
@@ -545,6 +744,7 @@
             refreshIndex,
             findPageMatches,
             isPageAllowed,
+            sendFeedback,
             repairText,
             getEntryCount: () => entries.length
         };

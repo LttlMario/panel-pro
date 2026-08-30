@@ -94,6 +94,13 @@
             <div id="owner-assistant-permissions" class="mt-4 space-y-3"></div>
           </details>
 
+          <details class="rounded-xl border border-emerald-700/60 bg-emerald-950/15 p-4">
+            <summary class="cursor-pointer font-bold">Întrebări personalizate pentru Asistent</summary>
+            <p class="mt-2 text-xs text-slate-400">Adaugă întrebări și răspunsuri proprii fără să modifici codul. Poți lega răspunsul de o pagină permisă sau îl poți lăsa general.</p>
+            <div id="owner-assistant-knowledge" class="mt-4 space-y-3"></div>
+            <button id="owner-assistant-add" type="button" class="mt-3 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-emerald-500/20">＋ Adaugă întrebare</button>
+          </details>
+
           <details class="rounded-xl border border-slate-700 p-4" open>
             <summary class="cursor-pointer font-bold">Webhookurile organizației</summary>
             <p class="mt-2 text-xs text-slate-400">Configurează notificările Discord pentru organizația ta. Nu poți modifica webhookurile altor organizații.</p>
@@ -142,6 +149,7 @@
       let pagePermissions = {};
       let actionPermissions = {};
       let assistantPagePermissions = {};
+      let assistantKnowledge = [];
       let communicationPermissions = { organization: { read: [], write: [] }, departments: { read: [], write: [] } };
       let disciplinePermissions = { organization: { read: [], write: [], sanction: [] }, departments: { read: [], write: [], sanction: [] } };
       let ownerPackageCode = 'standard';
@@ -223,6 +231,7 @@
             page_permissions: pagePermissions,
             action_permissions: actionPermissions,
             assistant_page_permissions: assistantPagePermissions,
+            assistant_knowledge: assistantKnowledge,
             communication_permissions: communicationPermissions,
             discipline_permissions: disciplinePermissions
           }));
@@ -236,6 +245,7 @@
         pagePermissions = draft.page_permissions && typeof draft.page_permissions === 'object' ? draft.page_permissions : pagePermissions;
         actionPermissions = draft.action_permissions && typeof draft.action_permissions === 'object' ? draft.action_permissions : actionPermissions;
         assistantPagePermissions = draft.assistant_page_permissions && typeof draft.assistant_page_permissions === 'object' ? draft.assistant_page_permissions : assistantPagePermissions;
+        assistantKnowledge = Array.isArray(draft.assistant_knowledge) ? draft.assistant_knowledge : assistantKnowledge;
         communicationPermissions = draft.communication_permissions && typeof draft.communication_permissions === 'object' ? draft.communication_permissions : communicationPermissions;
         disciplinePermissions = draft.discipline_permissions && typeof draft.discipline_permissions === 'object' ? draft.discipline_permissions : disciplinePermissions;
         renderAllPermissions();
@@ -303,7 +313,20 @@
         groups.flatMap(([, , pages]) => pages).forEach(([page]) => checkboxList(host.querySelector(`[data-owner-assistant-host="${page}"]`), assistantPagePermissions, page, roles, 'assistant'));
         host.querySelectorAll('[data-owner-assistant-all]').forEach((button) => { button.onclick = () => { const group = groups.find(([key]) => key === button.dataset.ownerAssistantAll); (group?.[2] || []).forEach(([page]) => { assistantPagePermissions[page] = roles.map((role) => role.id); }); renderOwnerAssistantPermissions(); }; });
       };
-      const renderAllPermissions = () => { renderOwnerRoles(); renderOwnerPagePermissions(); renderOwnerActionPermissions(); renderOwnerCommunicationPermissions(); renderOwnerDisciplinePermissions(); renderOwnerAssistantPermissions(); };
+      const renderOwnerAssistantKnowledge = () => {
+        const host = $('owner-assistant-knowledge');
+        if (!assistantKnowledge.length) { host.innerHTML = '<div class="owner-permission-card text-xs text-slate-400">Nu există întrebări personalizate. Apasă „Adaugă întrebare” pentru a crea una.</div>'; return; }
+        const pageOptions = '<option value="">Toate paginile permise</option>' + pageDefinitions.filter(([page]) => ownerAllowsPage(page)).map(([page, label]) => `<option value="${esc(page)}">${esc(label)}</option>`).join('');
+        host.innerHTML = assistantKnowledge.map((item, index) => `<div class="rounded-xl border border-slate-700 bg-slate-950/50 p-3" data-assistant-knowledge-row="${index}"><div class="grid gap-3 md:grid-cols-2"><label class="owner-label">Titlu<input class="owner-field" data-ak-field="title" value="${esc(item.title || '')}" maxlength="160"></label><label class="owner-label">Întrebare<input class="owner-field" data-ak-field="question" value="${esc(item.question || '')}" maxlength="500" placeholder="Ex: Cum funcționează regula noastră?"></label></div><label class="owner-label mt-3">Răspuns<textarea class="owner-field min-h-28" data-ak-field="answer" maxlength="3000" placeholder="Răspunsul afișat utilizatorului...">${esc(item.answer || '')}</textarea></label><div class="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end"><label class="owner-label">Pagină asociată<select class="owner-field" data-ak-field="page">${pageOptions}</select></label><label class="owner-label">Cuvinte-cheie<input class="owner-field" data-ak-field="keywords" value="${esc((item.keywords || []).join(', '))}" placeholder="ex: regulă, procedură"></label><label class="flex items-center gap-2 pb-2 text-xs"><input type="checkbox" data-ak-field="enabled" ${item.enabled !== false ? 'checked' : ''}> Activă</label></div><button type="button" data-ak-remove="${index}" class="mt-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-300">Șterge întrebarea</button></div>`).join('');
+        host.querySelectorAll('[data-assistant-knowledge-row]').forEach((row) => {
+          const index = Number(row.dataset.assistantKnowledgeRow);
+          const page = row.querySelector('[data-ak-field="page"]'); if (page) page.value = assistantKnowledge[index].page || '';
+          row.querySelectorAll('[data-ak-field]').forEach((field) => { field.oninput = field.onchange = () => { const key = field.dataset.akField; assistantKnowledge[index][key] = key === 'enabled' ? field.checked : key === 'keywords' ? field.value.split(',').map((value) => value.trim()).filter(Boolean) : field.value; saveOwnerDraft(); }; });
+        });
+        host.querySelectorAll('[data-ak-remove]').forEach((button) => { button.onclick = () => { assistantKnowledge.splice(Number(button.dataset.akRemove), 1); renderOwnerAssistantKnowledge(); saveOwnerDraft(); }; });
+      };
+      $('owner-assistant-add').onclick = () => { if (assistantKnowledge.length >= 100) return; assistantKnowledge.push({ id: '', title: '', question: '', answer: '', page: '', keywords: [], enabled: true }); renderOwnerAssistantKnowledge(); saveOwnerDraft(); };
+      const renderAllPermissions = () => { renderOwnerRoles(); renderOwnerPagePermissions(); renderOwnerActionPermissions(); renderOwnerCommunicationPermissions(); renderOwnerDisciplinePermissions(); renderOwnerAssistantPermissions(); renderOwnerAssistantKnowledge(); };
       $('owner-add-role').onclick = () => { if (ownerRoleRows.length >= 50) { $('owner-permissions-status').textContent = 'Ai atins limita de 50 roluri în această configurare.'; return; } ownerRoleRows.push({ guild_id: '', discord_role_id: '', discord_role_name: '', panel_role: '' }); renderAllPermissions(); };
       async function load() {
         if (!config || (!window.getPanelDiscordAccessToken?.() && !localStorage.getItem('panel_session_token'))) { $('owner-denied').textContent = 'Sesiunea panelului lipsește. Revino la login.'; $('owner-denied').classList.remove('hidden'); return; }
@@ -335,6 +358,7 @@
            pagePermissions = data.page_permissions && typeof data.page_permissions === 'object' ? data.page_permissions : {};
            actionPermissions = data.action_permissions && typeof data.action_permissions === 'object' ? data.action_permissions : {};
            assistantPagePermissions = data.assistant_page_permissions && typeof data.assistant_page_permissions === 'object' ? data.assistant_page_permissions : {};
+           assistantKnowledge = Array.isArray(data.assistant_knowledge) ? data.assistant_knowledge : [];
            const savedCommunication = data.communication_permissions && typeof data.communication_permissions === 'object' ? data.communication_permissions : {};
            communicationPermissions = { organization: { read: Array.isArray(savedCommunication.organization?.read) ? savedCommunication.organization.read.map(String) : [], write: Array.isArray(savedCommunication.organization?.write) ? savedCommunication.organization.write.map(String) : [] }, departments: { read: Array.isArray(savedCommunication.departments?.read) ? savedCommunication.departments.read.map(String) : [], write: Array.isArray(savedCommunication.departments?.write) ? savedCommunication.departments.write.map(String) : [] } };
            const savedDiscipline = data.discipline_permissions && typeof data.discipline_permissions === 'object' ? data.discipline_permissions : {};
@@ -360,7 +384,7 @@
           const contractTemplate = title || template || salary ? { title, template, defaults: { salary } } : null;
           const roles = selectedOwnerRoles();
           if (!roles.length) throw new Error('Configurează cel puțin un rol Discord.');
-           const response = await call({ action: 'owner_update', organization_id: organizationId, organization: { name: $('owner-org-name').value.trim(), illegal_name: $('owner-org-illegal-name').value.trim(), code: $('owner-org-code').value.trim(), address: $('owner-org-address').value.trim(), description: $('owner-org-description').value.trim(), panel_public_url: $('owner-panel-url').value.trim(), logo_url: $('owner-org-logo').value.trim() }, webhook_routes: collectWebhooks(), contract_template: contractTemplate, roles, page_permissions: pagePermissions, action_permissions: actionPermissions, assistant_page_permissions: assistantPagePermissions, communication_permissions: communicationPermissions, discipline_permissions: disciplinePermissions });
+           const response = await call({ action: 'owner_update', organization_id: organizationId, organization: { name: $('owner-org-name').value.trim(), illegal_name: $('owner-org-illegal-name').value.trim(), code: $('owner-org-code').value.trim(), address: $('owner-org-address').value.trim(), description: $('owner-org-description').value.trim(), panel_public_url: $('owner-panel-url').value.trim(), logo_url: $('owner-org-logo').value.trim() }, webhook_routes: collectWebhooks(), contract_template: contractTemplate, roles, page_permissions: pagePermissions, action_permissions: actionPermissions, assistant_page_permissions: assistantPagePermissions, assistant_knowledge: assistantKnowledge, communication_permissions: communicationPermissions, discipline_permissions: disciplinePermissions });
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || 'Modificările nu au putut fi salvate.');
           discoveredDiscordRoles = Array.isArray(data.discord_roles) ? data.discord_roles : discoveredDiscordRoles;
@@ -368,6 +392,7 @@
            pagePermissions = data.page_permissions && typeof data.page_permissions === 'object' ? data.page_permissions : pagePermissions;
            actionPermissions = data.action_permissions && typeof data.action_permissions === 'object' ? data.action_permissions : actionPermissions;
            assistantPagePermissions = data.assistant_page_permissions && typeof data.assistant_page_permissions === 'object' ? data.assistant_page_permissions : assistantPagePermissions;
+           assistantKnowledge = Array.isArray(data.assistant_knowledge) ? data.assistant_knowledge : assistantKnowledge;
            const updatedCommunication = data.communication_permissions && typeof data.communication_permissions === 'object' ? data.communication_permissions : {};
            communicationPermissions = { organization: { read: Array.isArray(updatedCommunication.organization?.read) ? updatedCommunication.organization.read.map(String) : [], write: Array.isArray(updatedCommunication.organization?.write) ? updatedCommunication.organization.write.map(String) : [] }, departments: { read: Array.isArray(updatedCommunication.departments?.read) ? updatedCommunication.departments.read.map(String) : [], write: Array.isArray(updatedCommunication.departments?.write) ? updatedCommunication.departments.write.map(String) : [] } };
            const updatedDiscipline = data.discipline_permissions && typeof data.discipline_permissions === 'object' ? data.discipline_permissions : {};

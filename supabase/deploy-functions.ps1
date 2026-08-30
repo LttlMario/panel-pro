@@ -38,6 +38,8 @@ $functions = @(
     'redeem-organization-voucher',
     'status-live-sync',
     'fivem-status',
+    'assistant-live',
+    'assistant-feedback',
     'create-voucher-organization',
     'get-organization-status',
     'finalize-organization',

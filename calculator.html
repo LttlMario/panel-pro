@@ -721,11 +721,40 @@
         const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
         const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
 
+        function applyAssistantSelection() {
+            const params = new URLSearchParams(window.location.search);
+            const requested = String(params.get('assistant_item') || '').trim();
+            if (!requested) return;
+            const quantity = Math.max(1, Number.parseInt(params.get('assistant_qty') || '1', 10) || 1);
+            const normalized = requested.toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const targets = [
+                ['masaItemSelect', 'masaQty', typeof onItemChange === 'function' ? onItemChange : null],
+                ['croitorItemSelect', 'croitorQty', typeof onCroitorItemChange === 'function' ? onCroitorItemChange : null],
+                ['mecanicItemSelect', 'mecanicQty', typeof onMecanicItemChange === 'function' ? onMecanicItemChange : null]
+            ];
+            for (const [selectId, qtyId, handler] of targets) {
+                const select = document.getElementById(selectId);
+                if (!select) continue;
+                const option = Array.from(select.options).find((candidate) => {
+                    const value = String(candidate.value || '').toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    const label = String(candidate.textContent || '').toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    return value === normalized || label === normalized || value.includes(normalized) || label.includes(normalized);
+                });
+                if (!option) continue;
+                select.value = option.value;
+                const qty = document.getElementById(qtyId);
+                if (qty) qty.value = String(quantity);
+                handler?.();
+                return;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
 
             await initializePanelLayout();
 
             populateMecanicOptions();
+            applyAssistantSelection();
             onItemChange();
             calculateAll();
         

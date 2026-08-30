@@ -73,6 +73,11 @@
             .paw-message-row[data-sender="assistant"] .paw-bubble { border:1px solid #253247; border-radius:16px 16px 16px 4px; background:#111c2e; color:#dbeafe; }
             .paw-source-link { display:inline-flex; align-items:center; gap:6px; margin-top:9px; padding:7px 9px; border:1px solid rgba(52,211,153,.3); border-radius:10px; background:rgba(16,185,129,.1); color:#6ee7b7; font-size:10px; font-weight:700; text-decoration:none; }
             .paw-source-link:hover { background:rgba(16,185,129,.18); }
+            .paw-action-link { display:inline-flex; align-items:center; gap:5px; margin:9px 6px 0 0; padding:7px 9px; border:1px solid rgba(56,189,248,.3); border-radius:10px; background:rgba(14,165,233,.1); color:#7dd3fc; font-size:10px; font-weight:700; text-decoration:none; }
+            .paw-action-link:hover { background:rgba(14,165,233,.18); }
+            .paw-feedback { display:flex; align-items:center; flex-wrap:wrap; gap:5px; margin-top:8px; color:#64748b; font-size:9px; }
+            .paw-feedback button { padding:4px 6px; border:1px solid #334155; border-radius:7px; background:#0b1220; color:#94a3b8; cursor:pointer; font-size:9px; }
+            .paw-feedback button:hover { border-color:rgba(52,211,153,.55); color:#6ee7b7; }
             .paw-typing { display:inline-flex; align-items:center; gap:4px; min-width:48px; }
             .paw-typing i { width:5px; height:5px; border-radius:50%; background:#94a3b8; animation:paw-dot 1s infinite ease-in-out; }
             .paw-typing i:nth-child(2) { animation-delay:.15s; }.paw-typing i:nth-child(3) { animation-delay:.3s; }
@@ -223,6 +228,32 @@
                 bubble.appendChild(document.createElement('br'));
                 bubble.appendChild(link);
             });
+        (Array.isArray(message.actions) ? message.actions : [])
+            .filter((item) => item?.page && engine.isPageAllowed(item.page))
+            .slice(0, 4)
+            .forEach((item) => {
+                const link = document.createElement('a');
+                link.className = 'paw-action-link';
+                link.href = item.page;
+                link.textContent = item.label || 'Deschide';
+                bubble.appendChild(link);
+            });
+        if (message.sender === 'assistant' && message.answer) {
+            const feedback = document.createElement('div');
+            feedback.className = 'paw-feedback';
+            feedback.append('Te-a ajutat?');
+            ['Răspuns util', 'Nu m-a ajutat'].forEach((label, index) => {
+                const button = document.createElement('button');
+                button.type = 'button'; button.textContent = label;
+                button.addEventListener('click', async () => {
+                    button.disabled = true;
+                    const sent = await engine.sendFeedback({ question: message.question, answer: message.answer, helpful: index === 0, page: message.page });
+                    feedback.textContent = sent ? 'Mulțumesc pentru feedback!' : 'Feedbackul nu a putut fi trimis.';
+                });
+                feedback.appendChild(button);
+            });
+            bubble.appendChild(feedback);
+        }
         row.appendChild(bubble);
         elements.messages.appendChild(row);
     }
@@ -231,6 +262,8 @@
         const safeMessage = {
             sender: message.sender === 'user' ? 'user' : 'assistant',
             text: String(message.text || '').slice(0, 2400),
+            answer: message.sender === 'assistant' ? String(message.answer || message.text || '').slice(0, 3000) : '',
+            question: String(message.question || '').slice(0, 500),
             page: engine.isPageAllowed(message.page) && message.page !== 'asistent.html' ? message.page : '',
             title: String(message.title || '').slice(0, 120),
             links: Array.isArray(message.links)
@@ -238,6 +271,9 @@
                     .filter((item) => item?.page && item.page !== 'asistent.html' && engine.isPageAllowed(item.page))
                     .slice(0, 8)
                     .map((item) => ({ page: item.page, title: String(item.title || '').slice(0, 120) }))
+                : []
+            , actions: Array.isArray(message.actions)
+                ? message.actions.filter((item) => item?.page && engine.isPageAllowed(item.page)).slice(0, 4).map((item) => ({ page: item.page, label: String(item.label || '').slice(0, 50) }))
                 : []
         };
         state.messages.push(safeMessage);
@@ -286,7 +322,7 @@
         document.getElementById(typingId)?.remove();
         try {
             const result = await engine.answer(question);
-            addMessage({ sender: 'assistant', text: result.answer, page: result.page, title: result.title, links: result.links });
+            addMessage({ sender: 'assistant', text: result.answer, answer: result.answer, question, page: result.page, title: result.title, links: result.links, actions: result.actions });
         } catch (error) {
             console.warn('Asistent: întrebarea nu a putut fi procesată.', error);
             addMessage({ sender: 'assistant', text: 'Nu am putut căuta informația chiar acum. Încearcă din nou sau deschide pagina sugerată din meniu.' });

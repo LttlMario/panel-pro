@@ -62,6 +62,23 @@ const standardPackageFeatures = new Set([
   'requests_departments', 'discipline_departments'
 ]);
 
+const sanitizeAssistantKnowledge = (raw: unknown) => {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 100).map((item: any, index) => {
+    const question = String(item?.question || '').trim().slice(0, 500);
+    const answer = String(item?.answer || '').trim().slice(0, 3000);
+    const title = String(item?.title || question).trim().slice(0, 160);
+    const page = String(item?.page || '').trim().split('?')[0].split('#')[0];
+    return {
+      id: UUID_RE.test(String(item?.id || '')) ? String(item.id) : `assistant-${Date.now()}-${index}`,
+      title, question, answer,
+      page: allowedAssistantPages.has(page) ? page : '',
+      keywords: [...new Set((Array.isArray(item?.keywords) ? item.keywords : []).map((value: any) => String(value || '').trim().slice(0, 60)).filter(Boolean))].slice(0, 20),
+      enabled: item?.enabled !== false
+    };
+  }).filter((item) => item.question.length >= 2 && item.answer.length >= 2);
+};
+
 const packageAllowsFeature = (packageValue: any, feature: string) =>
   resolvePackageFeatures(packageValue).includes(feature);
 
@@ -315,7 +332,7 @@ Deno.serve(async (request) => {
 
     const organizationId = String(owned.organization.id);
     const loadSettings = async () => {
-      const [{ data: settings }, { data: contractSetting }, { data: roleMappings }, { data: pageSetting }, { data: guilds }, { data: accessSetting }, { data: packageSetting }, { data: actionSetting }, { data: assistantPageSetting }, { data: communicationSetting }, { data: disciplineSetting }] = await Promise.all([
+      const [{ data: settings }, { data: contractSetting }, { data: roleMappings }, { data: pageSetting }, { data: guilds }, { data: accessSetting }, { data: packageSetting }, { data: actionSetting }, { data: assistantPageSetting }, { data: communicationSetting }, { data: disciplineSetting }, { data: assistantKnowledgeSetting }] = await Promise.all([
         db.from('organization_settings').select('*').eq('organization_id', organizationId).maybeSingle(),
         db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'contract_template').maybeSingle(),
         db.from('organization_role_mappings').select('guild_id,discord_role_id,discord_role_name,panel_role,permission_level,priority,enabled').eq('organization_id', organizationId).order('priority', { ascending: false }),
@@ -326,7 +343,8 @@ Deno.serve(async (request) => {
         db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'action_permissions').maybeSingle(),
         db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'assistant_page_permissions').maybeSingle(),
         db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'communication_permissions').maybeSingle(),
-        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'discipline_permissions').maybeSingle()
+        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'discipline_permissions').maybeSingle(),
+        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'assistant_knowledge').maybeSingle()
       ]);
       return {
         settings: settings || {},
@@ -339,7 +357,8 @@ Deno.serve(async (request) => {
         action_permissions: actionSetting?.value || {},
         assistant_page_permissions: assistantPageSetting?.value || {},
         communication_permissions: communicationSetting?.value || {},
-        discipline_permissions: disciplineSetting?.value || {}
+        discipline_permissions: disciplineSetting?.value || {},
+        assistant_knowledge: sanitizeAssistantKnowledge(assistantKnowledgeSetting?.value || [])
       };
     };
 
@@ -368,6 +387,7 @@ Deno.serve(async (request) => {
         assistant_page_permissions: state.assistant_page_permissions,
         communication_permissions: state.communication_permissions,
         discipline_permissions: state.discipline_permissions,
+        assistant_knowledge: state.assistant_knowledge,
         discord_roles: discordRoles
       });
     }
@@ -527,6 +547,11 @@ Deno.serve(async (request) => {
       const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'assistant_page_permissions', value: assistantRules, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
       if (error) throw error;
     }
+    if (body.assistant_knowledge !== undefined) {
+      const knowledge = sanitizeAssistantKnowledge(body.assistant_knowledge);
+      const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'assistant_knowledge', value: knowledge, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+      if (error) throw error;
+    }
     if (body.communication_permissions !== undefined) {
       const input = body.communication_permissions && typeof body.communication_permissions === 'object' ? body.communication_permissions as Record<string, any> : {};
       const communicationRules = Object.fromEntries(['organization', 'departments'].map((audience) => [audience, {
@@ -571,6 +596,7 @@ Deno.serve(async (request) => {
       assistant_page_permissions: updatedState.assistant_page_permissions,
       communication_permissions: updatedState.communication_permissions,
       discipline_permissions: updatedState.discipline_permissions,
+      assistant_knowledge: updatedState.assistant_knowledge,
       discord_roles: availableDiscordRoles
     });
   } catch (error) {
