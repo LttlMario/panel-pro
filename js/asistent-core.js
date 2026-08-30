@@ -557,6 +557,7 @@
             const followUp = /\b(dar|si|iar|pentru|la)\b/.test(query) && (lastRecipe || /\b(kevlar|5|10|20|30)\b/.test(query));
             if (!item && followUp && lastRecipe) item = lastRecipe.item;
             if (!item || (!hasRecipeWords && !followUp)) return null;
+            if (item.page && !isPageAllowed(item.page)) return { answer: 'Nu ai permisiunea necesară pentru acest calculator.' };
             const quantity = quantityFromQuestion(question, followUp && lastRecipe ? lastRecipe.quantity : 1);
             lastRecipe = { item, quantity };
             if (item.kind === 'weapon') return weaponRecipeResponse(item, quantity);
