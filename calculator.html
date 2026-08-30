@@ -1798,16 +1798,8 @@ const upgradeChains = {
                     }
 
 
-                    for (let i = startIndex; i <= endIndex; i++) {
-
-                        for (let mat in chain[i].cost) {
-
-                            directCost[mat] =
-                                (directCost[mat] || 0) +
-                                chain[i].cost[mat];
-
-                        }
-
+                    for (const mat in chain[endIndex].cost) {
+                        directCost[mat] = chain[endIndex].cost[mat];
                     }
 
                     resolveMasaChainRawMaterials(
