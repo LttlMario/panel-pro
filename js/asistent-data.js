@@ -19,6 +19,12 @@ window.PANEL_ASSISTANT_KNOWLEDGE = [
         answer: 'Dashboard-ul afișează turele de astăzi, timpul lucrat, starea pontajului, următoarea învoire și acces rapid către secțiunile uzuale.'
     },
     {
+        title: 'Conectare FiveM B-Zone și jucători online',
+        category: 'navigare', page: 'index.html',
+        keywords: ['fivem', 'b-zone', 'bzone', 'server', 'conectare server', 'jucatori online', 'playeri online', 'cati sunt pe server'],
+        answer: 'Pe Dashboard ai butonul de conectare directă la serverul B-Zone. Lângă el este afișat live numărul de jucători conectați din limita serverului, cu actualizare automată.'
+    },
+    {
         title: 'Pornirea pontajului',
         category: 'pontaj', page: 'pontaj.html',
         keywords: ['start pontaj', 'pornesc pontaj', 'incep tura', 'tura zi', 'tura noapte'],

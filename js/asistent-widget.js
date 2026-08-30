@@ -284,8 +284,13 @@
         const typingId = showTyping();
         await new Promise((resolve) => setTimeout(resolve, 220));
         document.getElementById(typingId)?.remove();
-        const result = await engine.answer(question);
-        addMessage({ sender: 'assistant', text: result.answer, page: result.page, title: result.title, links: result.links });
+        try {
+            const result = await engine.answer(question);
+            addMessage({ sender: 'assistant', text: result.answer, page: result.page, title: result.title, links: result.links });
+        } catch (error) {
+            console.warn('Asistent: întrebarea nu a putut fi procesată.', error);
+            addMessage({ sender: 'assistant', text: 'Nu am putut căuta informația chiar acum. Încearcă din nou sau deschide pagina sugerată din meniu.' });
+        }
     }
 
     function queueQuestion(value) {

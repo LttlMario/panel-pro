@@ -4,7 +4,8 @@
     'use strict';
     if (window.PanelAssistantCore) return;
 
-    const CACHE_VERSION = '11';
+    const CACHE_VERSION = '12';
+    const INDEX_TTL_MS = 120000;
     const STOP_WORDS = new Set(['a', 'ai', 'al', 'ale', 'am', 'ar', 'are', 'as', 'asta', 'ca', 'care', 'ce', 'cea', 'cel', 'cu', 'cum', 'de', 'din', 'doar', 'este', 'eu', 'fi', 'in', 'la', 'mai', 'ma', 'mi', 'o', 'pe', 'pentru', 'pot', 'sa', 'se', 'si', 'sunt', 'un', 'una', 'unde', 'vreau']);
     const SYNONYMS = {
         pontare: 'pontaj', pontat: 'pontaj', tura: 'pontaj', ture: 'pontaj', serviciu: 'pontaj',
@@ -13,7 +14,9 @@
         piata: 'marketplace', anunturi: 'anunt', vanzari: 'vanzare',
         harta: 'locatii', locatie: 'locatii', ilegal: 'ilegal', tec9: 'tec',
         sef: 'manager', coordonator: 'manager', administrare: 'admin',
-        jurnal: 'loguri', activitate: 'loguri', istoric: 'rapoarte'
+        jurnal: 'loguri', activitate: 'loguri', istoric: 'rapoarte',
+        jucatori: 'playeri', conectare: 'fivem', server: 'fivem', bzone: 'fivem',
+        croitorie: 'craft', masa: 'craft', mecanica: 'craft', mecanic: 'craft'
     };
 
     const WINDOWS1252_BYTES = Object.freeze({
@@ -139,6 +142,7 @@
         const entries = [];
         let lastMatch = null;
         let indexPromise = null;
+        let indexUpdatedAt = 0;
 
         function roleName() {
             if (typeof getEffectiveRoleLabel === 'function') {
@@ -298,7 +302,7 @@
                     category: page.label,
                     page: page.file,
                     keywords: [title, page.label],
-                    answer: describe(element, `opțiunea „${title}” este disponibilă.`)
+                    answer: describe(option, `opțiunea „${title}” este disponibilă.`)
                 }, 'page');
             });
 
@@ -345,10 +349,14 @@
                 if (entries[index].source === 'page') entries.splice(index, 1);
             }
             lastMatch = null;
+            indexUpdatedAt = 0;
         }
 
         function indexLocalPages({ force = false } = {}) {
             if (indexPromise && !force) return indexPromise;
+            if (!force && indexUpdatedAt && Date.now() - indexUpdatedAt < INDEX_TTL_MS) {
+                return Promise.resolve(entries.length);
+            }
             if (indexPromise && force) {
                 return indexPromise.then(() => {
                     indexPromise = null;
@@ -358,14 +366,15 @@
             if (force) clearIndexedPageEntries();
             const pages = (window.PANEL_ASSISTANT_PAGES || []).filter((page) => isPageAllowed(page.file));
             indexPromise = Promise.allSettled(pages.map(indexPage)).then(() => {
+                indexUpdatedAt = Date.now();
                 options.onIndexUpdate?.(entries.length, false);
                 return entries.length;
             });
             return indexPromise;
         }
 
-        async function refreshIndex() {
-            return indexLocalPages({ force: true });
+        async function refreshIndex({ force = false } = {}) {
+            return indexLocalPages({ force });
         }
 
         function exactPageMatch(question) {
@@ -444,7 +453,12 @@
             if (/\b(multumesc|mersi|ms|super|perfect)\b/.test(query)) return { answer: 'Cu plăcere! Poți continua cu orice întrebare despre paginile și funcțiile panelului.' };
             if (/\b(ce rol|rolul meu|ce functie|functia mea)\b/.test(query)) return { answer: `Rolul disponibil în sesiunea ta este „${roleName()}”. Rezultatele sunt filtrate exact după paginile permise organizației tale.` };
             if (/^(cat e ceasul|cat este ceasul|cat e ora|ce ora este|ce ora e|ora acum)$/.test(query)) return { answer: `Ora României este ${new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit' }).format(new Date())}.` };
-            if (/^(unde|deschide|du ma|pagina)$/i.test(query) && lastMatch?.page) return { answer: `Informația anterioară se află în ${lastMatch.category || lastMatch.title}.`, page: lastMatch.page, title: lastMatch.title };
+            if (/^(unde|deschide|du ma|du ma|arata mi|mai multe|detalii|care pagina|pagina)\b/i.test(query) && lastMatch?.page) return { answer: `Informația anterioară se află în ${lastMatch.category || lastMatch.title}.`, page: lastMatch.page, title: lastMatch.title };
+            if (/\b(fivem|b zone|bzone|jucatori online|playeri online|server)\b/.test(query) && isPageAllowed('index.html')) return {
+                answer: 'Pe Dashboard găsești butonul de conectare directă la serverul B-Zone și indicatorul live cu numărul de jucători conectați din limita serverului.',
+                page: 'index.html',
+                title: 'Dashboard'
+            };
             return null;
         }
 

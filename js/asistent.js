@@ -56,8 +56,13 @@
         const typingId = showTyping();
         await new Promise((resolve) => setTimeout(resolve, 220));
         document.getElementById(typingId)?.remove();
-        const result = await engine.answer(question);
-        createMessage(result.answer, 'assistant', result);
+        try {
+            const result = await engine.answer(question);
+            createMessage(result.answer, 'assistant', result);
+        } catch (error) {
+            console.warn('Asistent: întrebarea nu a putut fi procesată.', error);
+            createMessage('Nu am putut căuta informația chiar acum. Încearcă din nou sau deschide pagina sugerată din meniu.', 'assistant');
+        }
     }
 
     function queueQuestion(value) {
