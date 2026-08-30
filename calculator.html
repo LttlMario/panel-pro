@@ -1227,29 +1227,29 @@ const upgradeChains = {
             undita_plastic: 'craft3.png',
             undita_cupru: 'craft4.png',
             undita_aluminiu: 'craft5.png',
-            undita_fier: 'craft6.png',
-            placa_mesteacan: 'craft7.png',
-            placa_stejar: 'craft8.png',
-            placa_cedru: 'craft9.png',
-            teava: 'craft10.png',
-            plicuri: 'craft11.png',
-            aprinzator: 'craft12.png',
-            cleste: 'craft13.png',
+            undita_fier: 'craft11.png',
+            placa_mesteacan: 'craft6.png',
+            placa_stejar: 'craft12.png',
+            placa_cedru: 'craft17.png',
+            teava: 'craft7.png',
+            plicuri: 'craft8.png',
+            aprinzator: 'craft13.png',
+            cleste: 'craft18.png',
             tableta_hacking: 'craft14.png',
-            flash_drive: 'craft15.png',
-            lockpick: 'craft16.png',
-            cauciuc_1: 'craft17.png',
-            cauciuc_2: 'craft18.png',
-            cauciuc_3: 'craft19.png',
-            tarnacop_cupru: 'craft20.png',
-            tarnacop_fier: 'craft21.png',
-            tarnacop_otel: 'craft22.png',
+            flash_drive: 'craft21.png',
+            lockpick: 'craft22.png',
+            cauciuc_1: 'craft25.png',
+            cauciuc_2: 'craft26.png',
+            cauciuc_3: 'craft27.png',
+            tarnacop_cupru: 'craft9.png',
+            tarnacop_fier: 'craft15.png',
+            tarnacop_otel: 'craft19.png',
             tarnacop_aur: 'craft23.png',
-            tarnacop_diamant: 'craft24.png',
-            topor_cupru: 'craft25.png',
-            topor_fier: 'craft26.png',
-            topor_otel: 'craft27.png',
-            topor_aur: 'craft28.png',
+            tarnacop_diamant: 'craft28.png',
+            topor_cupru: 'craft10.png',
+            topor_fier: 'craft16.png',
+            topor_otel: 'craft20.png',
+            topor_aur: 'craft24.png',
             topor_diamant: 'craft29.png'
         });
 
@@ -1719,6 +1719,26 @@ const upgradeChains = {
             }
         }
 
+        function resolveMasaChainRawMaterials(chain, startIndex, endIndex, qty, accumulated) {
+            const chainItemNames = new Set(
+                chain.map(item => getNormalizedKey(item.name))
+            );
+
+            for (let i = startIndex; i <= endIndex; i++) {
+                for (const material in chain[i].cost) {
+                    if (chainItemNames.has(getNormalizedKey(material))) {
+                        continue;
+                    }
+
+                    resolveMaterialTree(
+                        material,
+                        chain[i].cost[material] * qty,
+                        accumulated
+                    );
+                }
+            }
+        }
+
         
         
 
@@ -1790,6 +1810,13 @@ const upgradeChains = {
 
                     }
 
+                    resolveMasaChainRawMaterials(
+                        chain,
+                        startIndex,
+                        endIndex,
+                        activeQty,
+                        accumulated
+                    );
 
                 } else if (currentRecipe) {
 
@@ -1800,18 +1827,13 @@ const upgradeChains = {
 
                     }
 
-                }
-
-                for (let mat in directCost) {
-
-                    let amount = directCost[mat] * activeQty;
-
-                    resolveMaterialTree(
-                        mat,
-                        amount,
-                        accumulated
-                    );
-
+                    for (let mat in directCost) {
+                        resolveMaterialTree(
+                            mat,
+                            directCost[mat] * activeQty,
+                            accumulated
+                        );
+                    }
                 }
             }
 
