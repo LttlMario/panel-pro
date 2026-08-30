@@ -12,6 +12,7 @@
     const recipes = [
         { id: 'unelte_x10', name: 'Unelte x10', base: { Oțel: 1, Arc: 1 } },
         { id: 'cabluri_x10', name: 'Cabluri x10', base: { Cupru: 1, Plastic: 1 } },
+        { id: 'cabluri', name: 'Cabluri', produces: 10, base: { 'Cabluri x10': 1 }, componentOnly: true },
         { id: 'bujii_x10', name: 'Bujii x10', base: { Plumb: 1, Arc: 1 } },
         { id: 'kit_reparatii', name: 'Kit de reparații', base: { 'Unelte x10': 1, Cabluri: 1, 'Bujii x10': 1 } },
         { id: 'limitator_viteza', name: 'Limitator de viteză', base: { 'Cip vechi': 5, Plastic: 15 } },
