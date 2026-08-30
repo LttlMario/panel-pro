@@ -687,10 +687,10 @@
                     : '';
                 return {
                     answer: `Am găsit pagina „${pageMatch.label}”. Acestea sunt câteva informații disponibile acolo, în funcție de accesul rolului tău:${pageSummary}`,
-                    page: pageMatch.file,
+                    page: pageMatch.file !== 'asistent.html' ? pageMatch.file : '',
                     title: pageMatch.label,
-                    links: [{ page: pageMatch.file, title: pageMatch.label }]
-                    , actions: [{ type: 'open', label: 'Deschide pagina', page: pageMatch.file }]
+                    links: pageMatch.file !== 'asistent.html' ? [{ page: pageMatch.file, title: pageMatch.label }] : [],
+                    actions: pageMatch.file !== 'asistent.html' ? [{ type: 'open', label: 'Deschide pagina', page: pageMatch.file }] : []
                 };
             }
 
@@ -712,10 +712,10 @@
                 : best.entry.answer;
             return {
                 answer: response,
-                page: isPageAllowed(best.entry.page) ? best.entry.page : '',
+                page: isPageAllowed(best.entry.page) && best.entry.page !== 'asistent.html' ? best.entry.page : '',
                 title: best.entry.title,
-                links,
-                actions: isPageAllowed(best.entry.page) ? [{ type: 'open', label: 'Deschide pagina', page: best.entry.page }] : []
+                links: links.filter((item) => item?.page !== 'asistent.html'),
+                actions: isPageAllowed(best.entry.page) && best.entry.page !== 'asistent.html' ? [{ type: 'open', label: 'Deschide pagina', page: best.entry.page }] : []
             };
         }
 

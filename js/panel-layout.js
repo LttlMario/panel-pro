@@ -1439,11 +1439,11 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         // este filtrat separat de motor după rol și paginile organizației.
         if (currentPage === 'asistent.html' || document.getElementById('panel-assistant-widget')) return;
         try {
-            await loadAssistantScript('panel-assistant-craft-recipes-script', 'js/craft-mechanic-recipes.js?v=4.9.0', () => Array.isArray(window.PANEL_CRAFT_MECHANIC_RECIPES));
-            await loadAssistantScript('panel-assistant-data-script', 'js/asistent-data.js?v=4.9.0', () => Array.isArray(window.PANEL_ASSISTANT_KNOWLEDGE));
-            await loadAssistantScript('panel-assistant-calculator-data-script', 'js/asistent-calculator-data.js?v=4.9.0', () => Boolean(window.PANEL_ASSISTANT_CALCULATOR_DATA));
-            await loadAssistantScript('panel-assistant-core-script', 'js/asistent-core.js?v=4.9.0', () => Boolean(window.PanelAssistantCore));
-            await loadAssistantScript('panel-assistant-widget-script', 'js/asistent-widget.js?v=4.9.0', () => Boolean(window.__panelAssistantWidgetLoaded));
+            await loadAssistantScript('panel-assistant-craft-recipes-script', 'js/craft-mechanic-recipes.js?v=4.9.2', () => Array.isArray(window.PANEL_CRAFT_MECHANIC_RECIPES));
+            await loadAssistantScript('panel-assistant-data-script', 'js/asistent-data.js?v=4.9.2', () => Array.isArray(window.PANEL_ASSISTANT_KNOWLEDGE));
+            await loadAssistantScript('panel-assistant-calculator-data-script', 'js/asistent-calculator-data.js?v=4.9.2', () => Boolean(window.PANEL_ASSISTANT_CALCULATOR_DATA));
+            await loadAssistantScript('panel-assistant-core-script', 'js/asistent-core.js?v=4.9.2', () => Boolean(window.PanelAssistantCore));
+            await loadAssistantScript('panel-assistant-widget-script', 'js/asistent-widget.js?v=4.9.2', () => Boolean(window.__panelAssistantWidgetLoaded));
         } catch (error) {
             console.warn('Asistentul plutitor nu a putut fi inițializat.', error);
         }

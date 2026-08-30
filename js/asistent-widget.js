@@ -229,7 +229,7 @@
                 bubble.appendChild(link);
             });
         (Array.isArray(message.actions) ? message.actions : [])
-            .filter((item) => item?.page && engine.isPageAllowed(item.page))
+            .filter((item) => item?.page && item.page !== 'asistent.html' && engine.isPageAllowed(item.page))
             .slice(0, 4)
             .forEach((item) => {
                 const link = document.createElement('a');
@@ -273,7 +273,7 @@
                     .map((item) => ({ page: item.page, title: String(item.title || '').slice(0, 120) }))
                 : []
             , actions: Array.isArray(message.actions)
-                ? message.actions.filter((item) => item?.page && engine.isPageAllowed(item.page)).slice(0, 4).map((item) => ({ page: item.page, label: String(item.label || '').slice(0, 50) }))
+                ? message.actions.filter((item) => item?.page && item.page !== 'asistent.html' && engine.isPageAllowed(item.page)).slice(0, 4).map((item) => ({ page: item.page, label: String(item.label || '').slice(0, 50) }))
                 : []
         };
         state.messages.push(safeMessage);

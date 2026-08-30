@@ -36,7 +36,7 @@
             const actions = document.createElement('div');
             actions.className = 'mt-2 flex flex-wrap gap-2';
             (Array.isArray(result.actions) ? result.actions : [])
-                .filter((item) => item?.page && engine?.isPageAllowed(item.page))
+                .filter((item) => item?.page && item.page !== 'asistent.html' && engine?.isPageAllowed(item.page))
                 .slice(0, 4)
                 .forEach((item) => {
                     const link = document.createElement('a');
