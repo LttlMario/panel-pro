@@ -57,18 +57,25 @@
 
                 </section>
                 <div id="dashboard-fivem-launcher" class="dashboard-fivem-wrap">
-                    <a href="fivem://connect/cfx.re/join/zjv8ko4" aria-label="Deschide FiveM și conectează-te la serverul B-Zone" class="dashboard-fivem-card">
-                        <span class="dashboard-fivem-icon" aria-hidden="true">
-                            <img src="img/fivem-launcher.svg" alt="">
-                            <span class="dashboard-fivem-status"></span>
-                        </span>
-                        <span class="dashboard-fivem-copy">
-                            <span class="dashboard-fivem-eyebrow">Conectare rapidă</span>
-                            <strong>Intră pe B-Zone</strong>
-                            <span>Pornește FiveM și conectează-te direct</span>
-                        </span>
-                        <span class="dashboard-fivem-arrow" aria-hidden="true">↗</span>
-                    </a>
+                    <div class="dashboard-fivem-row">
+                        <a href="fivem://connect/cfx.re/join/zjv8ko4" aria-label="Deschide FiveM și conectează-te la serverul B-Zone" class="dashboard-fivem-card">
+                            <span class="dashboard-fivem-icon" aria-hidden="true">
+                                <img src="img/fivem-launcher.svg" alt="">
+                                <span class="dashboard-fivem-status"></span>
+                            </span>
+                            <span class="dashboard-fivem-copy">
+                                <span class="dashboard-fivem-eyebrow">Conectare rapidă</span>
+                                <strong>Intră pe B-Zone</strong>
+                                <span>Pornește FiveM și conectează-te direct</span>
+                            </span>
+                            <span class="dashboard-fivem-arrow" aria-hidden="true">↗</span>
+                        </a>
+                        <div id="dashboard-fivem-stats" class="dashboard-fivem-stats" aria-live="polite">
+                            <span class="dashboard-fivem-stats-label"><span class="dashboard-fivem-stats-dot" aria-hidden="true"></span>B-Zone live</span>
+                            <strong id="dashboard-fivem-players" class="dashboard-fivem-stats-value">Se verifică…</strong>
+                            <span id="dashboard-fivem-stats-detail" class="dashboard-fivem-stats-detail">Jucători conectați</span>
+                        </div>
+                    </div>
                 </div>
         </main>
     </div>
@@ -86,6 +93,42 @@
         let dashboardOrganizationId = null;
         let dashboardRefreshTimeout = null;
         let dashboardHasPontajAccess = true;
+        let dashboardFivemRefreshTimer = null;
+
+        async function loadDashboardFivemStatus() {
+            const stats = document.getElementById('dashboard-fivem-stats');
+            const players = document.getElementById('dashboard-fivem-players');
+            const detail = document.getElementById('dashboard-fivem-stats-detail');
+            if (!stats || !players || !detail || typeof window.panelRequestJson !== 'function') return;
+
+            try {
+                const status = await window.panelRequestJson('fivem-status', {
+                    method: 'GET',
+                    timeoutMs: 8000,
+                    retry: true
+                });
+                const onlinePlayers = Number(status.players);
+                const maxPlayers = Number(status.maxPlayers);
+                if (status.online !== true || !Number.isFinite(onlinePlayers) || !Number.isFinite(maxPlayers)) {
+                    throw new Error('Statusul FiveM nu este disponibil.');
+                }
+
+                stats.classList.remove('is-offline');
+                players.textContent = `${onlinePlayers} / ${maxPlayers}`;
+                detail.textContent = 'jucători conectați';
+            } catch (error) {
+                console.warn('Status FiveM indisponibil:', error);
+                stats.classList.add('is-offline');
+                players.textContent = 'Indisponibil';
+                detail.textContent = 'status live indisponibil';
+            }
+        }
+
+        function startDashboardFivemStatus() {
+            clearInterval(dashboardFivemRefreshTimer);
+            loadDashboardFivemStatus();
+            dashboardFivemRefreshTimer = setInterval(loadDashboardFivemStatus, 60000);
+        }
 
         function configureDashboardAccess() {
             const allowedPages = typeof getAllowedPages === 'function' ? getAllowedPages() : null;
@@ -154,6 +197,7 @@
 
                 localStorage.setItem('discord_user', JSON.stringify(activeUser));
                 configureDashboardAccess();
+                startDashboardFivemStatus();
                 function scheduleDashboardRefresh() {
                     if (!dashboardDiscordId) return;
 

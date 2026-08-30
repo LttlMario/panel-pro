@@ -55,6 +55,9 @@ verify_jwt = false
 [functions.status-live-sync]
 verify_jwt = false
 
+[functions.fivem-status]
+verify_jwt = false
+
 [functions.mark-tutorial-read]
 verify_jwt = false
 

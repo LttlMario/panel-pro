@@ -37,6 +37,7 @@ $functions = @(
     'manage-contracts',
     'redeem-organization-voucher',
     'status-live-sync',
+    'fivem-status',
     'create-voucher-organization',
     'get-organization-status',
     'finalize-organization',

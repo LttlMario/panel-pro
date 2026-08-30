@@ -6,13 +6,21 @@
   padding: 1rem 1rem 2rem;
 }
 
+.dashboard-fivem-row {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.75rem;
+  width: min(100%, 45rem);
+}
+
 .dashboard-fivem-card {
   position: relative;
   isolation: isolate;
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  width: min(100%, 34rem);
+  flex: 1 1 34rem;
   min-height: 5.25rem;
   padding: 0.8rem 1rem 0.8rem 0.85rem;
   overflow: hidden;
@@ -25,6 +33,69 @@
   box-shadow: 0 1rem 2.25rem rgba(2, 6, 23, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   text-decoration: none;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.dashboard-fivem-stats {
+  display: flex;
+  flex: 0 0 10.5rem;
+  min-height: 5.25rem;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(96, 165, 250, 0.18), transparent 48%),
+    linear-gradient(135deg, rgba(15, 35, 63, 0.98), rgba(15, 23, 42, 0.98));
+  box-shadow: 0 1rem 2.25rem rgba(2, 6, 23, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.dashboard-fivem-stats-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #93c5fd;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dashboard-fivem-stats-dot {
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  background: #34d399;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.13);
+}
+
+.dashboard-fivem-stats-value {
+  color: #f8fafc;
+  font-size: 1.18rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.dashboard-fivem-stats-detail {
+  color: #94a3b8;
+  font-size: 0.68rem;
+  text-transform: lowercase;
+}
+
+.dashboard-fivem-stats.is-offline {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+}
+
+.dashboard-fivem-stats.is-offline .dashboard-fivem-stats-label {
+  color: #94a3b8;
+}
+
+.dashboard-fivem-stats.is-offline .dashboard-fivem-stats-dot {
+  background: #94a3b8;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
 }
 
 .dashboard-fivem-card::after {
@@ -146,6 +217,26 @@
   .dashboard-fivem-card {
     min-height: 4.8rem;
     padding-right: 0.8rem;
+  }
+
+  .dashboard-fivem-row {
+    flex-direction: column;
+  }
+
+  .dashboard-fivem-stats {
+    flex: 0 0 auto;
+    min-height: 4.35rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .dashboard-fivem-stats-label {
+    margin-right: auto;
+  }
+
+  .dashboard-fivem-stats-detail {
+    display: none;
   }
 
   .dashboard-fivem-icon {
