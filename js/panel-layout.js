@@ -20,7 +20,7 @@
 /* Stilurile sezoniere sunt introduse în head în timpul parsării, nu după
    încărcarea conținutului, pentru a elimina flash-ul temei originale. */
 if (document.readyState === 'loading' && document.head && !document.head.querySelector('link[data-panel-seasonal-theme]')) {
-    document.write('<link rel="stylesheet" href="css/seasonal-themes.css?v=1.9.1" data-panel-seasonal-theme="true">');
+    document.write('<link rel="stylesheet" href="css/seasonal-themes.css?v=2.0.0" data-panel-seasonal-theme="true">');
 }
 
 const panelNativeAndroid = /Android/i.test(navigator.userAgent || '') && (
@@ -606,7 +606,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         if (document.querySelector('link[data-panel-seasonal-theme]')) return;
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = 'css/seasonal-themes.css?v=1.9.1';
+        link.href = 'css/seasonal-themes.css?v=2.0.0';
         link.dataset.panelSeasonalTheme = 'true';
         document.head.appendChild(link);
     }
