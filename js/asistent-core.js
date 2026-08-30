@@ -454,12 +454,36 @@
             if (/\b(ce rol|rolul meu|ce functie|functia mea)\b/.test(query)) return { answer: `Rolul disponibil în sesiunea ta este „${roleName()}”. Rezultatele sunt filtrate exact după paginile permise organizației tale.` };
             if (/^(cat e ceasul|cat este ceasul|cat e ora|ce ora este|ce ora e|ora acum)$/.test(query)) return { answer: `Ora României este ${new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit' }).format(new Date())}.` };
             if (/^(unde|deschide|du ma|du ma|arata mi|mai multe|detalii|care pagina|pagina)\b/i.test(query) && lastMatch?.page) return { answer: `Informația anterioară se află în ${lastMatch.category || lastMatch.title}.`, page: lastMatch.page, title: lastMatch.title };
-            if (/\b(fivem|b zone|bzone|jucatori online|playeri online|server)\b/.test(query) && isPageAllowed('index.html')) return {
-                answer: 'Pe Dashboard găsești butonul de conectare directă la serverul B-Zone și indicatorul live cu numărul de jucători conectați din limita serverului.',
-                page: 'index.html',
-                title: 'Dashboard'
-            };
             return null;
+        }
+
+        async function liveServerResponse(question) {
+            const query = normalize(question);
+            if (!/\b(fivem|b zone|bzone|jucatori online|playeri online|server)\b/.test(query) || !isPageAllowed('index.html')) return null;
+
+            lastMatch = { page: 'index.html', title: 'Dashboard', category: 'Dashboard' };
+            try {
+                if (typeof window.panelRequestJson !== 'function') throw new Error('Statusul live nu este disponibil.');
+                const status = await window.panelRequestJson('fivem-status', {
+                    method: 'GET',
+                    timeoutMs: 8000,
+                    retry: true
+                });
+                const players = Number(status.players);
+                const maxPlayers = Number(status.maxPlayers);
+                if (status.online !== true || !Number.isFinite(players) || !Number.isFinite(maxPlayers)) throw new Error('Răspuns live invalid.');
+                return {
+                    answer: `B-Zone are acum ${Math.max(0, Math.round(players))} din ${Math.max(0, Math.round(maxPlayers))} jucători conectați. Poți apăsa butonul de pe Dashboard pentru conectare directă în FiveM.`,
+                    page: 'index.html',
+                    title: 'Dashboard'
+                };
+            } catch (_error) {
+                return {
+                    answer: 'Pe Dashboard găsești butonul de conectare directă la serverul B-Zone și indicatorul live cu numărul de jucători conectați din limita serverului.',
+                    page: 'index.html',
+                    title: 'Dashboard'
+                };
+            }
         }
 
         async function answer(question) {
@@ -467,6 +491,8 @@
             if (!cleanQuestion) return { answer: 'Scrie o întrebare despre panel și încerc să găsesc informația potrivită.' };
             const special = specialResponse(cleanQuestion);
             if (special) return special;
+            const live = await liveServerResponse(cleanQuestion);
+            if (live) return live;
 
             await refreshIndex();
             const pageMatch = exactPageMatch(cleanQuestion);
