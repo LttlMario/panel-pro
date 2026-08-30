@@ -317,18 +317,14 @@
             gap: 20px;
         }
 
-        .mechanic-result-layout {
-            display: none;
+        .croitorie-result-layout {
+            display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
             gap: 16px;
             align-items: start;
         }
 
-        .mechanic-result-layout.active {
-            display: grid;
-        }
-
-        .mechanic-result-preview {
+        .croitorie-result-preview {
             background-color: var(--bg-input);
             border: 1px solid var(--border-color);
             border-radius: var(--radius);
@@ -336,14 +332,14 @@
             text-align: center;
         }
 
-        .mechanic-result-preview-title {
+        .croitorie-result-preview-title {
             color: var(--text-main);
             font-size: 0.9rem;
             font-weight: 700;
             margin-bottom: 10px;
         }
 
-        .mechanic-result-preview img {
+        .croitorie-result-preview img {
             display: block;
             width: 100%;
             aspect-ratio: 1;
@@ -352,7 +348,7 @@
             background: rgba(15, 23, 42, 0.55);
         }
 
-        .mechanic-result-preview-trigger {
+        .croitorie-result-preview-trigger {
             display: block;
             width: 100%;
             padding: 0;
@@ -362,12 +358,12 @@
             cursor: zoom-in;
         }
 
-        .mechanic-result-preview-trigger:focus-visible {
+        .croitorie-result-preview-trigger:focus-visible {
             outline: 2px solid var(--success);
             outline-offset: 3px;
         }
 
-        .mechanic-image-lightbox {
+        .croitorie-image-lightbox {
             position: fixed;
             inset: 0;
             z-index: 1000;
@@ -377,11 +373,11 @@
             background: rgba(2, 6, 23, 0.88);
         }
 
-        .mechanic-image-lightbox[hidden] {
+        .croitorie-image-lightbox[hidden] {
             display: none;
         }
 
-        .mechanic-image-lightbox-content {
+        .croitorie-image-lightbox-content {
             position: relative;
             width: min(92vw, 760px);
             max-height: 92vh;
@@ -392,7 +388,7 @@
             box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
         }
 
-        .mechanic-image-lightbox-content img {
+        .croitorie-image-lightbox-content img {
             display: block;
             width: 100%;
             max-height: 78vh;
@@ -400,14 +396,14 @@
             border-radius: 8px;
         }
 
-        .mechanic-image-lightbox-title {
+        .croitorie-image-lightbox-title {
             margin-top: 12px;
             color: var(--text-main);
             text-align: center;
             font-weight: 700;
         }
 
-        .mechanic-image-lightbox-close {
+        .croitorie-image-lightbox-close {
             position: absolute;
             top: 8px;
             right: 8px;
@@ -418,6 +414,10 @@
             color: var(--text-main);
             background: rgba(15, 23, 42, 0.9);
             cursor: pointer;
+        }
+
+        body.calculator-image-preview-open {
+            overflow: hidden;
         }
 
         .result-box {
@@ -494,11 +494,11 @@
         }
 
         @media (max-width: 760px) {
-            .mechanic-result-layout {
+            .croitorie-result-layout {
                 grid-template-columns: 1fr;
             }
 
-            .mechanic-result-preview {
+            .croitorie-result-preview {
                 width: min(100%, 260px);
                 margin: 0 auto;
             }
@@ -636,15 +636,15 @@
                     <button type="button" class="mobile-edit-selection" onclick="showMobileCalculator()">✕ Închide rezultatele</button>
                     
                     <!-- Box 1: Necesar Ingrediente Directe -->
-                    <div class="mechanic-result-layout" id="mechanicResultLayout">
+                    <div class="croitorie-result-layout" id="croitorieResultLayout">
                         <div class="result-box" id="box_direct">
                             <h3>Necesar Specific Obiect Selectat (Ingrediente Directe)</h3>
                             <div class="grid-results" id="directResultsGrid"></div>
                         </div>
-                        <aside class="mechanic-result-preview" id="mechanicResultPreview" hidden aria-label="Imaginea obiectului selectat">
-                            <div class="mechanic-result-preview-title" id="mechanicResultPreviewTitle"></div>
-                            <button type="button" class="mechanic-result-preview-trigger" onclick="openMechanicalImagePreview()" aria-label="Mărește imaginea obiectului">
-                                <img id="mechanicResultPreviewImage" alt="" loading="lazy">
+                        <aside class="croitorie-result-preview" id="croitorieResultPreview" hidden aria-label="Imaginea obiectului de croitorie selectat">
+                            <div class="croitorie-result-preview-title" id="croitorieResultPreviewTitle"></div>
+                            <button type="button" class="croitorie-result-preview-trigger" onclick="openCroitorieImagePreview()" aria-label="Mărește imaginea obiectului de croitorie">
+                                <img id="croitorieResultPreviewImage" alt="" loading="lazy">
                             </button>
                         </aside>
                     </div>
@@ -705,11 +705,11 @@
                         </div>
                     </div>
                 </div>
-                <div class="mechanic-image-lightbox" id="mechanicImageLightbox" hidden onclick="closeMechanicalImagePreview(event)">
-                    <div class="mechanic-image-lightbox-content" role="dialog" aria-modal="true" aria-labelledby="mechanicImageLightboxTitle" onclick="event.stopPropagation()">
-                        <button type="button" class="mechanic-image-lightbox-close" onclick="closeMechanicalImagePreview()" aria-label="Închide imaginea mărită">✕</button>
-                        <img id="mechanicImageLightboxImage" alt="">
-                        <div class="mechanic-image-lightbox-title" id="mechanicImageLightboxTitle"></div>
+                <div class="croitorie-image-lightbox" id="croitorieImageLightbox" hidden onclick="closeCroitorieImagePreview(event)">
+                    <div class="croitorie-image-lightbox-content" role="dialog" aria-modal="true" aria-labelledby="croitorieImageLightboxTitle" onclick="event.stopPropagation()">
+                        <button type="button" class="croitorie-image-lightbox-close" onclick="closeCroitorieImagePreview()" aria-label="Închide imaginea mărită">✕</button>
+                        <img id="croitorieImageLightboxImage" alt="">
+                        <div class="croitorie-image-lightbox-title" id="croitorieImageLightboxTitle"></div>
                     </div>
                 </div>
             </div>
@@ -1210,6 +1210,17 @@ const upgradeChains = {
 
         };
 
+        const croitorieImageByItem = Object.freeze({
+            ata_x2: 'croitorie1.jpg',
+            sfoara: 'croitorie2.jpg',
+            fibra: 'croitorie3.jpg',
+            bandaj_improvizat: 'croitorie4.jpg',
+            fibra_kevlar: 'croitorie5.jpg',
+            armura_kevlar: 'croitorie6.jpg',
+            sac_fibra: 'croitorie7.jpg',
+            parasuta: 'croitorie8.jpg'
+        });
+
         const recipesMecanic = Object.fromEntries(
             (window.PANEL_CRAFT_MECHANIC_RECIPES || []).map(recipe => [recipe.id, recipe])
         );
@@ -1443,7 +1454,7 @@ const upgradeChains = {
 
         document.addEventListener('keydown', event => {
             if (event.key === 'Escape') {
-                closeMechanicalImagePreview();
+                closeCroitorieImagePreview();
                 showMobileCalculator();
             }
         });
@@ -1455,6 +1466,55 @@ const upgradeChains = {
                 .replace(/[^a-z0-9]/g, "_")
                 .replace(/_+/g, "_")
                 .replace(/^_|_$/g, "");
+        }
+
+        function updateCroitorieResultPreview(itemKey, recipe, hasCroitorieResults) {
+            const preview = document.getElementById('croitorieResultPreview');
+            const title = document.getElementById('croitorieResultPreviewTitle');
+            const image = document.getElementById('croitorieResultPreviewImage');
+            const imageFile = croitorieImageByItem[itemKey];
+
+            if (!preview || !title || !image || !hasCroitorieResults || !recipe?.name || !imageFile) {
+                if (preview) preview.hidden = true;
+                if (image) image.removeAttribute('src');
+                closeCroitorieImagePreview();
+                return;
+            }
+
+            title.textContent = recipe.name;
+            image.alt = recipe.name;
+            image.src = `img/${imageFile}`;
+            image.onerror = () => {
+                preview.hidden = true;
+                image.removeAttribute('src');
+                closeCroitorieImagePreview();
+            };
+            preview.hidden = false;
+        }
+
+        function openCroitorieImagePreview() {
+            const sourceImage = document.getElementById('croitorieResultPreviewImage');
+            const lightbox = document.getElementById('croitorieImageLightbox');
+            const lightboxImage = document.getElementById('croitorieImageLightboxImage');
+            const lightboxTitle = document.getElementById('croitorieImageLightboxTitle');
+            if (!sourceImage?.src || !lightbox || !lightboxImage || !lightboxTitle) return;
+
+            lightboxImage.src = sourceImage.src;
+            lightboxImage.alt = sourceImage.alt;
+            lightboxTitle.textContent = sourceImage.alt;
+            lightbox.hidden = false;
+            document.body.classList.add('calculator-image-preview-open');
+        }
+
+        function closeCroitorieImagePreview(event) {
+            if (event && event.target !== event.currentTarget) return;
+            const lightbox = document.getElementById('croitorieImageLightbox');
+            const lightboxImage = document.getElementById('croitorieImageLightboxImage');
+            if (!lightbox) return;
+
+            lightbox.hidden = true;
+            if (lightboxImage) lightboxImage.removeAttribute('src');
+            document.body.classList.remove('calculator-image-preview-open');
         }
         function addRawMaterial(materialName, amount, accumulated) {
             const normalizedMaterial = getNormalizedKey(materialName);
@@ -1625,55 +1685,7 @@ const upgradeChains = {
         }
 
         
-        function updateMechanicalResultPreview(recipe, hasResults) {
-            const layout = document.getElementById('mechanicResultLayout');
-            const preview = document.getElementById('mechanicResultPreview');
-            const title = document.getElementById('mechanicResultPreviewTitle');
-            const image = document.getElementById('mechanicResultPreviewImage');
-
-            if (!layout || !preview || !title || !image || !recipe?.image) {
-                layout?.classList.toggle('active', Boolean(hasResults));
-                if (preview) preview.hidden = true;
-                closeMechanicalImagePreview();
-                return;
-            }
-
-            title.textContent = recipe.name || '';
-            image.alt = recipe.name || 'Imagine obiect craft mecanic';
-            image.src = `img/${recipe.image}`;
-            image.onerror = () => {
-                layout.classList.remove('active');
-                preview.hidden = true;
-                closeMechanicalImagePreview();
-            };
-            preview.hidden = false;
-            layout.classList.add('active');
-        }
-
-        function openMechanicalImagePreview() {
-            const sourceImage = document.getElementById('mechanicResultPreviewImage');
-            const lightbox = document.getElementById('mechanicImageLightbox');
-            const lightboxImage = document.getElementById('mechanicImageLightboxImage');
-            const lightboxTitle = document.getElementById('mechanicImageLightboxTitle');
-            if (!sourceImage?.src || !lightbox || !lightboxImage || !lightboxTitle) return;
-
-            lightboxImage.src = sourceImage.src;
-            lightboxImage.alt = sourceImage.alt;
-            lightboxTitle.textContent = sourceImage.alt;
-            lightbox.hidden = false;
-            document.body.classList.add('calculator-image-preview-open');
-        }
-
-        function closeMechanicalImagePreview(event) {
-            if (event && event.target !== event.currentTarget) return;
-            const lightbox = document.getElementById('mechanicImageLightbox');
-            const lightboxImage = document.getElementById('mechanicImageLightboxImage');
-            if (!lightbox) return;
-
-            lightbox.hidden = true;
-            if (lightboxImage) lightboxImage.removeAttribute('src');
-            document.body.classList.remove('calculator-image-preview-open');
-        }
+        
 
         function calculateAll() {
             const masaItemKey = document.getElementById('masaItemSelect').value;
@@ -1689,7 +1701,6 @@ const upgradeChains = {
             let activeQty = 0;
             let directCost = {};
             let incompleteRecipe = false;
-            let selectedMechanicalRecipe = null;
             
             let accumulated = {};
             materialKeys.forEach(m => accumulated[m] = 0);
@@ -1804,7 +1815,6 @@ const upgradeChains = {
                 hasItem = true;
                 activeQty = parseFloat(mecanicQtyVal);
                 const currentRecipe = recipesMecanic[mecanicItemKey];
-                selectedMechanicalRecipe = currentRecipe || null;
 
                 if (currentRecipe?.incomplete || !currentRecipe?.base) {
                     incompleteRecipe = true;
@@ -1818,7 +1828,11 @@ const upgradeChains = {
             const boxDirect = document.getElementById('box_direct');
             const boxRawMaterials = document.getElementById('box_raw_materials');
             const directGrid = document.getElementById('directResultsGrid');
-            updateMechanicalResultPreview(selectedMechanicalRecipe, hasItem);
+            updateCroitorieResultPreview(
+                croitorItemKey,
+                recipesCroitor[croitorItemKey],
+                croitorQtyVal !== '' && !isNaN(croitorQtyVal) && parseFloat(croitorQtyVal) > 0
+            );
 
                 materialKeys.forEach(materialName => {
 
