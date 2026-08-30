@@ -39,6 +39,19 @@
                         <p class="text-[10px] text-slate-600">Asistentul folosește numai conținutul local permis rolului tău și poate spune când nu găsește informația.</p>
                     </div>
                 </section>
+
+                <section id="assistant-feedback-admin" hidden class="mt-4 max-w-5xl mx-auto rounded-2xl border border-amber-500/20 bg-slate-900 shadow-xl">
+                    <div class="flex flex-col gap-3 border-b border-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-200">Feedback roboțel</p>
+                            <p id="assistant-feedback-summary" class="text-[10px] text-slate-500">Doar pentru administratori</p>
+                        </div>
+                        <button id="assistant-feedback-refresh" type="button" class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-300 hover:text-white">Actualizează</button>
+                    </div>
+                    <div id="assistant-feedback-list" class="max-h-96 space-y-2 overflow-y-auto p-4">
+                        <p class="text-xs text-slate-500">Se încarcă feedback-ul…</p>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -46,8 +59,8 @@
     <script src="js/craft-mechanic-recipes.js?v=4.9.0"></script>
     <script src="js/asistent-data.js?v=4.9.0"></script>
     <script src="js/asistent-calculator-data.js?v=4.9.0"></script>
-    <script src="js/asistent-core.js?v=4.9.0"></script>
-    <script src="js/asistent.js?v=4.9.0"></script>
+    <script src="js/asistent-core.js?v=4.9.1"></script>
+    <script src="js/asistent.js?v=4.9.1"></script>
     <script src="js/global-footer.js"></script>
 </body>
 </html>

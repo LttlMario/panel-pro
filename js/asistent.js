@@ -115,6 +115,27 @@
         ].filter(([, page]) => engine?.isPageAllowed(page)).map(([question]) => question);
     }
 
+    function escapeHtml(value) {
+        return String(value || '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+    }
+
+    function renderAdminFeedback(payload) {
+        const panel = document.getElementById('assistant-feedback-admin');
+        const list = document.getElementById('assistant-feedback-list');
+        const summary = document.getElementById('assistant-feedback-summary');
+        const rows = Array.isArray(payload?.feedback) ? payload.feedback : [];
+        if (!panel || !list || !summary) return;
+        panel.hidden = false;
+        const useful = rows.filter((item) => item.helpful).length;
+        summary.textContent = `${rows.length} răspunsuri · ${useful} utile · ${rows.length - useful} neconvingătoare`;
+        list.innerHTML = rows.length ? rows.map((item) => `<article class="rounded-xl border border-slate-800 bg-slate-950/60 p-3"><div class="flex flex-wrap items-center justify-between gap-2"><span class="text-xs font-semibold text-slate-200">${escapeHtml(item.author)}</span><span class="text-[10px] ${item.helpful ? 'text-emerald-400' : 'text-rose-300'}">${item.helpful ? 'Răspuns util' : 'Nu a ajutat'}</span></div><p class="mt-2 text-xs text-slate-300"><span class="text-slate-500">Întrebare:</span> ${escapeHtml(item.question)}</p><p class="mt-1 whitespace-pre-wrap text-xs text-slate-400"><span class="text-slate-500">Răspuns:</span> ${escapeHtml(item.answer)}</p><p class="mt-2 text-[10px] text-slate-600">${escapeHtml(item.page || 'fără pagină')} · ${item.created_at ? new Date(item.created_at).toLocaleString('ro-RO') : ''}</p></article>`).join('') : '<p class="text-xs text-slate-500">Nu există feedback încă.</p>';
+    }
+
+    async function loadAdminFeedback() {
+        const payload = await engine?.loadFeedback();
+        if (payload) renderAdminFeedback(payload);
+    }
+
     function initialize() {
         const form = document.getElementById('assistant-form');
         if (!form || !window.PanelAssistantCore) return;
@@ -157,6 +178,9 @@
             if (input) input.value = '';
             queueQuestion(value);
         });
+
+        loadAdminFeedback();
+        document.getElementById('assistant-feedback-refresh')?.addEventListener('click', loadAdminFeedback);
 
         document.getElementById('assistant-clear')?.addEventListener('click', () => {
             const messages = document.getElementById('assistant-messages');

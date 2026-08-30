@@ -737,6 +737,15 @@
             } catch (_error) { return false; }
         }
 
+        async function loadFeedback() {
+            if (typeof window.panelRequestJson !== 'function') return null;
+            try {
+                return await window.panelRequestJson('assistant-live?mode=feedback', {
+                    method: 'GET', timeoutMs: 8000, retry: false
+                });
+            } catch (_error) { return null; }
+        }
+
         return {
             roleName: roleName(),
             user,
@@ -746,6 +755,7 @@
             findPageMatches,
             isPageAllowed,
             sendFeedback,
+            loadFeedback,
             repairText,
             getEntryCount: () => entries.length
         };
