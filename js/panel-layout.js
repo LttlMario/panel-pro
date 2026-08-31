@@ -607,7 +607,14 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     }
 
     function ensureSeasonalThemeStyles() {
-        if (document.querySelector('link[data-panel-seasonal-theme]')) return;
+        const existing = document.querySelector('link[data-panel-seasonal-theme]');
+        if (existing) {
+            /* Linkul este introdus în head înainte de primul paint. După ce
+               stilurile comune au fost adăugate, îl mutăm la final pentru ca
+               tema activă să nu fie suprascrisă de stiluri generice. */
+            document.head.appendChild(existing);
+            return;
+        }
         const link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href = 'css/seasonal-themes.css?v=3.0.0';
