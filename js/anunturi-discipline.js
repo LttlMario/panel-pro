@@ -65,7 +65,11 @@
       ? 'Avertismentele sunt numărate separat pentru fiecare angajat sau organizație.'
       : 'Sancțiunile sunt create manual după atingerea pragului de 3 avertismente active.';
     $('discipline-feed').innerHTML = rows.length ? rows.map((row) => card(row, kind === 'warnings' ? 'warning' : 'sanction')).join('') : '<div class="empty">Nu există înregistrări în această categorie.</div>';
-    $('discipline-feed').querySelectorAll('[data-discipline-resolve]').forEach((button) => {
+    bindDisciplineActions($('discipline-feed'));
+  }
+
+  function bindDisciplineActions(root = document) {
+    root.querySelectorAll('[data-discipline-resolve]').forEach((button) => {
       button.addEventListener('click', async () => {
         const kindValue = button.dataset.kind;
         const status = kindValue === 'sanction' ? 'paid' : 'resolved';
@@ -75,7 +79,7 @@
         catch (error) { notice(error.message, 'error'); button.disabled = false; }
       });
     });
-    $('discipline-feed').querySelectorAll('[data-discipline-delete]').forEach((button) => {
+    root.querySelectorAll('[data-discipline-delete]').forEach((button) => {
       button.addEventListener('click', async () => {
         if (!window.confirm('Ștergi definitiv această înregistrare disciplinară?')) return;
         button.disabled = true;
@@ -107,7 +111,7 @@
 
   function updateCreateButton() {
     const canCreate = hasWrite('departments') || hasWrite('organization') || hasSanction('departments') || hasSanction('organization');
-    $('discipline-create-button').hidden = !canCreate;
+    $('discipline-create-button').hidden = true;
     const warningOption = $('discipline-kind')?.querySelector('option[value="warning"]');
     const sanctionOption = $('discipline-kind')?.querySelector('option[value="sanction"]');
     if (warningOption) warningOption.hidden = !hasWrite('departments') && !hasWrite('organization');
@@ -146,12 +150,32 @@
     await loadTargets();
   }
 
+  window.communityDisciplineApi = {
+    getEntries: () => [
+      ...state.warnings.map((row) => ({ ...row, record_kind: 'warning' })),
+      ...state.sanctions.map((row) => ({ ...row, record_kind: 'sanction' }))
+    ],
+    getAccess: () => state.access || {},
+    renderCard: (entry) => card(entry, entry.record_kind || entry.kind || 'warning'),
+    bindRenderedCards: (root = document) => bindDisciplineActions(root),
+    openComposer: async (kind = 'warning') => {
+      await openModal();
+      const option = $('discipline-kind')?.querySelector(`option[value="${kind}"]`);
+      if (option && !option.hidden) {
+        $('discipline-kind').value = kind;
+        $('sanction-fields').hidden = kind !== 'sanction';
+        await loadTargets();
+      }
+    }
+  };
+
   async function load() {
     try {
       const result = await call({ action: 'discipline_list' });
       state.warnings = result.warnings || [];
       state.sanctions = result.sanctions || [];
       state.access = result.access || {};
+      window.dispatchEvent(new CustomEvent('community:discipline-updated'));
       document.querySelectorAll('[data-discipline-filter]').forEach((button) => {
         const visible = button.dataset.disciplineFilter === 'warnings'
           ? state.warnings.length > 0 || hasWrite('departments') || hasWrite('organization')

@@ -8,13 +8,13 @@
   let isPlatformAdmin = false;
   let readAudiences = [];
   let writeAudiences = [];
+  let announcementAccess = { read: false, write: false };
   let organizationId = null;
   let organizationReady = null;
   let loadPromise = null;
   const communityQueryTimeoutMs = 15000;
-  const announcementCacheTtlMs = 120000;
   const $=s=>document.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const invoke=async(body)=>{const token=window.getPanelDiscordAccessToken?.()||'',panelSession=localStorage.getItem('panel_session_token')||'';if(!panelSession){requestFreshLogin();throw new Error('Sesiunea securizată a panelului lipsește. Autentifică-te din nou.')}const controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),communityQueryTimeoutMs);let res;try{res=await fetch(`${URL}/functions/v1/manage-community-posts`,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:`Bearer ${KEY}`,'x-panel-session':panelSession},body:JSON.stringify({...body,...(token?{access_token:token}:{})}),signal:controller.signal})}catch(error){if(error?.name==='AbortError')throw new Error('Verificarea permisiunilor a durat prea mult. Verifică internetul și încearcă din nou.');if(error instanceof TypeError)throw new Error('Nu pot contacta Supabase pentru această acțiune. Verifică internetul și încearcă din nou.');throw error}finally{window.clearTimeout(timeout)}let json={};try{json=await res.json()}catch{json={}}if(res.status===401){requestFreshLogin();throw new Error('Sesiunea panelului a expirat. Autentifică-te din nou.')}if(!res.ok){
+  const invoke=async(body)=>{const token=window.getPanelDiscordAccessToken?.()||'',panelSession=localStorage.getItem('panel_session_token')||'';if(!panelSession){requestFreshLogin();throw new Error('Sesiunea securizată a panelului lipsește. Autentifică-te din nou.')}const controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),communityQueryTimeoutMs);let res;try{res=await fetch(`${URL}/functions/v1/manage-community-posts`,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:`Bearer ${KEY}`,'x-panel-session':panelSession},body:JSON.stringify({...body,...(token?{access_token:token}:{})}),signal:controller.signal})}catch(error){if(error?.name==='AbortError')throw new Error('Verificarea permisiunilor a durat prea mult. Verifică internetul și încearcă din nou.');throw error}finally{window.clearTimeout(timeout)}let json={};try{json=await res.json()}catch{json={}}if(res.status===401){requestFreshLogin();throw new Error('Sesiunea panelului a expirat. Autentifică-te din nou.')}if(!res.ok){
     console.error("EDGE ERROR RESPONSE:", json);
     throw new Error(
         json.error ||
@@ -24,11 +24,8 @@
     );
 }return json};
   const showFeedMessage=(message,retry=false)=>{const feed=$('#feed');if(!feed)return;feed.innerHTML=`<div class="empty">${esc(message)}${retry?'<br><button type="button" class="btn secondary" data-retry-community style="margin-top:14px">Încearcă din nou</button>':''}</div>`;feed.querySelector('[data-retry-community]')?.addEventListener('click',()=>load())};
-  async function runCommunityQuery(factory, timeoutMessage='Încărcarea anunțurilor a durat prea mult.'){const controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),communityQueryTimeoutMs);try{return await factory(controller.signal)}catch(error){if(error?.name==='AbortError')throw new Error(timeoutMessage);if(error instanceof TypeError)throw new Error('Supabase răspunde greu sau conexiunea a fost întreruptă. Încearcă din nou.');throw error}finally{window.clearTimeout(timeout)}}
+  async function runCommunityQuery(factory, timeoutMessage='Încărcarea anunțurilor a durat prea mult.'){const controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),communityQueryTimeoutMs);try{return await factory(controller.signal)}catch(error){if(error?.name==='AbortError')throw new Error(timeoutMessage);throw error}finally{window.clearTimeout(timeout)}}
   function requestFreshLogin(){sessionStorage.setItem('panel_return_after_login',location.href);setTimeout(()=>{location.href='login.html?v=20260819-session-return-fix'},700)}
-  function announcementCacheKey(){return `panel-announcements:${organizationId}:${user.discord_id||user.id||'session'}:${readAudiences.slice().sort().join(',')}`}
-  function loadAnnouncementCache(){try{const cached=JSON.parse(sessionStorage.getItem(announcementCacheKey())||'null');if(!cached||Date.now()-Number(cached.savedAt)>announcementCacheTtlMs||!Array.isArray(cached.posts))return false;posts=cached.posts;render();return true}catch(error){console.warn('Cache-ul local pentru anunțuri nu este disponibil:',error);return false}}
-  function saveAnnouncementCache(){try{sessionStorage.setItem(announcementCacheKey(),JSON.stringify({savedAt:Date.now(),posts}))}catch(error){console.warn('Cache-ul local pentru anunțuri nu a putut fi salvat:',error)}}
   async function loadAnnouncementAccess() {
       try {
           const access = await invoke({ action: 'announcement_access', section: 'announcements' });
@@ -40,8 +37,11 @@
           isPlatformAdmin = access?.platform_admin === true;
           readAudiences = Array.isArray(access?.read_audiences) ? access.read_audiences.map(String).filter(Boolean) : [];
           writeAudiences = Array.isArray(access?.write_audiences) ? access.write_audiences.map(String).filter(Boolean) : [];
+          configureAudienceChoices();
+          window.dispatchEvent(new CustomEvent('community:permissions-updated'));
 
           if (!canRead) {
+              announcementAccess = { read: false, write: false };
               showFeedMessage('Nu ai permisiunea de a accesa Anunțuri & Sondaje.');
 
             canWriteAnnouncements = false;
@@ -54,6 +54,7 @@
           }
 
           $('#create-button').hidden = !canWrite;
+          announcementAccess = { read: true, write: canWrite };
 
           return {
               read: true,
@@ -103,7 +104,7 @@ async function loadNow() {
     if (!postIds.length) {
         posts = [];
         render();
-        saveAnnouncementCache();
+        window.dispatchEvent(new CustomEvent('community:posts-updated'));
         return;
     }
 
@@ -160,7 +161,7 @@ async function loadNow() {
     }));
 
     render();
-    saveAnnouncementCache();
+    window.dispatchEvent(new CustomEvent('community:posts-updated'));
 
     const wanted =
         new URLSearchParams(location.search).get('post');
@@ -183,7 +184,7 @@ async function loadNow() {
 }
 async function load(){
     if (loadPromise) return loadPromise;
-    loadPromise = Promise.resolve().then(() => { loadAnnouncementCache(); return loadNow(); }).catch((error) => {
+    loadPromise = loadNow().catch((error) => {
         console.error('Eroare neașteptată la încărcarea anunțurilor:', error);
         showFeedMessage(error.message || 'Anunțurile nu au putut fi încărcate momentan.', true);
     }).finally(() => { loadPromise = null; });
@@ -224,9 +225,31 @@ async function load(){
         alert(e.message)
     }
 }
+  function configureAudienceChoices() {
+    $$('[data-audience]').forEach((button) => { button.hidden = !writeAudiences.includes(button.dataset.audience); });
+  }
   function option(value=''){const row=document.createElement('div');row.className='poll-option-row';row.innerHTML=`<input class="poll-input" maxlength="120" value="${esc(value)}" placeholder="Opțiune"><button type="button" class="text-action danger">×</button>`;row.querySelector('button').onclick=()=>row.remove();$('#poll-options').appendChild(row)}
   function openEdit(id){const p=posts.find(x=>String(x.id)===String(id));editing=p.id;$('#form-heading').textContent='Editează postarea';$('#post-type').value=p.post_type;$('#post-type').disabled=true;$('#post-title').value=p.title;$('#post-content').value=p.content;$('#poll-wrap').hidden=p.post_type!=='poll';$('#poll-options').innerHTML='';(p.community_poll_options||[]).sort((a,b)=>a.position-b.position).forEach(o=>option(o.option_text));$('#post-modal').hidden=false}
- function closePostComposer(){ $('#post-modal').hidden=true; $('#audience-modal').hidden=true; draft=null; editing=null; }
+  function closePostComposer(){ $('#post-modal').hidden=true; $('#audience-modal').hidden=true; draft=null; editing=null; }
+  function openAnnouncementComposer(type = 'announcement') {
+    if (!canWriteAnnouncements) { alert('Nu ai permisiunea de a publica anunțuri sau sondaje.'); return; }
+    editing = null;
+    $('#post-form').reset();
+    $('#post-type').disabled = false;
+    $('#post-type').value = type;
+    $('#poll-options').innerHTML = '';
+    $('#poll-wrap').hidden = type !== 'poll';
+    if (type === 'poll') { option(); option(); }
+    $('#post-modal').hidden = false;
+  }
+  window.communityAnnouncementsApi = {
+    getPosts: () => posts.slice(),
+    getAccess: () => ({ ...announcementAccess, readAudiences: readAudiences.slice(), writeAudiences: writeAudiences.slice() }),
+    renderCard: (post) => card(post),
+    bindRenderedCards: (root = document) => bindCards.call(null, root),
+    openComposer: openAnnouncementComposer,
+    configureAudienceChoices
+  };
  document.addEventListener('DOMContentLoaded', async () => {
     organizationReady = (async () => {
         if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
@@ -251,22 +274,10 @@ async function load(){
         return;
     }
     $('#create-button').onclick = () => {
-
-    if (!canWriteAnnouncements) {
-        alert('Nu ai permisiunea de a publica anunțuri sau sondaje.');
-        return;
-    }
-
-    editing = null;
-
-    $('#post-form').reset();
-    $('#post-type').disabled = false;
-    $('#poll-options').innerHTML = '';
-    $('#poll-wrap').hidden = true;
-
-    $('#post-modal').hidden = false;
-};
-$('#post-type').onchange=e=>{$('#poll-wrap').hidden=e.target.value!=='poll';if(e.target.value==='poll'&&!$('#poll-options').children.length){option();option()}};$('#add-option').onclick=()=>option();$('#post-form').onsubmit=e=>{e.preventDefault();const options=$$('.poll-input').map(x=>x.value.trim()).filter(Boolean);if($('#post-type').value==='poll'&&options.length<2)return alert('Adaugă minimum două opțiuni.');draft={post_type:$('#post-type').value,title:$('#post-title').value.trim(),content:$('#post-content').value.trim(),options};if(editing)return act('update',{post_id:editing,...draft}).then(()=>$('#post-modal').hidden=true);$('#post-modal').hidden=true;$('#audience-modal').hidden=false};$$('[data-audience]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await act('create',{...draft,audience:b.dataset.audience});$('#audience-modal').hidden=true}catch(e){alert(e.message)}finally{b.disabled=false}});$$('[data-filter]').forEach(b=>b.onclick=()=>{$$('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
+      if (typeof window.openUnifiedCreate === 'function') return window.openUnifiedCreate();
+      openAnnouncementComposer();
+    };
+$('#post-type').onchange=e=>{$('#poll-wrap').hidden=e.target.value!=='poll';if(e.target.value==='poll'&&!$('#poll-options').children.length){option();option()}};$('#add-option').onclick=()=>option();$('#post-form').onsubmit=e=>{e.preventDefault();const options=$$('.poll-input').map(x=>x.value.trim()).filter(Boolean);if($('#post-type').value==='poll'&&options.length<2)return alert('Adaugă minimum două opțiuni.');draft={post_type:$('#post-type').value,title:$('#post-title').value.trim(),content:$('#post-content').value.trim(),options};if(editing)return act('update',{post_id:editing,...draft}).then(()=>$('#post-modal').hidden=true);$('#post-modal').hidden=true;configureAudienceChoices();$('#audience-modal').hidden=false};$$('[data-audience]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await act('create',{...draft,audience:b.dataset.audience});$('#audience-modal').hidden=true}catch(e){alert(e.message)}finally{b.disabled=false}});$$('[data-filter]').forEach(b=>b.onclick=()=>{$$('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
     load();
 
     db

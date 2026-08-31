@@ -28,8 +28,16 @@
   function render() {
     const host = $('actions-feed');
     if (!host) return;
-    host.innerHTML = state.actions.length ? state.actions.map((row) => `<article class="discipline-card is-active"><div class="discipline-card-head"><div><span class="badge organization">${esc(typeLabel(row))}</span><span class="badge">${esc(row.guild_name || row.guild_id || 'Guild Discord')}</span></div><span class="discipline-status">${new Date(row.created_at).toLocaleDateString('ro-RO')}</span></div><h4>${esc(row.action_label)}</h4>${row.description ? `<p class="discipline-reason">${esc(row.description)}</p>` : ''}<p class="discipline-notes"><b>Participanți:</b> ${row.participants?.length ? row.participants.map((item) => esc(item.name)).join(', ') : 'Nespecificați'}</p>${row.notes ? `<p class="discipline-notes">${esc(row.notes)}</p>` : ''}<div class="meta">Înregistrată de ${esc(row.created_by_name || row.created_by_discord_id)} · ${new Date(row.created_at).toLocaleString('ro-RO')}</div>${state.access.delete ? `<div class="owner-actions"><button class="text-action danger" data-actions-delete="${esc(row.id)}">Șterge</button></div>` : ''}</article>`).join('') : '<div class="empty">Nu există acțiuni înregistrate.</div>';
-    host.querySelectorAll('[data-actions-delete]').forEach((button) => button.addEventListener('click', async () => {
+    host.innerHTML = state.actions.length ? state.actions.map(actionCard).join('') : '<div class="empty">Nu există acțiuni înregistrate.</div>';
+    bindActionDeletes(host);
+  }
+
+  function actionCard(row) {
+    return `<article class="discipline-card is-active"><div class="discipline-card-head"><div><span class="badge organization">${esc(typeLabel(row))}</span><span class="badge">${esc(row.guild_name || row.guild_id || 'Guild Discord')}</span></div><span class="discipline-status">${new Date(row.created_at).toLocaleDateString('ro-RO')}</span></div><h4>${esc(row.action_label)}</h4>${row.description ? `<p class="discipline-reason">${esc(row.description)}</p>` : ''}<p class="discipline-notes"><b>Participanți:</b> ${row.participants?.length ? row.participants.map((item) => esc(item.name)).join(', ') : 'Nespecificați'}</p>${row.notes ? `<p class="discipline-notes">${esc(row.notes)}</p>` : ''}<div class="meta">Înregistrată de ${esc(row.created_by_name || row.created_by_discord_id)} · ${new Date(row.created_at).toLocaleString('ro-RO')}</div>${state.access.delete ? `<div class="owner-actions"><button class="text-action danger" data-actions-delete="${esc(row.id)}">Șterge</button></div>` : ''}</article>`;
+  }
+
+  function bindActionDeletes(root = document) {
+    root.querySelectorAll('[data-actions-delete]').forEach((button) => button.addEventListener('click', async () => {
       if (!confirm('Ștergi definitiv această acțiune?')) return;
       button.disabled = true;
       try { await call({ action: 'actions_delete', id: button.dataset.actionsDelete }); await load(); notice('Acțiunea a fost ștearsă.'); }
@@ -73,9 +81,16 @@
     notice('Exportul clasamentului a fost descărcat.');
   }
   async function load() {
-    try { const access = await call({ action: 'actions_access' }); state.access = access || {}; if (!state.access.read && !state.access.write && !state.access.delete) throw new Error('Nu ai acces la modulul Acțiuni.'); const result = state.access.read ? await call({ action: 'actions_list' }) : { actions: [] }; state.actions = result.actions || []; state.guilds = result.guilds || []; $('actions-tab')?.removeAttribute('hidden'); $('actions-create-button').hidden = !state.access.write; $('actions-report-days').closest('.actions-report-toolbar').hidden = !state.access.read; $('actions-summary').innerHTML = `<div class="discipline-metrics"><span>${state.actions.length} acțiuni salvate</span><span>${state.access.write ? 'Poți adăuga acțiuni' : 'Doar vizualizare'}</span><span>Clasamentul se calculează după participanții selectați</span></div>`; if (state.open) { render(); await loadReport(); } }
+    try { const access = await call({ action: 'actions_access' }); state.access = access || {}; if (!state.access.read && !state.access.write && !state.access.delete) throw new Error('Nu ai acces la modulul Acțiuni.'); const result = state.access.read ? await call({ action: 'actions_list' }) : { actions: [] }; state.actions = result.actions || []; state.guilds = result.guilds || []; $('actions-tab')?.removeAttribute('hidden'); $('actions-create-button').hidden = true; $('actions-report-days').closest('.actions-report-toolbar').hidden = !state.access.read; $('actions-summary').innerHTML = `<div class="discipline-metrics"><span>${state.actions.length} acțiuni salvate</span><span>${state.access.write ? 'Poți adăuga acțiuni' : 'Doar vizualizare'}</span><span>Clasamentul se calculează după participanții selectați</span></div>`; window.dispatchEvent(new CustomEvent('community:actions-updated')); if (state.open) { render(); await loadReport(); } }
     catch (error) { state.access = {}; $('actions-tab')?.setAttribute('hidden', ''); $('actions-create-button').hidden = true; if (state.open) notice(`Modulul Acțiuni nu este disponibil: ${error.message}`, true); }
   }
+  window.communityActionsApi = {
+    getActions: () => state.actions.slice(),
+    getAccess: () => ({ ...state.access }),
+    renderCard: actionCard,
+    bindRenderedCards: (root = document) => bindActionDeletes(root),
+    openComposer: openModal
+  };
   function show() { state.open = true; $('feed').hidden = true; $('discipline-panel').hidden = true; $('actions-panel').hidden = false; document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active')); document.querySelector('[data-actions-filter]')?.classList.add('active'); render(); load(); }
   function hide() { state.open = false; $('actions-panel').hidden = true; $('feed').hidden = false; }
   document.addEventListener('DOMContentLoaded', () => {
