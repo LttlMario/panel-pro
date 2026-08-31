@@ -29,7 +29,9 @@
   function updateVisibility() {
     const announcementAccess = announcements()?.getAccess?.() || {};
     const readableAudiences = announcementAccess.readAudiences || [];
-    const disciplineReadable = hasRead('departments') || hasRead('organization');
+    const disciplineReadable = communityPageAudience
+      ? hasRead(communityPageAudience)
+      : hasRead('departments') || hasRead('organization');
     const actionsReadable = communityPageAudience !== 'departments' && Boolean(actions()?.getAccess?.()?.read);
     const tabs = document.querySelectorAll('[data-filter]');
     tabs.forEach((tab) => {
