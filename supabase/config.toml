@@ -31,6 +31,9 @@ verify_jwt = false
 [functions.send-weekly-contract-export]
 verify_jwt = false
 
+[functions.send-weekly-action-report]
+verify_jwt = false
+
 [functions.send-organization-expiry-notifications]
 verify_jwt = false
 

@@ -4,7 +4,7 @@
   const config = window.PANEL_SUPABASE_CONFIG;
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-  const state = { actions: [], guilds: [], members: [], access: {}, open: false };
+  const state = { actions: [], stats: null, guilds: [], members: [], access: {}, open: false };
   const call = async (body) => {
     const response = await fetch(`${config.url}/functions/v1/manage-community-posts`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': localStorage.getItem('panel_session_token') || '' }, body: JSON.stringify(body) });
     const result = await response.json().catch(() => ({}));
@@ -13,6 +13,18 @@
   };
   const notice = (message, error = false) => { const host = $('actions-summary'); if (host) host.innerHTML = `<div class="discipline-notice ${error ? 'error' : 'success'}">${esc(message)}</div>`; };
   const typeLabel = (row) => row.action_label || row.action_type || 'Acțiune';
+
+  function renderReport() {
+    const host = $('actions-leaderboard');
+    const report = state.stats;
+    if (!host || !report) return;
+    const totals = report.totals || {};
+    const period = report.period || {};
+    const topTypes = (report.by_type || []).slice(0, 4).map((item) => `${esc(item.label)} · ${item.count}`).join(' &nbsp;·&nbsp; ') || 'Nicio activitate';
+    const rows = (report.ranking || []).map((person, index) => `<tr><td><span class="actions-rank">${index + 1}</span></td><td><strong>${esc(person.name)}</strong><small>${esc(person.discord_id)}</small></td><td>${person.participations}</td><td>${person.distinct_actions}</td><td>${Object.entries(person.action_types || {}).map(([label, count]) => `${esc(label)} ×${count}`).join(', ') || '—'}</td><td>${person.last_activity_at ? new Date(person.last_activity_at).toLocaleString('ro-RO') : '—'}</td></tr>`).join('');
+    host.innerHTML = `<div class="actions-report-head"><div><p class="actions-report-kicker">CLASAMENT IMPLICARE · ${period.start ? new Date(period.start).toLocaleDateString('ro-RO') : '—'} – ${period.end ? new Date(period.end).toLocaleDateString('ro-RO') : '—'}</p><h4>Cine este cel mai implicat</h4><p class="muted">${totals.people || 0} persoane · ${totals.participations || 0} participări · ${totals.actions || 0} acțiuni</p></div><span class="actions-report-types">${topTypes}</span></div>${rows ? `<div class="actions-table-wrap"><table class="actions-table"><thead><tr><th>#</th><th>Membru</th><th>Participări</th><th>Acțiuni distincte</th><th>Tipuri</th><th>Ultima activitate</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">Nu există participanți în perioada aleasă.</div>'}`;
+  }
+
   function render() {
     const host = $('actions-feed');
     if (!host) return;
@@ -24,6 +36,7 @@
       catch (error) { notice(error.message, true); button.disabled = false; }
     }));
   }
+
   function fillGuilds() {
     const select = $('actions-guild');
     select.innerHTML = state.guilds.length ? state.guilds.map((guild) => `<option value="${esc(guild.guild_id)}">${esc(guild.guild_name || guild.guild_id)}${guild.kind === 'secondary' ? ' · secundar' : ''}</option>`).join('') : '<option value="">Nu există Guild configurat</option>';
@@ -41,8 +54,26 @@
     try { const result = await call({ action: 'actions_guilds' }); state.guilds = result.guilds || []; fillGuilds(); if (state.guilds.length) await loadMembers(); }
     catch (error) { closeModal(); notice(error.message, true); }
   }
+  async function loadReport() {
+    if (!state.access.read) return;
+    const days = Number($('actions-report-days')?.value || 7);
+    const host = $('actions-leaderboard');
+    if (host) host.innerHTML = '<div class="empty">Se calculează clasamentul…</div>';
+    try { state.stats = await call({ action: 'actions_stats', days }); renderReport(); }
+    catch (error) { if (host) host.innerHTML = `<div class="discipline-notice error">${esc(error.message)}</div>`; }
+  }
+  function exportReport() {
+    const ranking = state.stats?.ranking || [];
+    if (!ranking.length) { notice('Nu există date de exportat pentru perioada aleasă.', true); return; }
+    const rows = [['Loc', 'Membru', 'Discord ID', 'Participări', 'Acțiuni distincte', 'Tipuri de acțiuni', 'Ultima activitate']];
+    ranking.forEach((person, index) => rows.push([index + 1, person.name, person.discord_id, person.participations, person.distinct_actions, Object.entries(person.action_types || {}).map(([label, count]) => `${label} x${count}`).join('; '), person.last_activity_at ? new Date(person.last_activity_at).toLocaleString('ro-RO') : '']));
+    const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a'); link.href = url; link.download = `clasament-actiuni-${$('actions-report-days')?.value || 7}-zile-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(url);
+    notice('Exportul clasamentului a fost descărcat.');
+  }
   async function load() {
-    try { const access = await call({ action: 'actions_access' }); state.access = access || {}; if (!state.access.read && !state.access.write && !state.access.delete) throw new Error('Nu ai acces la modulul Acțiuni.'); const result = state.access.read ? await call({ action: 'actions_list' }) : { actions: [] }; state.actions = result.actions || []; state.guilds = result.guilds || []; $('actions-tab')?.removeAttribute('hidden'); $('actions-create-button').hidden = !state.access.write; $('actions-summary').innerHTML = `<div class="discipline-metrics"><span>${state.actions.length} acțiuni salvate</span><span>${state.access.write ? 'Poți adăuga acțiuni' : 'Doar vizualizare'}</span></div>`; if (state.open) render(); }
+    try { const access = await call({ action: 'actions_access' }); state.access = access || {}; if (!state.access.read && !state.access.write && !state.access.delete) throw new Error('Nu ai acces la modulul Acțiuni.'); const result = state.access.read ? await call({ action: 'actions_list' }) : { actions: [] }; state.actions = result.actions || []; state.guilds = result.guilds || []; $('actions-tab')?.removeAttribute('hidden'); $('actions-create-button').hidden = !state.access.write; $('actions-report-days').closest('.actions-report-toolbar').hidden = !state.access.read; $('actions-summary').innerHTML = `<div class="discipline-metrics"><span>${state.actions.length} acțiuni salvate</span><span>${state.access.write ? 'Poți adăuga acțiuni' : 'Doar vizualizare'}</span><span>Clasamentul se calculează după participanții selectați</span></div>`; if (state.open) { render(); await loadReport(); } }
     catch (error) { state.access = {}; $('actions-tab')?.setAttribute('hidden', ''); $('actions-create-button').hidden = true; if (state.open) notice(`Modulul Acțiuni nu este disponibil: ${error.message}`, true); }
   }
   function show() { state.open = true; $('feed').hidden = true; $('discipline-panel').hidden = true; $('actions-panel').hidden = false; document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active')); document.querySelector('[data-actions-filter]')?.classList.add('active'); render(); load(); }
@@ -54,6 +85,9 @@
     $('actions-create-button')?.addEventListener('click', openModal);
     $('actions-guild')?.addEventListener('change', loadMembers);
     $('actions-type')?.addEventListener('change', () => { $('actions-custom-wrap').hidden = $('actions-type').value !== 'Personalizat'; });
+    $('actions-report-days')?.addEventListener('change', loadReport);
+    $('actions-refresh-report')?.addEventListener('click', loadReport);
+    $('actions-export-report')?.addEventListener('click', exportReport);
     document.addEventListener('click', (event) => { const target = event.target; if (target instanceof Element && target.closest('[data-actions-close]')) closeModal(); if (target === $('actions-modal')) closeModal(); if (target instanceof Element && target.closest('[data-filter], [data-discipline-filter]')) hide(); });
     $('actions-form')?.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -61,7 +95,7 @@
       const type = $('actions-type').value, label = type === 'Personalizat' ? $('actions-custom-label').value.trim() : type;
       if (!label) { notice('Introdu denumirea acțiunii.', true); return; }
       const button = $('actions-form').querySelector('button[type="submit"]'); button.disabled = true;
-      try { await call({ action: 'actions_create', action_type: type, action_label: label, guild_id: $('actions-guild').value, participant_ids: selected, description: $('actions-description').value.trim(), notes: $('actions-notes').value.trim() }); closeModal(); show(); notice('Acțiunea a fost salvată.'); }
+      try { await call({ action: 'actions_create', action_type: type, action_label: label, guild_id: $('actions-guild').value, participant_ids: selected, description: $('actions-description').value.trim(), notes: $('actions-notes').value.trim() }); closeModal(); show(); notice('Acțiunea a fost salvată și clasamentul a fost actualizat.'); }
       catch (error) { notice(error.message, true); }
       finally { button.disabled = false; }
     });

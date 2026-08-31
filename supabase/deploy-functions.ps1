@@ -29,6 +29,7 @@ $functions = @(
     'close-expired-shifts',
     'send-weekly-shift-report',
     'send-weekly-contract-export',
+    'send-weekly-action-report',
     'send-organization-expiry-notifications',
     'manage-admin-center',
     'manage-platform-secrets',

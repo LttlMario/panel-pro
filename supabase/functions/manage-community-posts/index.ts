@@ -225,6 +225,45 @@ if (String(body.action || '').startsWith('actions_')) {
         if (error) throw error;
         return reply({ actions: data || [], access: { read: canAction('read'), write: canAction('write'), delete: canAction('delete'), platform_admin: isPlatformAdmin }, guilds: await configuredActionGuilds() });
     }
+    if (body.action === 'actions_stats') {
+        const days = Math.min(365, Math.max(1, Number(body.days) || 7));
+        const periodEnd = new Date();
+        const periodStart = new Date(periodEnd.getTime() - ((days - 1) * 86400000));
+        const { data, error } = await db.from('organization_actions')
+            .select('id,action_type,action_label,participants,created_at,created_by_discord_id,created_by_name')
+            .eq('organization_id', organizationId)
+            .gte('created_at', periodStart.toISOString())
+            .lte('created_at', periodEnd.toISOString())
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        const people = new Map<string, any>();
+        const types = new Map<string, number>();
+        for (const row of data || []) {
+            const type = String(row.action_label || row.action_type || 'Acțiune').trim();
+            types.set(type, (types.get(type) || 0) + 1);
+            for (const participant of Array.isArray(row.participants) ? row.participants : []) {
+                const discordId = String(participant?.discord_id || participant?.id || '').trim();
+                const name = String(participant?.name || participant?.username || discordId || 'Membru necunoscut').trim();
+                if (!discordId) continue;
+                const current = people.get(discordId) || { discord_id: discordId, name, participations: 0, action_ids: new Set<string>(), action_types: new Map<string, number>(), last_activity_at: null };
+                current.name = name || current.name;
+                current.participations += 1;
+                current.action_ids.add(String(row.id));
+                current.action_types.set(type, (current.action_types.get(type) || 0) + 1);
+                if (!current.last_activity_at || String(row.created_at) > current.last_activity_at) current.last_activity_at = row.created_at;
+                people.set(discordId, current);
+            }
+        }
+        const ranking = [...people.values()]
+            .map((person) => ({ discord_id: person.discord_id, name: person.name, participations: person.participations, distinct_actions: person.action_ids.size, action_types: Object.fromEntries(person.action_types), last_activity_at: person.last_activity_at }))
+            .sort((left, right) => right.participations - left.participations || right.distinct_actions - left.distinct_actions || left.name.localeCompare(right.name, 'ro'));
+        return reply({
+            period: { days, start: periodStart.toISOString(), end: periodEnd.toISOString() },
+            totals: { actions: (data || []).length, participations: ranking.reduce((sum, person) => sum + person.participations, 0), people: ranking.length },
+            by_type: [...types.entries()].map(([label, count]) => ({ label, count })).sort((left, right) => right.count - left.count),
+            ranking
+        });
+    }
     if (body.action === 'actions_create') {
         const label = String(body.action_label || '').trim().slice(0, 120), type = String(body.action_type || '').trim().slice(0, 40), guildId = String(body.guild_id || '').trim();
         if (label.length < 2 || !type || !/^\d{15,22}$/.test(guildId)) return reply({ error: 'Completează tipul acțiunii, denumirea și Guild-ul.' }, 400);

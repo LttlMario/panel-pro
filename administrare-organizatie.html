@@ -134,7 +134,7 @@
         ['contracts', 'Contracte'], ['contract_identity_weekly', 'Export săptămânal: nume + CNP'], ['marketplace', 'Marketplace legal'], ['illegal_marketplace', 'Marketplace ilegal'], ['stash', 'Stash organizație'], ['stash_requests', 'Cereri Stash'], ['stash_donations', 'Donații Stash'],
         ['fines_organization', 'Amenzi organizație'], ['fines_departments', 'Amenzi Birouri / Angajați'],
         ['warnings_organization', 'Avertismente organizație'], ['warnings_departments', 'Avertismente Birouri / Angajați'],
-        ['sanctions_organization', 'Sancțiuni financiare organizație'], ['sanctions_departments', 'Sancțiuni financiare Birouri / Angajați'], ['actions_organization', 'Acțiuni organizație'],
+        ['sanctions_organization', 'Sancțiuni financiare organizație'], ['sanctions_departments', 'Sancțiuni financiare Birouri / Angajați'], ['actions_organization', 'Acțiuni organizație'], ['actions_organization_weekly', 'Export săptămânal clasament Acțiuni'],
         ['status_live', 'Status Live'], ['organization_expiration', 'Expirare organizație']
       ];
       const pageDefinitions = [
@@ -156,7 +156,7 @@
       const standardPackageFeatures = new Set(['core', 'contracts', 'reports', 'legal_marketplace', 'legal_tools', 'announcements_departments', 'discipline_departments']);
       const operationsPackageFeatures = new Set(['core', 'announcements_organization', 'requests_organization', 'reports', 'discipline_organization', 'actions_organization', 'illegal_calculator', 'illegal_locations', 'illegal_marketplace', 'illegal_minigames']);
       const standardWebhookKeys = new Set(['departments', 'pontaj', 'weekly_reports', 'contracts', 'contract_identity_weekly', 'marketplace', 'fines_departments', 'warnings_departments', 'sanctions_departments', 'status_live', 'organization_expiration']);
-      const operationsWebhookKeys = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'actions_organization', 'illegal_marketplace', 'organization_expiration']);
+      const operationsWebhookKeys = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'actions_organization', 'actions_organization_weekly', 'illegal_marketplace', 'organization_expiration']);
       const standardPages = new Set(['index.html', 'pontaj.html', 'anunturi.html', 'calculator.html', 'bucatarie.html', 'contracte.html', 'craftmecanics.html', 'marketplace.html', 'rapoarte.html']);
       const operationsPages = new Set(['index.html', 'pontaj.html', 'anunturi.html', 'cereri.html', 'calculatorilegal.html', 'locatiiilegale.html', 'marketplace-ilegal.html', 'minigames.html', 'rapoarte.html']);
       const fullOnlyWebhookKeys = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);

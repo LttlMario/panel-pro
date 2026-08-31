@@ -18,7 +18,7 @@ const webhookChannels = new Set([
   'organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization',
   'requests_departments', 'contracts', 'contract_identity_weekly', 'marketplace', 'illegal_marketplace',
   'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments',
-  'sanctions_organization', 'sanctions_departments', 'actions_organization', 'status_live', 'organization_expiration', 'stash', 'stash_requests', 'stash_donations'
+  'sanctions_organization', 'sanctions_departments', 'actions_organization', 'actions_organization_weekly', 'status_live', 'organization_expiration', 'stash', 'stash_requests', 'stash_donations'
 ]);
 const allowedContractPlaceholders = new Set([
   '{{COMPANY}}', '{{ADDRESS}}', '{{MANAGER}}', '{{EMPLOYEE_NAME}}', '{{CNP}}',
@@ -47,7 +47,7 @@ const allowedPages = new Map([
 const allowedAssistantPages = new Set([...allowedPages.keys()]);
 const allowedActionKeys = new Set(['anunturi.publish', 'marketplace.delete', 'cereri.organization', 'cereri.departments', 'actions.organization.read', 'actions.organization.write', 'actions.organization.delete', 'stash.write', 'stash.request', 'stash.manage_requests', 'stash.donate', 'stash.approve_donation', 'stash.log']);
 const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
-const operationsWebhookChannels = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'actions_organization', 'illegal_marketplace', 'organization_expiration']);
+const operationsWebhookChannels = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'actions_organization', 'actions_organization_weekly', 'illegal_marketplace', 'organization_expiration']);
 const standardWebhookChannels = new Set(['departments', 'pontaj', 'weekly_reports', 'contracts', 'contract_identity_weekly', 'marketplace', 'fines_departments', 'warnings_departments', 'sanctions_departments', 'status_live', 'organization_expiration']);
 const fullOnlyPageFeatures = new Map([
   ['calculatorilegal.html', 'illegal_calculator'],
