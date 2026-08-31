@@ -454,6 +454,10 @@ const webhookDefinitions={
         label:'Sancțiuni financiare Birouri / Angajați',
         help:'Sancțiunile financiare emise pentru Birouri / Angajați.'
     },
+    actions_organization:{
+        label:'Acțiuni organizație',
+        help:'Acțiunile înregistrate și participanții selectați din Guild-ul Discord.'
+    },
     organization_expiration:{
         label:'Expirare organizație',
         help:'Alerte automate cu 7, 3 și 1 zi înainte de expirare, cu linkuri pentru administrare și voucher.'
@@ -1264,7 +1268,24 @@ function renderActionPermissions() {
      */
 
     const permissionGroups = [
-
+        {
+            key: 'actions.organization.read',
+            title: 'Acțiuni organizație — citire',
+            description: 'Cine poate vedea acțiunile și participanții înregistrați.',
+            color: 'cyan'
+        },
+        {
+            key: 'actions.organization.write',
+            title: 'Acțiuni organizație — scriere',
+            description: 'Cine poate adăuga acțiuni și selecta membri din Guild.',
+            color: 'emerald'
+        },
+        {
+            key: 'actions.organization.delete',
+            title: 'Acțiuni organizație — ștergere',
+            description: 'Cine poate șterge acțiuni salvate.',
+            color: 'rose'
+        },
         {
             key: 'marketplace.delete',
 
