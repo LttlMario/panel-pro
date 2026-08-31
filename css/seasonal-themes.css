@@ -14,7 +14,6 @@ html:not([data-seasonal-theme]) {
     --seasonal-line: rgba(71, 85, 105, .54);
     --seasonal-backdrop: linear-gradient(135deg, #070b14, #0a1220 54%, #07101c);
     --seasonal-particles: none;
-    --seasonal-label: "";
 }
 
 html[data-seasonal-theme="winter"] {
@@ -25,7 +24,6 @@ html[data-seasonal-theme="winter"] {
     --seasonal-line: rgba(125, 211, 252, .46);
     --seasonal-backdrop: radial-gradient(ellipse at 7% 0%, rgba(56, 189, 248, .20), transparent 31%), radial-gradient(ellipse at 94% 100%, rgba(103, 232, 249, .12), transparent 36%), linear-gradient(135deg, #071827, #071522 55%, #06111e);
     --seasonal-particles: radial-gradient(circle, rgba(224, 242, 254, .92) 0 1.4px, transparent 2px), radial-gradient(circle, rgba(125, 211, 252, .72) 0 1px, transparent 1.8px);
-    --seasonal-label: "Iarnă activă";
     --seasonal-animation: seasonal-snow 22s linear infinite;
 }
 
@@ -37,7 +35,6 @@ html[data-seasonal-theme="christmas"] {
     --seasonal-line: rgba(248, 113, 113, .46);
     --seasonal-backdrop: radial-gradient(ellipse at 10% 0%, rgba(239, 68, 68, .18), transparent 31%), radial-gradient(ellipse at 90% 100%, rgba(34, 197, 94, .14), transparent 36%), linear-gradient(135deg, #190d16, #111923 52%, #091c18);
     --seasonal-particles: radial-gradient(circle, rgba(248, 113, 113, .82) 0 2px, transparent 2.8px), radial-gradient(circle, rgba(134, 239, 172, .76) 0 1.6px, transparent 2.5px), radial-gradient(circle, rgba(254, 240, 138, .76) 0 1.2px, transparent 2px);
-    --seasonal-label: "Crăciun activ";
     --seasonal-animation: seasonal-twinkle 4s ease-in-out infinite alternate;
 }
 
@@ -49,7 +46,6 @@ html[data-seasonal-theme="easter"] {
     --seasonal-line: rgba(244, 114, 182, .44);
     --seasonal-backdrop: radial-gradient(ellipse at 9% 0%, rgba(244, 114, 182, .16), transparent 31%), radial-gradient(ellipse at 91% 100%, rgba(250, 204, 21, .13), transparent 36%), linear-gradient(135deg, #1b1426, #17162a 50%, #10211e);
     --seasonal-particles: radial-gradient(ellipse 8px 5px, rgba(249, 168, 212, .62) 0 55%, transparent 62%), radial-gradient(ellipse 5px 8px, rgba(253, 230, 138, .58) 0 55%, transparent 62%), radial-gradient(circle, rgba(134, 239, 172, .52) 0 2px, transparent 2.9px);
-    --seasonal-label: "Paște activ";
     --seasonal-animation: seasonal-pastel 18s ease-in-out infinite alternate;
 }
 
@@ -61,7 +57,6 @@ html[data-seasonal-theme="autumn"] {
     --seasonal-line: rgba(245, 158, 11, .48);
     --seasonal-backdrop: radial-gradient(ellipse at 6% 0%, rgba(245, 158, 11, .20), transparent 31%), radial-gradient(ellipse at 93% 100%, rgba(153, 27, 27, .18), transparent 36%), linear-gradient(135deg, #26150c, #1d1110 52%, #140e12);
     --seasonal-particles: radial-gradient(ellipse 9px 4px, rgba(245, 158, 11, .72) 0 52%, transparent 59%), radial-gradient(ellipse 7px 4px, rgba(220, 90, 36, .66) 0 52%, transparent 59%), radial-gradient(ellipse 6px 3px, rgba(153, 27, 27, .62) 0 52%, transparent 59%);
-    --seasonal-label: "Toamnă activă";
     --seasonal-animation: seasonal-leaves 24s ease-in-out infinite alternate;
 }
 
@@ -73,7 +68,6 @@ html[data-seasonal-theme="halloween"] {
     --seasonal-line: rgba(251, 146, 60, .50);
     --seasonal-backdrop: radial-gradient(ellipse at 8% 0%, rgba(249, 115, 22, .20), transparent 29%), radial-gradient(ellipse at 92% 95%, rgba(124, 58, 237, .18), transparent 37%), linear-gradient(135deg, #160d23, #100c1b 50%, #090b17);
     --seasonal-particles: radial-gradient(circle, rgba(251, 146, 60, .68) 0 1.7px, transparent 2.6px), radial-gradient(circle, rgba(167, 139, 250, .58) 0 1.4px, transparent 2.3px);
-    --seasonal-label: "Halloween activ";
     --seasonal-animation: seasonal-fog 17s ease-in-out infinite alternate;
 }
 
@@ -85,7 +79,6 @@ html[data-seasonal-theme="summer"] {
     --seasonal-line: rgba(250, 204, 21, .46);
     --seasonal-backdrop: radial-gradient(ellipse at 8% 0%, rgba(250, 204, 21, .19), transparent 31%), radial-gradient(ellipse at 92% 100%, rgba(45, 212, 191, .14), transparent 36%), linear-gradient(135deg, #201b09, #17140a 52%, #0b1d1b);
     --seasonal-particles: radial-gradient(circle, rgba(254, 240, 138, .70) 0 1.5px, transparent 2.5px), radial-gradient(circle, rgba(45, 212, 191, .54) 0 1.2px, transparent 2px);
-    --seasonal-label: "Vară activă";
     --seasonal-animation: seasonal-sparkle 12s ease-in-out infinite alternate;
 }
 
@@ -97,7 +90,6 @@ html[data-seasonal-theme="spring"] {
     --seasonal-line: rgba(74, 222, 128, .44);
     --seasonal-backdrop: radial-gradient(ellipse at 8% 0%, rgba(74, 222, 128, .18), transparent 31%), radial-gradient(ellipse at 92% 100%, rgba(244, 114, 182, .15), transparent 36%), linear-gradient(135deg, #0b2119, #0d1d1b 52%, #111526);
     --seasonal-particles: radial-gradient(ellipse 7px 4px, rgba(244, 114, 182, .62) 0 55%, transparent 63%), radial-gradient(ellipse 5px 8px, rgba(134, 239, 172, .56) 0 55%, transparent 63%), radial-gradient(circle, rgba(253, 224, 71, .46) 0 1.5px, transparent 2.4px);
-    --seasonal-label: "Primăvară activă";
     --seasonal-animation: seasonal-petals 19s ease-in-out infinite alternate;
 }
 
@@ -221,23 +213,6 @@ html[data-seasonal-theme]:not([data-seasonal-theme="none"]) .panel-org-name {
     color: var(--seasonal-secondary) !important;
 }
 
-/* Eticheta din header este text, nu un element decorativ flotant. */
-html[data-seasonal-theme]:not([data-seasonal-theme="none"]) .panel-global-title::after {
-    content: var(--seasonal-label);
-    display: inline-flex;
-    align-items: center;
-    min-height: 24px;
-    padding: 0 9px;
-    border: 1px solid color-mix(in srgb, var(--seasonal-primary) 36%, #26364d);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--seasonal-primary) 9%, transparent);
-    color: color-mix(in srgb, var(--seasonal-secondary) 78%, #e2e8f0);
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: .02em;
-    white-space: nowrap;
-}
-
 /* Suprafețele rămân calme, iar accentul apare la margini și la hover. */
 html[data-seasonal-theme]:not([data-seasonal-theme="none"]) main .card,
 html[data-seasonal-theme]:not([data-seasonal-theme="none"]) main .panel,
@@ -313,7 +288,6 @@ html[data-seasonal-theme]:not([data-seasonal-theme="none"]) [data-seasonal-theme
 @keyframes seasonal-petals { from { background-position: 0 0, 42px 68px; } to { background-position: 30px 18px, 10px 82px; } }
 
 @media (max-width: 700px) {
-    html[data-seasonal-theme]:not([data-seasonal-theme="none"]) .panel-global-title::after { display: none; }
     html[data-seasonal-theme]:not([data-seasonal-theme="none"]) body.panel-global-shell::before { opacity: calc(var(--seasonal-particle-opacity) * .72); }
 }
 
