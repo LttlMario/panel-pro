@@ -196,7 +196,8 @@ async function load(){
     filter==='all' ||
     p.audience===filter ||
     (filter==='fine' && p.post_type==='fine') ||
-    (filter==='poll' && p.post_type==='poll')
+    (filter==='poll-organization' && p.post_type==='poll' && p.audience==='organization') ||
+    (filter==='poll-departments' && p.post_type==='poll' && p.audience==='departments')
 );$('#feed').innerHTML=visible.length?visible.map(card).join(''):'<div class="empty">Nu există postări în această categorie.</div>';document.querySelectorAll('.post').forEach(node=>{const id=node.id.slice(5),post=posts.find(item=>String(item.id)===id);if(post?.post_type==='fine'){const badges=node.querySelectorAll('.badge');if(badges[1])badges[1].textContent='Amendă';}});bindCards()}
   function card(p){
       const own =

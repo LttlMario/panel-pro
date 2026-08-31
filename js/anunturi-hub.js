@@ -35,8 +35,12 @@
       const filter = tab.dataset.filter;
       const visible = filter === 'all'
         ? Boolean(announcementAccess.read || disciplineReadable || actionsReadable)
-        : filter === 'poll' || filter === 'fine'
+        : filter === 'fine'
           ? Boolean(announcementAccess.read)
+        : filter === 'poll-organization'
+          ? readableAudiences.includes('organization')
+        : filter === 'poll-departments'
+          ? readableAudiences.includes('departments')
         : readableAudiences.includes(filter);
       tab.hidden = !visible;
     });
