@@ -142,7 +142,12 @@
 
         const entries = [];
         let lastMatch = null;
+        const memoryKey = `panel_assistant_recipe_${String(user.discord_id || user.id || 'user').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80)}`;
         let lastRecipe = null;
+        try {
+            const remembered = JSON.parse(sessionStorage.getItem(memoryKey) || 'null');
+            if (remembered?.item?.name) lastRecipe = remembered;
+        } catch (_) { /* memoria opțională */ }
         let indexPromise = null;
         let indexUpdatedAt = 0;
         let remoteKnowledgeLoaded = false;
@@ -417,7 +422,9 @@
                 .sort((left, right) => right.score - left.score);
             const best = ranked[0];
             const pageMatches = new Map();
-            const minimumRelatedScore = Math.max(8, Number(best?.score || 0) * 0.62);
+            /* Păstrăm doar paginile realmente apropiate de rezultat. Pragul
+               vechi de 62% aducea pagini colaterale la întrebări scurte. */
+            const minimumRelatedScore = Math.max(12, Number(best?.score || 0) * 0.78);
             ranked
                 .filter((item) => {
                     if (item.score < minimumRelatedScore || !item.entry.page || !isPageAllowed(item.entry.page)) return false;
@@ -425,7 +432,7 @@
                     const sourceWords = source.split(' ');
                     return source.includes(query) || queryTokens.some((token) => sourceWords.includes(token) || sourceWords.some((word) => word.startsWith(token) || token.startsWith(word)));
                 })
-                .slice(0, 60)
+                .slice(0, 30)
                 .forEach(({ entry, score }) => {
                     const page = String(entry.page).split('?')[0];
                     const manifestPage = (window.PANEL_ASSISTANT_PAGES || []).find((item) => item.file === page);
@@ -438,7 +445,7 @@
                 });
             const groups = [...pageMatches.values()]
                 .sort((left, right) => right.score - left.score)
-                .slice(0, 3);
+                .slice(0, 2);
             return {
                 best,
                 groups,
@@ -555,11 +562,14 @@
             if (!item?.name) item = null;
             const hasRecipeWords = /\b(reteta|re[țt]et[ăa]|calculeaz|materiale|ingrediente|craft|fac|pentru|xenon|undita|kevlar|cabluri|arma|munitie|gloan[tț]e|topor|tarnacop|t[aă]rnacop)\b/.test(query);
             const followUp = /\b(dar|si|iar|pentru|la)\b/.test(query) && (lastRecipe || /\b(kevlar|5|10|20|30)\b/.test(query));
-            if (!item && followUp && lastRecipe) item = lastRecipe.item;
+            if (!item && followUp && lastRecipe) item = recipeByName(lastRecipe.item.name) || lastRecipe.item;
             if (!item || (!hasRecipeWords && !followUp)) return null;
             if (item.page && !isPageAllowed(item.page)) return { answer: 'Nu ai permisiunea necesară pentru acest calculator.' };
             const quantity = quantityFromQuestion(question, followUp && lastRecipe ? lastRecipe.quantity : 1);
             lastRecipe = { item, quantity };
+            try {
+                sessionStorage.setItem(memoryKey, JSON.stringify({ item: { id: item.id, name: item.name, page: item.page, category: item.category }, quantity }));
+            } catch (_) { /* memoria opțională */ }
             if (item.kind === 'weapon') return weaponRecipeResponse(item, quantity);
             if (item.kind === 'ammo') return ammoRecipeResponse(item, quantity);
             const direct = {};
@@ -629,7 +639,7 @@
             if (/\b(multumesc|mersi|ms|super|perfect)\b/.test(query)) return { answer: 'Cu plăcere! Poți continua cu orice întrebare despre paginile și funcțiile panelului.' };
             if (/\b(ce rol|rolul meu|ce functie|functia mea)\b/.test(query)) return { answer: `Rolul disponibil în sesiunea ta este „${roleName()}”. Rezultatele sunt filtrate exact după paginile permise organizației tale.` };
             if (/^(cat e ceasul|cat este ceasul|cat e ora|ce ora este|ce ora e|ora acum)$/.test(query)) return { answer: `Ora României este ${new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit' }).format(new Date())}.` };
-            if (/^(unde|deschide|du ma|du ma|arata mi|mai multe|detalii|care pagina|pagina)\b/i.test(query) && lastMatch?.page) return { answer: `Informația anterioară se află în ${lastMatch.category || lastMatch.title}.`, page: lastMatch.page, title: lastMatch.title };
+            if (/^(unde|deschide|du ma|du ma|arata mi|mai multe|detalii|care pagina|pagina)\b/i.test(query) && lastMatch?.page) return { answer: `Informația anterioară se află în ${lastMatch.category || lastMatch.title}.`, page: lastMatch.page, title: lastMatch.title, actions: [{ type: 'open', label: 'Deschide pagina', page: lastMatch.page }] };
             return null;
         }
 
