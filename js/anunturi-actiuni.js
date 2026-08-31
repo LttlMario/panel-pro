@@ -94,10 +94,10 @@
       const selected = [...$('actions-members').selectedOptions].map((option) => option.value).filter(Boolean);
       const type = $('actions-type').value, label = type === 'Personalizat' ? $('actions-custom-label').value.trim() : type;
       if (!label) { notice('Introdu denumirea acțiunii.', true); return; }
-      const button = $('actions-form').querySelector('button[type="submit"]'); button.disabled = true;
+      const button = $('actions-form').querySelector('button[type="submit"]'); if (button) button.disabled = true;
       try { await call({ action: 'actions_create', action_type: type, action_label: label, guild_id: $('actions-guild').value, participant_ids: selected, description: $('actions-description').value.trim(), notes: $('actions-notes').value.trim() }); closeModal(); show(); notice('Acțiunea a fost salvată și clasamentul a fost actualizat.'); }
       catch (error) { notice(error.message, true); }
-      finally { button.disabled = false; }
+      finally { if (button) button.disabled = false; }
     });
     load();
   });
