@@ -18,7 +18,7 @@
     return data;
   };
 
-  const itemTitle = (item) => `<div class="stash-item-head"><div><div class="stash-item-title">${esc(item.title)}</div><div class="stash-meta"><span class="stash-pill">${esc(item.category)}</span><span class="stash-pill ${statusClass(item.status)}">${esc(statusLabel[item.status] || item.status)}</span><span class="stash-pill">${esc(item.quantity)} ${esc(item.unit)}</span></div></div>${state.access.write ? `<div class="stash-actions"><button class="stash-btn" data-edit-item="${esc(item.id)}">Editează</button><button class="stash-btn danger" data-archive-item="${esc(item.id)}">Arhivează</button></div>` : ''}</div>`;
+  const itemTitle = (item) => `<div class="stash-item-head"><div><div class="stash-item-title">${esc(item.title)}</div><div class="stash-meta"><span class="stash-pill">${esc(item.category)}</span><span class="stash-pill ${statusClass(item.status)}">${esc(statusLabel[item.status] || item.status)}</span><span class="stash-pill">${esc(item.quantity)} ${esc(item.unit)}</span></div></div>${state.access.write ? `<div class="stash-actions"><button class="stash-btn" data-withdraw-item="${esc(item.id)}">Retrage</button><button class="stash-btn" data-edit-item="${esc(item.id)}">Editează</button><button class="stash-btn danger" data-archive-item="${esc(item.id)}">Arhivează</button></div>` : ''}</div>`;
   const renderItems = () => {
     const host = $('stash-items');
     if (!state.access.read) { host.innerHTML = '<div class="stash-empty">Nu ai acces la inventarul acestui stash.</div>'; return; }
@@ -66,11 +66,12 @@
   };
   const openModal = (mode, item = null) => {
     modalMode = mode; editingItem = item;
-    const title = { item: item ? 'Editează articolul' : 'Adaugă în stash', request: 'Trimite cerere din stash', donation: 'Donează către stash' }[mode];
+    const title = { item: item ? 'Editează articolul' : 'Adaugă în stash', withdraw: 'Retrage din stash', request: 'Trimite cerere din stash', donation: 'Donează către stash' }[mode];
     $('stash-modal-title').textContent = title;
     if (mode === 'item') $('stash-form-fields').innerHTML = field('Articol', `<input name="title" maxlength="140" required value="${esc(item?.title || '')}">`) + categoryField(item?.category || 'Arme') + `<div class="grid grid-cols-2 gap-3">${field('Cantitate', `<input name="quantity" type="number" min="0" step="0.01" required value="${esc(item?.quantity ?? 1)}">`)}${field('Unitate', `<input name="unit" maxlength="20" value="${esc(item?.unit || 'buc.')}">`)}</div>` + field('Status', `<select name="status"><option value="available" ${item?.status === 'available' ? 'selected' : ''}>Disponibil</option><option value="reserved" ${item?.status === 'reserved' ? 'selected' : ''}>Rezervat</option><option value="out" ${item?.status === 'out' ? 'selected' : ''}>Epuizat</option></select>`) + field('Detalii', `<textarea name="description" maxlength="4000">${esc(item?.description || '')}</textarea>`);
     if (mode === 'request') $('stash-form-fields').innerHTML = field('Alege articolul (opțional)', `<select name="stash_item_id"><option value="">Cerere generală</option>${state.items.filter((entry) => entry.status !== 'archived').map((entry) => `<option value="${esc(entry.id)}">${esc(entry.title)} · ${esc(entry.quantity)} ${esc(entry.unit)}</option>`).join('')}</select>`) + field('Articol solicitat', `<input name="item_title" maxlength="140" placeholder="Completează dacă nu alegi de mai sus">`) + field('Cantitate', '<input name="quantity" type="number" min="0.01" step="0.01" required value="1">') + field('Notă', '<textarea name="note" maxlength="2000" placeholder="Pentru ce este necesar?"></textarea>');
     if (mode === 'donation') $('stash-form-fields').innerHTML = field('Ce donezi?', '<input name="title" maxlength="140" required>') + categoryField('Arme') + `<div class="grid grid-cols-2 gap-3">${field('Cantitate', '<input name="quantity" type="number" min="0.01" step="0.01" required value="1">')}${field('Unitate', '<input name="unit" maxlength="20" value="buc.">')}</div>` + field('Notă', '<textarea name="note" maxlength="4000" placeholder="Detalii pentru persoana care aprobă donația"></textarea>');
+    if (mode === 'withdraw') $('stash-form-fields').innerHTML = field('Cantitate retrasă', `<input name="quantity" type="number" min="0.01" max="${esc(item?.quantity ?? 0)}" step="0.01" required value="1">`) + field('Persoana care primește', '<input name="recipient_name" maxlength="160" required placeholder="Nume Discord / beneficiar">') + field('ID Discord beneficiar (opțional)', '<input name="recipient_discord_id" inputmode="numeric" maxlength="22" placeholder="ID Discord">') + field('Notă', '<textarea name="note" maxlength="2000" placeholder="Ex: 10 armuri distribuite la patrulă"></textarea>');
     const categorySelect = $('stash-form-fields').querySelector('[data-stash-category]');
     const customCategoryWrap = $('stash-form-fields').querySelector('[data-stash-custom-wrap]');
     const customCategoryInput = $('stash-form-fields').querySelector('[data-stash-custom-category]');
@@ -100,9 +101,10 @@
       }
       let result;
       if (modalMode === 'item') result = await api(editingItem ? 'update_item' : 'create_item', editingItem ? { id: editingItem.id, ...values } : values);
+      if (modalMode === 'withdraw') result = await api('withdraw_item', { id: editingItem.id, ...values });
       if (modalMode === 'request') result = await api('create_request', values);
       if (modalMode === 'donation') result = await api('create_donation', values);
-      const wasDonation = modalMode === 'donation'; closeModal(); showNotice(wasDonation ? 'Donația a fost trimisă pentru aprobare.' : 'Modificările au fost salvate.'); await load();
+      const wasDonation = modalMode === 'donation', wasWithdrawal = modalMode === 'withdraw'; closeModal(); showNotice(wasDonation ? 'Donația a fost trimisă pentru aprobare.' : wasWithdrawal ? 'Retragerea a fost salvată, iar embedul a fost actualizat cu stocul rămas.' : 'Modificările au fost salvate.'); await load();
       if (result?.webhook && (!result.webhook.configured || result.webhook.failed > 0)) showNotice('Datele au fost salvate, dar webhookul Discord nu a fost livrat. Verifică ruta și activează webhookul potrivit în administrarea organizației.', true);
     } catch (error) { showNotice(error.message, true); }
   };
@@ -116,6 +118,7 @@
     if (target.id === 'stash-donate') return openModal('donation');
     if (target.id === 'stash-cancel') return closeModal();
     if (target.dataset.editItem) return openModal('item', state.items.find((item) => item.id === target.dataset.editItem));
+    if (target.dataset.withdrawItem) return openModal('withdraw', state.items.find((item) => item.id === target.dataset.withdrawItem));
     if (target.dataset.archiveItem && confirm('Arhivezi acest articol din stash?')) { try { await api('archive_item', { id: target.dataset.archiveItem }); showNotice('Articolul a fost arhivat.'); await load(); } catch (error) { showNotice(error.message, true); } return; }
     if (target.dataset.deleteItem && confirm('Ștergi definitiv acest articol din stash?')) { try { await api('delete_item', { id: target.dataset.deleteItem }); showNotice('Articolul a fost șters.'); await load(); } catch (error) { showNotice(error.message, true); } return; }
     if (target.dataset.deleteRequest && confirm('Ștergi definitiv această cerere?')) { try { await api('delete_request', { id: target.dataset.deleteRequest }); showNotice('Cererea a fost ștearsă.'); await load(); } catch (error) { showNotice(error.message, true); } return; }
