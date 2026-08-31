@@ -2,6 +2,7 @@ import {createClient} from 'jsr:@supabase/supabase-js@2.112.3';
 import {requirePanelSession} from '../_shared/panel-session.ts';
 import {isPlatformAdminAccount} from '../_shared/platform-admin.ts';
 import {resolvePackageFeatures} from '../_shared/package-features.ts';
+import {getPlatformSecret} from '../_shared/platform-secrets.ts';
 const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
 
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
@@ -170,6 +171,89 @@ const roleIdsFromActivePanelRole = activePanelRole
         .filter(Boolean)
     : [];
 const effectiveDiscordRoleIds = [...new Set([...sessionDiscordRoleIds, ...roleIdsFromActivePanelRole])];
+
+const hasActionsFeature = isPlatformAdmin || packageFeatures.includes('actions_organization');
+const actionPermissionRoles = (kind:'read'|'write'|'delete') => Array.isArray(actionPermissions[`actions.organization.${kind}`]) ? actionPermissions[`actions.organization.${kind}`].map(String) : [];
+const canAction = (kind:'read'|'write'|'delete') => hasActionsFeature && (isPlatformAdmin || effectiveDiscordRoleIds.some(roleId => actionPermissionRoles(kind).includes(roleId)));
+const configuredActionGuilds = async () => {
+    const { data, error } = await db.from('organization_guilds').select('guild_id,guild_name,kind,enabled').eq('organization_id', organizationId).eq('enabled', true).order('kind');
+    if (error) throw error;
+    return (data || []).filter((item:any) => /^\d{15,22}$/.test(String(item.guild_id || '')));
+};
+const loadDiscordGuildMembers = async (guildId:string) => {
+    const botToken = await getPlatformSecret(db, 'discord_bot_token');
+    if (!botToken) throw new Error('Botul Discord nu este configurat pentru această organizație.');
+    const members:any[] = [];
+    let after = '0';
+    for (let page = 0; page < 20; page++) {
+        const query = after === '0' ? '?limit=1000' : `?limit=1000&after=${after}`;
+        const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members${query}`, { headers: { Authorization: `Bot ${botToken}` } });
+        if (!response.ok) throw new Error(`Membrii Guild-ului nu pot fi citiți (HTTP ${response.status}).`);
+        const batch = await response.json();
+        if (!Array.isArray(batch) || !batch.length) break;
+        members.push(...batch);
+        if (batch.length < 1000) break;
+        after = String(batch[batch.length - 1]?.user?.id || '0');
+        if (after === '0') break;
+    }
+    return members.map((member:any) => ({ discord_id: String(member?.user?.id || ''), name: String(member?.nick || member?.user?.global_name || member?.user?.username || member?.user?.id || '').trim(), username: String(member?.user?.username || '').trim() })).filter((member:any) => /^\d{15,22}$/.test(member.discord_id) && member.name);
+};
+const notifyActionDiscord = async (record:any) => {
+    const { data: settings } = await db.from('organization_settings').select('webhook_routes,panel_public_url').eq('organization_id', organizationId).maybeSingle();
+    const route = settings?.webhook_routes?.actions_organization || {};
+    const url = [route?.primary?.enabled !== false ? route?.primary?.url : '', route?.secondary?.enabled !== false ? route?.secondary?.url : ''].map((value:any) => String(value || '').trim()).find(Boolean);
+    if (!url) return null;
+    const site = String(settings?.panel_public_url || 'https://lttlmario.github.io/panel-pro').replace(/\/$/, '');
+    const participants = Array.isArray(record.participants) ? record.participants : [];
+    const response = await fetch(`${url}?wait=true`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ embeds: [{ title: `✅ Acțiune nouă: ${record.action_label}`, description: record.description || 'A fost înregistrată o acțiune a organizației.', color: 5763719, url: `${site}/anunturi.html?actions=${record.id}`, fields: [{ name: 'Tip', value: record.action_type || record.action_label, inline: true }, { name: 'Participanți', value: participants.length ? participants.map((item:any) => `• ${item.name}`).join('\n').slice(0, 1024) : 'Nespecificați' }, ...(record.notes ? [{ name: 'Note', value: String(record.notes).slice(0, 1024) }] : [])], footer: { text: `Panel Pro · ${record.created_by_name || record.created_by_discord_id}` } }] }) });
+    if (!response.ok) return null;
+    return (await response.json().catch(() => ({})))?.id || null;
+};
+if (String(body.action || '').startsWith('actions_')) {
+    if (!hasActionsFeature) return reply({ error: 'Modulul Acțiuni este disponibil în pachetul Operations sau Full.' }, 403);
+    if (body.action === 'actions_access') return reply({ enabled: true, read: canAction('read'), write: canAction('write'), delete: canAction('delete'), platform_admin: isPlatformAdmin, package_code: String(packageSetting?.value?.code || 'standard') });
+    const requiredPermission = body.action === 'actions_create' || body.action === 'actions_members' || body.action === 'actions_guilds' ? 'write' : body.action === 'actions_delete' ? 'delete' : 'read';
+    if (!canAction(requiredPermission as any)) return reply({ error: 'Nu ai permisiunea necesară pentru modulul Acțiuni.' }, 403);
+    if (body.action === 'actions_guilds') return reply({ guilds: await configuredActionGuilds() });
+    if (body.action === 'actions_members') {
+        const guildId = String(body.guild_id || '').trim();
+        if (!(await configuredActionGuilds()).some((guild:any) => String(guild.guild_id) === guildId)) return reply({ error: 'Guild-ul selectat nu aparține organizației active.' }, 403);
+        return reply({ members: await loadDiscordGuildMembers(guildId) });
+    }
+    if (body.action === 'actions_list') {
+        const { data, error } = await db.from('organization_actions').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false });
+        if (error) throw error;
+        return reply({ actions: data || [], access: { read: canAction('read'), write: canAction('write'), delete: canAction('delete'), platform_admin: isPlatformAdmin }, guilds: await configuredActionGuilds() });
+    }
+    if (body.action === 'actions_create') {
+        const label = String(body.action_label || '').trim().slice(0, 120), type = String(body.action_type || '').trim().slice(0, 40), guildId = String(body.guild_id || '').trim();
+        if (label.length < 2 || !type || !/^\d{15,22}$/.test(guildId)) return reply({ error: 'Completează tipul acțiunii, denumirea și Guild-ul.' }, 400);
+        const guild = (await configuredActionGuilds()).find((item:any) => String(item.guild_id) === guildId);
+        if (!guild) return reply({ error: 'Guild-ul selectat nu aparține organizației active.' }, 403);
+        const guildMembers = await loadDiscordGuildMembers(guildId), memberMap = new Map(guildMembers.map((item:any) => [item.discord_id, item]));
+        const selectedIds = [...new Set((Array.isArray(body.participant_ids) ? body.participant_ids : []).map(String))].slice(0, 100), participants = selectedIds.map((id) => memberMap.get(id)).filter(Boolean);
+        if (selectedIds.length !== participants.length) return reply({ error: 'Unul dintre participanți nu mai este membru în Guild-ul selectat.' }, 400);
+        const { data: author } = await db.from('users').select('display_name,username').eq('discord_id', du.id).maybeSingle();
+        const { data: actionRow, error } = await db.from('organization_actions').insert({ organization_id: organizationId, action_type: type, action_label: label, description: String(body.description || '').trim().slice(0, 4000), notes: String(body.notes || '').trim().slice(0, 4000), guild_id: guildId, guild_name: String(guild.guild_name || guildId), participants, created_by_discord_id: du.id, created_by_name: author?.display_name || author?.username || du.id }).select('*').single();
+        if (error) throw error;
+        let discordMessageId = null;
+        try { discordMessageId = await notifyActionDiscord(actionRow); } catch (error) { console.error('Acțiunea a fost salvată, dar webhook-ul a eșuat:', error); }
+        if (discordMessageId) await db.from('organization_actions').update({ discord_message_id: discordMessageId }).eq('id', actionRow.id).eq('organization_id', organizationId);
+        return reply({ ok: true, action: { ...actionRow, discord_message_id: discordMessageId } });
+    }
+    if (body.action === 'actions_delete') {
+        const id = String(body.id || '').trim();
+        const { data: row, error: loadError } = await db.from('organization_actions').select('*').eq('organization_id', organizationId).eq('id', id).maybeSingle();
+        if (loadError) throw loadError;
+        if (!row) return reply({ error: 'Acțiunea nu există.' }, 404);
+        const { data: settings } = await db.from('organization_settings').select('webhook_routes').eq('organization_id', organizationId).maybeSingle();
+        const url = settings?.webhook_routes?.actions_organization?.primary?.url || settings?.webhook_routes?.actions_organization?.secondary?.url;
+        if (row.discord_message_id && url) await fetch(`${url.replace(/\/$/, '')}/messages/${encodeURIComponent(row.discord_message_id)}`, { method: 'DELETE' }).catch(() => null);
+        const { error } = await db.from('organization_actions').delete().eq('organization_id', organizationId).eq('id', id);
+        if (error) throw error;
+        return reply({ ok: true, deleted_id: id });
+    }
+}
 
 const canDeleteMarketplaceByRole =
     isPlatformAdmin ||

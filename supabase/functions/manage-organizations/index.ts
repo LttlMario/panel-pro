@@ -55,6 +55,7 @@ const webhookChannels=new Set([
   'warnings_departments',
   'sanctions_organization',
   'sanctions_departments',
+  'actions_organization',
   'status_live',
   'organization_expiration',
   'stash',
@@ -74,6 +75,7 @@ const webhookFeature=(channel:string)=>{
   if(channel==='requests_departments')return 'requests_departments';
   if(['warnings_organization','sanctions_organization','fines_organization'].includes(channel))return 'discipline_organization';
   if(['warnings_departments','sanctions_departments','fines_departments'].includes(channel))return 'discipline_departments';
+  if(channel==='actions_organization')return 'actions_organization';
   if(channel==='illegal_marketplace')return 'illegal_marketplace';
   return null;
 };
@@ -554,6 +556,9 @@ if(
     'marketplace.delete',
     'cereri.organization',
     'cereri.departments',
+    'actions.organization.read',
+    'actions.organization.write',
+    'actions.organization.delete',
     'stash.write',
     'stash.request',
     'stash.manage_requests',
@@ -576,6 +581,11 @@ if(
         ]
       ])
   );
+  if (!policyPackageFeatures.includes('actions_organization')) {
+    actionRules['actions.organization.read'] = [];
+    actionRules['actions.organization.write'] = [];
+    actionRules['actions.organization.delete'] = [];
+  }
   if (!policyPackageFeatures.includes('requests_organization')) actionRules['cereri.organization'] = [];
 
   // Un rol de cereri poate avea o singură destinație. Păstrăm aceeași
@@ -860,11 +870,11 @@ if (Array.isArray(body.roles)) {
       const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'organization_package',value:{code,unlimited,expires_at:expiresAt,features},updated_at:nowIso()},{onConflict:'organization_id,key'});
       if(error)throw error;
       if(code==='standard'){
-        const restricted=[['action_permissions',{...(body.action_permissions||{}),'cereri.organization':[],'stash.write':[],'stash.request':[],'stash.manage_requests':[],'stash.donate':[],'stash.approve_donation':[],'stash.log':[]}],['communication_permissions',{organization:{read:[],write:[]}}],['discipline_permissions',{organization:{read:[],write:[],sanction:[]}}]] as any[];
+        const restricted=[['action_permissions',{...(body.action_permissions||{}),'cereri.organization':[],'actions.organization.read':[],'actions.organization.write':[],'actions.organization.delete':[],'stash.write':[],'stash.request':[],'stash.manage_requests':[],'stash.donate':[],'stash.approve_donation':[],'stash.log':[]}],['communication_permissions',{organization:{read:[],write:[]}}],['discipline_permissions',{organization:{read:[],write:[],sanction:[]}}]] as any[];
         for(const [key,value] of restricted){
           const {data:existing}=await db.from('app_settings').select('value').eq('organization_id',organizationId).eq('key',key).maybeSingle();
           if(!existing)continue;
-          const next=key==='action_permissions'?{...(existing.value||{}),'cereri.organization':[],'stash.write':[],'stash.request':[],'stash.manage_requests':[],'stash.donate':[],'stash.approve_donation':[],'stash.log':[]}:{...(existing.value||{}),organization:value.organization};
+          const next=key==='action_permissions'?{...(existing.value||{}),'cereri.organization':[],'actions.organization.read':[],'actions.organization.write':[],'actions.organization.delete':[],'stash.write':[],'stash.request':[],'stash.manage_requests':[],'stash.donate':[],'stash.approve_donation':[],'stash.log':[]}:{...(existing.value||{}),organization:value.organization};
           const {error:permissionError}=await db.from('app_settings').update({value:next,updated_at:nowIso()}).eq('organization_id',organizationId).eq('key',key);
           if(permissionError)throw permissionError;
         }

@@ -14,6 +14,7 @@ export const PACKAGE_FEATURES = Object.freeze({
   status_live: { label: 'Status Live', pages: ['status-live.html'] },
   discipline_departments: { label: 'Avertismente și sancțiuni · Angajați', pages: ['anunturi.html'] },
   discipline_organization: { label: 'Avertismente și sancțiuni · Organizație', pages: ['anunturi.html'] },
+  actions_organization: { label: 'Acțiuni · Organizație', pages: ['anunturi.html'] },
   stash: { label: 'Stash organizație', pages: ['stash.html'] },
   illegal_calculator: { label: 'Calculator ilegal', pages: ['calculatorilegal.html'] },
   illegal_locations: { label: 'Locații ilegale', pages: ['locatiiilegale.html'] },
@@ -29,6 +30,7 @@ export const STANDARD_PACKAGE_FEATURES = Object.freeze([
 export const FULL_PACKAGE_FEATURES = Object.freeze(Object.keys(PACKAGE_FEATURES));
 export const OPERATIONS_PACKAGE_FEATURES = Object.freeze([
   'core', 'announcements_organization', 'requests_organization', 'reports', 'discipline_organization',
+  'actions_organization',
   'illegal_calculator', 'illegal_locations', 'illegal_marketplace', 'illegal_minigames'
 ]);
 

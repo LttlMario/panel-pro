@@ -5,9 +5,9 @@ import { packageAllowsPage as packagePageAllowed, resolvePackageFeatures } from 
 const headers = { 'Access-Control-Allow-Origin': 'https://lttlmario.github.io', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Max-Age': '86400', 'Content-Type': 'application/json' };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const validGuild = (value: string) => /^\d{15,22}$/.test(value);
-const webhookChannels = new Set(['organization', 'departments', 'pontaj', 'requests', 'requests_organization', 'requests_departments', 'contracts', 'contract_identity_weekly', 'marketplace', 'illegal_marketplace', 'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'sanctions_organization', 'sanctions_departments', 'status_live', 'organization_expiration']);
+const webhookChannels = new Set(['organization', 'departments', 'pontaj', 'requests', 'requests_organization', 'requests_departments', 'contracts', 'contract_identity_weekly', 'marketplace', 'illegal_marketplace', 'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'sanctions_organization', 'sanctions_departments', 'actions_organization', 'status_live', 'organization_expiration']);
 const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
-const operationsWebhookChannels = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'illegal_marketplace', 'organization_expiration']);
+const operationsWebhookChannels = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'actions_organization', 'illegal_marketplace', 'organization_expiration']);
 const standardWebhookChannels = new Set(['departments', 'pontaj', 'weekly_reports', 'contracts', 'contract_identity_weekly', 'marketplace', 'fines_departments', 'warnings_departments', 'sanctions_departments', 'status_live', 'organization_expiration']);
 const allowedPages = new Set(['index.html', 'anunturi.html', 'pontaj.html', 'cereri.html', 'calculator.html', 'bucatarie.html', 'contracte.html', 'calculatorilegal.html', 'craftmecanics.html', 'locatiiilegale.html', 'marketplace.html', 'marketplace-ilegal.html', 'minigames.html', 'rapoarte.html', 'status-live.html', 'asistent.html']);
 const fullOnlyPageFeatures = new Map([['calculatorilegal.html', 'illegal_calculator'], ['locatiiilegale.html', 'illegal_locations'], ['marketplace-ilegal.html', 'illegal_marketplace'], ['minigames.html', 'illegal_minigames']]);
@@ -106,8 +106,9 @@ Deno.serve(async (req) => {
       if (error) throw error;
     }
     if (body.action_permissions && typeof body.action_permissions === 'object') {
-      const allowedActions = new Set(['anunturi.publish', 'cereri.organization', 'cereri.departments']);
+      const allowedActions = new Set(['anunturi.publish', 'cereri.organization', 'cereri.departments', 'actions.organization.read', 'actions.organization.write', 'actions.organization.delete']);
       const value = Object.fromEntries(Object.entries(body.action_permissions).filter(([action]) => allowedActions.has(action)).map(([action, ids]: any) => [action, [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((id) => /^\d{15,22}$/.test(id)))] ]));
+      if (!packageAllowsFeature('actions_organization')) { value['actions.organization.read'] = []; value['actions.organization.write'] = []; value['actions.organization.delete'] = []; }
       if (!packageAllowsFeature('requests_organization')) value['cereri.organization'] = [];
       const organizationRoles = new Set(value['cereri.organization'] || []);
       if (!packageAllowsFeature('requests_departments')) value['cereri.departments'] = [];
