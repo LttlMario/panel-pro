@@ -610,9 +610,15 @@
                     <div class="category-group active" id="cat-masa">
                         <div class="category-header" onclick="toggleCategory('cat-masa')">🛠️ Masă Crafting</div>
                         <div class="category-content" id="masaForm">
-                            <div class="item-row" style="margin-bottom: 8px;">
-                                <span class="item-name">Obiect</span>
-                                <select id="masaItemSelect" onchange="onItemChange()" style="width: 100%;">
+                            <div class="mecanic-gallery-view" id="masaGalleryView">
+                                <div class="mecanic-gallery-intro">Alege imaginea sistemului pentru a deschide calculatorul direct pe rețeta respectivă.</div>
+                                <div class="mecanic-gallery-grid" id="masaGalleryGrid" aria-label="Sisteme Masă Crafting"></div>
+                            </div>
+                            <div class="mecanic-selection-view" id="masaSelectionView" hidden>
+                                <button type="button" class="mecanic-selection-back" onclick="showMasaGallery()">← Înapoi la imagini</button>
+                                <div class="item-row" style="margin-bottom: 8px;">
+                                    <span class="item-name">Obiect</span>
+                                    <select id="masaItemSelect" onchange="onItemChange()" style="width: 100%;">
                                     <option value="ziptip">Zip Tie</option>
                                     <option value="momeala">Momeală de pește (x10)</option>
                                     <option value="undita_plastic">Undiță de plastic</option>
@@ -642,19 +648,20 @@
                                     <option value="topor_otel">Topor de oțel</option>
                                     <option value="topor_aur">Topor de aur</option>
                                     <option value="topor_diamant">Topor de diamant</option>
-                                </select>
-                            </div>
+                                    </select>
+                                </div>
 
-                            <div class="sub-options-box" id="subOptionsBox">
-                                <span class="item-name" style="display:block; margin-bottom: 4px; color: var(--warning);">Deții deja un model anterior?</span>
-                                <select id="ownedVariantSelect" onchange="calculateAll()" style="width: 100%; font-size: 0.8rem;">
-                                    <option value="none">Nu, pornesc de la zero</option>
-                                </select>
-                            </div>
+                                <div class="sub-options-box" id="subOptionsBox">
+                                    <span class="item-name" style="display:block; margin-bottom: 4px; color: var(--warning);">Deții deja un model anterior?</span>
+                                    <select id="ownedVariantSelect" onchange="calculateAll()" style="width: 100%; font-size: 0.8rem;">
+                                        <option value="none">Nu, pornesc de la zero</option>
+                                    </select>
+                                </div>
 
-                            <div class="item-row" style="margin-top: 8px;">
-                                <span class="item-name">Cantitate</span>
-                                <input type="number" id="masaQty" min="0" step="1" value="0" placeholder="0">
+                                <div class="item-row" style="margin-top: 8px;">
+                                    <span class="item-name">Cantitate</span>
+                                    <input type="number" id="masaQty" min="0" step="1" value="0" placeholder="0">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -663,9 +670,15 @@
                     <div class="category-group" id="cat-croitor">
                         <div class="category-header" onclick="toggleCategory('cat-croitor')">🧵 Croitorie</div>
                         <div class="category-content" id="croitorForm">
-                            <div class="item-row" style="margin-bottom: 8px;">
-                                <span class="item-name">Obiect</span>
-                                <select id="croitorItemSelect" onchange="onCroitorItemChange()" style="width: 100%;">
+                            <div class="mecanic-gallery-view" id="croitorGalleryView">
+                                <div class="mecanic-gallery-intro">Alege imaginea sistemului pentru a deschide calculatorul direct pe rețeta respectivă.</div>
+                                <div class="mecanic-gallery-grid" id="croitorGalleryGrid" aria-label="Sisteme Croitorie"></div>
+                            </div>
+                            <div class="mecanic-selection-view" id="croitorSelectionView" hidden>
+                                <button type="button" class="mecanic-selection-back" onclick="showCroitorieGallery()">← Înapoi la imagini</button>
+                                <div class="item-row" style="margin-bottom: 8px;">
+                                    <span class="item-name">Obiect</span>
+                                    <select id="croitorItemSelect" onchange="onCroitorItemChange()" style="width: 100%;">
                                     <option value="ata_x2">Ață x 2</option>
                                     <option value="sfoara">Sfoară</option>
                                     <option value="fibra">Fibră</option>
@@ -674,11 +687,12 @@
                                     <option value="armura_kevlar">Armură kevlar</option>
                                     <option value="sac_fibra">Sac de fibră</option>
                                     <option value="parasuta">Parașută</option>
-                                </select>
-                            </div>
-                            <div class="item-row">
-                                <span class="item-name">Cantitate</span>
-                                <input type="number" id="croitorQty" min="0" step="1" value="0" placeholder="0">
+                                    </select>
+                                </div>
+                                <div class="item-row">
+                                    <span class="item-name">Cantitate</span>
+                                    <input type="number" id="croitorQty" min="0" step="1" value="0" placeholder="0">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -810,7 +824,7 @@
         function applyAssistantSelection() {
             const params = new URLSearchParams(window.location.search);
             const requested = String(params.get('assistant_item') || '').trim();
-            if (!requested) return;
+            if (!requested) return false;
             const quantity = Math.max(1, Number.parseInt(params.get('assistant_qty') || '1', 10) || 1);
             const normalized = requested.toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             const targets = [
@@ -830,13 +844,18 @@
                 select.value = option.value;
                 const qty = document.getElementById(qtyId);
                 if (qty) qty.value = String(quantity);
-                if (selectId === 'mecanicItemSelect') {
+                if (selectId === 'masaItemSelect') {
+                    openMasaRecipe(option.value, quantity);
+                } else if (selectId === 'croitorItemSelect') {
+                    openCroitorieRecipe(option.value, quantity);
+                } else if (selectId === 'mecanicItemSelect') {
                     openMecanicRecipe(option.value, quantity);
                 } else {
                     handler?.();
                 }
-                return;
+                return true;
             }
+            return false;
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -844,8 +863,11 @@
             await initializePanelLayout();
 
             populateMecanicOptions();
-            applyAssistantSelection();
-            onItemChange();
+            renderMasaGallery();
+            renderCroitorieGallery();
+            showMasaGallery();
+            const assistantApplied = applyAssistantSelection();
+            if (!assistantApplied) onItemChange();
             calculateAll();
         
         });
@@ -1491,6 +1513,7 @@ const upgradeChains = {
             galleryView.hidden = false;
             selectionView.hidden = true;
             if (mechanicQty) mechanicQty.value = 0;
+            clearCalculatorSelections('mecanic');
             calculateAll();
         }
 
@@ -1508,6 +1531,115 @@ const upgradeChains = {
             onMecanicItemChange();
         }
 
+        function clearCalculatorSelections() {
+            const masaQty = document.getElementById('masaQty');
+            const croitorQty = document.getElementById('croitorQty');
+            const mecanicQty = document.getElementById('mecanicQty');
+            if (masaQty) masaQty.value = 0;
+            if (croitorQty) croitorQty.value = 0;
+            if (mecanicQty) mecanicQty.value = 0;
+            const subBox = document.getElementById('subOptionsBox');
+            if (subBox) subBox.classList.remove('active');
+        }
+
+        function createRecipeGalleryCard(recipeId, recipeName, imageFile, openRecipe) {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'mecanic-gallery-card';
+            card.dataset.recipeId = recipeId;
+            card.setAttribute('aria-label', `Deschide calculatorul pentru ${recipeName}`);
+
+            const image = document.createElement('img');
+            image.src = `img/${imageFile}`;
+            image.alt = recipeName;
+            image.loading = 'lazy';
+            image.decoding = 'async';
+
+            const label = document.createElement('span');
+            label.textContent = recipeName;
+            card.append(image, label);
+            card.addEventListener('click', () => openRecipe(recipeId));
+            return card;
+        }
+
+        function renderMasaGallery() {
+            const gallery = document.getElementById('masaGalleryGrid');
+            const select = document.getElementById('masaItemSelect');
+            if (!gallery || !select || gallery.dataset.rendered === 'true') return;
+
+            gallery.replaceChildren();
+            Array.from(select.options).forEach((option, index) => {
+                const imageFile = craftImageByItem[option.value];
+                if (!imageFile) return;
+                const recipeName = recipesMasa[option.value]?.name || option.textContent.trim();
+                gallery.appendChild(createRecipeGalleryCard(option.value, recipeName, imageFile, openMasaRecipe));
+            });
+            gallery.dataset.rendered = 'true';
+        }
+
+        function renderCroitorieGallery() {
+            const gallery = document.getElementById('croitorGalleryGrid');
+            const select = document.getElementById('croitorItemSelect');
+            if (!gallery || !select || gallery.dataset.rendered === 'true') return;
+
+            gallery.replaceChildren();
+            Array.from(select.options).forEach((option) => {
+                const imageFile = croitorieImageByItem[option.value];
+                if (!imageFile) return;
+                const recipeName = recipesCroitor[option.value]?.name || option.textContent.trim();
+                gallery.appendChild(createRecipeGalleryCard(option.value, recipeName, imageFile, openCroitorieRecipe));
+            });
+            gallery.dataset.rendered = 'true';
+        }
+
+        function showMasaGallery() {
+            const galleryView = document.getElementById('masaGalleryView');
+            const selectionView = document.getElementById('masaSelectionView');
+            if (!galleryView || !selectionView) return;
+            galleryView.hidden = false;
+            selectionView.hidden = true;
+            clearCalculatorSelections('masa');
+            calculateAll();
+        }
+
+        function showCroitorieGallery() {
+            const galleryView = document.getElementById('croitorGalleryView');
+            const selectionView = document.getElementById('croitorSelectionView');
+            if (!galleryView || !selectionView) return;
+            galleryView.hidden = false;
+            selectionView.hidden = true;
+            clearCalculatorSelections('croitorie');
+            calculateAll();
+        }
+
+        function openMasaRecipe(recipeId, requestedQuantity = 1) {
+            const select = document.getElementById('masaItemSelect');
+            const quantity = document.getElementById('masaQty');
+            const galleryView = document.getElementById('masaGalleryView');
+            const selectionView = document.getElementById('masaSelectionView');
+            if (!select || !quantity || !galleryView || !selectionView) return;
+
+            select.value = recipeId;
+            quantity.value = Math.max(1, Number.parseInt(requestedQuantity, 10) || 1);
+            galleryView.hidden = true;
+            selectionView.hidden = false;
+            onItemChange();
+        }
+
+        function openCroitorieRecipe(recipeId, requestedQuantity = 1) {
+            const select = document.getElementById('croitorItemSelect');
+            const quantity = document.getElementById('croitorQty');
+            const galleryView = document.getElementById('croitorGalleryView');
+            const selectionView = document.getElementById('croitorSelectionView');
+            if (!select || !quantity || !galleryView || !selectionView) return;
+
+            select.value = recipeId;
+            quantity.value = Math.max(1, Number.parseInt(requestedQuantity, 10) || 1);
+            galleryView.hidden = true;
+            selectionView.hidden = false;
+            onCroitorItemChange();
+        }
+
         function toggleCategory(catId) {
             const currentElement = document.getElementById(catId);
             const isOpen = currentElement.classList.contains('active');
@@ -1517,6 +1649,8 @@ const upgradeChains = {
 
             if (!isOpen) {
                 currentElement.classList.add('active');
+                if (catId === 'cat-masa') showMasaGallery();
+                if (catId === 'cat-croitor') showCroitorieGallery();
                 if (catId === 'cat-mecanic') showMecanicGallery();
             }
         }
