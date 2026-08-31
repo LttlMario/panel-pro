@@ -2099,6 +2099,9 @@ const upgradeChains = {
                 if (chainType) {
 
                     let chain = upgradeChains[chainType];
+                    const chainItemNames = new Set(
+                        chain.map(item => getNormalizedKey(item.name))
+                    );
 
                     let endIndex = chain.findIndex(
                         i => i.id === masaItemKey
@@ -2117,8 +2120,12 @@ const upgradeChains = {
                     }
 
 
-                    for (const mat in chain[endIndex].cost) {
-                        directCost[mat] = chain[endIndex].cost[mat];
+                    for (let i = startIndex; i <= endIndex; i++) {
+                        for (const mat in chain[i].cost) {
+                            if (chainItemNames.has(getNormalizedKey(mat))) continue;
+                            directCost[mat] =
+                                (directCost[mat] || 0) + chain[i].cost[mat];
+                        }
                     }
 
                     resolveMasaChainRawMaterials(
