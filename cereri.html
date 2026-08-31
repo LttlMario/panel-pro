@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cereri / Absențe - Panel</title>
+    <title>Învoiri - Panel</title>
     <!-- Tailwind CSS CDN -->
     <link rel="stylesheet" href="css/tailwind.css">
     <!-- Supabase JS Client -->
@@ -23,15 +23,15 @@
 
             <div class="p-8 space-y-6 max-w-5xl mx-auto w-full">
 
-                <!-- Formular Creare Înștiințare -->
+                <!-- Formular Creare Învoire -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg">
-                    <h3 class="text-base font-bold text-slate-100 mb-1">Trimite o Înștiințare Nouă</h3>
-                    <p class="text-xs text-slate-400 mb-6">Înregistrează o înștiințare pentru Sediu. Aceasta este informativă și nu necesită aprobare.</p>
+                    <h3 class="text-base font-bold text-slate-100 mb-1">Trimite o Învoire Nouă</h3>
+                    <p class="text-xs text-slate-400 mb-6">Înregistrează o învoire pentru audiența configurată. Aceasta este informativă și nu necesită aprobare.</p>
 
                     <form id="absence-form" class="space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-medium text-slate-300 mb-1">Tip înștiințare</label>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Tip învoire</label>
                                 <select id="notice-type" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
                                     <option value="" disabled selected>Alege tipul...</option>
                                     <option value="Învoire">Învoire</option>
@@ -66,16 +66,16 @@
                         <div class="pt-2 flex justify-end">
                             <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-6 py-2.5 rounded-xl transition shadow-md cursor-pointer flex items-center space-x-2">
                                 <span>📤</span>
-                                <span>Trimite Înștiințarea</span>
+                                <span>Trimite Învoirea</span>
                             </button>
                         </div>
                     </form>
                 </div>
 
-                <!-- Lista Înștiințarilor Existente -->
+                <!-- Lista Învoirilor Existente -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg">
-                    <h3 class="text-base font-bold text-slate-100 mb-1">Istoricul meu de înștiințări</h3>
-                    <p class="text-xs text-slate-400 mb-4">Vezi și gestionezi doar înștiințările tale trimise.</p>
+                    <h3 class="text-base font-bold text-slate-100 mb-1">Istoricul meu de învoiri</h3>
+                    <p class="text-xs text-slate-400 mb-4">Vezi și gestionezi doar învoirile tale trimise.</p>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs text-slate-300">
                             <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px]">
@@ -91,7 +91,7 @@
                             </thead>
                             <tbody id="absences-table-body" class="divide-y divide-slate-800/50">
                                 <tr>
-                                    <td colspan="7" class="p-4 text-center text-slate-500">Se încarcă înștiințările...</td>
+                                    <td colspan="7" class="p-4 text-center text-slate-500">Se încarcă învoirile...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -101,16 +101,16 @@
             </div>
         </main>
 
-    <!-- Modal pentru Editare Înștiințare -->
+    <!-- Modal pentru Editare Învoire -->
     <div id="edit-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-2xl max-w-lg w-full">
-            <h3 class="text-base font-bold text-slate-100 mb-1">Modifică Înștiințarea</h3>
-            <p class="text-xs text-slate-400 mb-4">Modifică detaliile înștiințării alese.</p>
+            <h3 class="text-base font-bold text-slate-100 mb-1">Modifică Învoirea</h3>
+            <p class="text-xs text-slate-400 mb-4">Modifică detaliile învoirii alese.</p>
 
             <form id="edit-absence-form" class="space-y-4">
                 <input type="hidden" id="edit-id">
                 <div>
-                    <label class="block text-xs font-medium text-slate-300 mb-1">Tip înștiințare</label>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Tip învoire</label>
                     <select id="edit-notice-type" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
                         <option value="Învoire">Învoire</option>
                         <option value="Concediu">Concediu</option>
@@ -150,6 +150,9 @@
         const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
         const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
         const supabaseClient = window.createPanelSupabaseClient();
+        const requestPageAudience = ['organization', 'departments'].includes(document.body?.dataset?.requestAudience)
+            ? document.body.dataset.requestAudience
+            : '';
 
         let currentUser = {
             discord_id: '',
@@ -246,7 +249,7 @@
                     activeOrganization.id;
 
                 /*
-                * Ruta Discord folosită de pagina Cereri / Absențe.
+                * Ruta Discord folosită de pagina Învoiri.
                 * Nu conține webhook-ul propriu-zis.
                 * Webhook-ul este rezolvat server-side pentru organizația activă.
                 */
@@ -302,12 +305,12 @@ console.log(
 );
 
 
-if (hasDepartmentRole) {
+if (requestPageAudience === 'departments' || (!requestPageAudience && hasDepartmentRole)) {
 
     requestChannel = 'requests_departments';
 
 }
-else if (hasOrganizationRole) {
+else if (requestPageAudience === 'organization' || (!requestPageAudience && hasOrganizationRole)) {
 
     requestChannel = 'requests_organization';
 
@@ -463,11 +466,15 @@ const hasDeptRole =
 
 
 requestRoute = {
-    channel: hasDeptRole
+    channel: requestPageAudience === 'departments'
         ? 'requests_departments'
-        : hasOrgRole
+        : requestPageAudience === 'organization'
             ? 'requests_organization'
-            : 'requests',
+            : hasDeptRole
+                ? 'requests_departments'
+                : hasOrgRole
+                    ? 'requests_organization'
+                    : 'requests',
 
     organization_id: activeOrganization.id
 };
@@ -527,10 +534,15 @@ console.log(
                     .map(String)
                     .some(role => roles.includes(role));
 
+            const canSubmit = requestPageAudience === 'organization'
+                ? canOrganization
+                : requestPageAudience === 'departments'
+                    ? canDepartments
+                    : canOrganization || canDepartments;
 
-            if (!canOrganization && !canDepartments) {
+            if (!canSubmit) {
                 alert(
-                    'Nu ai permisiunea de a trimite înștiințări.'
+                    'Nu ai permisiunea de a trimite învoiri.'
                 );
                 return;
             }
@@ -585,12 +597,12 @@ try {
 
 } catch (err) {
     console.error(
-        'Eroare la salvarea înștiințării în Supabase:',
+        'Eroare la salvarea învoirii în Supabase:',
         err
     );
 
     alert(
-        'A apărut o eroare la salvarea înștiințării.'
+        'A apărut o eroare la salvarea învoirii.'
     );
 
     return;
@@ -602,25 +614,25 @@ try {
     await sendDiscordWebhook(
         newAbsence,
         activeRole,
-        'Înștiințare Nouă'
+    'Învoire Nouă'
     );
 
     discordSent = true;
 
 } catch (err) {
     console.error(
-        'Înștiințarea a fost salvată, dar notificarea Discord a eșuat:',
+        'Învoirea a fost salvată, dar notificarea Discord a eșuat:',
         err
     );
 }
 
 if (discordSent) {
     alert(
-        'Înștiințarea a fost înregistrată și trimisă pe Discord cu succes!'
+        'Învoirea a fost înregistrată și trimisă pe Discord cu succes!'
     );
 } else {
     alert(
-        'Înștiințarea a fost înregistrată, dar notificarea Discord nu a putut fi trimisă.'
+        'Învoirea a fost înregistrată, dar notificarea Discord nu a putut fi trimisă.'
     );
 }
 
@@ -661,7 +673,7 @@ fetchAbsences();
                 if (error) throw error;
 
                 if (!absences || absences.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">Nicio înștiințare înregistrată.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">Nicio învoire înregistrată.</td></tr>`;
                     return;
                 }
 
@@ -671,7 +683,7 @@ fetchAbsences();
                     const createdAtFormatted = new Date(item.created_at).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' });
                     const startFormatted = formatNoticeDate(item.start_at || item.start_date);
                     const endFormatted = formatNoticeDate(getAbsenceEndAt(item));
-                    const noticeType = item.notice_type || 'Înștiințare';
+                    const noticeType = item.notice_type || 'Învoire';
                     const proofHtml = item.proof_url
                         ? `<a href="${item.proof_url}" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 underline">Deschide</a>`
                         : '<span class="text-slate-600">—</span>';
@@ -701,7 +713,7 @@ fetchAbsences();
         }
 
         async function deleteAbsence(id) {
-            if (!confirm('Ești sigur că vrei să ștergi această înștiințare?')) {
+            if (!confirm('Ești sigur că vrei să ștergi această învoire?')) {
                 return;
             }
 
@@ -720,11 +732,11 @@ fetchAbsences();
 
                 if (error) throw error;
 
-                alert('Înștiințarea a fost ștearsă cu succes!');
+                alert('Învoirea a fost ștearsă cu succes!');
                 fetchAbsences();
 
             } catch (err) {
-                console.error('Eroare la ștergerea înștiințării:', err);
+                console.error('Eroare la ștergerea învoirii:', err);
                 alert('A apărut o eroare la ștergerea înregistrării.');
             }
         }
@@ -788,14 +800,14 @@ fetchAbsences();
 
                 if (error) throw error;
 
-                alert('Înștiințarea a fost actualizată cu succes!');
+                alert('Învoirea a fost actualizată cu succes!');
 
                 closeEditModal();
                 fetchAbsences();
 
             } catch (err) {
                 console.error(
-                    'Eroare la actualizarea înștiințării:',
+                    'Eroare la actualizarea învoirii:',
                     err
                 );
 
@@ -805,21 +817,21 @@ fetchAbsences();
             }
         });
 
-        async function sendDiscordWebhook(data, role, actionTitle = 'Înștiințare Nouă') {
+        async function sendDiscordWebhook(data, role, actionTitle = 'Învoire Nouă') {
             const payload = {
                 request_type: requestRoute?.channel === 'requests_departments'
                     ? 'department'
                     : 'organization',
 
                 embeds: [{
-                    title: `📋 ${actionTitle} (Sediu)`,
+                    title: `📋 ${actionTitle} (${requestPageAudience === 'departments' ? 'Angajați' : requestPageAudience === 'organization' ? 'Organizație' : 'Sediu'})`,
                     color: 16753920,
                     fields: [
                         { name: 'Începe', value: formatNoticeDate(data.start_at || data.start_date), inline: true },
                         { name: 'Se termină', value: formatNoticeDate(getAbsenceEndAt(data)), inline: true },
                         { name: "👤 Membru / Funcție", value: data.colleague_name, inline: true },
                         { name: "🛠️ Rol în Bază", value: role, inline: true },
-                        { name: "📌 Tip", value: data.notice_type || 'Înștiințare', inline: true },
+                        { name: "📌 Tip", value: data.notice_type || 'Învoire', inline: true },
                         { name: "🗓️ Interval", value: `${formatNoticeDate(data.start_at)} → ${formatNoticeDate(data.end_at)}`, inline: false },
                         { name: "💬 Motiv", value: data.reason, inline: false },
                         { name: "📎 Dovadă", value: data.proof_url || 'Nu a fost atașat un link.', inline: false }

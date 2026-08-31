@@ -7,13 +7,13 @@
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   const pages = [
     ['index.html', 'Dashboard'], ['anunturi.html', 'Anunțuri și sondaje'], ['pontaj.html', 'Pontaj'],
-    ['cereri.html', 'Cereri și absențe'], ['bucatarie.html', 'Bucătărie'], ['contracte.html', 'Contracte'],
+    ['cereri.html', 'Învoiri'], ['bucatarie.html', 'Bucătărie'], ['contracte.html', 'Contracte'],
     ['calculatorilegal.html', 'Calculator ilegal'], ['craftmecanics.html', 'Craft Mecanic'],
     ['locatiiilegale.html', 'Locații ilegale'], ['marketplace.html', 'Marketplace legal'],
     ['marketplace-ilegal.html', 'Marketplace ilegal'], ['minigames.html', 'Minigames'], ['rapoarte.html', 'Rapoarte'], ['asistent.html', 'Asistent']
   ];
   const assistantGroups = [
-    { key: 'general', label: 'Generale', pages: [['index.html', 'Dashboard'], ['pontaj.html', 'Pontaj'], ['cereri.html', 'Cereri și absențe'], ['bucatarie.html', 'Bucătărie'], ['asistent.html', 'Asistent']] },
+    { key: 'general', label: 'Generale', pages: [['index.html', 'Dashboard'], ['pontaj.html', 'Pontaj'], ['cereri.html', 'Învoiri'], ['bucatarie.html', 'Bucătărie'], ['asistent.html', 'Asistent']] },
     { key: 'legal', label: 'Legale', pages: [['anunturi.html', 'Anunțuri și sondaje'], ['contracte.html', 'Contracte'], ['marketplace.html', 'Marketplace legal'], ['rapoarte.html', 'Rapoarte']] },
     { key: 'illegal', label: 'Ilegale', pages: [['calculatorilegal.html', 'Calculator ilegal'], ['craftmecanics.html', 'Craft Mecanic'], ['locatiiilegale.html', 'Locații ilegale'], ['marketplace-ilegal.html', 'Marketplace ilegal'], ['minigames.html', 'Minigames']] }
   ];
@@ -21,8 +21,8 @@
     ['organization', 'Anunțuri organizație', 'Anunțurile publicate exclusiv pentru membrii organizației.'],
     ['departments', 'Anunțuri Birouri / Angajați', 'Anunțurile publicate exclusiv pentru Birouri / Angajați.'],
     ['pontaj', 'Pontaj și ture', 'Pornirea, oprirea și închiderea automată a turelor.'],
-    ['requests_organization', 'Cereri / Învoiri · Organizație', 'Cererile direcționate către Organizație.'],
-    ['requests_departments', 'Cereri / Învoiri · Birouri / Angajați', 'Cererile direcționate către Birouri / Angajați.'],
+    ['requests_organization', 'Învoiri · Organizație', 'Învoirile direcționate către Organizație.'],
+    ['requests_departments', 'Învoiri · Birouri / Angajați', 'Învoirile direcționate către Birouri / Angajați.'],
     ['contracts', 'Contracte', 'Contractele create sau actualizate.'], ['contract_identity_weekly', 'Export săptămânal: nume + CNP', 'Trimite numai numele și CNP-ul contractelor noi.'], ['status_live', 'Status Live', 'Embed Discord actualizat automat la fiecare minut cu pontajul și pauzele active.'],
     ['marketplace', 'Marketplace legal', 'Anunțurile publicate în marketplace-ul normal.'],
     ['illegal_marketplace', 'Marketplace ilegal', 'Anunțurile publicate în marketplace-ul ilegal.'],

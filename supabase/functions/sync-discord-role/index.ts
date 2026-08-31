@@ -403,6 +403,17 @@ if (!existing) {
       const actionRoleIds = audience === 'organization' ? ['actions.organization.read', 'actions.organization.write', 'actions.organization.delete'].flatMap((key) => Array.isArray(action?.[key]) ? action[key].map(String) : []) : [];
       if ([...roleIds, ...disciplineRoleIds, ...actionRoleIds].some((roleId: string) => value.discord_role_ids.includes(roleId))) allowed_pages.push(page);
     });
+    const action = actionSettings.get(organization_id) || {};
+    [
+      ['cereri.departments', 'cereri-angajati.html'],
+      ['cereri.organization', 'cereri-organizatie.html']
+    ].forEach(([permission, page]) => {
+      const roleIds = Array.isArray(action?.[permission]) ? action[permission].map(String) : [];
+      if (roleIds.some((roleId: string) => value.discord_role_ids.includes(roleId))) allowed_pages.push(page);
+    });
+    if (allowed_pages.includes('cereri.html')) {
+      allowed_pages.push('cereri-angajati.html', 'cereri-organizatie.html');
+    }
     if (!communicationSettings.has(organization_id) && allowed_pages.includes('anunturi.html')) {
       allowed_pages.push('anunturi-angajati.html', 'anunturi-organizatie.html');
     }

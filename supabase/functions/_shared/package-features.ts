@@ -3,9 +3,9 @@ export const PACKAGE_FEATURES = Object.freeze({
   announcements: { label: 'Anunțuri și sondaje', pages: ['anunturi.html'] },
   announcements_departments: { label: 'Anunțuri · Angajați', pages: ['anunturi.html', 'anunturi-angajati.html'] },
   announcements_organization: { label: 'Anunțuri · Organizație', pages: ['anunturi.html', 'anunturi-organizatie.html'] },
-  requests: { label: 'Cereri și absențe', pages: ['cereri.html'] },
-  requests_departments: { label: 'Cereri · Angajați', pages: ['cereri.html'] },
-  requests_organization: { label: 'Cereri · Organizație', pages: ['cereri.html'] },
+  requests: { label: 'Învoiri', pages: ['cereri.html'] },
+  requests_departments: { label: 'Învoiri · Angajați', pages: ['cereri.html', 'cereri-angajati.html'] },
+  requests_organization: { label: 'Învoiri · Organizație', pages: ['cereri.html', 'cereri-organizatie.html'] },
   contracts: { label: 'Contracte', pages: ['contracte.html'] },
   reports: { label: 'Rapoarte', pages: ['rapoarte.html'] },
   legal_marketplace: { label: 'Marketplace legal', pages: ['marketplace.html'] },
@@ -24,7 +24,7 @@ export const PACKAGE_FEATURES = Object.freeze({
 
 export const STANDARD_PACKAGE_FEATURES = Object.freeze([
   'core', 'contracts', 'reports', 'legal_marketplace', 'legal_tools',
-  'announcements_departments', 'discipline_departments'
+  'announcements_departments', 'requests_departments', 'discipline_departments'
 ]);
 
 export const FULL_PACKAGE_FEATURES = Object.freeze(Object.keys(PACKAGE_FEATURES));

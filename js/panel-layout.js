@@ -1362,7 +1362,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 ['anunturi-angajati.html', '📣', 'Anunțuri angajați'],
                 ['anunturi-organizatie.html', '🏢', 'Anunțuri organizație'],
                 ['pontaj.html', '⏱️', 'Pontaj'],
-                ['cereri.html', '📋', 'Cereri / Absențe'],
+                ['cereri-angajati.html', '📋', 'Învoiri angajați'],
+                ['cereri-organizatie.html', '🏢', 'Învoiri organizație'],
                 ['contracte.html', '📜', 'Contracte'],
                 ['rapoarte.html', '📈', 'Rapoarte']
             ]],
