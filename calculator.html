@@ -607,7 +607,7 @@
                     </div>
 
                     <!-- Categorie Masă Crafting -->
-                    <div class="category-group active" id="cat-masa">
+                    <div class="category-group" id="cat-masa">
                         <div class="category-header" onclick="toggleCategory('cat-masa')">🛠️ Masă Crafting</div>
                         <div class="category-content" id="masaForm">
                             <div class="mecanic-gallery-view" id="masaGalleryView">
@@ -865,7 +865,6 @@
             populateMecanicOptions();
             renderMasaGallery();
             renderCroitorieGallery();
-            showMasaGallery();
             const assistantApplied = applyAssistantSelection();
             if (!assistantApplied) onItemChange();
             calculateAll();
