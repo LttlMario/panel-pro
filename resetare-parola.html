@@ -69,21 +69,36 @@
     const authClient = window.createPanelAuthClient({ persistSession: true });
     const form = document.getElementById('password-reset-form');
     const status = document.getElementById('password-reset-status');
+    let emailPasswordAuthEnabled = false;
     window.bindPanelPasswordRules?.('new-password', 'reset-password-rules');
     const setStatus = (message, tone = 'info') => {
       status.textContent = message;
       status.className = `mt-4 min-h-[24px] rounded-xl text-center text-sm leading-6 ${tone === 'error' ? 'text-rose-300' : tone === 'success' ? 'text-emerald-300' : 'text-cyan-200'}`;
     };
 
-    authClient.auth.getSession().then(({ data }) => {
+    (async () => {
+      try {
+        const { data: settings, error: settingsError } = await authClient.rpc('get_public_auth_settings');
+        if (settingsError) throw settingsError;
+        emailPasswordAuthEnabled = settings?.email_password_enabled === true;
+      } catch (_) {
+        emailPasswordAuthEnabled = false;
+      }
+      if (!emailPasswordAuthEnabled) {
+        form.classList.add('hidden');
+        setStatus('Autentificarea prin email și parolă este dezactivată. Folosește conectarea rapidă cu Discord.', 'error');
+        return;
+      }
+      const { data } = await authClient.auth.getSession();
       if (!data.session) {
         form.classList.add('hidden');
         setStatus('Linkul de resetare este invalid sau a expirat.', 'error');
       }
-    });
+    })();
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
+      if (!emailPasswordAuthEnabled) return setStatus('Autentificarea prin email și parolă este dezactivată.', 'error');
       const password = document.getElementById('new-password').value;
       const confirmation = document.getElementById('new-password-confirm').value;
       if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) return setStatus('Parola trebuie să aibă minimum 8 caractere, o literă mare și o cifră.', 'error');

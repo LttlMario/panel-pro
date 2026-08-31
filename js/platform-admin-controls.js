@@ -66,6 +66,20 @@
             <p class="text-xs text-slate-400 mt-1">Ban-ul revocă sesiunile active și împiedică autentificarea până la unban.</p>
             <div id="platform-ban-list" class="mt-4 space-y-2"><p class="text-xs text-slate-500">Se încarcă lista de ban-uri…</p></div>
           </div>
+          <div class="border-t border-slate-800 pt-6">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h4 class="text-sm font-bold text-slate-100">Autentificare prin email și parolă</h4>
+                <p class="text-xs text-slate-400 mt-1 max-w-2xl">Când este dezactivată, utilizatorii pot intra și se pot înregistra numai prin conectarea rapidă cu Discord.</p>
+              </div>
+              <label class="inline-flex items-center gap-3 cursor-pointer text-xs font-bold text-slate-200">
+                <input id="platform-email-auth-toggle" type="checkbox" class="sr-only peer">
+                <span class="relative w-11 h-6 rounded-full bg-slate-700 peer-checked:bg-emerald-500 transition after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-5"></span>
+                <span id="platform-email-auth-label">Se încarcă…</span>
+              </label>
+            </div>
+            <p id="platform-email-auth-status" class="mt-3 min-h-[20px] text-xs text-slate-500" role="status" aria-live="polite"></p>
+          </div>
         </div>
       </details>`;
     const actionBar = main.querySelector('.panel-action-bar');
@@ -78,17 +92,66 @@
     const panel = document.getElementById('platform-admin-center');
     if (!panel) return false;
     try {
-      const [admins, bans] = await Promise.all([
+      const [admins, bans, authSettings] = await Promise.all([
         window.panelAdminInvoke('platform_admins'),
         window.panelAdminInvoke('platform_bans'),
+        window.panelAdminInvoke('platform_auth_settings'),
       ]);
       renderAdmins(admins.administrators || []);
       renderBans(bans.bans || []);
+      renderEmailAuthSetting(authSettings);
     } catch (error) {
       panel.querySelector('#platform-admin-list').innerHTML = `<p class="text-xs text-rose-300">Nu s-au putut încărca setările: ${escapeHtml(error.message)}</p>`;
       panel.querySelector('#platform-ban-list').innerHTML = '';
+      const authLabel = panel.querySelector('#platform-email-auth-label');
+      const authStatus = panel.querySelector('#platform-email-auth-status');
+      if (authLabel) authLabel.textContent = 'Indisponibilă';
+      if (authStatus) {
+        authStatus.textContent = 'Setarea nu a putut fi încărcată. Nu modifica opțiunea până când panoul nu se reconectează.';
+        authStatus.className = 'mt-3 min-h-[20px] text-xs text-rose-300';
+      }
     }
     return true;
+  }
+
+  function renderEmailAuthSetting(settings = {}) {
+    const toggle = document.getElementById('platform-email-auth-toggle');
+    const label = document.getElementById('platform-email-auth-label');
+    const status = document.getElementById('platform-email-auth-status');
+    if (!toggle || !label || !status) return;
+    const enabled = settings.email_password_enabled !== false;
+    toggle.checked = enabled;
+    label.textContent = enabled ? 'Activată' : 'Dezactivată';
+    status.textContent = enabled
+      ? 'Sunt permise crearea conturilor și conectarea prin email/parolă.'
+      : 'Emailul și parola sunt dezactivate. Conectarea Discord rămâne disponibilă.';
+    status.className = `mt-3 min-h-[20px] text-xs ${enabled ? 'text-emerald-300' : 'text-amber-300'}`;
+    if (toggle.dataset.bound === 'true') return;
+    toggle.dataset.bound = 'true';
+    toggle.addEventListener('change', async () => {
+      const nextEnabled = toggle.checked;
+      if (!nextEnabled && !confirm('Dezactivezi autentificarea și crearea conturilor prin email/parolă?')) {
+        toggle.checked = true;
+        return;
+      }
+      toggle.disabled = true;
+      label.textContent = 'Se salvează…';
+      status.textContent = 'Se salvează setarea…';
+      try {
+        const result = await window.panelAdminInvoke('platform_auth_settings_save', { enabled: nextEnabled });
+        renderEmailAuthSetting(result);
+        status.textContent = nextEnabled
+          ? 'Autentificarea prin email/parolă a fost activată.'
+          : 'Autentificarea prin email/parolă a fost dezactivată.';
+      } catch (error) {
+        toggle.checked = !nextEnabled;
+        label.textContent = !nextEnabled ? 'Activată' : 'Dezactivată';
+        status.textContent = error?.message || 'Setarea nu a putut fi salvată.';
+        status.className = 'mt-3 min-h-[20px] text-xs text-rose-300';
+      } finally {
+        toggle.disabled = false;
+      }
+    });
   }
 
   function renderAdmins(items) {

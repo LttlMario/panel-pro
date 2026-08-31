@@ -125,7 +125,7 @@
 
         </button>
 
-        <section id="email-auth-panel" class="mt-4 rounded-2xl border border-slate-700/60 bg-slate-950/40 p-4 sm:p-5 text-left">
+        <section id="email-auth-panel" hidden class="mt-4 rounded-2xl border border-slate-700/60 bg-slate-950/40 p-4 sm:p-5 text-left">
             <div class="flex items-center justify-between gap-3">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">Cont principal</p>
@@ -226,6 +226,7 @@
         const EMAIL_DISCORD_FLOW_KEY = 'panel_email_discord_link_flow';
         const CREATE_ORGANIZATION_FLOW_KEY = 'panel_create_organization_flow';
         const REMEMBER_USERNAME_KEY = 'panel_email_login_username';
+        let emailPasswordAuthEnabled = false;
 
         const clearPanelBrowserSession = () => {
             [
@@ -246,6 +247,27 @@
         const showEmailConfirmationNotice = (visible = true) => {
             document.getElementById('email-confirmation-notice')?.classList.toggle('hidden', !visible);
         };
+
+        async function loadEmailPasswordAuthAvailability() {
+            const panel = document.getElementById('email-auth-panel');
+            if (!panel) return false;
+            panel.hidden = true;
+            try {
+                const { data, error } = await supabaseClient.rpc('get_public_auth_settings');
+                if (error) throw error;
+                emailPasswordAuthEnabled = data?.email_password_enabled === true;
+                panel.hidden = !emailPasswordAuthEnabled;
+                return emailPasswordAuthEnabled;
+            } catch (_) {
+                // Dacă setarea publică nu poate fi citită, păstrăm accesul sigur
+                // prin Discord și nu afișăm un formular care poate fi respins.
+                emailPasswordAuthEnabled = false;
+                panel.hidden = true;
+                return false;
+            }
+        }
+
+        const emailPasswordAuthAvailability = loadEmailPasswordAuthAvailability();
 
         const chooseEmailGuild = (guilds) => new Promise((resolve) => {
             const picker = document.getElementById('email-guild-picker');
@@ -299,6 +321,7 @@
         };
 
         async function continueEmailSession() {
+            if (!emailPasswordAuthEnabled) return false;
             const { data: sessionData, error: sessionError } = await panelAuthClient.auth.getSession();
             if (sessionError || !sessionData.session) throw new Error('Sesiunea email nu este disponibila.');
             const { data: account, error } = await panelAuthClient
@@ -318,6 +341,7 @@
         }
 
         async function continueEmailPanelSession() {
+            if (!emailPasswordAuthEnabled) return false;
             const { data: sessionData, error: sessionError } = await panelAuthClient.auth.getSession();
             if (sessionError || !sessionData.session) throw new Error('Sesiunea de email nu este disponibilă.');
             emailStatus('Se verifică rolul Discord pe serverul configurat...');
@@ -356,6 +380,10 @@
         }
 
         async function startDiscordOAuth(emailLink = false, createOrganization = false) {
+            if (emailLink && !emailPasswordAuthEnabled) {
+                setLoginStatus('Conectarea prin email este dezactivată. Folosește conectarea rapidă cu Discord.');
+                return;
+            }
             if (window.location.protocol === 'file:') {
                 setLoginStatus('Pentru conectarea Discord deschide versiunea publică a panelului, nu fișierul local.', 'error');
                 return;
@@ -456,6 +484,7 @@
         document.querySelectorAll('[data-email-mode]').forEach((button) => button.addEventListener('click', () => setEmailMode(button.dataset.emailMode)));
         document.getElementById('email-login-form')?.addEventListener('submit', async (event) => {
             event.preventDefault();
+            if (!emailPasswordAuthEnabled) return emailStatus('Autentificarea prin email este dezactivată. Folosește conectarea rapidă cu Discord.', 'error');
             emailStatus('Se verifică datele...');
             const rememberMe = document.getElementById('email-remember-me')?.checked === true;
             const loginUsername = document.getElementById('email-login-username').value.trim();
@@ -481,6 +510,7 @@
         });
         document.getElementById('email-register-form')?.addEventListener('submit', async (event) => {
             event.preventDefault();
+            if (!emailPasswordAuthEnabled) return emailStatus('Crearea conturilor prin email este dezactivată. Folosește conectarea rapidă cu Discord.', 'error');
             const username = document.getElementById('email-register-username').value.trim();
             if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{2,31}$/.test(username)) return emailStatus('Username-ul trebuie să aibă 3–32 de caractere: litere, cifre, punct, minus sau underscore.', 'error');
             emailStatus('Se creează contul...');
@@ -513,6 +543,7 @@
         });
         document.getElementById('email-reset-form')?.addEventListener('submit', async (event) => {
             event.preventDefault();
+            if (!emailPasswordAuthEnabled) return emailStatus('Recuperarea conturilor prin email este dezactivată.', 'error');
             emailStatus('Se trimite linkul...');
             const { error } = await panelAuthClient.auth.resetPasswordForEmail(document.getElementById('email-reset-email').value.trim(), { redirectTo: new URL('resetare-parola.html', window.location.href).href });
             emailStatus(error ? (error.message || 'Linkul nu a putut fi trimis.') : 'Dacă emailul există, vei primi imediat linkul de resetare.', error ? 'error' : 'success');
@@ -695,15 +726,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     }
 
-    try {
-        const { data: emailSessionData } = await panelAuthClient.auth.getSession();
-        if (emailSessionData.session && !existingUser) {
-            await continueEmailSession();
-            const account = JSON.parse(localStorage.getItem('email_account') || 'null');
-            if (account?.discord_id && account?.discord_guild_id) await continueEmailPanelSession();
+    if (await emailPasswordAuthAvailability) {
+        try {
+            const { data: emailSessionData } = await panelAuthClient.auth.getSession();
+            if (emailSessionData.session && !existingUser) {
+                await continueEmailSession();
+                const account = JSON.parse(localStorage.getItem('email_account') || 'null');
+                if (account?.discord_id && account?.discord_guild_id) await continueEmailPanelSession();
+            }
+        } catch (_) {
+            // Loginul Discord rămâne disponibil chiar dacă sesiunea de email nu poate fi citită.
         }
-    } catch (_) {
-        // Loginul Discord rămâne disponibil chiar dacă sesiunea de email nu poate fi citită.
     }
 
 });
@@ -721,6 +754,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const emailLinkFlow = sessionStorage.getItem(EMAIL_DISCORD_FLOW_KEY) === '1';
                 const emailOnboardingFlow = sessionStorage.getItem('panel_email_onboarding_flow') === '1';
+                if ((emailLinkFlow || emailOnboardingFlow) && !emailPasswordAuthEnabled) {
+                    sessionStorage.removeItem(EMAIL_DISCORD_FLOW_KEY);
+                    sessionStorage.removeItem('panel_email_onboarding_flow');
+                    throw new Error('Autentificarea prin email este dezactivată. Folosește conectarea rapidă cu Discord.');
+                }
                 let emailSessionAccessToken = '';
                 let emailOrganizationId = '';
                 let emailCreateOrganization = false;

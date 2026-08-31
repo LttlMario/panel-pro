@@ -25,6 +25,15 @@ Deno.serve(async (request) => {
 
     if (!serviceKey || !anonKey || !supabaseUrl) throw new Error('Configurația Supabase lipsește.');
     const db = createClient(supabaseUrl, serviceKey);
+    const { data: emailAuthSetting, error: emailAuthSettingError } = await db
+      .from('platform_settings')
+      .select('value')
+      .eq('key', 'email_password_auth')
+      .maybeSingle();
+    if (emailAuthSettingError) throw emailAuthSettingError;
+    if (emailAuthSetting?.value?.enabled === false) {
+      return reply({ error: 'Autentificarea prin email și parolă este dezactivată. Folosește conectarea rapidă cu Discord.', code: 'EMAIL_PASSWORD_AUTH_DISABLED' }, 403);
+    }
     const clientAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('cf-connecting-ip')
       || 'unknown';
