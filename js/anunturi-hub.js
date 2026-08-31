@@ -1,6 +1,7 @@
 (() => {
   'use strict';
-  if (!location.pathname.endsWith('anunturi.html')) return;
+  const communityPageAudience = document.body?.dataset?.communityAudience || '';
+  if (!['anunturi.html', 'anunturi-angajati.html', 'anunturi-organizatie.html'].includes(location.pathname.split('/').pop())) return;
 
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -29,12 +30,14 @@
     const announcementAccess = announcements()?.getAccess?.() || {};
     const readableAudiences = announcementAccess.readAudiences || [];
     const disciplineReadable = hasRead('departments') || hasRead('organization');
-    const actionsReadable = Boolean(actions()?.getAccess?.()?.read);
+    const actionsReadable = communityPageAudience !== 'departments' && Boolean(actions()?.getAccess?.()?.read);
     const tabs = document.querySelectorAll('[data-filter]');
     tabs.forEach((tab) => {
       const filter = tab.dataset.filter;
       const visible = filter === 'all'
         ? Boolean(announcementAccess.read || disciplineReadable || actionsReadable)
+        : filter === 'announcements' || filter === 'poll'
+          ? Boolean(announcementAccess.read)
         : filter === 'fine'
           ? Boolean(announcementAccess.read)
         : filter === 'poll-organization'
@@ -53,9 +56,9 @@
     const createOptions = {
       announcement: Boolean(announcementAccess.write),
       poll: Boolean(announcementAccess.write),
-      warning: hasWrite('departments') || hasWrite('organization'),
-      sanction: hasSanction('departments') || hasSanction('organization'),
-      action: Boolean(actions()?.getAccess?.()?.write)
+      warning: communityPageAudience ? hasWrite(communityPageAudience) : hasWrite('departments') || hasWrite('organization'),
+      sanction: communityPageAudience ? hasSanction(communityPageAudience) : hasSanction('departments') || hasSanction('organization'),
+      action: communityPageAudience !== 'departments' && Boolean(actions()?.getAccess?.()?.write)
     };
     const createType = $('unified-create-type');
     createType?.querySelectorAll('option').forEach((option) => { option.hidden = !createOptions[option.value]; });
@@ -71,7 +74,8 @@
   }
 
   function readableDisciplineEntries() {
-    return (discipline()?.getEntries?.() || []).filter((entry) => hasRead(entry.target_scope));
+    return (discipline()?.getEntries?.() || []).filter((entry) => hasRead(entry.target_scope)
+      && (!communityPageAudience || entry.target_scope === communityPageAudience));
   }
 
   function renderAll() {
@@ -81,7 +85,7 @@
     const records = [
       ...(announcements()?.getPosts?.() || []).map((post) => ({ kind: 'post', date: post.created_at, value: post })),
       ...readableDisciplineEntries().map((entry) => ({ kind: 'discipline', date: entry.created_at, value: entry })),
-      ...((actions()?.getActions?.() || []).map((action) => ({ kind: 'action', date: action.created_at, value: action })))
+      ...((communityPageAudience !== 'departments' ? actions()?.getActions?.() || [] : []).map((action) => ({ kind: 'action', date: action.created_at, value: action })))
     ].sort((left, right) => Date.parse(String(right.date || '')) - Date.parse(String(left.date || '')));
 
     feed.innerHTML = records.length ? records.map((record) => {

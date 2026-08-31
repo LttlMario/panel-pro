@@ -2,7 +2,10 @@
   'use strict';
 
   const config = window.PANEL_SUPABASE_CONFIG;
-  if (!config || !location.pathname.endsWith('anunturi.html')) return;
+  const communityPageAudience = ['organization', 'departments'].includes(document.body?.dataset?.communityAudience)
+    ? document.body.dataset.communityAudience
+    : '';
+  if (!config || !['anunturi.html', 'anunturi-angajati.html', 'anunturi-organizatie.html'].includes(location.pathname.split('/').pop())) return;
 
   const state = { warnings: [], sanctions: [], access: null, filter: null };
   const $ = (id) => document.getElementById(id);
@@ -51,7 +54,8 @@
 
   function visibleScopeRecords(kind) {
     const rows = kind === 'warnings' ? state.warnings : state.sanctions;
-    return rows.filter((row) => row.target_scope === 'departments' || row.target_scope === 'organization');
+    return rows.filter((row) => (row.target_scope === 'departments' || row.target_scope === 'organization')
+      && (!communityPageAudience || row.target_scope === communityPageAudience));
   }
 
   function render() {
@@ -110,12 +114,13 @@
   }
 
   function updateCreateButton() {
-    const canCreate = hasWrite('departments') || hasWrite('organization') || hasSanction('departments') || hasSanction('organization');
+    const scopes = communityPageAudience ? [communityPageAudience] : ['departments', 'organization'];
+    const canCreate = scopes.some((scope) => hasWrite(scope) || hasSanction(scope));
     $('discipline-create-button').hidden = true;
     const warningOption = $('discipline-kind')?.querySelector('option[value="warning"]');
     const sanctionOption = $('discipline-kind')?.querySelector('option[value="sanction"]');
-    if (warningOption) warningOption.hidden = !hasWrite('departments') && !hasWrite('organization');
-    if (sanctionOption) sanctionOption.hidden = !hasSanction('departments') && !hasSanction('organization');
+    if (warningOption) warningOption.hidden = !scopes.some((scope) => hasWrite(scope));
+    if (sanctionOption) sanctionOption.hidden = !scopes.some((scope) => hasSanction(scope));
   }
 
   async function loadTargets() {
@@ -135,6 +140,12 @@
 
   function configureScopeOptions() {
     const select = $('discipline-scope');
+    if (communityPageAudience) {
+      select.value = communityPageAudience;
+      select.disabled = true;
+    } else {
+      select.disabled = false;
+    }
     [...select.options].forEach((option) => { option.hidden = !hasWrite(option.value) && !(option.value === 'departments' ? hasSanction('departments') : hasSanction('organization')); });
     const first = [...select.options].find((option) => !option.hidden);
     if (first) select.value = first.value;
@@ -143,6 +154,7 @@
   async function openModal() {
     configureScopeOptions();
     $('discipline-form').reset();
+    if (communityPageAudience) $('discipline-scope').value = communityPageAudience;
     $('discipline-kind').value = hasWrite('departments') || hasWrite('organization') ? 'warning' : 'sanction';
     $('discipline-currency').value = 'USD';
     $('sanction-fields').hidden = true;
@@ -177,9 +189,10 @@
       state.access = result.access || {};
       window.dispatchEvent(new CustomEvent('community:discipline-updated'));
       document.querySelectorAll('[data-discipline-filter]').forEach((button) => {
+        const scope = communityPageAudience;
         const visible = button.dataset.disciplineFilter === 'warnings'
-          ? state.warnings.length > 0 || hasWrite('departments') || hasWrite('organization')
-          : state.sanctions.length > 0 || hasSanction('departments') || hasSanction('organization');
+          ? state.warnings.some((row) => !scope || row.target_scope === scope) || (scope ? hasWrite(scope) : hasWrite('departments') || hasWrite('organization'))
+          : state.sanctions.some((row) => !scope || row.target_scope === scope) || (scope ? hasSanction(scope) : hasSanction('departments') || hasSanction('organization'));
         button.hidden = !visible;
       });
       updateCreateButton();

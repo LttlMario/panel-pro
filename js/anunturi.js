@@ -3,6 +3,9 @@
   const KEY=window.PANEL_SUPABASE_CONFIG.publishableKey;
   const db = window.createPanelSupabaseClient();
   const user = window.getUser?.() || {};
+  const communityPageAudience = ['organization', 'departments'].includes(document.body?.dataset?.communityAudience)
+    ? document.body.dataset.communityAudience
+    : '';
   let posts=[], filter='all', editing=null, draft=null;
   let canWriteAnnouncements = false;
   let isPlatformAdmin = false;
@@ -33,16 +36,22 @@
           const canRead = access?.read === true;
           const canWrite = access?.write === true;
 
-          canWriteAnnouncements = canWrite;
           isPlatformAdmin = access?.platform_admin === true;
           readAudiences = Array.isArray(access?.read_audiences) ? access.read_audiences.map(String).filter(Boolean) : [];
           writeAudiences = Array.isArray(access?.write_audiences) ? access.write_audiences.map(String).filter(Boolean) : [];
+          const pageCanRead = communityPageAudience ? readAudiences.includes(communityPageAudience) : canRead;
+          const pageCanWrite = communityPageAudience ? writeAudiences.includes(communityPageAudience) : canWrite;
+          canWriteAnnouncements = pageCanWrite;
           configureAudienceChoices();
           window.dispatchEvent(new CustomEvent('community:permissions-updated'));
 
-          if (!canRead) {
+          if (!pageCanRead) {
               announcementAccess = { read: false, write: false };
-              showFeedMessage('Nu ai permisiunea de a accesa Anunțuri & Sondaje.');
+              showFeedMessage(communityPageAudience === 'organization'
+                ? 'Nu ai permisiunea de a accesa Anunțuri organizație.'
+                : communityPageAudience === 'departments'
+                  ? 'Nu ai permisiunea de a accesa Anunțuri angajați.'
+                  : 'Nu ai permisiunea de a accesa Anunțuri & Sondaje.');
 
             canWriteAnnouncements = false;
             $('#create-button').hidden = true;
@@ -53,12 +62,12 @@
             };
           }
 
-          $('#create-button').hidden = !canWrite;
-          announcementAccess = { read: true, write: canWrite };
+          $('#create-button').hidden = !pageCanWrite;
+          announcementAccess = { read: true, write: pageCanWrite };
 
           return {
               read: true,
-              write: canWrite
+              write: pageCanWrite
           };
 
       } catch (error) {
@@ -86,13 +95,19 @@ async function loadNow() {
         return;
     }
 
+    const visibleAudiences = communityPageAudience ? [communityPageAudience] : readAudiences;
+    if (!visibleAudiences.length) {
+        showFeedMessage('Nu ai nicio audiență de comunicare permisă.');
+        return;
+    }
+
     // Audiența este filtrată în query, înainte ca datele să ajungă în browser.
     // Filtrarea doar în render ar permite unui utilizator să descarce datele celeilalte audiențe.
     const postResult = await runCommunityQuery((signal) => db
         .from('community_posts')
         .select('id,post_type,audience,title,content,author_discord_id,author_name,discord_message_id,created_at,updated_at')
         .eq('organization_id', organizationId)
-        .in('audience', readAudiences)
+        .in('audience', visibleAudiences)
         .order('created_at', { ascending: false })
         .abortSignal(signal));
     if (postResult.error) {
@@ -141,7 +156,7 @@ async function loadNow() {
 
         posts = (postResult.data || [])
             .filter(Boolean)
-            .filter(post => readAudiences.includes(post.audience))
+            .filter(post => visibleAudiences.includes(post.audience))
             .map(post => ({
                 ...post,
 
@@ -194,6 +209,8 @@ async function load(){
 .filter(Boolean)
 .filter(p =>
     filter==='all' ||
+    (filter==='announcements' && p.post_type!=='poll' && p.post_type!=='fine') ||
+    (filter==='poll' && p.post_type==='poll') ||
     p.audience===filter ||
     (filter==='fine' && p.post_type==='fine') ||
     (filter==='poll-organization' && p.post_type==='poll' && p.audience==='organization') ||
@@ -227,7 +244,10 @@ async function load(){
     }
 }
   function configureAudienceChoices() {
-    $$('[data-audience]').forEach((button) => { button.hidden = !writeAudiences.includes(button.dataset.audience); });
+    $$('[data-audience]').forEach((button) => {
+      button.hidden = !writeAudiences.includes(button.dataset.audience)
+        || Boolean(communityPageAudience && button.dataset.audience !== communityPageAudience);
+    });
   }
   function option(value=''){const row=document.createElement('div');row.className='poll-option-row';row.innerHTML=`<input class="poll-input" maxlength="120" value="${esc(value)}" placeholder="Opțiune"><button type="button" class="text-action danger">×</button>`;row.querySelector('button').onclick=()=>row.remove();$('#poll-options').appendChild(row)}
   function openEdit(id){const p=posts.find(x=>String(x.id)===String(id));editing=p.id;$('#form-heading').textContent='Editează postarea';$('#post-type').value=p.post_type;$('#post-type').disabled=true;$('#post-title').value=p.title;$('#post-content').value=p.content;$('#poll-wrap').hidden=p.post_type!=='poll';$('#poll-options').innerHTML='';(p.community_poll_options||[]).sort((a,b)=>a.position-b.position).forEach(o=>option(o.option_text));$('#post-modal').hidden=false}
@@ -245,7 +265,7 @@ async function load(){
   }
   window.communityAnnouncementsApi = {
     getPosts: () => posts.slice(),
-    getAccess: () => ({ ...announcementAccess, readAudiences: readAudiences.slice(), writeAudiences: writeAudiences.slice() }),
+    getAccess: () => ({ ...announcementAccess, audience: communityPageAudience || null, readAudiences: readAudiences.slice(), writeAudiences: writeAudiences.slice() }),
     renderCard: (post) => card(post),
     bindRenderedCards: (root = document) => bindCards.call(null, root),
     openComposer: openAnnouncementComposer,
@@ -278,7 +298,7 @@ async function load(){
       if (typeof window.openUnifiedCreate === 'function') return window.openUnifiedCreate();
       openAnnouncementComposer();
     };
-$('#post-type').onchange=e=>{$('#poll-wrap').hidden=e.target.value!=='poll';if(e.target.value==='poll'&&!$('#poll-options').children.length){option();option()}};$('#add-option').onclick=()=>option();$('#post-form').onsubmit=e=>{e.preventDefault();const options=$$('.poll-input').map(x=>x.value.trim()).filter(Boolean);if($('#post-type').value==='poll'&&options.length<2)return alert('Adaugă minimum două opțiuni.');draft={post_type:$('#post-type').value,title:$('#post-title').value.trim(),content:$('#post-content').value.trim(),options};if(editing)return act('update',{post_id:editing,...draft}).then(()=>$('#post-modal').hidden=true);$('#post-modal').hidden=true;configureAudienceChoices();$('#audience-modal').hidden=false};$$('[data-audience]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await act('create',{...draft,audience:b.dataset.audience});$('#audience-modal').hidden=true}catch(e){alert(e.message)}finally{b.disabled=false}});$$('[data-filter]').forEach(b=>b.onclick=()=>{$$('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
+$('#post-type').onchange=e=>{$('#poll-wrap').hidden=e.target.value!=='poll';if(e.target.value==='poll'&&!$('#poll-options').children.length){option();option()}};$('#add-option').onclick=()=>option();$('#post-form').onsubmit=e=>{e.preventDefault();const options=$$('.poll-input').map(x=>x.value.trim()).filter(Boolean);if($('#post-type').value==='poll'&&options.length<2)return alert('Adaugă minimum două opțiuni.');draft={post_type:$('#post-type').value,title:$('#post-title').value.trim(),content:$('#post-content').value.trim(),options};if(editing)return act('update',{post_id:editing,...draft}).then(()=>$('#post-modal').hidden=true);$('#post-modal').hidden=true;if(communityPageAudience){act('create',{...draft,audience:communityPageAudience});}else{configureAudienceChoices();$('#audience-modal').hidden=false}};$$('[data-audience]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await act('create',{...draft,audience:b.dataset.audience});$('#audience-modal').hidden=true}catch(e){alert(e.message)}finally{b.disabled=false}});$$('[data-filter]').forEach(b=>b.onclick=()=>{$$('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
     load();
 
     db

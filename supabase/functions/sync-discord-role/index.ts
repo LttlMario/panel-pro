@@ -146,7 +146,7 @@ Deno.serve(async (request) => {
     const organizationIds=[...new Set(scopedGuilds.map((guild:any)=>String(guild.organization_id)))];
     const [accessResult, mappingResult] = await Promise.all([
       organizationIds.length
-        ? db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','organization_package','page_permissions','assistant_page_permissions','action_permissions'])
+        ? db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','organization_package','page_permissions','communication_permissions','discipline_permissions','assistant_page_permissions','action_permissions'])
         : Promise.resolve({ data: [], error: null }),
       db.from('organization_role_mappings').select('*').eq('enabled', true)
     ]);
@@ -154,7 +154,7 @@ Deno.serve(async (request) => {
     if(accessError)throw accessError;
     const { data: mappings, error: mappingError } = mappingResult;
     if (mappingError) throw mappingError;
-    const expiredIds=new Set((accessRows||[]).filter((row:any)=>row.key==='organization_access'&&row.value?.expires_at&&Date.parse(String(row.value.expires_at))<=Date.now()).map((row:any)=>String(row.organization_id))),packageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='organization_package').map((row:any)=>[String(row.organization_id),row.value||{}])),pageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),assistantPageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='assistant_page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),actionSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='action_permissions').map((row:any)=>[String(row.organization_id),row.value||{}]));
+    const expiredIds=new Set((accessRows||[]).filter((row:any)=>row.key==='organization_access'&&row.value?.expires_at&&Date.parse(String(row.value.expires_at))<=Date.now()).map((row:any)=>String(row.organization_id))),packageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='organization_package').map((row:any)=>[String(row.organization_id),row.value||{}])),pageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),communicationSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='communication_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),disciplineSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='discipline_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),assistantPageSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='assistant_page_permissions').map((row:any)=>[String(row.organization_id),row.value||{}])),actionSettings=new Map((accessRows||[]).filter((row:any)=>row.key==='action_permissions').map((row:any)=>[String(row.organization_id),row.value||{}]));
      if(expiredIds.size){
        const now=new Date().toISOString();
        const {data:changedOrganizations,error:expirationError}=await db.from('organizations').update({active:false,deactivation_reason:'expired',deactivated_at:now,deactivated_by_discord_id:null,updated_at:now}).in('id',[...expiredIds]).eq('active',true).select('id');
@@ -387,6 +387,26 @@ if (!existing) {
           )
         )
         .map(([page]) => page);
+
+    const communication = communicationSettings.get(organization_id) || {};
+    const communicationPageRules = [
+      ['departments', 'anunturi-angajati.html'],
+      ['organization', 'anunturi-organizatie.html']
+    ];
+    communicationPageRules.forEach(([audience, page]) => {
+      const roleIds = Array.isArray(communication?.[audience]?.read)
+        ? communication[audience].read.map(String)
+        : [];
+      const discipline = disciplineSettings.get(organization_id) || {};
+      const disciplineRoleIds = ['read', 'write', 'sanction'].flatMap((kind) => Array.isArray(discipline?.[audience]?.[kind]) ? discipline[audience][kind].map(String) : []);
+      const action = actionSettings.get(organization_id) || {};
+      const actionRoleIds = audience === 'organization' ? ['actions.organization.read', 'actions.organization.write', 'actions.organization.delete'].flatMap((key) => Array.isArray(action?.[key]) ? action[key].map(String) : []) : [];
+      if ([...roleIds, ...disciplineRoleIds, ...actionRoleIds].some((roleId: string) => value.discord_role_ids.includes(roleId))) allowed_pages.push(page);
+    });
+    if (!communicationSettings.has(organization_id) && allowed_pages.includes('anunturi.html')) {
+      allowed_pages.push('anunturi-angajati.html', 'anunturi-organizatie.html');
+    }
+    allowed_pages = [...new Set(allowed_pages)];
 
     // Orice rol Discord identificat trebuie să poată intra în Dashboard și Pontaj.
     // Restul paginilor rămân controlate de selecțiile configurate în organizație.

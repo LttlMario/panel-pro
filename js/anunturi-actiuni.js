@@ -1,7 +1,8 @@
 (() => {
   'use strict';
-  if (!location.pathname.endsWith('anunturi.html')) return;
+  if (!['anunturi.html', 'anunturi-angajati.html', 'anunturi-organizatie.html'].includes(location.pathname.split('/').pop())) return;
   const config = window.PANEL_SUPABASE_CONFIG;
+  if (document.body?.dataset?.communityAudience === 'departments') return;
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   const state = { actions: [], stats: null, guilds: [], members: [], access: {}, open: false };
