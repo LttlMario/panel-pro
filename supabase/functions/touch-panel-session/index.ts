@@ -140,15 +140,14 @@ Deno.serve(async (request) => {
       return reply({ error: 'Organizația este dezactivată.', code: 'ORGANIZATION_DISABLED' }, 403);
     }
 
-    const { data: guild, error: guildError } = await db
+    const { data: guilds, error: guildError } = await db
       .from('organization_guilds')
       .select('guild_id,guild_name')
       .eq('organization_id', organizationId)
-      .eq('kind', 'primary')
       .eq('enabled', true)
-      .maybeSingle();
+      .order('kind', { ascending: true });
     if (guildError) throw guildError;
-    if (!guild?.guild_id) {
+    if (!Array.isArray(guilds) || !guilds.length) {
       await revokeMemberAccess(db, organizationId, discordId, now);
       await db.from('organizations').update({ last_discord_check_at: now, last_discord_check_status: 'guild_not_configured' }).eq('id', organizationId);
       await recordSystemAccessEvent(db, organizationId, 'organization_discord_check_failed', { status: 'guild_not_configured', discord_id: discordId });
@@ -157,46 +156,74 @@ Deno.serve(async (request) => {
 
     const discordBotToken = await getPlatformSecret(db, 'discord_bot_token');
     if (!discordBotToken) throw new Error('DISCORD_BOT_TOKEN lipsește din configurația Supabase.');
-    const guildId = String(guild.guild_id);
-    const guildResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}`, {
-      headers: discordHeaders(discordBotToken),
-    });
-
-    // 404 înseamnă că serverul a fost șters sau nu mai există. 401/403/5xx
-    // sunt tratate ca verificare amânată, pentru a nu deloga utilizatorii la o
-    // problemă temporară a botului sau a API-ului Discord.
-    if (guildResponse.status === 404) {
-      await revokeMemberAccess(db, organizationId, discordId, now);
-      await db.from('organizations').update({ last_discord_check_at: now, last_discord_check_status: 'guild_not_found' }).eq('id', organizationId);
-      await recordSystemAccessEvent(db, organizationId, 'organization_discord_check_failed', { status: 'guild_not_found', guild_id: guildId, discord_id: discordId });
-      return reply({ error: 'Serverul Discord al organizației nu a fost găsit. Sesiunea ta a fost revocată, dar organizația nu a fost dezactivată.', code: 'DISCORD_GUILD_NOT_FOUND' }, 403);
+    // Accesul este valid dacă utilizatorul există pe oricare guild activ al
+    // organizației. Guildul primary nu trebuie să fie singurul server valid.
+    let memberFound = false;
+    let memberChecked = false;
+    let guildFound = false;
+    let guildNotFound = false;
+    let verificationDeferred = false;
+    for (const configuredGuild of guilds) {
+      const guildId = String(configuredGuild.guild_id || '').trim();
+      if (!guildId) continue;
+      const guildResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}`, {
+        headers: discordHeaders(discordBotToken),
+      });
+      // Un server șters nu înseamnă automat că utilizatorul trebuie scos din
+      // organizație; continuăm verificarea celorlalte servere configurate.
+      if (guildResponse.status === 404) {
+        guildNotFound = true;
+        continue;
+      }
+      // 401/403/5xx sunt verificări amânate, nu revocări.
+      if (!guildResponse.ok) {
+        verificationDeferred = true;
+        continue;
+      }
+      guildFound = true;
+      const memberResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`, {
+        headers: discordHeaders(discordBotToken),
+      });
+      if (memberResponse.status === 404) {
+        memberChecked = true;
+        continue;
+      }
+      if (!memberResponse.ok) {
+        verificationDeferred = true;
+        continue;
+      }
+      memberChecked = true;
+      memberFound = true;
+      break;
     }
-    if (!guildResponse.ok) {
+
+    if (memberFound) {
       const { error } = await db.from('panel_sessions').update({ last_seen_at: now }).eq('token_hash', tokenHash);
       if (error) throw error;
-      return reply({ ok: true, last_seen_at: now, verification: 'deferred' });
+      await db.from('organizations').update({ last_discord_check_at: now, last_discord_check_status: 'ok' }).eq('id', organizationId);
+      return reply({ ok: true, last_seen_at: now, verification: 'live' });
     }
-
-    const memberResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`, {
-      headers: discordHeaders(discordBotToken),
-    });
-    if (memberResponse.status === 404) {
-      await revokeMemberAccess(db, organizationId, discordId, now);
-      await db.from('organizations').update({ last_discord_check_at: now, last_discord_check_status: 'member_not_found' }).eq('id', organizationId);
-      await recordSystemAccessEvent(db, organizationId, 'organization_discord_check_failed', { status: 'member_not_found', guild_id: guildId, discord_id: discordId });
-      return reply({ error: 'Nu mai ești membru pe serverul Discord al organizației. Sesiunea ta a fost revocată, dar organizația nu a fost dezactivată.', code: 'DISCORD_MEMBER_REMOVED' }, 403);
-    }
-    if (!memberResponse.ok) {
+    if (verificationDeferred) {
       const { error } = await db.from('panel_sessions').update({ last_seen_at: now }).eq('token_hash', tokenHash);
       if (error) throw error;
       await db.from('organizations').update({ last_discord_check_at: now, last_discord_check_status: 'deferred' }).eq('id', organizationId);
       return reply({ ok: true, last_seen_at: now, verification: 'deferred' });
     }
-
+    if (!guildFound && guildNotFound) {
+      await revokeMemberAccess(db, organizationId, discordId, now);
+      await db.from('organizations').update({ last_discord_check_at: now, last_discord_check_status: 'guild_not_found' }).eq('id', organizationId);
+      await recordSystemAccessEvent(db, organizationId, 'organization_discord_check_failed', { status: 'guild_not_found', guild_ids: guilds.map((guild: any) => String(guild.guild_id || '')), discord_id: discordId });
+      return reply({ error: 'Serverele Discord ale organizației nu au fost găsite. Sesiunea ta a fost revocată, dar organizația nu a fost dezactivată.', code: 'DISCORD_GUILD_NOT_FOUND' }, 403);
+    }
+    if (memberChecked) {
+      await revokeMemberAccess(db, organizationId, discordId, now);
+      await db.from('organizations').update({ last_discord_check_at: now, last_discord_check_status: 'member_not_found' }).eq('id', organizationId);
+      await recordSystemAccessEvent(db, organizationId, 'organization_discord_check_failed', { status: 'member_not_found', guild_ids: guilds.map((guild: any) => String(guild.guild_id || '')), discord_id: discordId });
+      return reply({ error: 'Nu mai ești membru pe serverele Discord ale organizației. Sesiunea ta a fost revocată, dar organizația nu a fost dezactivată.', code: 'DISCORD_MEMBER_REMOVED' }, 403);
+    }
     const { error } = await db.from('panel_sessions').update({ last_seen_at: now }).eq('token_hash', tokenHash);
     if (error) throw error;
-    await db.from('organizations').update({ last_discord_check_at: now, last_discord_check_status: 'ok' }).eq('id', organizationId);
-    return reply({ ok: true, last_seen_at: now, verification: 'live' });
+    return reply({ ok: true, last_seen_at: now, verification: 'deferred' });
   } catch (error) {
     return reply({ error: error instanceof Error ? error.message : 'Eroare necunoscută.' }, 500);
   }
