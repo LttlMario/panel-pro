@@ -200,6 +200,7 @@
 
     .pure-button:hover { filter: brightness(1.1); transform: translateY(-2px); }
     .pure-button-secondary { border-color: rgba(125, 211, 252, .25); background: rgba(15, 31, 53, .9); color: var(--pure-blue); box-shadow: none; }
+    .pure-button-danger { border-color: rgba(251, 113, 133, .4); background: linear-gradient(135deg, #be3455, #8f2441); color: #fff1f2; box-shadow: 0 .6rem 1.4rem rgba(190, 52, 85, .16); }
 
     .pure-note {
       display: flex;
@@ -266,7 +267,7 @@
       <ol class="pure-steps">
         <li class="pure-step"><div><strong>Descarcă fișierul</strong><p>Apasă butonul de mai jos și salvează <b>bzone-pure-launcher.cmd</b>.</p></div></li>
         <li class="pure-step"><div><strong>Rulează-l o singură dată</strong><p>Deschide fișierul din folderul Downloads. Fișierul descărcat doar înregistrează launcherul, nu pornește FiveM și nu cere drepturi de administrator.</p></div></li>
-        <li class="pure-step"><div><strong>Închide FiveM și folosește Dashboard-ul</strong><p>Închide FiveM complet, revino în Panel și apasă „Intră pe B-Zone”. Launcherul va porni FiveM direct cu Pure 1.</p></div></li>
+        <li class="pure-step"><div><strong>Închide FiveM și folosește Dashboard-ul</strong><p>Închide FiveM complet, revino în Panel și apasă „Intră pe B-Zone”. Launcherul va porni FiveM direct cu Pure 1 și va crea pe Desktop iconița „B-Zone Pure Mode 1”, cu imaginea FiveM, pentru pornirile viitoare.</p></div></li>
       </ol>
       <div class="pure-actions">
         <a class="pure-button" href="bzone-pure-launcher.cmd" download="bzone-pure-launcher.cmd"><span aria-hidden="true">↓</span> Descarcă launcherul Pure 1</a>
@@ -280,6 +281,7 @@
       <ul class="pure-list">
         <li>Se copiază o versiune locală în folderul <strong>BZonePureLauncher</strong> din profilul tău Windows.</li>
         <li>Se înregistrează protocolul local <strong>bzonepure://</strong>, folosit pentru a porni launcherul din browser.</li>
+        <li>La instalare, dacă FiveM este găsit, se creează pe Desktop scurtătura <strong>B-Zone Pure Mode 1</strong>, cu iconița FiveM; altfel, se creează la prima conectare reușită din Dashboard.</li>
         <li>La prima rulare se înregistrează componenta; la conectarea din Dashboard caută procesul principal FiveM în locațiile uzuale și pe discurile locale, apoi îl pornește dintr-o scurtătură Windows cu <strong>-pure_1 +connect</strong>.</li>
         <li>Dacă FiveM este deja deschis pe Pure 0, launcherul afișează un mesaj și așteaptă să îl închizi, pentru ca parametrul Pure 1 să fie aplicat corect.</li>
         <li>Conectarea și Pure Mode sunt pornite împreună prin scurtătura Windows, fără apeluri intermediare către un al doilea proces FiveM.</li>
@@ -290,10 +292,15 @@
 
     <section class="pure-panel" aria-labelledby="pure-remove-title">
       <h2 id="pure-remove-title" class="pure-heading">Cum revii la normal?</h2>
-      <p class="pure-subheading">Dacă nu mai vrei launcherul, îl poți elimina manual. Conectarea normală FiveM rămâne disponibilă din Dashboard.</p>
+      <p class="pure-subheading">Poți elimina launcherul automat sau manual. Conectarea normală FiveM rămâne disponibilă din Dashboard.</p>
+      <div class="pure-actions">
+        <a class="pure-button pure-button-danger" href="dezinstaleaza-bzone-pure.cmd" download="dezinstaleaza-bzone-pure.cmd"><span aria-hidden="true">×</span> Descarcă dezinstalarea automată</a>
+        <a class="pure-button pure-button-secondary" href="index.html">Înapoi la Dashboard</a>
+      </div>
+      <div class="pure-note"><span class="pure-note-mark" aria-hidden="true">!</span><p><strong>Un singur pas în Windows</strong>Descarcă scriptul, apasă „Rulează” și confirmă deschiderea. Curățarea este automată; FiveM original, GTA, Rockstar și fișierele jocului nu sunt atinse.</p></div>
       <span class="pure-code">%LocalAppData%\BZonePureLauncher</span>
       <span class="pure-code">HKCU\Software\Classes\bzonepure</span>
-      <p class="pure-subheading">Închide FiveM, șterge folderul de mai sus și elimină cheia <b>bzonepure</b> din Registry Editor. Nu este necesară nicio schimbare în GTA sau FiveM.</p>
+      <p class="pure-subheading">Metoda manuală rămâne disponibilă: închide FiveM, șterge folderul și scurtătura de mai sus, inclusiv „B-Zone Pure Mode 1” de pe Desktop, apoi elimină cheia <b>bzonepure</b> din Registry Editor. Nu este necesară nicio schimbare în GTA sau FiveM.</p>
     </section>
 
     <p class="pure-footer">Panel Pro · Launcherul este opțional și poate fi eliminat oricând.</p>
