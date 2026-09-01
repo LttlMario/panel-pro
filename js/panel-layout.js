@@ -1386,6 +1386,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 ['administrare-organizatii-platforma.html', '🗂️', 'Administrare organizații'],
                 ['organizatii.html', '🏢', 'Organizații platformă'],
                 ['secrete-platforma.html', '🔐', 'Secrete platformă'],
+                ['setari-platforma.html', '🔧', 'Setări platformă'],
                 ['developer.html', '🛠️', 'Developer'],
                 ['admin.html', '👑', 'Panou Admin'],
                 ['administrare-organizatie.html', '🏢', 'Administrare organizație'],
