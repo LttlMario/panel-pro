@@ -191,6 +191,7 @@ Deno.serve(async (request) => {
       nickname: string;
       guild_ids: string[];
       discord_role_ids: string[];
+      discord_role_ids_by_kind: Record<string, string[]>;
     }>();
     const liveRoles = new Map<string, Map<string, { name: string; position: number }>>();
     let platformRoleLabel = '';
@@ -285,6 +286,9 @@ if (!best) {
       discord_role_ids: [
         ...roleIds
       ],
+      discord_role_ids_by_kind: {
+        [guild.kind === 'secondary' ? 'secondary' : 'primary']: [...roleIds]
+      },
     });
   }
 
@@ -321,6 +325,9 @@ if (!existing) {
     discord_role_ids: [
       ...roleIds
     ],
+    discord_role_ids_by_kind: {
+      [guild.kind === 'secondary' ? 'secondary' : 'primary']: [...roleIds]
+    },
   });
 
 } else {
@@ -346,6 +353,13 @@ if (!existing) {
         ...roleIds
       ])
     ];
+    const guildKind = guild.kind === 'secondary' ? 'secondary' : 'primary';
+    existing.discord_role_ids_by_kind[guildKind] = [
+      ...new Set([
+        ...(existing.discord_role_ids_by_kind[guildKind] || []),
+        ...roleIds
+      ])
+    ];
   }
 
   // Închide procesarea serverului Discord curent.
@@ -364,7 +378,8 @@ if (!existing) {
           panel_role: platformRoleLabel || 'Administrator platformă',
           nickname: String(discordUser.global_name || discordUser.username),
           guild_ids: [],
-          discord_role_ids: []
+          discord_role_ids: [],
+          discord_role_ids_by_kind: {}
         });
       }
     }
@@ -372,6 +387,20 @@ if (!existing) {
 
   const available = [...matches.entries()]
   .map(([organization_id, value]) => {
+
+    const configuredGuildsForOrganization = scopedGuilds.filter((guild:any) => String(guild.organization_id) === String(organization_id) && guild.enabled !== false);
+    const hasSeparatedGuilds = configuredGuildsForOrganization.some((guild:any) => String(guild.kind || '') === 'primary')
+      && configuredGuildsForOrganization.some((guild:any) => String(guild.kind || '') === 'secondary');
+    const roleIdsForAudience = (audience: string) => {
+      if (!hasSeparatedGuilds) return value.discord_role_ids;
+      const preferredKind = audience === 'organization' ? 'secondary' : 'primary';
+      const preferred = value.discord_role_ids_by_kind?.[preferredKind] || [];
+      return preferred;
+    };
+    const roleIdsForPage = (page: string) =>
+      page.includes('organizatie') ? roleIdsForAudience('organization') :
+      page.includes('angajati') ? roleIdsForAudience('departments') :
+      value.discord_role_ids;
 
     const rules: any = {
       ...(pageSettings.get(organization_id) || {})
@@ -390,7 +419,7 @@ if (!existing) {
           Array.isArray(roleIds) &&
           roleIds.some(
             (roleId: string) =>
-              value.discord_role_ids.includes(
+              roleIdsForPage(page).includes(
                 String(roleId)
               )
           )
@@ -410,7 +439,7 @@ if (!existing) {
       const disciplineRoleIds = ['read', 'write', 'sanction'].flatMap((kind) => Array.isArray(discipline?.[audience]?.[kind]) ? discipline[audience][kind].map(String) : []);
       const action = actionSettings.get(organization_id) || {};
       const actionRoleIds = audience === 'organization' ? ['actions.organization.read', 'actions.organization.write', 'actions.organization.delete'].flatMap((key) => Array.isArray(action?.[key]) ? action[key].map(String) : []) : [];
-      if ([...roleIds, ...disciplineRoleIds, ...actionRoleIds].some((roleId: string) => value.discord_role_ids.includes(roleId))) allowed_pages.push(page);
+      if ([...roleIds, ...disciplineRoleIds, ...actionRoleIds].some((roleId: string) => roleIdsForAudience(audience).includes(roleId))) allowed_pages.push(page);
     });
     const action = actionSettings.get(organization_id) || {};
     [
@@ -418,7 +447,8 @@ if (!existing) {
       ['cereri.organization', 'cereri-organizatie.html']
     ].forEach(([permission, page]) => {
       const roleIds = Array.isArray(action?.[permission]) ? action[permission].map(String) : [];
-      if (roleIds.some((roleId: string) => value.discord_role_ids.includes(roleId))) allowed_pages.push(page);
+      const audience = permission.endsWith('.organization') ? 'organization' : 'departments';
+      if (roleIds.some((roleId: string) => roleIdsForAudience(audience).includes(roleId))) allowed_pages.push(page);
     });
     if (allowed_pages.includes('cereri.html')) {
       allowed_pages.push('cereri-angajati.html', 'cereri-organizatie.html');
@@ -443,7 +473,7 @@ if (!existing) {
     const assistantRules: any = assistantPageSettings.get(organization_id) || {};
     const assistantConfigured = Object.keys(assistantRules).length > 0;
     const assistant_allowed_pages = (assistantConfigured ? Object.entries(assistantRules) : Object.entries(rules))
-      .filter(([, roleIds]: any) => Array.isArray(roleIds) && roleIds.some((roleId: string) => value.discord_role_ids.includes(String(roleId))))
+      .filter(([page, roleIds]: any) => Array.isArray(roleIds) && roleIds.some((roleId: string) => roleIdsForPage(String(page)).includes(String(roleId))))
       .map(([page]) => page)
       .filter((page) => !['admin.html','logs.html','diagnostic.html','secrete-platforma.html','setari-platforma.html','discord-configurare.html','organizatii.html','vouchere.html','developer.html','administrare-organizatie.html'].includes(page))
       .filter((page) => isPlatformAdmin || packageAllowsPage(String(page), packageValue));

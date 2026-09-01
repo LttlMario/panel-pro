@@ -117,6 +117,45 @@ const sessionDiscordRoleIds =
         ? session.discord_role_ids.map(String)
         : [];
 
+const { data: permissionGuilds, error: permissionGuildsError } = await db
+    .from('organization_guilds')
+    .select('guild_id,kind')
+    .eq('organization_id', organizationId)
+    .eq('enabled', true);
+if (permissionGuildsError) throw permissionGuildsError;
+const { data: permissionRoleMappings, error: permissionRoleMappingsError } = await db
+    .from('organization_role_mappings')
+    .select('guild_id,discord_role_id,panel_role')
+    .eq('organization_id', organizationId)
+    .eq('enabled', true);
+if (permissionRoleMappingsError) throw permissionRoleMappingsError;
+const guildIdsForAudience = (audience:string) => {
+    const configuredGuilds = permissionGuilds || [];
+    const hasSeparatedGuilds = configuredGuilds.some((guild:any) => String(guild.kind || '') === 'primary')
+        && configuredGuilds.some((guild:any) => String(guild.kind || '') === 'secondary');
+    if (!hasSeparatedGuilds) return configuredGuilds.map((guild:any) => String(guild.guild_id));
+    const preferredKind = audience === 'organization' ? 'secondary' : 'primary';
+    const preferred = (permissionGuilds || [])
+        .filter((guild:any) => String(guild.kind || '') === preferredKind)
+        .map((guild:any) => String(guild.guild_id));
+    return preferred;
+};
+const roleIdsForAudience = (audience:string) => {
+    const guildIds = new Set(guildIdsForAudience(audience));
+    const mappedIds = [...new Set((permissionRoleMappings || [])
+        .filter((role:any) => guildIds.has(String(role.guild_id)))
+        .map((role:any) => String(role.discord_role_id || '').trim())
+        .filter(Boolean))];
+    // Configurațiile vechi fără mapări de Guild rămân funcționale, dar când
+    // există mapări folosim strict rolurile serverului potrivit audienței.
+    if (!mappedIds.length) return [...new Set(sessionDiscordRoleIds)];
+    return [...new Set(sessionDiscordRoleIds.filter((roleId) => mappedIds.includes(String(roleId))))];
+};
+const roleIdsForAllAudiences = () => [...new Set([
+    ...roleIdsForAudience('departments'),
+    ...roleIdsForAudience('organization')
+])];
+
 // Accesul la Anunțuri nu are nevoie de fallback-ul pentru rolul organizațional
 // sau de mapările folosite de Marketplace/Disciplină. Returnăm rapid configurația
 // deja încărcată și evităm două interogări suplimentare la fiecare deschidere.
@@ -126,11 +165,11 @@ if (body.action === 'announcement_access') {
             ? communicationPermissions[audience][kind].map(String)
             : [];
     const announcementCanForAudience = (audience:string, kind:'read'|'write') =>
-        hasCommunicationFeature(audience) && (isPlatformAdmin || sessionDiscordRoleIds.some(roleId => announcementAudienceRoles(audience, kind).includes(roleId)));
+        hasCommunicationFeature(audience) && (isPlatformAdmin || roleIdsForAudience(audience).some(roleId => announcementAudienceRoles(audience, kind).includes(roleId)));
     const announcementPageAccess =
-        isPlatformAdmin || sessionDiscordRoleIds.some(roleId => allowedAnnouncementRoles.includes(roleId));
+        isPlatformAdmin || roleIdsForAllAudiences().some(roleId => allowedAnnouncementRoles.includes(roleId));
     const announcementPublishAccess =
-        isPlatformAdmin || sessionDiscordRoleIds.some(roleId => allowedAnnouncementPublishRoles.includes(roleId));
+        isPlatformAdmin || roleIdsForAllAudiences().some(roleId => allowedAnnouncementPublishRoles.includes(roleId));
     const readAudiences = isPlatformAdmin
         ? ['organization', 'departments']
         : ['organization', 'departments'].filter(audience => announcementCanForAudience(audience, 'read'));
@@ -157,12 +196,6 @@ const { data: activeMemberForPermissions, error: activeMemberError } = await db
     .eq('active', true)
     .maybeSingle();
 if (activeMemberError) throw activeMemberError;
-const { data: permissionRoleMappings, error: permissionRoleMappingsError } = await db
-    .from('organization_role_mappings')
-    .select('discord_role_id,panel_role')
-    .eq('organization_id', organizationId)
-    .eq('enabled', true);
-if (permissionRoleMappingsError) throw permissionRoleMappingsError;
 const activePanelRole = String(activeMemberForPermissions?.panel_role || '').trim().toLowerCase();
 const roleIdsFromActivePanelRole = activePanelRole
     ? (permissionRoleMappings || [])
@@ -171,10 +204,18 @@ const roleIdsFromActivePanelRole = activePanelRole
         .filter(Boolean)
     : [];
 const effectiveDiscordRoleIds = [...new Set([...sessionDiscordRoleIds, ...roleIdsFromActivePanelRole])];
+const effectiveRoleIdsForAudience = (audience:string) => {
+    const guildIds = new Set(guildIdsForAudience(audience));
+    const fallbackIds = (permissionRoleMappings || [])
+        .filter((role:any) => activePanelRole && String(role.panel_role || '').trim().toLowerCase() === activePanelRole && guildIds.has(String(role.guild_id)))
+        .map((role:any) => String(role.discord_role_id || '').trim())
+        .filter(Boolean);
+    return [...new Set([...roleIdsForAudience(audience), ...fallbackIds])];
+};
 
 const hasActionsFeature = isPlatformAdmin || packageFeatures.includes('actions_organization');
 const actionPermissionRoles = (kind:'read'|'write'|'delete') => Array.isArray(actionPermissions[`actions.organization.${kind}`]) ? actionPermissions[`actions.organization.${kind}`].map(String) : [];
-const canAction = (kind:'read'|'write'|'delete') => hasActionsFeature && (isPlatformAdmin || effectiveDiscordRoleIds.some(roleId => actionPermissionRoles(kind).includes(roleId)));
+const canAction = (kind:'read'|'write'|'delete') => hasActionsFeature && (isPlatformAdmin || effectiveRoleIdsForAudience('organization').some(roleId => actionPermissionRoles(kind).includes(roleId)));
 const configuredActionGuilds = async () => {
     const { data, error } = await db.from('organization_guilds').select('guild_id,guild_name,kind,enabled').eq('organization_id', organizationId).eq('enabled', true).order('kind');
     if (error) throw error;
@@ -393,13 +434,13 @@ if (['marketplace_comments_list', 'marketplace_comment_add', 'marketplace_commen
 
 const hasAnnouncementPageAccess =
     isPlatformAdmin ||
-    sessionDiscordRoleIds.some(roleId =>
+    roleIdsForAllAudiences().some(roleId =>
         allowedAnnouncementRoles.includes(roleId)
     );
 
 const canPublishAnnouncements =
     isPlatformAdmin ||
-    sessionDiscordRoleIds.some(roleId =>
+    roleIdsForAllAudiences().some(roleId =>
         allowedAnnouncementPublishRoles.includes(roleId)
     );
 const audienceRoles = (audience:string, kind:'read'|'write') =>
@@ -407,13 +448,13 @@ const audienceRoles = (audience:string, kind:'read'|'write') =>
         ? communicationPermissions[audience][kind].map(String)
         : [];
 const canForAudience = (audience:string, kind:'read'|'write') =>
-    hasCommunicationFeature(audience) && (isPlatformAdmin || sessionDiscordRoleIds.some(roleId => audienceRoles(audience, kind).includes(roleId)));
+    hasCommunicationFeature(audience) && (isPlatformAdmin || roleIdsForAudience(audience).some(roleId => audienceRoles(audience, kind).includes(roleId)));
 const disciplineRoles = (scope:string, action:'read'|'write'|'sanction') =>
     Array.isArray(disciplinePermissions?.[scope]?.[action])
         ? disciplinePermissions[scope][action].map(String)
         : [];
 const canDiscipline = (scope:string, action:'read'|'write'|'sanction') =>
-    hasDisciplineFeature(scope) && (isPlatformAdmin || effectiveDiscordRoleIds.some(roleId => disciplineRoles(scope, action).includes(roleId)));
+    hasDisciplineFeature(scope) && (isPlatformAdmin || effectiveRoleIdsForAudience(scope === 'organization' ? 'organization' : 'departments').some(roleId => disciplineRoles(scope, action).includes(roleId)));
 const disciplineVisible = (scope:string, targetDiscordId:string|null) =>
     hasDisciplineFeature(scope) && (scope === 'departments'
         ? String(targetDiscordId || '') === String(session.discord_id) || canDiscipline(scope, 'read') || canDiscipline(scope, 'write') || canDiscipline(scope, 'sanction')
