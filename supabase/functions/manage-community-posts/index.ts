@@ -603,10 +603,20 @@ if (['discipline_list', 'discipline_targets'].includes(String(body.action || '')
             : [{ data: [], error: null }, { data: [], error: null }];
         if (profilesError) throw profilesError;
         if (employeesError) throw employeesError;
+        const departmentGuildIds = new Set(guildIdsForAudience('departments'));
+        const departmentPanelRoles = new Set((permissionRoleMappings || [])
+            .filter((role: any) => departmentGuildIds.has(String(role.guild_id)))
+            .map((role: any) => String(role.panel_role || '').trim().toLowerCase())
+            .filter(Boolean));
         return reply({ targets: (members || []).map((member:any) => {
             const profile = (profiles || []).find((item:any) => String(item.discord_id) === String(member.discord_id));
             const employee = (employees || []).find((item:any) => String(item.discord_id) === String(member.discord_id));
-            return { discord_id: member.discord_id, name: employee?.full_name || profile?.display_name || profile?.username || `Discord ${member.discord_id}`, role: member.panel_role };
+            const panelRole = String(member.panel_role || '').trim();
+            return {
+                discord_id: member.discord_id,
+                name: employee?.full_name || profile?.display_name || profile?.username || `Discord ${member.discord_id}`,
+                ...(panelRole && departmentPanelRoles.has(panelRole.toLowerCase()) ? { role: panelRole } : {})
+            };
         }) });
     }
     return reply({
