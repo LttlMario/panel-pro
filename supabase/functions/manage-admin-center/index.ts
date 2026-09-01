@@ -1,10 +1,11 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 import { getPlatformAdminDiscordIds, isPlatformAdminAccount, PLATFORM_ADMIN_DISCORD_IDS } from '../_shared/platform-admin.ts';
-const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json'};
-const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
+import { corsOptions, getCorsHeaders } from '../_shared/cors.ts';
 Deno.serve(async request=>{
-  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
+  const cors = getCorsHeaders(request);
+  const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
+  if(request.method==='OPTIONS')return corsOptions(request);
   try{
     const body=await request.json();
     const keys=JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS')??'{}');

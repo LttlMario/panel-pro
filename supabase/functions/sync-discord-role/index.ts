@@ -2,13 +2,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { isPlatformAdminAccount, isPlatformUserBanned } from '../_shared/platform-admin.ts';
 import { packageAllowsPage, resolvePackageFeatures } from '../_shared/package-features.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
+import { corsOptions, getCorsHeaders } from '../_shared/cors.ts';
 
-const headers = {
-  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
-  'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
-  'Content-Type': 'application/json',
-};
-const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
+const buildReply = (data: unknown, status = 200, headers = getCorsHeaders(new Request('https://lttlmario.github.io'))) => new Response(JSON.stringify(data), { status, headers });
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}').default;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const avatarUrl = (id: string, avatar?: string | null) => avatar ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png` : 'https://panel-management.netlify.app//img/logo-192.png';
@@ -38,7 +34,9 @@ const randomToken = () => { const bytes = crypto.getRandomValues(new Uint8Array(
 const sha256 = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 
 Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response('ok', { headers });
+  const headers = getCorsHeaders(request);
+  const reply = (data: unknown, status = 200) => buildReply(data, status, headers);
+  if (request.method === 'OPTIONS') return corsOptions(request);
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
   try {
     const body = await request.json();
