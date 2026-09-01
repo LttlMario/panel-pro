@@ -146,9 +146,12 @@ const roleIdsForAudience = (audience:string) => {
         .filter((role:any) => guildIds.has(String(role.guild_id)))
         .map((role:any) => String(role.discord_role_id || '').trim())
         .filter(Boolean))];
-    // Configurațiile vechi fără mapări de Guild rămân funcționale, dar când
-    // există mapări folosim strict rolurile serverului potrivit audienței.
-    if (!mappedIds.length) return [...new Set(sessionDiscordRoleIds)];
+    // Pentru două servere nu permitem fallback la rolurile celuilalt server:
+    // o audiență fără mapări dedicate trebuie configurată explicit. Pentru
+    // configurațiile vechi cu un singur server păstrăm compatibilitatea.
+    const hasSeparatedGuilds = (permissionGuilds || []).some((guild:any) => String(guild.kind || '') === 'primary')
+        && (permissionGuilds || []).some((guild:any) => String(guild.kind || '') === 'secondary');
+    if (!mappedIds.length) return hasSeparatedGuilds ? [] : [...new Set(sessionDiscordRoleIds)];
     return [...new Set(sessionDiscordRoleIds.filter((roleId) => mappedIds.includes(String(roleId))))];
 };
 const roleIdsForAllAudiences = () => [...new Set([
