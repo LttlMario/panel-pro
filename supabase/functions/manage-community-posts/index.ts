@@ -470,12 +470,21 @@ const resolveDisciplineTarget = async (scope:string, targetDiscordId:string|null
         .maybeSingle();
     if (memberError) throw memberError;
     if (!member) throw new Error('Angajatul selectat nu aparține organizației active.');
-    const { data: profile, error: profileError } = await db.from('users')
-        .select('display_name,username')
-        .eq('discord_id', discordId)
-        .maybeSingle();
+    const [{ data: employee, error: employeeError }, { data: profile, error: profileError }] = await Promise.all([
+        db.from('organization_employees')
+            .select('full_name')
+            .eq('organization_id', organizationId)
+            .eq('discord_id', discordId)
+            .is('archived_at', null)
+            .maybeSingle(),
+        db.from('users')
+            .select('display_name,username')
+            .eq('discord_id', discordId)
+            .maybeSingle()
+    ]);
+    if (employeeError) throw employeeError;
     if (profileError) throw profileError;
-    return { discordId, name: profile?.display_name || profile?.username || `Discord ${discordId}` };
+    return { discordId, name: employee?.full_name || profile?.display_name || profile?.username || `Discord ${discordId}` };
 };
 
 const activeDisciplineCount = async (scope:string, targetDiscordId:string|null) => {
@@ -533,15 +542,30 @@ if (['discipline_list', 'discipline_targets'].includes(String(body.action || '')
     if (body.action === 'discipline_targets') {
         const scope = String(body.target_scope || '');
         if (!canDiscipline(scope, 'write') && !canDiscipline(scope, 'sanction')) return reply({ error: 'Nu ai dreptul să selectezi destinatari pentru această categorie.' }, 403);
-        if (scope === 'organization') return reply({ targets: [{ discord_id: null, name: 'Organizația activă' }] });
+        if (scope === 'organization') {
+            const { data: organization, error: organizationError } = await db.from('organizations')
+                .select('name')
+                .eq('id', organizationId)
+                .maybeSingle();
+            if (organizationError) throw organizationError;
+            return reply({ targets: [{ discord_id: null, name: organization?.name || 'Organizația activă' }] });
+        }
         const { data: members, error: membersError } = await db.from('organization_members')
             .select('discord_id,panel_role').eq('organization_id', organizationId).eq('active', true).order('panel_role');
         if (membersError) throw membersError;
         const ids = (members || []).map((item:any) => String(item.discord_id));
-        const { data: profiles } = ids.length ? await db.from('users').select('discord_id,display_name,username').in('discord_id', ids) : { data: [] };
+        const [{ data: profiles, error: profilesError }, { data: employees, error: employeesError }] = ids.length
+            ? await Promise.all([
+                db.from('users').select('discord_id,display_name,username').in('discord_id', ids),
+                db.from('organization_employees').select('discord_id,full_name').eq('organization_id', organizationId).is('archived_at', null).in('discord_id', ids)
+            ])
+            : [{ data: [], error: null }, { data: [], error: null }];
+        if (profilesError) throw profilesError;
+        if (employeesError) throw employeesError;
         return reply({ targets: (members || []).map((member:any) => {
             const profile = (profiles || []).find((item:any) => String(item.discord_id) === String(member.discord_id));
-            return { discord_id: member.discord_id, name: profile?.display_name || profile?.username || member.discord_id, role: member.panel_role };
+            const employee = (employees || []).find((item:any) => String(item.discord_id) === String(member.discord_id));
+            return { discord_id: member.discord_id, name: employee?.full_name || profile?.display_name || profile?.username || `Discord ${member.discord_id}`, role: member.panel_role };
         }) });
     }
     return reply({
