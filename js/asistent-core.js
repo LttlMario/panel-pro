@@ -131,7 +131,7 @@
 
     function assistantPages() {
         return selectedPages().filter((page) => ![
-            'admin.html', 'logs.html', 'diagnostic.html', 'secrete-platforma.html', 'discord-configurare.html',
+            'admin.html', 'logs.html', 'diagnostic.html', 'secrete-platforma.html', 'setari-platforma.html', 'discord-configurare.html',
             'organizatii.html', 'vouchere.html', 'developer.html', 'administrare-organizatie.html'
         ].includes(page));
     }

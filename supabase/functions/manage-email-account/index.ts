@@ -1,7 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { corsOptions, getCorsHeaders } from '../_shared/cors.ts';
 
-const buildReply = (data: unknown, status = 200, headers = getCorsHeaders(new Request('https://lttlmario.github.io'))) => new Response(JSON.stringify(data), { status, headers });
+const buildReply = (data: unknown, status = 200, headers = getCorsHeaders(new Request('https://panel-pro.ro'))) => new Response(JSON.stringify(data), { status, headers });
 
 Deno.serve(async (request) => {
   const headers = getCorsHeaders(request);

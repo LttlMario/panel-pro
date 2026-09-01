@@ -4,7 +4,7 @@ import { isPlatformAdminAccount } from '../_shared/platform-admin.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = {
-  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
+  'Access-Control-Allow-Origin': 'https://panel-pro.ro',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
   'Access-Control-Max-Age': '86400',
@@ -13,7 +13,7 @@ const headers = {
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const allowedKinds = new Set(['suggestion', 'rating']);
 const allowedReactions = new Set(['👍', '❤️', '✅', '🤔', '❌']);
-const site = 'https://lttlmario.github.io/panel-pro';
+const site = 'https://panel-pro.ro';
 const limitText = (value: unknown, max: number) => String(value ?? '').trim().slice(0, max);
 const normalizeKind = (value: unknown) => String(value ?? '').trim().toLowerCase();
 

@@ -4,7 +4,7 @@ import { getPlatformAdminDiscordIds, isPlatformAdminAccount } from '../_shared/p
 import { FULL_PACKAGE_FEATURES, OPERATIONS_PACKAGE_FEATURES, PACKAGE_FEATURES, packageAllowsPage as packagePageAllowed, packageCatalogForClient, resolvePackageFeatures, STANDARD_PACKAGE_FEATURES } from '../_shared/package-features.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
-const headers={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
+const headers={'Access-Control-Allow-Origin':'https://panel-pro.ro','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers});
 const audit=async(db:any,session:any,action:string,targetId:string,details:unknown={})=>{await db.from('admin_audit_log').insert({organization_id:targetId,actor_discord_id:session.discord_id,action,target_type:'organization',target_id:targetId,details});};
 const synchronizePackageExpiration=async(db:any,organizationId:string,expiresAt:string|null)=>{

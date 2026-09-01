@@ -3,7 +3,7 @@ import { requirePanelSession } from '../_shared/panel-session.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = {
-  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
+  'Access-Control-Allow-Origin': 'https://panel-pro.ro',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
   'Access-Control-Max-Age': '86400',
@@ -17,7 +17,7 @@ const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 const discordGuild = async (guildId: string, botToken: string) => {
   const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}`, {
-    headers: { Authorization: `Bot ${botToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://lttlmario.github.io)' },
+    headers: { Authorization: `Bot ${botToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-pro.ro)' },
   });
   if (!response.ok) return null;
   return await response.json();
@@ -26,12 +26,12 @@ const discordGuild = async (guildId: string, botToken: string) => {
 const discordMember = async (guildId: string, discordId: string, botToken: string, accessToken = '') => {
   if (accessToken) {
     const oauthResponse = await fetch(`https://discord.com/api/v10/users/@me/guilds/${guildId}/member`, {
-      headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://lttlmario.github.io)' },
+      headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-pro.ro)' },
     });
     if (oauthResponse.ok) return true;
   }
   const botResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`, {
-    headers: { Authorization: `Bot ${botToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://lttlmario.github.io)' },
+    headers: { Authorization: `Bot ${botToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-pro.ro)' },
   });
   return botResponse.ok;
 };
@@ -56,7 +56,7 @@ Deno.serve(async (request) => {
     let discordId = '';
     if (accessToken) {
       const userResponse = await fetch('https://discord.com/api/v10/users/@me', {
-        headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://lttlmario.github.io)' },
+        headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-pro.ro)' },
       });
       if (!userResponse.ok) return reply({ error: 'Sesiunea Discord a expirat.' }, 401);
       const discordUser = await userResponse.json();

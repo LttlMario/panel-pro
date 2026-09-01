@@ -4,7 +4,7 @@ import { packageAllowsPage, resolvePackageFeatures } from '../_shared/package-fe
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 import { corsOptions, getCorsHeaders } from '../_shared/cors.ts';
 
-const buildReply = (data: unknown, status = 200, headers = getCorsHeaders(new Request('https://lttlmario.github.io'))) => new Response(JSON.stringify(data), { status, headers });
+const buildReply = (data: unknown, status = 200, headers = getCorsHeaders(new Request('https://panel-pro.ro'))) => new Response(JSON.stringify(data), { status, headers });
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}').default;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const avatarUrl = (id: string, avatar?: string | null) => avatar ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png` : 'https://panel-management.netlify.app//img/logo-192.png';
@@ -445,7 +445,7 @@ if (!existing) {
     const assistant_allowed_pages = (assistantConfigured ? Object.entries(assistantRules) : Object.entries(rules))
       .filter(([, roleIds]: any) => Array.isArray(roleIds) && roleIds.some((roleId: string) => value.discord_role_ids.includes(String(roleId))))
       .map(([page]) => page)
-      .filter((page) => !['admin.html','logs.html','diagnostic.html','discord-configurare.html','organizatii.html','vouchere.html','developer.html','administrare-organizatie.html'].includes(page))
+      .filter((page) => !['admin.html','logs.html','diagnostic.html','secrete-platforma.html','setari-platforma.html','discord-configurare.html','organizatii.html','vouchere.html','developer.html','administrare-organizatie.html'].includes(page))
       .filter((page) => isPlatformAdmin || packageAllowsPage(String(page), packageValue));
     const packageFeatures = resolvePackageFeatures(packageValue);
     const actionPermissions = { ...(actionSettings.get(organization_id) || {}) };

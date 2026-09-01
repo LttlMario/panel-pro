@@ -209,6 +209,7 @@ window.PANEL_ASSISTANT_PAGES = [
     { file: 'logs.html', label: 'Loguri' },
     { file: 'diagnostic.html', label: 'Diagnostic' },
     { file: 'secrete-platforma.html', label: 'Secrete platformă' },
+    { file: 'setari-platforma.html', label: 'Setări platformă' },
     { file: 'discord-configurare.html', label: 'Configurare Discord' },
     { file: 'organizatii.html', label: 'Organizații' },
     { file: 'vouchere.html', label: 'Vouchere' },

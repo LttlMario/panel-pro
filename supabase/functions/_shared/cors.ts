@@ -1,9 +1,15 @@
-const PUBLIC_ORIGIN = 'https://lttlmario.github.io';
+// Domeniul public al panelului. Toate răspunsurile CORS trebuie să reflecte
+// originea reală din browser, altfel autentificarea este blocată la preflight.
+const PUBLIC_ORIGIN = 'https://panel-pro.ro';
+const FALLBACK_ORIGINS = new Set([
+  PUBLIC_ORIGIN,
+  'https://lttlmario.github.io',
+]);
 const LOCAL_ORIGIN = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d{1,5})?$/i;
 
 export function getCorsHeaders(request: Request) {
   const origin = String(request.headers.get('origin') || '').trim();
-  const allowedOrigin = origin === PUBLIC_ORIGIN || LOCAL_ORIGIN.test(origin)
+  const allowedOrigin = FALLBACK_ORIGINS.has(origin) || LOCAL_ORIGIN.test(origin)
     ? origin
     : PUBLIC_ORIGIN;
 

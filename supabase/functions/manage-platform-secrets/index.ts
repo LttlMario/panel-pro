@@ -3,7 +3,7 @@ import { requirePanelSession } from '../_shared/panel-session.ts';
 import { isPlatformAdminAccount } from '../_shared/platform-admin.ts';
 
 const headers = {
-  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
+  'Access-Control-Allow-Origin': 'https://panel-pro.ro',
   'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json',
@@ -15,6 +15,10 @@ const allowed = new Set([
   'public_community_webhook_primary', 'public_community_webhook_secondary',
   'public_rating_webhook_primary', 'public_rating_webhook_secondary',
 ]);
+// URL-ul proiectului și cheia publishable sunt valori publice de conectare,
+// nu secrete operaționale. Ele rămân disponibile server-side pentru joburile
+// vechi, dar sunt administrate separat în Setări platformă.
+const visibleSecrets = new Set([...allowed].filter((name) => !['project_url', 'publishable_key'].includes(name)));
 const appliedTo: Record<string, string[]> = {
   project_url: ['joburile cron din Supabase'],
   publishable_key: ['joburile cron din Supabase', 'conectarea publică a panelului'],
@@ -45,7 +49,7 @@ Deno.serve(async (request) => {
     if (action === 'list') {
       const { data, error } = await db.rpc('get_panel_platform_secret_status');
       if (error) throw error;
-      return reply({ secrets: (Array.isArray(data) ? data : []).map((item: any) => ({ ...item, applied_to: appliedTo[item.name] || [] })) });
+      return reply({ secrets: (Array.isArray(data) ? data : []).filter((item: any) => visibleSecrets.has(String(item.name))).map((item: any) => ({ ...item, applied_to: appliedTo[item.name] || [] })) });
     }
     const name = String(body.name || '').trim();
     if (!allowed.has(name)) return reply({ error: 'Secret necunoscut sau nepermis.' }, 400);

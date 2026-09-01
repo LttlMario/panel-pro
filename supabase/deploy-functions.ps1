@@ -33,6 +33,7 @@ $functions = @(
     'send-organization-expiry-notifications',
     'manage-admin-center',
     'manage-platform-secrets',
+    'manage-platform-settings',
     'manage-organizations',
     'manage-owned-organization',
     'manage-contracts',

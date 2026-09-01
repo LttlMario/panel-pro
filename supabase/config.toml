@@ -43,6 +43,9 @@ verify_jwt = false
 [functions.manage-platform-secrets]
 verify_jwt = false
 
+[functions.manage-platform-settings]
+verify_jwt = false
+
 [functions.manage-organizations]
 verify_jwt = false
 

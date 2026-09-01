@@ -3,7 +3,7 @@ import {requirePanelSession} from '../_shared/panel-session.ts';
 import {isPlatformAdminAccount} from '../_shared/platform-admin.ts';
 import {resolvePackageFeatures} from '../_shared/package-features.ts';
 import {getPlatformSecret} from '../_shared/platform-secrets.ts';
-const cors={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
+const cors={'Access-Control-Allow-Origin':'https://panel-pro.ro','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
 
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
 const normalizeBlackMarketName=(value:unknown)=>String(value??'').replace(/^\s*\d{1,12}\s+/,'').replace(/^\s*\d{1,12}\s*[|:/#-]\s*/,'').replace(/\s*[|:/#-]\s*\d{1,12}\s*$/,'').replace(/\s+\d{1,12}\s*$/,'').replace(/\s*[[(]\s*\d{1,12}\s*[\])]\s*$/,'').replace(/\s{2,}/g,' ').trim();
@@ -203,7 +203,7 @@ const notifyActionDiscord = async (record:any) => {
     const route = settings?.webhook_routes?.actions_organization || {};
     const url = [route?.primary?.enabled !== false ? route?.primary?.url : '', route?.secondary?.enabled !== false ? route?.secondary?.url : ''].map((value:any) => String(value || '').trim()).find(Boolean);
     if (!url) return null;
-    const site = String(settings?.panel_public_url || 'https://lttlmario.github.io/panel-pro').replace(/\/$/, '');
+    const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
     const participants = Array.isArray(record.participants) ? record.participants : [];
     const response = await fetch(`${url}?wait=true`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ embeds: [{ title: `✅ Acțiune nouă: ${record.action_label}`, description: record.description || 'A fost înregistrată o acțiune a organizației.', color: 5763719, url: `${site}/anunturi.html?actions=${record.id}`, fields: [{ name: 'Tip', value: record.action_type || record.action_label, inline: true }, { name: 'Participanți', value: participants.length ? participants.map((item:any) => `• ${item.name}`).join('\n').slice(0, 1024) : 'Nespecificați' }, ...(record.notes ? [{ name: 'Note', value: String(record.notes).slice(0, 1024) }] : [])], footer: { text: `Panel Pro · ${record.created_by_name || record.created_by_discord_id}` } }] }) });
     if (!response.ok) return null;
@@ -503,7 +503,7 @@ const notifyDisciplineDiscord = async (kind:'warning'|'sanction', record:any) =>
     const route = settings?.webhook_routes?.[routeKey] || settings?.webhook_routes?.[fallbackKey] || {};
     const url = route?.primary?.url || route?.secondary?.url;
     if (!url) return null;
-    const site = String(settings?.panel_public_url || 'https://lttlmario.github.io/panel-pro').replace(/\/$/, '');
+    const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
     const detailUrl = `${site}/anunturi.html?discipline=${kind}&id=${record.id}`;
     const response = await fetch(`${url}?wait=true`, {
         method: 'POST',
@@ -827,7 +827,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
 
     const site = (
         discordConfig?.panel_public_url ||
-        'https://lttlmario.github.io/panel-pro'
+        'https://panel-pro.ro'
     ).replace(/\/$/,'');
 
     const postUrl = `${site}/anunturi.html?post=${post.id}`;
@@ -986,7 +986,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
 
     const site = (
             discordConfig?.panel_public_url ||
-            'https://lttlmario.github.io/panel-pro'
+            'https://panel-pro.ro'
         ).replace(/\/$/,'');
 
 

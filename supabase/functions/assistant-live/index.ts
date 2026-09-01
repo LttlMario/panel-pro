@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 
 const headers = {
-  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
+  'Access-Control-Allow-Origin': 'https://panel-pro.ro',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
   'Access-Control-Max-Age': '86400',
@@ -12,7 +12,7 @@ const headers = {
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 
 const db = createClient(String(Deno.env.get('SUPABASE_URL')), String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')));
-const blockedPages = new Set(['admin.html', 'logs.html', 'diagnostic.html', 'secrete-platforma.html', 'discord-configurare.html', 'organizatii.html', 'vouchere.html', 'developer.html', 'administrare-organizatie.html']);
+const blockedPages = new Set(['admin.html', 'logs.html', 'diagnostic.html', 'secrete-platforma.html', 'setari-platforma.html', 'discord-configurare.html', 'organizatii.html', 'vouchere.html', 'developer.html', 'administrare-organizatie.html']);
 
 async function canManageAssistantFeedback(session: any) {
   if (session.is_platform_admin) return true;

@@ -3,7 +3,7 @@ import { requirePanelSession } from '../_shared/panel-session.ts';
 import { resolvePackageFeatures } from '../_shared/package-features.ts';
 
 const cors = {
-  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
+  'Access-Control-Allow-Origin': 'https://panel-pro.ro',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
   'Content-Type': 'application/json'

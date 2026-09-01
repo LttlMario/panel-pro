@@ -2,7 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 import { corsOptions, getCorsHeaders } from '../_shared/cors.ts';
 
-const buildReply = (data: unknown, status = 200, headers = getCorsHeaders(new Request('https://lttlmario.github.io'))) => new Response(JSON.stringify(data), { status, headers });
+const buildReply = (data: unknown, status = 200, headers = getCorsHeaders(new Request('https://panel-pro.ro'))) => new Response(JSON.stringify(data), { status, headers });
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const botHeaders = (token: string) => ({
   Authorization: `Bot ${token}`,

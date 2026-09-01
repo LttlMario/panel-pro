@@ -5,7 +5,7 @@ import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 import { packageAllowsPage as packagePageAllowed, resolvePackageFeatures } from '../_shared/package-features.ts';
 
 const headers = {
-  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
+  'Access-Control-Allow-Origin': 'https://panel-pro.ro',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
   'Access-Control-Max-Age': '86400',

@@ -2,7 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = {
-  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
+  'Access-Control-Allow-Origin': 'https://panel-pro.ro',
   'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-cron-secret',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json',
@@ -11,7 +11,7 @@ const headers = {
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const DAY_MS = 24 * 60 * 60 * 1000;
 const THRESHOLDS = [7, 3, 1];
-const DEFAULT_PANEL_URL = 'https://lttlmario.github.io/panel-pro';
+const DEFAULT_PANEL_URL = 'https://panel-pro.ro';
 
 function serviceKey() {
   return Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;

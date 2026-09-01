@@ -2,7 +2,7 @@ import {createClient} from 'jsr:@supabase/supabase-js@2.112.3';
 import {requirePanelSession} from '../_shared/panel-session.ts';
 import {isPlatformAdminAccount} from '../_shared/platform-admin.ts';
 import {getPlatformSecret} from '../_shared/platform-secrets.ts';
-const headers={'Access-Control-Allow-Origin':'https://lttlmario.github.io','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Content-Type':'application/json'};
+const headers={'Access-Control-Allow-Origin':'https://panel-pro.ro','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Content-Type':'application/json'};
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers});
 const safeFetch=async(url:string,init:RequestInit={},timeout=8000)=>{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);try{return await fetch(url,{...init,signal:controller.signal})}finally{clearTimeout(timer)}};
 
