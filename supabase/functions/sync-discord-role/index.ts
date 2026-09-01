@@ -415,7 +415,7 @@ if (!existing) {
 
     let allowed_pages =
       Object.entries(rules)
-        .filter(([, roleIds]: any) =>
+        .filter(([page, roleIds]: any) =>
           Array.isArray(roleIds) &&
           roleIds.some(
             (roleId: string) =>
