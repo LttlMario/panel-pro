@@ -125,7 +125,7 @@ const { data: permissionGuilds, error: permissionGuildsError } = await db
 if (permissionGuildsError) throw permissionGuildsError;
 const { data: permissionRoleMappings, error: permissionRoleMappingsError } = await db
     .from('organization_role_mappings')
-    .select('guild_id,discord_role_id,panel_role')
+    .select('guild_id,discord_role_id,discord_role_name,panel_role')
     .eq('organization_id', organizationId)
     .eq('enabled', true);
 if (permissionRoleMappingsError) throw permissionRoleMappingsError;
@@ -240,7 +240,50 @@ const loadDiscordGuildMembers = async (guildId:string) => {
         after = String(batch[batch.length - 1]?.user?.id || '0');
         if (after === '0') break;
     }
-    return members.map((member:any) => ({ discord_id: String(member?.user?.id || ''), name: String(member?.nick || member?.user?.global_name || member?.user?.username || member?.user?.id || '').trim(), username: String(member?.user?.username || '').trim() })).filter((member:any) => /^\d{15,22}$/.test(member.discord_id) && member.name);
+    return members.map((member:any) => ({
+        discord_id: String(member?.user?.id || ''),
+        name: String(member?.nick || member?.user?.global_name || member?.user?.username || member?.user?.id || '').trim(),
+        username: String(member?.user?.username || '').trim(),
+        role_ids: Array.isArray(member?.roles) ? member.roles.map((id:any) => String(id)) : [],
+        is_bot: member?.user?.bot === true
+    })).filter((member:any) => /^\d{15,22}$/.test(member.discord_id) && member.name && !member.is_bot);
+};
+const loadDisciplineTargets = async (scope:string) => {
+    const audience = scope === 'organization' ? 'organization' : 'departments';
+    const guildIds = guildIdsForAudience(audience);
+    if (!guildIds.length) return [];
+
+    const discordMembers:any[] = [];
+    for (const guildId of guildIds) discordMembers.push(...await loadDiscordGuildMembers(guildId));
+    const uniqueMembers = [...new Map(discordMembers.map((member:any) => [String(member.discord_id), member])).values()];
+    const ids = uniqueMembers.map((member:any) => String(member.discord_id));
+    const [{ data: profiles, error: profilesError }, { data: employees, error: employeesError }] = ids.length
+        ? await Promise.all([
+            db.from('users').select('discord_id,display_name,username').in('discord_id', ids),
+            db.from('organization_employees').select('discord_id,full_name').eq('organization_id', organizationId).is('archived_at', null).in('discord_id', ids)
+        ])
+        : [{ data: [], error: null }, { data: [], error: null }];
+    if (profilesError) throw profilesError;
+    if (employeesError) throw employeesError;
+
+    const audienceGuildIds = new Set(guildIds.map(String));
+    const roleById = new Map((permissionRoleMappings || [])
+        .filter((role:any) => audienceGuildIds.has(String(role.guild_id)))
+        .map((role:any) => [String(role.discord_role_id), role]));
+    return uniqueMembers.map((member:any) => {
+        const profile = (profiles || []).find((item:any) => String(item.discord_id) === String(member.discord_id));
+        const employee = (employees || []).find((item:any) => String(item.discord_id) === String(member.discord_id));
+        const roleLabels = (member.role_ids || [])
+            .map((roleId:string) => roleById.get(String(roleId)))
+            .filter(Boolean)
+            .map((role:any) => String(role.discord_role_name || role.panel_role || role.discord_role_id || '').trim())
+            .filter(Boolean);
+        return {
+            discord_id: member.discord_id,
+            name: employee?.full_name || profile?.display_name || profile?.username || member.name || `Discord ${member.discord_id}`,
+            ...(roleLabels.length ? { role: [...new Set(roleLabels)].join(', ') } : {})
+        };
+    }).sort((left:any, right:any) => String(left.name).localeCompare(String(right.name), 'ro'));
 };
 const notifyActionDiscord = async (record:any) => {
     const { data: settings } = await db.from('organization_settings').select('webhook_routes,panel_public_url').eq('organization_id', organizationId).maybeSingle();
@@ -499,36 +542,12 @@ if (
   const {data:user}=await db.from('users').select('*').eq('discord_id',du.id).single();if(!user)return reply({error:'Utilizatorul nu există în panel.'},403);
 
 const resolveDisciplineTarget = async (scope:string, targetDiscordId:string|null) => {
-    if (scope === 'organization') {
-        const { data: organization, error } = await db.from('organizations').select('name').eq('id', organizationId).maybeSingle();
-        if (error) throw error;
-        return { discordId: null, name: organization?.name || 'Organizația activă' };
-    }
     const discordId = String(targetDiscordId || '').trim();
-    if (!discordId) throw new Error('Selectează angajatul vizat.');
-    const { data: member, error: memberError } = await db.from('organization_members')
-        .select('discord_id,panel_role,active')
-        .eq('organization_id', organizationId)
-        .eq('discord_id', discordId)
-        .eq('active', true)
-        .maybeSingle();
-    if (memberError) throw memberError;
-    if (!member) throw new Error('Angajatul selectat nu aparține organizației active.');
-    const [{ data: employee, error: employeeError }, { data: profile, error: profileError }] = await Promise.all([
-        db.from('organization_employees')
-            .select('full_name')
-            .eq('organization_id', organizationId)
-            .eq('discord_id', discordId)
-            .is('archived_at', null)
-            .maybeSingle(),
-        db.from('users')
-            .select('display_name,username')
-            .eq('discord_id', discordId)
-            .maybeSingle()
-    ]);
-    if (employeeError) throw employeeError;
-    if (profileError) throw profileError;
-    return { discordId, name: employee?.full_name || profile?.display_name || profile?.username || `Discord ${discordId}` };
+    if (!discordId) throw new Error('Selectează membrul vizat.');
+    const targets = await loadDisciplineTargets(scope);
+    const target = targets.find((item:any) => String(item.discord_id) === discordId);
+    if (!target) throw new Error('Membrul selectat nu aparține Discordului configurat pentru această secțiune.');
+    return { discordId, name: target.name };
 };
 
 const activeDisciplineCount = async (scope:string, targetDiscordId:string|null) => {
@@ -537,7 +556,7 @@ const activeDisciplineCount = async (scope:string, targetDiscordId:string|null) 
         .eq('organization_id', organizationId)
         .eq('target_scope', scope)
         .eq('status', 'active');
-    if (scope === 'departments') query.eq('target_discord_id', targetDiscordId);
+    if (targetDiscordId) query.eq('target_discord_id', targetDiscordId);
     const { count, error } = await query;
     if (error) throw error;
     return Number(count || 0);
@@ -586,41 +605,7 @@ if (['discipline_list', 'discipline_targets'].includes(String(body.action || '')
     if (body.action === 'discipline_targets') {
         const scope = String(body.target_scope || '');
         if (!canDiscipline(scope, 'write') && !canDiscipline(scope, 'sanction')) return reply({ error: 'Nu ai dreptul să selectezi destinatari pentru această categorie.' }, 403);
-        if (scope === 'organization') {
-            const { data: organization, error: organizationError } = await db.from('organizations')
-                .select('name')
-                .eq('id', organizationId)
-                .maybeSingle();
-            if (organizationError) throw organizationError;
-            return reply({ targets: [{ discord_id: null, name: organization?.name || 'Organizația activă' }] });
-        }
-        const { data: members, error: membersError } = await db.from('organization_members')
-            .select('discord_id,panel_role').eq('organization_id', organizationId).eq('active', true).order('panel_role');
-        if (membersError) throw membersError;
-        const ids = (members || []).map((item:any) => String(item.discord_id));
-        const [{ data: profiles, error: profilesError }, { data: employees, error: employeesError }] = ids.length
-            ? await Promise.all([
-                db.from('users').select('discord_id,display_name,username').in('discord_id', ids),
-                db.from('organization_employees').select('discord_id,full_name').eq('organization_id', organizationId).is('archived_at', null).in('discord_id', ids)
-            ])
-            : [{ data: [], error: null }, { data: [], error: null }];
-        if (profilesError) throw profilesError;
-        if (employeesError) throw employeesError;
-        const departmentGuildIds = new Set(guildIdsForAudience('departments'));
-        const departmentPanelRoles = new Set((permissionRoleMappings || [])
-            .filter((role: any) => departmentGuildIds.has(String(role.guild_id)))
-            .map((role: any) => String(role.panel_role || '').trim().toLowerCase())
-            .filter(Boolean));
-        return reply({ targets: (members || []).map((member:any) => {
-            const profile = (profiles || []).find((item:any) => String(item.discord_id) === String(member.discord_id));
-            const employee = (employees || []).find((item:any) => String(item.discord_id) === String(member.discord_id));
-            const panelRole = String(member.panel_role || '').trim();
-            return {
-                discord_id: member.discord_id,
-                name: employee?.full_name || profile?.display_name || profile?.username || `Discord ${member.discord_id}`,
-                ...(panelRole && departmentPanelRoles.has(panelRole.toLowerCase()) ? { role: panelRole } : {})
-            };
-        }) });
+        return reply({ targets: await loadDisciplineTargets(scope) });
     }
     return reply({
         warnings: visibleWarnings,
@@ -638,7 +623,7 @@ if (body.action === 'discipline_create_warning') {
     const scope = String(body.target_scope || '');
     if (!['departments', 'organization'].includes(scope)) return reply({ error: 'Categoria disciplinară este invalidă.' }, 400);
     if (!canDiscipline(scope, 'write')) return reply({ error: 'Rolul tău nu poate emite avertismente pentru această categorie.' }, 403);
-    const target = await resolveDisciplineTarget(scope, scope === 'departments' ? String(body.target_discord_id || '') : null);
+    const target = await resolveDisciplineTarget(scope, String(body.target_discord_id || ''));
     const count = await activeDisciplineCount(scope, target.discordId);
     if (count >= 3) return reply({ error: 'Destinatarul are deja 3 avertismente active. Poți aplica o sancțiune financiară.' }, 409);
     const { data: warning, error } = await db.from('disciplinary_warnings').insert({
@@ -656,7 +641,7 @@ if (body.action === 'discipline_create_sanction') {
     const scope = String(body.target_scope || '');
     if (!['departments', 'organization'].includes(scope)) return reply({ error: 'Categoria disciplinară este invalidă.' }, 400);
     if (!canDiscipline(scope, 'sanction')) return reply({ error: 'Rolul tău nu poate aplica sancțiuni pentru această categorie.' }, 403);
-    const target = await resolveDisciplineTarget(scope, scope === 'departments' ? String(body.target_discord_id || '') : null);
+    const target = await resolveDisciplineTarget(scope, String(body.target_discord_id || ''));
     const count = await activeDisciplineCount(scope, target.discordId);
     if (count < 3) return reply({ error: `Sancțiunea devine disponibilă după 3 avertismente active. Acum există ${count}.` }, 409);
     const amount = Number(body.amount);
