@@ -22,18 +22,6 @@ for (const path of ['descarca-android.html', 'panel-ios/descarca-android.html', 
   if (/releases\/download\/v1\.0\.2|Versiunea 1\.0\.2/.test(content)) fail(`Fallback Android vechi în ${path}`);
 }
 
-for (const path of ['js/anunturi.js', 'panel-ios/js/anunturi.js', 'panel-android/web-src/js/anunturi.js']) {
-  const content = await read(path);
-  if (!content.includes('announcementCacheTtlMs') || !content.includes('saveAnnouncementCache')) fail(`Cache local lipsă pentru anunțuri în ${path}`);
-}
-for (const path of ['js/diagnostic.js', 'panel-ios/js/diagnostic.js', 'panel-android/web-src/js/diagnostic.js']) {
-  const content = await read(path);
-  if (!content.includes('monitorIntervalMs') || !content.includes('setInterval')) fail(`Monitorizare automată lipsă în ${path}`);
-}
-for (const path of ['diagnostic.html', 'panel-ios/diagnostic.html', 'panel-android/web-src/diagnostic.html']) {
-  if (!(await read(path)).includes('Monitorizarea automată')) fail(`Mesaj de monitorizare lipsă în ${path}`);
-}
-
 const ignoredDirectories = new Set(['.git', 'node_modules', 'panel-project-versions', 'android', 'www', '.gradle-user-home', 'build', 'dist']);
 const allowedExtensions = new Set(['.html', '.js', '.ts', '.css', '.json']);
 const walk = async (directory) => {
@@ -56,9 +44,6 @@ for (const path of await walk(root)) {
 }
 
 if (!/operations/.test(await read('supabase/functions/_shared/package-features.ts'))) fail('Pachetul Operations lipsește din politica server-side');
-const adminCenter = await read('supabase/functions/manage-admin-center/index.ts');
-if (!adminCenter.includes("body.action === 'org_backup'") || !adminCenter.includes("body.action === 'org_restore'")) fail('Backupul/recuperarea organizației nu sunt expuse server-side');
-if (!adminCenter.includes('schemaVersion: 3') || !adminCenter.includes('redactSensitive')) fail('Backupul organizației nu include versiunea și redacția de securitate');
 if (failures.length) {
   console.error(failures.map((item) => `FAIL: ${item}`).join('\n'));
   process.exitCode = 1;

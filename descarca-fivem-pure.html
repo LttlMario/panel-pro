@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070b14">
+  <meta name="description" content="Află cum funcționează launcherul B-Zone Pure Mode 1 înainte să îl descarci.">
+  <title>Launcher B-Zone Pure Mode 1 · Panel Pro</title>
+  <link rel="icon" href="img/favicon.ico">
+  <link rel="stylesheet" href="css/panel-prezentare.css">
+  <style>
+    :root {
+      --pure-bg: #070b14;
+      --pure-panel: rgba(13, 23, 40, .88);
+      --pure-panel-soft: rgba(17, 31, 52, .72);
+      --pure-border: rgba(107, 173, 236, .22);
+      --pure-text: #edf6ff;
+      --pure-muted: #91a8c2;
+      --pure-accent: #5eead4;
+      --pure-accent-strong: #22c7b4;
+      --pure-blue: #7dd3fc;
+    }
+
+    * { box-sizing: border-box; }
+    body.pure-page {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--pure-text);
+      background:
+        radial-gradient(circle at 15% 5%, rgba(34, 199, 180, .12), transparent 32rem),
+        radial-gradient(circle at 88% 18%, rgba(59, 130, 246, .12), transparent 34rem),
+        var(--pure-bg);
+    }
+
+    .pure-shell {
+      width: min(100% - 2rem, 980px);
+      margin: 0 auto;
+      padding: 1.2rem 0 3rem;
+    }
+
+    .pure-back {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      margin: 0 0 1rem;
+      color: var(--pure-muted);
+      font-size: .82rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: color .18s ease, transform .18s ease;
+    }
+
+    .pure-back:hover { color: var(--pure-accent); transform: translateX(-2px); }
+
+    .pure-panel {
+      position: relative;
+      overflow: hidden;
+      margin-top: 1rem;
+      padding: clamp(1.15rem, 3vw, 2rem);
+      border: 1px solid var(--pure-border);
+      border-radius: 1.35rem;
+      background: var(--pure-panel);
+      box-shadow: 0 1.25rem 3rem rgba(0, 0, 0, .2), inset 0 1px 0 rgba(255, 255, 255, .035);
+    }
+
+    .pure-hero { padding: clamp(1.5rem, 5vw, 3rem); }
+    .pure-hero::after {
+      position: absolute;
+      right: -4rem;
+      bottom: -7rem;
+      width: 18rem;
+      height: 18rem;
+      border: 1px solid rgba(94, 234, 212, .12);
+      border-radius: 50%;
+      box-shadow: 0 0 0 2rem rgba(94, 234, 212, .025), 0 0 0 4rem rgba(94, 234, 212, .018);
+      content: "";
+      pointer-events: none;
+    }
+
+    .pure-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      color: var(--pure-accent);
+      font-size: .7rem;
+      font-weight: 850;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .pure-kicker::before {
+      width: .45rem;
+      height: .45rem;
+      border-radius: 50%;
+      background: var(--pure-accent);
+      box-shadow: 0 0 .8rem var(--pure-accent);
+      content: "";
+    }
+
+    .pure-hero h1 {
+      max-width: 680px;
+      margin: .8rem 0 .75rem;
+      font-size: clamp(2rem, 5vw, 3.7rem);
+      line-height: 1.02;
+      letter-spacing: -.045em;
+    }
+
+    .pure-hero h1 span { color: var(--pure-accent); }
+    .pure-lead { max-width: 710px; margin: 0; color: var(--pure-muted); font-size: 1rem; line-height: 1.7; }
+
+    .pure-heading { margin: 0; font-size: clamp(1.1rem, 2vw, 1.45rem); letter-spacing: -.02em; }
+    .pure-subheading { margin: .45rem 0 0; color: var(--pure-muted); font-size: .88rem; line-height: 1.6; }
+
+    .pure-feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: .75rem;
+      margin-top: 1.25rem;
+    }
+
+    .pure-feature {
+      min-height: 9rem;
+      padding: 1rem;
+      border: 1px solid rgba(125, 211, 252, .13);
+      border-radius: 1rem;
+      background: var(--pure-panel-soft);
+    }
+
+    .pure-feature-icon {
+      display: grid;
+      width: 2.15rem;
+      height: 2.15rem;
+      place-items: center;
+      margin-bottom: .75rem;
+      border: 1px solid rgba(94, 234, 212, .22);
+      border-radius: .7rem;
+      background: rgba(94, 234, 212, .1);
+      color: var(--pure-accent);
+      font-size: 1.05rem;
+    }
+
+    .pure-feature strong { display: block; font-size: .9rem; }
+    .pure-feature p { margin: .4rem 0 0; color: var(--pure-muted); font-size: .78rem; line-height: 1.55; }
+
+    .pure-steps {
+      display: grid;
+      gap: .7rem;
+      margin: 1.25rem 0 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: pure-step;
+    }
+
+    .pure-step {
+      display: grid;
+      grid-template-columns: 2.2rem 1fr;
+      gap: .85rem;
+      align-items: start;
+      padding: .85rem;
+      border: 1px solid rgba(125, 211, 252, .13);
+      border-radius: .9rem;
+      background: rgba(7, 15, 28, .48);
+      counter-increment: pure-step;
+    }
+
+    .pure-step::before {
+      display: grid;
+      width: 2.2rem;
+      height: 2.2rem;
+      place-items: center;
+      border-radius: .65rem;
+      background: rgba(34, 199, 180, .13);
+      color: var(--pure-accent);
+      content: counter(pure-step, decimal-leading-zero);
+      font-size: .75rem;
+      font-weight: 850;
+    }
+
+    .pure-step strong { display: block; margin-top: .12rem; font-size: .88rem; }
+    .pure-step p { margin: .3rem 0 0; color: var(--pure-muted); font-size: .78rem; line-height: 1.55; }
+
+    .pure-actions { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: 1.25rem; }
+    .pure-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      min-height: 2.9rem;
+      padding: .75rem 1.05rem;
+      border: 1px solid rgba(94, 234, 212, .35);
+      border-radius: .8rem;
+      background: linear-gradient(135deg, var(--pure-accent-strong), #159d9a);
+      color: #031a1b;
+      font-size: .82rem;
+      font-weight: 850;
+      text-decoration: none;
+      box-shadow: 0 .6rem 1.4rem rgba(20, 184, 166, .16);
+      transition: transform .18s ease, filter .18s ease;
+    }
+
+    .pure-button:hover { filter: brightness(1.1); transform: translateY(-2px); }
+    .pure-button-secondary { border-color: rgba(125, 211, 252, .25); background: rgba(15, 31, 53, .9); color: var(--pure-blue); box-shadow: none; }
+
+    .pure-note {
+      display: flex;
+      gap: .8rem;
+      align-items: flex-start;
+      margin-top: 1rem;
+      padding: .9rem 1rem;
+      border: 1px solid rgba(251, 191, 36, .2);
+      border-radius: .9rem;
+      background: rgba(120, 79, 9, .13);
+      color: #f8d98b;
+      font-size: .78rem;
+      line-height: 1.6;
+    }
+
+    .pure-note strong { display: block; margin-bottom: .15rem; color: #fde68a; }
+    .pure-note p { margin: 0; }
+    .pure-note-mark { flex: 0 0 auto; color: #fbbf24; font-size: 1.1rem; font-weight: 900; }
+
+    .pure-list { display: grid; gap: .6rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+    .pure-list li { position: relative; padding-left: 1.35rem; color: var(--pure-muted); font-size: .82rem; line-height: 1.6; }
+    .pure-list li::before { position: absolute; top: .35rem; left: 0; width: .5rem; height: .5rem; border-radius: 50%; background: var(--pure-accent); content: ""; box-shadow: 0 0 .7rem rgba(94, 234, 212, .45); }
+    .pure-list strong { color: var(--pure-text); }
+
+    .pure-code { display: block; overflow-x: auto; margin-top: .65rem; padding: .7rem .8rem; border: 1px solid rgba(125, 211, 252, .15); border-radius: .65rem; background: rgba(2, 6, 23, .7); color: var(--pure-blue); font: .75rem/1.4 Consolas, monospace; white-space: nowrap; }
+    .pure-footer { margin-top: 1.5rem; color: #6f849d; font-size: .72rem; text-align: center; }
+
+    @media (max-width: 720px) {
+      .pure-feature-grid { grid-template-columns: 1fr; }
+      .pure-feature { min-height: auto; }
+    }
+
+    @media (max-width: 480px) {
+      .pure-shell { width: min(100% - 1rem, 980px); padding-top: .7rem; }
+      .pure-panel { border-radius: 1rem; }
+      .pure-hero h1 { font-size: 2.35rem; }
+      .pure-actions, .pure-button { width: 100%; }
+    }
+  </style>
+</head>
+<body class="pure-page">
+  <main class="pure-shell">
+    <a class="pure-back" href="index.html"><span aria-hidden="true">←</span> Înapoi la Dashboard</a>
+
+    <section class="pure-panel pure-hero" aria-labelledby="pure-title">
+      <span class="pure-kicker">Windows · B-Zone</span>
+      <h1 id="pure-title">Launcher B-Zone<br><span>Pure Mode 1</span></h1>
+      <p class="pure-lead">Înainte să descarci fișierul, vezi exact ce face, ce se schimbă pe calculator și cum revii oricând la conectarea FiveM normală.</p>
+    </section>
+
+    <section class="pure-panel" aria-labelledby="pure-what-title">
+      <h2 id="pure-what-title" class="pure-heading">De ce există acest launcher?</h2>
+      <p class="pure-subheading">Este un ajutor pentru conectarea la B-Zone cu Pure Mode 1, astfel încât FiveM să pornească direct cu parametrul potrivit.</p>
+      <div class="pure-feature-grid">
+        <article class="pure-feature"><span class="pure-feature-icon" aria-hidden="true">⚡</span><strong>Conectare mai simplă</strong><p>După instalarea inițială, butonul din Dashboard încearcă automat conectarea cu Pure Mode 1.</p></article>
+        <article class="pure-feature"><span class="pure-feature-icon" aria-hidden="true">🛡</span><strong>Modificări limitate</strong><p>Launcherul lucrează în profilul tău Windows. Nu modifică GTA, FiveM sau fișierele serverului.</p></article>
+        <article class="pure-feature"><span class="pure-feature-icon" aria-hidden="true">↩</span><strong>Fallback automat</strong><p>Dacă FiveM nu este găsit sau launcherul nu poate porni, Dashboard-ul folosește conectarea FiveM obișnuită.</p></article>
+      </div>
+    </section>
+
+    <section class="pure-panel" aria-labelledby="pure-steps-title">
+      <h2 id="pure-steps-title" class="pure-heading">Cum îl instalezi</h2>
+      <p class="pure-subheading">Este suficient să rulezi fișierul o singură dată pe calculatorul pe care folosești FiveM. Prima rulare instalează componenta și nu pornește jocul.</p>
+      <ol class="pure-steps">
+        <li class="pure-step"><div><strong>Descarcă fișierul</strong><p>Apasă butonul de mai jos și salvează <b>bzone-pure-launcher.cmd</b>.</p></div></li>
+        <li class="pure-step"><div><strong>Rulează-l o singură dată</strong><p>Deschide fișierul din folderul Downloads. Fișierul descărcat doar înregistrează launcherul, nu pornește FiveM și nu cere drepturi de administrator.</p></div></li>
+        <li class="pure-step"><div><strong>Închide FiveM și folosește Dashboard-ul</strong><p>Închide FiveM complet, revino în Panel și apasă „Intră pe B-Zone”. Launcherul va porni FiveM direct cu Pure 1.</p></div></li>
+      </ol>
+      <div class="pure-actions">
+        <a class="pure-button" href="bzone-pure-launcher.cmd" download="bzone-pure-launcher.cmd"><span aria-hidden="true">↓</span> Descarcă launcherul Pure 1</a>
+        <a class="pure-button pure-button-secondary" href="index.html">Înapoi la conectare</a>
+      </div>
+      <div class="pure-note"><span class="pure-note-mark" aria-hidden="true">!</span><p><strong>Avertisment Windows</strong>Dacă browserul sau Windows afișează un avertisment, verifică să fie fișierul descărcat din acest Panel înainte să alegi păstrarea sau rularea lui.</p></div>
+    </section>
+
+    <section class="pure-panel" aria-labelledby="pure-changes-title">
+      <h2 id="pure-changes-title" class="pure-heading">Ce se întâmplă la prima rulare?</h2>
+      <ul class="pure-list">
+        <li>Se copiază o versiune locală în folderul <strong>BZonePureLauncher</strong> din profilul tău Windows.</li>
+        <li>Se înregistrează protocolul local <strong>bzonepure://</strong>, folosit pentru a porni launcherul din browser.</li>
+        <li>La prima rulare se înregistrează componenta; la conectarea din Dashboard caută procesul principal FiveM în locațiile uzuale și pe discurile locale, apoi îl pornește dintr-o scurtătură Windows cu <strong>-pure_1 +connect</strong>.</li>
+        <li>Dacă FiveM este deja deschis pe Pure 0, launcherul afișează un mesaj și așteaptă să îl închizi, pentru ca parametrul Pure 1 să fie aplicat corect.</li>
+        <li>Conectarea și Pure Mode sunt pornite împreună prin scurtătura Windows, fără apeluri intermediare către un al doilea proces FiveM.</li>
+        <li>Nu se modifică parola, contul Discord, fișierele GTA/FiveM sau setările altor utilizatori Windows.</li>
+        <li>Funcția este pentru Windows și FiveM. Nu schimbă nimic în aplicațiile Android sau iOS.</li>
+      </ul>
+    </section>
+
+    <section class="pure-panel" aria-labelledby="pure-remove-title">
+      <h2 id="pure-remove-title" class="pure-heading">Cum revii la normal?</h2>
+      <p class="pure-subheading">Dacă nu mai vrei launcherul, îl poți elimina manual. Conectarea normală FiveM rămâne disponibilă din Dashboard.</p>
+      <span class="pure-code">%LocalAppData%\BZonePureLauncher</span>
+      <span class="pure-code">HKCU\Software\Classes\bzonepure</span>
+      <p class="pure-subheading">Închide FiveM, șterge folderul de mai sus și elimină cheia <b>bzonepure</b> din Registry Editor. Nu este necesară nicio schimbare în GTA sau FiveM.</p>
+    </section>
+
+    <p class="pure-footer">Panel Pro · Launcherul este opțional și poate fi eliminat oricând.</p>
+  </main>
+</body>
+</html>

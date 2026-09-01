@@ -58,7 +58,14 @@
                 </section>
                 <div id="dashboard-fivem-launcher" class="dashboard-fivem-wrap">
                     <div class="dashboard-fivem-row">
-                        <a href="fivem://connect/cfx.re/join/zjv8ko4" aria-label="Deschide FiveM și conectează-te la serverul B-Zone" class="dashboard-fivem-card">
+                        <a href="descarca-fivem-pure.html" aria-label="Vezi detaliile launcherului B-Zone Pure Mode 1" class="dashboard-fivem-download">
+                            <span class="dashboard-fivem-download-icon" aria-hidden="true">⬇</span>
+                            <span class="dashboard-fivem-download-copy">
+                                <strong>Launcher Pure 1</strong>
+                                <span>Instalare și descărcare</span>
+                            </span>
+                        </a>
+                        <a href="fivem://connect/cfx.re/join/zjv8ko4" aria-label="Deschide FiveM și conectează-te la serverul B-Zone" class="dashboard-fivem-card" data-bzone-fivem-launcher>
                             <span class="dashboard-fivem-icon" aria-hidden="true">
                                 <img src="img/fivem-launcher.svg" alt="">
                                 <span class="dashboard-fivem-status"></span>
@@ -66,7 +73,7 @@
                             <span class="dashboard-fivem-copy">
                                 <span class="dashboard-fivem-eyebrow">Conectare rapidă</span>
                                 <strong>Intră pe B-Zone</strong>
-                                <span>Pornește FiveM și conectează-te direct</span>
+                                <span>Pornește FiveM direct cu Pure Mode 1</span>
                             </span>
                             <span class="dashboard-fivem-arrow" aria-hidden="true">↗</span>
                         </a>
@@ -128,6 +135,24 @@
             clearInterval(dashboardFivemRefreshTimer);
             loadDashboardFivemStatus();
             dashboardFivemRefreshTimer = setInterval(loadDashboardFivemStatus, 60000);
+        }
+
+        function setupDashboardFivemLauncher() {
+            const launcher = document.querySelector('[data-bzone-fivem-launcher]');
+            if (!launcher || launcher.dataset.pureLauncherReady === 'true') return;
+
+            launcher.dataset.pureLauncherReady = 'true';
+            launcher.addEventListener('click', event => {
+                event.preventDefault();
+
+                const pureConnectUrl = 'bzonepure://connect/cfx.re/join/zjv8ko4';
+
+                try {
+                    window.location.href = pureConnectUrl;
+                } catch (error) {
+                    console.warn('Launcherul Pure 1 nu a putut fi deschis:', error);
+                }
+            });
         }
 
         function configureDashboardAccess() {
@@ -198,6 +223,7 @@
                 localStorage.setItem('discord_user', JSON.stringify(activeUser));
                 configureDashboardAccess();
                 startDashboardFivemStatus();
+                setupDashboardFivemLauncher();
                 function scheduleDashboardRefresh() {
                     if (!dashboardDiscordId) return;
 
