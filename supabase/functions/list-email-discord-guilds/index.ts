@@ -1,14 +1,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
+import { corsOptions, getCorsHeaders } from '../_shared/cors.ts';
 
-const headers = {
-  'Access-Control-Allow-Origin': 'https://lttlmario.github.io',
-  'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Content-Type': 'application/json',
-};
-
-const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
+const buildReply = (data: unknown, status = 200, headers = getCorsHeaders(new Request('https://lttlmario.github.io'))) => new Response(JSON.stringify(data), { status, headers });
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const botHeaders = (token: string) => ({
   Authorization: `Bot ${token}`,
@@ -16,7 +10,9 @@ const botHeaders = (token: string) => ({
 });
 
 Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response('ok', { headers });
+  const headers = getCorsHeaders(request);
+  const reply = (data: unknown, status = 200) => buildReply(data, status, headers);
+  if (request.method === 'OPTIONS') return corsOptions(request);
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
 
   try {
