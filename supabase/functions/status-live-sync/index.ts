@@ -141,6 +141,32 @@ Deno.serve(async (request) => {
     const storedMessageId = String(
       organization?.live_status_message_id || ''
     ).trim();
+    const requestedMessageIds = body?.message_ids && typeof body.message_ids === 'object'
+      ? body.message_ids
+      : {};
+
+    // Cronul și pagina pot porni sincronizarea în același minut. Rezervăm
+    // atomic fereastra de actualizare ca să nu existe două POST-uri Discord
+    // înainte ca primul apel să salveze message_id-ul.
+    const lockNow = new Date(now).toISOString();
+    const lockCutoff = new Date(now - 45000).toISOString();
+    const { data: lockRow, error: lockError } = await db
+      .from('organizations')
+      .update({ live_status_last_update: lockNow })
+      .eq('id', organizationId)
+      .or(`live_status_last_update.is.null,live_status_last_update.lt.${lockCutoff}`)
+      .select('id')
+      .maybeSingle();
+    if (lockError) throw lockError;
+    if (!lockRow) {
+      return reply({
+        ok: true,
+        skipped: true,
+        organization: organization?.name || '',
+        message_ids: {},
+        updated_at: organization?.live_status_last_update || lockNow
+      });
+    }
 
     const messageIds: Record<string, string> = {};
 
@@ -151,10 +177,13 @@ Deno.serve(async (request) => {
       let response: Response | null = null;
       let selectedMessageId = '';
       for (const candidate of destination.candidates) {
-        // ID-ul de pe ruta canalului aparține mesajului creat de bot. ID-ul
-        // vechi din organizations nu este reutilizat, deoarece poate fi al
-        // unui webhook dezactivat.
-        const existingId = String(candidate.message_id || '').trim();
+        // Prioritatea este ID-ul salvat pe rută, apoi ID-ul păstrat în browser,
+        // iar pentru canalul principal folosim și ID-ul istoric al organizației.
+        // Dacă ID-ul vechi aparține unui webhook șters/dezactivat, PATCH-ul
+        // eșuează și se face automat un singur POST de înlocuire.
+        const existingId = String(
+          candidate.message_id || requestedMessageIds[target] || (target === 'primary' ? storedMessageId : '') || ''
+        ).trim();
         selectedMessageId = existingId;
         response = await requestDiscordTarget(db, candidate, JSON.stringify(payload), { messageId: existingId });
         if (!response.ok && existingId && response.status === 404) response = await requestDiscordTarget(db, { ...candidate, message_id: '' }, JSON.stringify(payload));

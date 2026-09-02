@@ -4,9 +4,13 @@
 
   const key = 'status_live_message_ids';
   let messageIds = {};
+  let syncInFlight = null;
   try { messageIds = JSON.parse(localStorage.getItem(key) || '{}'); } catch (_) { messageIds = {}; }
 
   async function syncLiveEmbed() {
+    if (syncInFlight) return syncInFlight;
+
+    syncInFlight = (async () => {
     const config = window.PANEL_SUPABASE_CONFIG;
     const organizationId = (typeof activeOrganizationId !== 'undefined' ? activeOrganizationId : null) || window.getActiveOrganizationId?.();
     if (!config || !organizationId) return;
@@ -20,6 +24,13 @@
     messageIds = data.message_ids || messageIds;
     localStorage.setItem(key, JSON.stringify(messageIds));
     return data;
+    })();
+
+    try {
+      return await syncInFlight;
+    } finally {
+      syncInFlight = null;
+    }
   }
 
   const waitForStatusPage = () => {

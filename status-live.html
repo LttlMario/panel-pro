@@ -192,10 +192,8 @@
                         );
                     });
 
-                // Sincronizare periodică automată cu Discord (la fiecare 60 de secunde)
-                setInterval(() => {
-                    fetchAndRenderActiveShifts(true);
-                }, 60000);
+                // Sincronizarea Discord este gestionată de js/status-live.js.
+                // Păstrăm un singur temporizator pentru a nu crea embeduri duplicate.
 
             } catch (err) {
                 console.error('Erore sesiune status-live:', err);
