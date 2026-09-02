@@ -80,10 +80,10 @@
     const result = await api(editingId ? 'update' : 'create', editingId ? { id: editingId, ...payload } : payload);
     if (editingId) events = events.map((item) => String(item.id) === editingId ? result.event : item); else events = [result.event, ...events];
     const notification = result.notification || {};
-    $('form-status').textContent = notification.status === 'sent'
-      ? `Evenimentul a fost salvat și notificarea a fost trimisă pe Discord (${notification.sent || 0} destinații).`
-      : notification.status === 'scheduled'
-        ? `Evenimentul a fost salvat. Notificările încep în ${notification.days_until_start} ${notification.days_until_start === 1 ? 'zi' : 'zile'}, la data evenimentului.`
+    $('form-status').textContent = notification.status === 'sent' && notification.starts_in_days > 0
+      ? `Evenimentul a fost salvat și postat pe Discord (${notification.sent || 0} destinații). Reminderele zilnice încep în ${notification.starts_in_days} ${notification.starts_in_days === 1 ? 'zi' : 'zile'}, la data evenimentului.`
+      : notification.status === 'sent'
+        ? `Evenimentul a fost salvat și notificarea a fost trimisă pe Discord (${notification.sent || 0} destinații).`
         : notification.status === 'already_sent'
           ? 'Evenimentul a fost salvat. Notificarea de astăzi fusese deja trimisă.'
           : notification.status === 'outside_window'
