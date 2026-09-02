@@ -1685,7 +1685,7 @@ renderRoles = () => {
       if (name.length < 2) { $('status').textContent = 'Introdu cel puțin numele organizației.'; return; }
       draftButton.disabled = true; $('status').textContent = 'Se salvează draftul...';
       try {
-        const result = await invoke({action:'save_draft', organization:{id:$('id').value||undefined,name,code:$('code').value,address:$('address').value,logo_url:$('logo').value}});
+        const result = await invoke({action:'save_draft', organization:{id:$('id').value||undefined,name,illegal_name:$('illegal-name').value.trim(),code:$('code').value,address:$('address').value,logo_url:$('logo').value}});
         $('id').value = result.organization_id; publishButton.hidden = false; $('form-title').textContent = `Draft: ${name}`; $('status').textContent = 'Draft salvat. Poți continua configurarea.';
       } catch (error) { $('status').textContent = error.message; } finally { draftButton.disabled = false; }
     };
