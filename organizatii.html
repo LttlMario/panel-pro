@@ -4,7 +4,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
 <main id="organizations-main" class="w-full p-5">
-    <div id="organizations-layout" class="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-5 items-start"><aside id="organizations-sidebar" class="rounded-2xl border border-slate-800 bg-slate-900 p-4 lg:sticky lg:top-5"><button id="new" class="w-full rounded-xl bg-emerald-700 p-3 font-bold">+ Organizație nouă</button><div id="list" class="mt-4 space-y-2"></div></aside>
+    <div id="organizations-layout" class="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-5 items-start"><aside id="organizations-sidebar" class="rounded-2xl border border-slate-800 bg-slate-900 p-4 lg:sticky lg:top-5"><button id="new" class="w-full rounded-xl bg-emerald-700 p-3 font-bold">+ Organizație nouă</button><p id="organization-list-status" class="mt-3 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-400" hidden></p><div id="list" class="mt-4 space-y-2"></div></aside>
 <section id="organizations-editor" class="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-5"><form id="form" class="space-y-5"><input id="id" type="hidden"><div><h2 id="form-title" class="text-lg font-black">Organizație nouă</h2><p class="mt-1 text-xs text-slate-400">Datele de mai jos sunt separate pentru această organizație.</p></div><div class="grid md:grid-cols-2 gap-3"><label>Numele organizației<input id="name" required class="field" placeholder="Scrie numele organizației, ex: Familia Test"></label><label>Numele organizației ilegale (opțional)
 <input id="illegal-name" class="field" placeholder="Ex: Los Santos Cartel / Royal Family">
 </label>
@@ -27,12 +27,11 @@
 <details class="rounded-xl border border-amber-700/60 bg-amber-950/20 p-4" open>
 
     <summary class="font-bold cursor-pointer">
-        Permisiuni pentru acțiuni
+        Permisiuni globale pentru Organizație și Angajați
     </summary>
 
     <p class="mt-2 text-xs text-slate-400">
-        Alege ce roluri Discord pot executa anumite acțiuni
-        în paginile la care au acces.
+        Configurează o singură dată rolurile care pot citi sau pot scrie și șterge în toată zona aleasă. Setarea se aplică automat comunicărilor, evenimentelor, acțiunilor, avertismentelor, sancțiunilor și funcțiilor de administrare disponibile.
     </p>
 
     <div
@@ -42,13 +41,13 @@
 
 </details>
 
-<details class="rounded-xl border border-emerald-700/60 bg-emerald-950/20 p-4" open>
+<details class="hidden rounded-xl border border-emerald-700/60 bg-emerald-950/20 p-4" open>
     <summary class="font-bold cursor-pointer">Permisiuni comunicări — Organizație și Angajați</summary>
     <p class="mt-2 text-xs text-slate-400">Alege separat rolurile care pot citi sau publica în Anunțuri organizație și Anunțuri angajați. Dacă există două servere, Organizație folosește rolurile din Discordul secundar, iar Angajați pe cele din Discordul principal. Cu un singur server, lista este comună.</p>
     <div id="communication-permissions" class="mt-4 space-y-3"></div>
 </details>
 
-<details class="rounded-xl border border-rose-700/60 bg-rose-950/20 p-4" open>
+<details class="hidden rounded-xl border border-rose-700/60 bg-rose-950/20 p-4" open>
     <summary class="font-bold cursor-pointer">Permisiuni avertismente și sancțiuni financiare</summary>
     <p class="mt-2 text-xs text-slate-400">Alege separat cine poate vedea, emite avertismente sau aplica sancțiuni pentru fiecare tip de secțiune.</p>
     <div id="discipline-permissions" class="mt-4 space-y-3"></div>
@@ -365,10 +364,13 @@ label {
 <script>
 const cfg=window.PANEL_SUPABASE_CONFIG,$=id=>document.getElementById(id),esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 let organizations=[],
-    discordRoles=[],
+   discordRoles=[],
+    roleGuildAvailability={},
     roleRows=[],
     pagePermissions={},
     actionPermissions={},
+    globalPermissions={organization:{read:[],write:[]},departments:{read:[],write:[]}},
+    globalPermissionsInitialized=false,
     communicationPermissions={organization:{read:[],write:[]},departments:{read:[],write:[]}},
     disciplinePermissions={organization:{read:[],write:[],sanction:[]},departments:{read:[],write:[],sanction:[]}},
     webhookRoutes={},
@@ -378,7 +380,7 @@ const pagePermissionGroups=[
     {key:'dashboard',label:'Dashboard',mode:'all',pages:[['index.html','Dashboard']]},
     {key:'illegal',label:'Ilegale',description:'Calculator ilegal, locații ilegale, marketplace ilegal, minigames și stash.',mode:'group',pages:[['calculatorilegal.html','Calculator ilegal'],['locatiiilegale.html','Locații ilegale'],['marketplace-ilegal.html','Marketplace ilegal'],['minigames.html','Minigames'],['stash.html','Stash organizație']]},
     {key:'resources',label:'Resurse',description:'Marketplace, calculator, bucătărie și Craft Mecanic.',mode:'group',pages:[['marketplace.html','Marketplace'],['calculator.html','Calculator'],['bucatarie.html','Bucătărie'],['craftmecanics.html','Craft Mecanic']]},
-    {key:'management',label:'Management',description:'Contracte și rapoarte.',mode:'group',pages:[['contracte.html','Contracte'],['rapoarte.html','Rapoarte']]},
+    {key:'management',label:'Management',description:'Contracte, evenimente și rapoarte.',mode:'group',pages:[['contracte.html','Contracte'],['organizatie-evenimente.html','Evenimente și remindere'],['rapoarte.html','Rapoarte']]},
     {key:'individual',label:'Pagini individuale',mode:'individual',pages:[['anunturi.html','Anunțuri și sondaje'],['pontaj.html','Pontaj'],['cereri.html','Cereri și absențe'],['asistent.html','Asistent']]}
 ];
 const configurablePages=pagePermissionGroups.flatMap(group=>group.pages);
@@ -403,6 +405,10 @@ const webhookDefinitions={
     weekly_reports:{
         label:'Rapoarte săptămânale',
         help:'Raportul săptămânal automat trimis duminica la ora 19:00.'
+    },
+    event_reminders:{
+        label:'Evenimente · remindere 14 zile',
+        help:'Reminder Discord trimis automat o dată pe zi, timp de 14 zile de la data evenimentului.'
     },
     status_live:{
         label:'Status Live',
@@ -480,8 +486,8 @@ const webhookDefinitions={
 const fields=Object.keys(webhookDefinitions);
 $('webhooks').innerHTML=fields.map(x=>`<fieldset class="rounded-xl border border-slate-700 p-3"><legend class="px-1 font-bold text-slate-200">${webhookDefinitions[x].label}</legend><small class="mb-2 block text-slate-400">${webhookDefinitions[x].help}</small><label class="flex items-center gap-2 text-xs"><input type="checkbox" id="wh_primary_enabled_${x}"> Discord principal</label><input id="wh_primary_url_${x}" type="url" class="field" placeholder="Webhook Discord principal"><label class="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" id="wh_secondary_enabled_${x}"> Discord secundar</label><input id="wh_secondary_url_${x}" type="url" class="field" placeholder="Webhook Discord secundar"></fieldset>`).join('');
 const organizationDraftKey=(id=$('id')?.value)=>`panel_local_organization_admin:${id||'new'}`;
-const saveOrganizationDraft=()=>{try{const fieldsToSave=['name','illegal-name','code','address','client','url','logo','guild','guild-secondary','expires','contract-title','contract-salary','contract-template'];const values=Object.fromEntries(fieldsToSave.map(id=>[id,$(id)?.value||'']));const webhooks=Object.fromEntries(fields.map(x=>[x,{primary:{enabled:$(`wh_primary_enabled_${x}`).checked,url:$(`wh_primary_url_${x}`).value.trim()},secondary:{enabled:$(`wh_secondary_enabled_${x}`).checked,url:$(`wh_secondary_url_${x}`).value.trim()}}]));localStorage.setItem(organizationDraftKey(),JSON.stringify({version:2,updated_at:new Date().toISOString(),values,webhooks,role_rows:roleRows,page_permissions:pagePermissions,action_permissions:actionPermissions,assistant_page_permissions:assistantPagePermissions,communication_permissions:communicationPermissions,discipline_permissions:disciplinePermissions}));}catch(_){}};
-const restoreOrganizationDraft=(id=$('id')?.value)=>{try{const draft=JSON.parse(localStorage.getItem(organizationDraftKey(id)||'')||'null');if(!draft||Number(draft.version||0)<2)return false;Object.entries(draft.values||{}).forEach(([field,value])=>{if($(field))$(field).value=value||''});fields.forEach(x=>{['primary','secondary'].forEach(target=>{const route=draft.webhooks?.[x]?.[target]||{};$(`wh_${target}_url_${x}`).value=route.url||'';$(`wh_${target}_enabled_${x}`).checked=route.enabled===true&&Boolean(route.url)})});roleRows=Array.isArray(draft.role_rows)?draft.role_rows:roleRows;pagePermissions=draft.page_permissions&&typeof draft.page_permissions==='object'?draft.page_permissions:pagePermissions;actionPermissions=draft.action_permissions&&typeof draft.action_permissions==='object'?draft.action_permissions:actionPermissions;assistantPagePermissions=draft.assistant_page_permissions&&typeof draft.assistant_page_permissions==='object'?draft.assistant_page_permissions:assistantPagePermissions;communicationPermissions=draft.communication_permissions&&typeof draft.communication_permissions==='object'?draft.communication_permissions:communicationPermissions;disciplinePermissions=draft.discipline_permissions&&typeof draft.discipline_permissions==='object'?draft.discipline_permissions:disciplinePermissions;webhookRoutes=draft.webhooks||webhookRoutes;renderRoles();renderPagePermissions();renderAssistantPermissions();renderActionPermissions();renderAudiencePermissions();renderExpiry();return true;}catch(_){return false;}};
+const saveOrganizationDraft=()=>{try{const fieldsToSave=['name','illegal-name','code','address','client','url','logo','guild','guild-secondary','expires','contract-title','contract-salary','contract-template'];const values=Object.fromEntries(fieldsToSave.map(id=>[id,$(id)?.value||'']));const webhooks=Object.fromEntries(fields.map(x=>[x,{primary:{enabled:$(`wh_primary_enabled_${x}`).checked,url:$(`wh_primary_url_${x}`).value.trim()},secondary:{enabled:$(`wh_secondary_enabled_${x}`).checked,url:$(`wh_secondary_url_${x}`).value.trim()}}]));localStorage.setItem(organizationDraftKey(),JSON.stringify({version:2,updated_at:new Date().toISOString(),values,webhooks,discord_channel_routes:window.getDiscordChannelRoutes?.()||{},role_rows:roleRows,page_permissions:pagePermissions,action_permissions:actionPermissions,assistant_page_permissions:assistantPagePermissions,communication_permissions:communicationPermissions,discipline_permissions:disciplinePermissions}));}catch(_){}};
+const restoreOrganizationDraft=(id=$('id')?.value)=>{try{const draft=JSON.parse(localStorage.getItem(organizationDraftKey(id)||'')||'null');if(!draft||Number(draft.version||0)<2)return false;Object.entries(draft.values||{}).forEach(([field,value])=>{if($(field))$(field).value=value||''});window.discordChannelRoutesInitial=draft.discord_channel_routes||{};window.setDiscordChannelRoutes?.(draft.discord_channel_routes||{});fields.forEach(x=>{['primary','secondary'].forEach(target=>{const route=draft.webhooks?.[x]?.[target]||{};$(`wh_${target}_url_${x}`).value=route.url||'';$(`wh_${target}_enabled_${x}`).checked=route.enabled===true&&Boolean(route.url)})});roleRows=Array.isArray(draft.role_rows)?draft.role_rows:roleRows;pagePermissions=draft.page_permissions&&typeof draft.page_permissions==='object'?draft.page_permissions:pagePermissions;actionPermissions=draft.action_permissions&&typeof draft.action_permissions==='object'?draft.action_permissions:actionPermissions;assistantPagePermissions=draft.assistant_page_permissions&&typeof draft.assistant_page_permissions==='object'?draft.assistant_page_permissions:assistantPagePermissions;communicationPermissions=draft.communication_permissions&&typeof draft.communication_permissions==='object'?draft.communication_permissions:communicationPermissions;disciplinePermissions=draft.discipline_permissions&&typeof draft.discipline_permissions==='object'?draft.discipline_permissions:disciplinePermissions;webhookRoutes=draft.webhooks||webhookRoutes;renderRoles();renderPagePermissions();renderAssistantPermissions();renderActionPermissions();renderAudiencePermissions();renderExpiry();return true;}catch(_){return false;}};
 async function invoke(body){
     if(body.action==='save'){
         body.organization={
@@ -500,11 +506,30 @@ async function invoke(body){
         body.assistant_page_permissions=assistantPagePermissions;
         body.communication_permissions=communicationPermissions;
         body.discipline_permissions=disciplinePermissions;
-const title=$('contract-title').value.trim(),template=$('contract-template').value.trim();if(title||template)body.contract_template={title,template}}const r=await fetch(`${cfg.url}/functions/v1/manage-organizations`,{method:'POST',headers:{'Content-Type':'application/json',apikey:cfg.publishableKey,Authorization:`Bearer ${cfg.publishableKey}`},body:JSON.stringify(body)}),j=await r.json();if(!r.ok)throw new Error(j.error||`HTTP ${r.status}`);return j}
+const title=$('contract-title').value.trim(),template=$('contract-template').value.trim();if(title||template)body.contract_template={title,template}}const r=await fetch(`${cfg.url}/functions/v1/manage-organizations`,{method:'POST',headers:{'Content-Type':'application/json',apikey:cfg.publishableKey,Authorization:`Bearer ${cfg.publishableKey}`},body:JSON.stringify(body)}),j=await r.json();if(!r.ok){const error=new Error(j.error||`HTTP ${r.status}`);error.status=r.status;throw error}return j}
+let organizationListRecoveryAttempted=false;
+const setOrganizationListStatus=(message,kind='error')=>{const element=$('organization-list-status');if(!element)return;element.hidden=!message;element.textContent=message;element.className=`mt-3 rounded-lg border p-3 text-xs ${kind==='error'?'border-red-800/70 bg-red-950/30 text-red-200':'border-emerald-800/70 bg-emerald-950/30 text-emerald-200'}`;};
+async function recoverOrganizationAdminSession(){
+    const token=window.getPanelDiscordAccessToken?.()||'';
+    if(!token||!cfg?.url||!cfg?.publishableKey)return false;
+    const response=await fetch(`${cfg.url}/functions/v1/sync-discord-role`,{method:'POST',headers:{'Content-Type':'application/json',apikey:cfg.publishableKey,Authorization:`Bearer ${cfg.publishableKey}`},body:JSON.stringify({access_token:token})});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok)return false;
+    const previousUser=(()=>{try{return JSON.parse(localStorage.getItem('discord_user')||'null')}catch(_){return null}})();
+    if(result.user) localStorage.setItem('discord_user',JSON.stringify({...result.user,platform_admin:result.user.platform_admin??result.platform_admin??previousUser?.platform_admin,is_platform_admin:result.user.is_platform_admin??result.is_platform_admin??previousUser?.is_platform_admin}));
+    if(result.user?.role!==undefined)localStorage.setItem('user_role',result.user.role);
+    if(result.session_token)localStorage.setItem('panel_session_token',result.session_token);
+    if(result.expires_at)localStorage.setItem('panel_session_expires_at',result.expires_at);
+    if(result.active_organization)localStorage.setItem('panel_active_organization',JSON.stringify(result.active_organization));
+    if(Array.isArray(result.organizations))localStorage.setItem('panel_organizations',JSON.stringify(result.organizations));
+    localStorage.setItem('panel_role_synced_at',String(Date.now()));
+    return Boolean(result.session_token);
+}
 async function load(){
     try{
 
-        organizations=(await invoke({action:'list'})).organizations;
+        organizations=(await invoke({action:'list'})).organizations||[];
+        setOrganizationListStatus('');
 
         $('list').innerHTML = organizations.map(o => {
 
@@ -706,8 +731,14 @@ async function load(){
 
     }
     catch(e){
-
-        $('status').textContent=e.message;
+        if(!organizationListRecoveryAttempted&&[401,403].includes(Number(e?.status))){
+            organizationListRecoveryAttempted=true;
+            setOrganizationListStatus('Sesiunea administrativă a expirat. Revalidez accesul…','success');
+            try{if(await recoverOrganizationAdminSession())return await load();}catch(_){/* mesajul principal rămâne mai jos */}
+        }
+        const message=e?.message||'Organizațiile nu au putut fi încărcate.';
+        setOrganizationListStatus(`Lista organizațiilor nu a putut fi încărcată: ${message}`);
+        $('status').textContent=message;
 
     }
 }
@@ -729,8 +760,11 @@ function reset(){[
 'contract-template'
 ].forEach(x=>$(x).value='');fields.forEach(x=>{['primary','secondary'].forEach(target=>{ $(`wh_${target}_enabled_${x}`).checked=false; $(`wh_${target}_url_${x}`).value='' })});$('expires').value=toLocalInput(new Date(Date.now()+30*86400000));
 discordRoles=[];
+roleGuildAvailability={};
 pagePermissions={};
 actionPermissions={};
+globalPermissions={organization:{read:[],write:[]},departments:{read:[],write:[]}};
+globalPermissionsInitialized=false;
 assistantPagePermissions={};
 communicationPermissions={organization:{read:[],write:[]},departments:{read:[],write:[]}};
 disciplinePermissions={organization:{read:[],write:[],sanction:[]},departments:{read:[],write:[],sanction:[]}};
@@ -743,6 +777,8 @@ roleRows = [{
 }];
 
 webhookRoutes={};
+window.discordChannelRoutesInitial={};
+window.setDiscordChannelRoutes?.({});
 renderRoles();
 renderPagePermissions();
 renderAssistantPermissions();
@@ -763,6 +799,8 @@ async function edit(id) {
     $('logo').value = o.logo_url || '';
 
     const s = o.organization_settings?.[0] || {};
+    window.discordChannelRoutesInitial = s.discord_channel_routes || {};
+    window.setDiscordChannelRoutes?.(s.discord_channel_routes || {});
 
     const primary =
         o.organization_guilds?.find(x => x.kind === 'primary') ||
@@ -848,17 +886,18 @@ async function discoverGuildRoles(guildId,statusId){
             guild_id:guildId
         });
 
-        discordRoles=discordRoles
-            .filter(role=>role.guild_id!==guildId)
-            .concat(
-                result.roles.map(role=>({
-                    ...role,
-                    guild_id:guildId,
-                    guild_name:result.guild.name
-                }))
-            );
+       discordRoles=discordRoles
+           .filter(role=>role.guild_id!==guildId)
+           .concat(
+               result.roles.map(role=>({
+                   ...role,
+                   guild_id:guildId,
+                   guild_name:result.guild.name
+               }))
+           );
+        roleGuildAvailability[guildId]=true;
 
-        renderRoles();
+       renderRoles();
         renderPagePermissions();
         renderAssistantPermissions();
         renderActionPermissions();
@@ -868,8 +907,11 @@ async function discoverGuildRoles(guildId,statusId){
             `${result.guild.name}: ${result.roles.length} roluri disponibile.`;
 
         return result;
-    }catch(error){
-        $(statusId).textContent=
+   }catch(error){
+        roleGuildAvailability[guildId]=false;
+       const savedRoles = roleRows.filter(row => String(row.guild_id || '') === String(guildId) && row.discord_role_id).map(row => ({ id: String(row.discord_role_id), name: row.discord_role_name || row.panel_role || String(row.discord_role_id), guild_id: String(guildId) }));
+       discordRoles = discordRoles.filter(role => String(role.guild_id || '') !== String(guildId)).concat(savedRoles);
+       $(statusId).textContent=
             `Serverul nu a putut fi citit: ${error.message}`;
 
         return null;
@@ -1247,308 +1289,192 @@ function renderAssistantPermissions() {
     host.querySelectorAll('[data-assistant-page]').forEach(box => { box.onchange=()=>{ const page=box.dataset.assistantPage; const current=new Set((assistantPagePermissions[page]||[]).map(String)); box.checked?current.add(String(box.dataset.assistantRole)):current.delete(String(box.dataset.assistantRole)); assistantPagePermissions[page]=[...current]; renderAssistantPermissions(); }; });
     host.querySelectorAll('[data-assistant-select-group]').forEach(button => { button.onclick=()=>{ const group=assistantPageGroups.find(item=>item.key===button.dataset.assistantSelectGroup); group?.pages.forEach(([page])=>{assistantPagePermissions[page]=roles.map(role=>role.id);}); renderAssistantPermissions(); }; });
 }
+function applyGlobalPermissions() {
+    const unique = values => [...new Set((Array.isArray(values) ? values : []).map(String))];
+    const organizationRead = unique(globalPermissions.organization.read);
+    const organizationWrite = unique(globalPermissions.organization.write);
+    const departmentsRead = unique(globalPermissions.departments.read);
+    const departmentsWrite = unique(globalPermissions.departments.write);
+
+    communicationPermissions.organization.read = [...organizationRead];
+    communicationPermissions.organization.write = [...organizationWrite];
+    communicationPermissions.departments.read = [...departmentsRead];
+    communicationPermissions.departments.write = [...departmentsWrite];
+
+    disciplinePermissions.organization.read = [...organizationRead];
+    disciplinePermissions.organization.write = [...organizationWrite];
+    disciplinePermissions.organization.sanction = [...organizationWrite];
+    disciplinePermissions.departments.read = [...departmentsRead];
+    disciplinePermissions.departments.write = [...departmentsWrite];
+    disciplinePermissions.departments.sanction = [...departmentsWrite];
+
+    actionPermissions['actions.organization.read'] = [...organizationRead];
+    actionPermissions['actions.organization.write'] = [...organizationWrite];
+    actionPermissions['actions.organization.delete'] = [...organizationWrite];
+    actionPermissions['events.read'] = [...organizationRead];
+    actionPermissions['events.write'] = [...organizationWrite];
+   actionPermissions['anunturi.publish'] = unique([...organizationWrite, ...departmentsWrite]);
+    actionPermissions['marketplace.delete'] = [...organizationWrite];
+   ['stash.write', 'stash.manage_requests', 'stash.donate', 'stash.approve_donation', 'stash.log'].forEach(key => {
+        actionPermissions[key] = [...organizationWrite];
+    });
+    actionPermissions['stash.request'] = unique([...organizationWrite, ...departmentsWrite]);
+}
+
 function renderActionPermissions() {
     const host = document.getElementById('action-permissions');
     if (!host) return;
 
-    const roles = roleRows
-        .filter(row => row.discord_role_id)
-        .map(row => ({
-            id: String(row.discord_role_id),
+    const roleSource = discordRoles.length
+        ? discordRoles
+        : roleRows
+            .filter(row => row.discord_role_id)
+            .map(row => ({
+                id: row.discord_role_id,
+                name: row.discord_role_name || row.panel_role || row.discord_role_id,
+                guild_id: row.guild_id
+            }));
+    const roles = roleSource
+        .filter(role => role.id)
+        .map(role => ({
+            id: String(role.id),
+            name: role.name || role.id,
+            panel: roleRows.find(row => String(row.discord_role_id) === String(role.id))?.panel_role || role.name || role.id
+        }))
+        .filter((role, index, list) => list.findIndex(item => item.id === role.id) === index);
 
-            name:
-                discordRoles.find(
-                    role => role.id === row.discord_role_id
-                )?.name ||
-                row.panel_role ||
-                row.discord_role_id,
+   if (!roles.length) {
+       host.innerHTML = `
+           <p class="rounded-xl border border-dashed border-slate-700 p-4 text-sm text-slate-400">
+               Alege mai întâi rolurile Discord ale organizației.
+           </p>
+       `;
 
-            panel: row.panel_role
-        }));
+       return;
+   }
+    const validRoleIds = new Set(roles.map(role => role.id));
+    ['organization', 'departments'].forEach(audience => ['read', 'write'].forEach(kind => {
+        globalPermissions[audience][kind] = (globalPermissions[audience][kind] || []).map(String).filter(id => validRoleIds.has(id));
+    }));
 
+   if (!globalPermissionsInitialized) {
+        const ids = (...values) => [...new Set(values.flatMap(value => Array.isArray(value) ? value.map(String) : []))];
+        globalPermissions = {
+            organization: {
+                read: ids(
+                    communicationPermissions.organization?.read,
+                    disciplinePermissions.organization?.read,
+                    actionPermissions['actions.organization.read'],
+                    actionPermissions['events.read']
+                ),
+                write: ids(
+                    communicationPermissions.organization?.write,
+                    disciplinePermissions.organization?.write,
+                    disciplinePermissions.organization?.sanction,
+                    actionPermissions['actions.organization.write'],
+                    actionPermissions['events.write'],
+                    actionPermissions['anunturi.publish'],
+                    actionPermissions['stash.write'],
+                    actionPermissions['stash.manage_requests'],
+                    actionPermissions['stash.donate'],
+                    actionPermissions['stash.approve_donation'],
+                    actionPermissions['stash.log']
+                )
+            },
+            departments: {
+                read: ids(
+                    communicationPermissions.departments?.read,
+                    disciplinePermissions.departments?.read
+                ),
+                write: ids(
+                    communicationPermissions.departments?.write,
+                    disciplinePermissions.departments?.write,
+                    disciplinePermissions.departments?.sanction
+                )
+            }
+        };
+       globalPermissionsInitialized = true;
+        applyGlobalPermissions();
+   }
 
-    if (!roles.length) {
-        host.innerHTML = `
-            <p class="rounded-xl border border-dashed border-slate-700 p-4 text-sm text-slate-400">
-                Alege mai întâi rolurile Discord ale organizației.
-            </p>
-        `;
-
-        return;
-    }
-
-
-    /*
-     * Permisiunile configurabile.
-     *
-     * anunturi.publish
-     *      = cine poate publica anunțuri.
-     *
-     * cereri.organization
-     *      = cererile acestor roluri merg automat
-     *        către Organizație.
-     *
-     * cereri.departments
-     *      = cererile acestor roluri merg automat
-     *        către Birouri / Angajați.
-     */
-
-    const permissionGroups = [
-        {
-            key: 'actions.organization.read',
-            title: 'Acțiuni organizație — citire',
-            description: 'Cine poate vedea acțiunile și participanții înregistrați.',
-            color: 'cyan'
-        },
-        {
-            key: 'actions.organization.write',
-            title: 'Acțiuni organizație — scriere',
-            description: 'Cine poate adăuga acțiuni și selecta membri din Guild.',
-            color: 'emerald'
-        },
-        {
-            key: 'actions.organization.delete',
-            title: 'Acțiuni organizație — ștergere',
-            description: 'Cine poate șterge acțiuni salvate.',
-            color: 'rose'
-        },
-        {
-            key: 'marketplace.delete',
-
-            title: 'Ștergere anunțuri Marketplace',
-
-            description:
-                'Cine poate șterge anunțuri din Marketplace legal și Black Market. Autorul și administratorul platformei păstrează accesul existent.',
-
-            color: 'rose'
-        },
-
-        {
-            key: 'stash.write',
-            title: 'Stash — postează și gestionează',
-            description: 'Cine poate adăuga, modifica și arhiva articole din stash.',
-            color: 'emerald'
-        },
-        {
-            key: 'stash.request',
-            title: 'Stash — trimite cereri',
-            description: 'Cine poate trimite cereri pentru articole din stash.',
-            color: 'cyan'
-        },
-        {
-            key: 'stash.manage_requests',
-            title: 'Stash — aprobă cereri',
-            description: 'Cine poate aproba, respinge și finaliza cererile.',
-            color: 'amber'
-        },
-        {
-            key: 'stash.donate',
-            title: 'Stash — donează',
-            description: 'Cine poate trimite donații către stash.',
-            color: 'violet'
-        },
-        {
-            key: 'stash.approve_donation',
-            title: 'Stash — aprobă donații',
-            description: 'Cine verifică donațiile și le postează în stash.',
-            color: 'emerald'
-        },
-        {
-            key: 'stash.log',
-            title: 'Stash — jurnal arhive',
-            description: 'Cine poate vedea articolele arhivate din jurnalul Stash.',
-            color: 'slate'
-        },
-
-
-        {
-            key: 'cereri.organization',
-
-            title: 'Cereri → Organizație',
-
-            description:
-                'Cererile și absențele trimise de aceste roluri vor fi direcționate automat către Organizație.',
-
-            color: 'emerald'
-        },
-
-
-        {
-            key: 'cereri.departments',
-
-            title: 'Cereri → Birouri / Angajați',
-
-            description:
-                'Cererile și absențele trimise de aceste roluri vor fi direcționate automat către Birouri / Angajați.',
-
-            color: 'cyan'
-        }
-
+    const rolesFor = audience => permissionRolesForAudience(audience).map(role => ({
+        ...role,
+        panel: roles.find(item => item.id === role.id)?.panel || role.name
+    }));
+    const primaryGuildId = String($('guild').value || '').trim();
+    const secondaryGuildId = String($('guild-secondary').value || '').trim();
+    const separatedPermissionGuilds = Boolean(secondaryGuildId && secondaryGuildId !== primaryGuildId && roleGuildAvailability[primaryGuildId] === true && roleGuildAvailability[secondaryGuildId] === true);
+    const groups = [
+        ['organization', 'Organizație', 'Rolurile selectate aici pot citi, scrie și șterge în toate funcțiile Organizației.'],
+        ['departments', 'Angajați / Birouri', 'Rolurile selectate aici pot citi, scrie și șterge în toate funcțiile pentru Angajați / Birouri.']
     ];
-
-
-    host.innerHTML = permissionGroups.map(group => {
-
-        const selected =
-            (actionPermissions[group.key] || [])
-                .map(String);
-
-        return `
-            <div class="rounded-xl border border-slate-700 bg-slate-950 p-3">
-
-                <div>
-                    <b class="text-sm">
-                        ${esc(group.title)}
-                    </b>
-
-                    <p class="mt-1 text-xs text-slate-400">
-                        ${esc(group.description)}
-                    </p>
-                </div>
-
-
-                <div class="mt-3 flex flex-wrap gap-3">
-
-                    ${roles.map(role => `
-
-                        <label
-                            class="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2"
-                        >
-
-                            <input
-                                id="action-${group.key}-${role.id}"
-                                name="action_${group.key}_${role.id}"
-                                type="checkbox"
-
-                                data-action-permission="${group.key}"
-
-                                data-action-role="${role.id}"
-
-                                ${selected.includes(role.id)
-                                    ? 'checked'
-                                    : ''}
-                            >
-
-                            <span>
-
-                                ${esc(role.name)}
-
-                                <small class="text-slate-500">
-                                    (${esc(role.panel)})
-                                </small>
-
-                            </span>
-
-                        </label>
-
-                    `).join('')}
-
-                </div>
-
+    host.innerHTML = groups.map(([audience, title, description]) => {
+        const audienceRoles = rolesFor(audience);
+        return `<section class="rounded-xl border border-slate-700 bg-slate-950 p-4">
+            <div class="flex flex-wrap items-start justify-between gap-2">
+                <div><h3 class="text-sm font-bold text-slate-100">${esc(title)}</h3><p class="mt-1 text-xs text-slate-400">${esc(description)}</p></div>
+                <span class="text-[11px] text-slate-500">${separatedPermissionGuilds && audience === 'organization' ? 'Discord secundar' : 'Discord principal'}</span>
             </div>
-        `;
-
+            ${audienceRoles.length ? `<div class="mt-4 grid gap-3 md:grid-cols-2">
+                ${[['read', 'Citire', 'Poate consulta toate informațiile din zonă.'], ['write', 'Scriere și ștergere', 'Poate adăuga, modifica și șterge informațiile din zonă.']].map(([kind, label, help]) => `<div class="rounded-lg border border-slate-800 bg-slate-900 p-3"><b class="text-xs text-slate-200">${label}</b><p class="mt-1 text-[11px] text-slate-500">${help}</p><div class="mt-3 flex flex-wrap gap-2">${audienceRoles.map(role => `<label class="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-[11px] text-slate-300"><input type="checkbox" data-global-audience="${audience}" data-global-kind="${kind}" data-global-role="${role.id}" ${(globalPermissions[audience][kind] || []).map(String).includes(role.id) ? 'checked' : ''}><span>${esc(role.name)} <small class="text-slate-500">(${esc(role.panel)})</small></span></label>`).join('')}</div></div>`).join('')}
+            </div>` : '<p class="mt-3 rounded-lg border border-dashed border-slate-700 p-3 text-xs text-slate-500">Nu există roluri configurate pentru acest Discord.</p>'}
+        </section>`;
     }).join('');
 
-
-    /*
-     * Salvarea modificărilor în obiectul
-     * actionPermissions.
-     */
-
-    host
-        .querySelectorAll('[data-action-permission]')
-        .forEach(box => {
-
-            box.onchange = () => {
-
-                const permission =
-                    box.dataset.actionPermission;
-
-                const roleId =
-                    String(box.dataset.actionRole);
-
-
-                const current = new Set(
-                    (actionPermissions[permission] || [])
-                        .map(String)
-                );
-
-
-                if (box.checked) {
-
-                    /*
-                     * Pentru rutarea cererilor:
-                     * același rol nu trebuie să fie simultan
-                     * Organizație și Birouri / Angajați.
-                     */
-
-                    if (
-                        permission === 'cereri.organization' ||
-                        permission === 'cereri.departments'
-                    ) {
-
-                        const opposite =
-                            permission === 'cereri.organization'
-                                ? 'cereri.departments'
-                                : 'cereri.organization';
-
-
-                        actionPermissions[opposite] =
-                            (actionPermissions[opposite] || [])
-                                .map(String)
-                                .filter(id => id !== roleId);
-                    }
-
-
-                    current.add(roleId);
-
-                } else {
-
-                    current.delete(roleId);
-
-                }
-
-
-                actionPermissions[permission] =
-                    [...current];
-                    console.log(
-                        'ACTION PERMISSION CHANGED:',
-                        permission,
-                        actionPermissions
-                    );
-
-
-                /*
-                 * Reafișăm casetele pentru ca mutarea unui rol
-                 * Organizație <-> Birouri să se vadă imediat.
-                 */
-
-                if (
-                    permission === 'cereri.organization' ||
-                    permission === 'cereri.departments'
-                ) {
-                    renderActionPermissions();
-                }
-
-            };
-
-        });
+   host.querySelectorAll('[data-global-permission]').forEach(() => {});
+   host.querySelectorAll('[data-global-audience]').forEach(box => {
+        box.onchange = () => {
+            const audience = box.dataset.globalAudience;
+            const kind = box.dataset.globalKind;
+            const roleId = String(box.dataset.globalRole);
+            if (box.checked) ensureRoleMappingForPermission(roleId);
+            const current = new Set((globalPermissions[audience][kind] || []).map(String));
+            box.checked ? current.add(roleId) : current.delete(roleId);
+            globalPermissions[audience][kind] = [...current];
+            applyGlobalPermissions();
+            renderActionPermissions();
+        };
+    });
+}
+function ensureRoleMappingForPermission(roleId) {
+    const id = String(roleId || '');
+    if (!id || roleRows.some(row => String(row.discord_role_id || '') === id)) return;
+    const role = discordRoles.find(item => String(item.id) === id);
+    if (!role) return;
+    roleRows = roleRows.filter(row => row.discord_role_id);
+    roleRows.push({
+        panel_role: role.name || id,
+        discord_role_id: id,
+        discord_role_name: role.name || id,
+        guild_id: role.guild_id || ''
+    });
 }
 function permissionRolesForAudience(audience) {
     const primaryId = String($('guild').value || '').trim();
     const secondaryId = String($('guild-secondary').value || '').trim();
-    const separated = Boolean(secondaryId && secondaryId !== primaryId);
-    const expectedGuild = audience === 'organization' ? secondaryId : primaryId;
-    return roleRows
-        .filter(row => row.discord_role_id)
-        .filter(row => !separated || String(row.guild_id || '') === expectedGuild)
-        .map(row => {
-            const role = discordRoles.find(item => String(item.id) === String(row.discord_role_id));
-            const name = role?.name || row.discord_role_name || row.panel_role || row.discord_role_id;
-            const label = separated ? `${name} · Discord ${audience === 'organization' ? 'secundar' : 'principal'}` : name;
-            return { id: String(row.discord_role_id), name: label };
-        })
+    const separated = Boolean(
+        secondaryId &&
+        secondaryId !== primaryId &&
+        roleGuildAvailability[primaryId] === true &&
+        roleGuildAvailability[secondaryId] === true
+    );
+    const expectedGuild = separated
+        ? (audience === 'organization' ? secondaryId : primaryId)
+        : primaryId;
+    const source = discordRoles.length
+        ? discordRoles
+        : roleRows.map(row => ({
+            id: row.discord_role_id,
+            name: row.discord_role_name || row.panel_role || row.discord_role_id,
+            guild_id: row.guild_id
+        }));
+    return source
+        .filter(role => role.id)
+        .filter(role => !expectedGuild || String(role.guild_id || '') === expectedGuild)
+        .map(role => ({
+            id: String(role.id),
+            name: `${role.name || role.id}${separated ? ` · Discord ${audience === 'organization' ? 'secundar' : 'principal'}` : ''}`
+        }))
         .filter((role, index, list) => list.findIndex(item => item.id === role.id) === index);
 }
 function renderAudiencePermissions() {
@@ -1595,7 +1521,7 @@ roles.push({
     discord_role_name: role.name,
     panel_role: panelRole
 });
-}if(new Set(roles.map(role=>role.discord_role_id)).size!==roles.length)throw new Error('Același rol Discord nu poate fi adăugat de două ori.');const settings={discord_client_id:$('client').value,panel_public_url:$('url').value,webhook_routes:Object.fromEntries(fields.map(x=>[x,{primary:{enabled:$(`wh_primary_enabled_${x}`).checked,url:$(`wh_primary_url_${x}`).value.trim()},secondary:{enabled:$(`wh_secondary_enabled_${x}`).checked,url:$(`wh_secondary_url_${x}`).value.trim()}}]).filter(([,route])=>route.primary.enabled&&route.primary.url||route.secondary.enabled&&route.secondary.url))},guilds=[{guild_id:guildId,guild_name:$('guild-status').textContent.split(':')[0],kind:'primary'}];if(secondaryId)guilds.push({guild_id:secondaryId,guild_name:$('guild-secondary-status').textContent.split(':')[0],kind:'secondary'});
+}if(new Set(roles.map(role=>role.discord_role_id)).size!==roles.length)throw new Error('Același rol Discord nu poate fi adăugat de două ori.');const settings={discord_client_id:$('client').value,panel_public_url:$('url').value,webhook_routes:Object.fromEntries(fields.map(x=>[x,{primary:{enabled:$(`wh_primary_enabled_${x}`).checked,url:$(`wh_primary_url_${x}`).value.trim()},secondary:{enabled:$(`wh_secondary_enabled_${x}`).checked,url:$(`wh_secondary_url_${x}`).value.trim()}}]).filter(([,route])=>route.primary.enabled&&route.primary.url||route.secondary.enabled&&route.secondary.url)),discord_channel_routes:window.getDiscordChannelRoutes?.()||{}},guilds=[{guild_id:guildId,guild_name:$('guild-status').textContent.split(':')[0],kind:'primary'}];if(secondaryId)guilds.push({guild_id:secondaryId,guild_name:$('guild-secondary-status').textContent.split(':')[0],kind:'secondary'});
 await invoke({
     action:'save',
 
@@ -1830,6 +1756,7 @@ renderRoles = () => {
       page_permissions: pagePermissions,
 
       action_permissions: actionPermissions,
+      discord_channel_routes: window.getDiscordChannelRoutes?.() || {},
 
 
       webhooks: Object.fromEntries(
@@ -1856,6 +1783,8 @@ renderRoles = () => {
       const data=JSON.parse(await file.text()), org=data.organization||{};
       $('id').value=org.id||''; $('name').value=org.name||''; $('code').value=org.code||''; $('address').value=org.address||''; $('logo').value=org.logo_url||'';
       $('guild').value=data.guilds?.[0]?.guild_id||''; $('guild-secondary').value=data.guilds?.find(x=>x.kind==='secondary')?.guild_id||'';
+      window.discordChannelRoutesInitial = data.discord_channel_routes || {};
+      window.setDiscordChannelRoutes?.(data.discord_channel_routes || {});
       roleRows =
           Array.isArray(data.roles)
               ? data.roles
@@ -1908,7 +1837,8 @@ renderRoles = () => {
               roles: full.roles,
               page_permissions: full.page_permissions,
               action_permissions: full.action_permissions,
-              assistant_page_permissions: full.assistant_page_permissions
+              assistant_page_permissions: full.assistant_page_permissions,
+              discord_channel_routes: full.discord_channel_routes
           };
 
           localStorage.setItem(
@@ -1948,6 +1878,9 @@ renderRoles = () => {
 
           assistantPagePermissions =
               saved.assistant_page_permissions || assistantPagePermissions;
+
+          window.discordChannelRoutesInitial = saved.discord_channel_routes || {};
+          window.setDiscordChannelRoutes?.(saved.discord_channel_routes || {});
 
           renderRoles();
           renderPagePermissions();
@@ -2008,6 +1941,6 @@ renderRoles = () => {
     salary.value = organization?.platform_settings?.contract_template?.defaults?.salary || '';
   };
 })();
-</script><script src="js/organization-packages.js?v=3.10.0"></script><script src="js/organization-webhook-extension.js?v=3.10.0"></script><script src="js/global-footer.js?v=3.10.0"></script></body></html>
+</script><script src="js/organization-packages.js?v=3.10.0"></script><script src="js/organization-webhook-extension.js?v=3.10.0"></script><script src="js/discord-channel-config.js?v=20260902-bot-routing-roles"></script><script src="js/global-footer.js?v=3.10.0"></script></body></html>
 
 

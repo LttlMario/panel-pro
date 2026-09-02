@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' http://127.0.0.1:8787 http://localhost:8787 https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self';">
+  <title>Evenimente și remindere - Panel</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+  <script src="js/permissions.js?v=4.6.2"></script>
+  <script src="js/panel-layout.js?v=4.28.9"></script>
+  <link rel="stylesheet" href="css/global-footer.css">
+  <link rel="icon" href="img/favicon.ico">
+  <style>
+    .event-form-grid { align-items: start; }
+    .event-field { display: flex; min-width: 0; flex-direction: column; gap: .45rem; color: #dbeafe; font-size: .78rem; font-weight: 700; }
+    .event-field .field { width: 100%; min-width: 0; display: block; margin-top: 0; }
+    .event-field small { color: #64748b; font-size: .68rem; font-weight: 500; line-height: 1.45; }
+    .event-field select.field { cursor: pointer; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm">
+  <main class="flex-1 min-w-0 overflow-y-auto">
+    <div class="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-8">
+      <section class="rounded-2xl border border-cyan-800/60 bg-gradient-to-br from-cyan-950/50 via-slate-900 to-slate-900 p-5 shadow-xl md:p-7">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div class="max-w-3xl"><p class="text-xs font-bold uppercase tracking-[.18em] text-cyan-300">Zona manageri</p><h1 class="mt-2 text-2xl font-black text-white md:text-3xl">Evenimente IC și remindere</h1><p class="mt-3 text-sm leading-6 text-slate-300">Înregistrează evenimentele IC ale organizației, precum Car Meet, Convoy sau o petrecere. Pentru fiecare eveniment, Discord primește automat câte un reminder pe zi timp de 14 zile.</p></div>
+          <span id="mode-badge" class="rounded-full border border-amber-700/70 bg-amber-950/40 px-3 py-1.5 text-xs font-bold text-amber-200">Se verifică modul…</span>
+        </div>
+        <div id="mode-note" class="mt-5 rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-xs leading-5 text-slate-400">Se încarcă evenimentele salvate…</div>
+      </section>
+
+      <section class="grid gap-4 sm:grid-cols-3">
+        <article class="rounded-2xl border border-slate-800 bg-slate-900 p-5"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">În desfășurare</p><strong id="stat-active" class="mt-2 block text-3xl font-black text-cyan-300">0</strong></article>
+        <article class="rounded-2xl border border-slate-800 bg-slate-900 p-5"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">În istoric</p><strong id="stat-history" class="mt-2 block text-3xl font-black text-indigo-300">0</strong></article>
+        <article class="rounded-2xl border border-slate-800 bg-slate-900 p-5"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Reminder următor</p><strong id="stat-next" class="mt-2 block text-base font-black text-emerald-300">—</strong></article>
+      </section>
+
+      <section id="event-form-card" class="rounded-2xl border border-emerald-800/60 bg-slate-900 p-5 shadow-lg md:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3"><div><h2 id="form-title" class="text-lg font-black">Adaugă un eveniment IC</h2><p class="mt-1 text-xs text-slate-400">Alege tipul, data și detaliile evenimentului. Înregistrarea rămâne în istoric pentru dovezi și verificări.</p></div><button id="cancel-edit" type="button" class="hidden rounded-xl border border-slate-700 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800">Anulează editarea</button></div>
+        <form id="event-form" class="event-form-grid mt-5 grid gap-5 md:grid-cols-2">
+          <label class="event-field md:col-span-2">Titlu eveniment<input id="event-title" class="field" maxlength="160" required placeholder="Ex: Car Meet Los Santos"><small>Un nume scurt și ușor de recunoscut în istoric și pe Discord.</small></label>
+          <label class="event-field">Tipul evenimentului<select id="event-type" class="field" required><option value="">Alege tipul evenimentului…</option><option value="car_meet">Car Meet</option><option value="convoy">Convoy</option><option value="race">Cursă / Race</option><option value="party">Petrecere IC</option><option value="community">Eveniment comunitar</option><option value="roleplay">Eveniment RP / IC</option><option value="other">Alt eveniment IC</option></select><small>Tipul apare și în istoricul evenimentului, și în reminderul Discord.</small></label>
+          <label class="event-field">Data evenimentului<input id="event-date" class="field" type="date" required><small>Poți trece și un eveniment viitor. Reminderele încep în ziua aleasă.</small></label>
+          <label class="event-field md:col-span-2">Detalii / notițe<textarea id="event-details" class="field min-h-28" maxlength="5000" placeholder="Locația, ora, participanții, ce s-a întâmplat sau ce trebuie pregătit…"></textarea><small>Adaugă orice informație utilă pentru evidență.</small></label>
+          <label class="event-field md:col-span-2">Link dovadă (opțional)<input id="event-evidence" class="field" type="url" maxlength="500" placeholder="https://…"><small>Poți păstra un link către captură, mesaj, formular sau altă dovadă.</small></label>
+          <div class="flex flex-wrap items-center gap-3 md:col-span-2"><button id="save-event" class="rounded-xl bg-emerald-600 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-500" type="submit">Salvează evenimentul</button><span id="form-status" class="text-xs text-slate-400" role="status"></span></div>
+        </form>
+        <div id="read-only-note" class="mt-4 hidden rounded-xl border border-amber-800/60 bg-amber-950/20 p-3 text-xs leading-5 text-amber-200">Ai acces la citire. Pentru a adăuga sau modifica evenimente, administratorul trebuie să îți acorde permisiunea „Evenimente — scriere”.</div>
+      </section>
+
+      <section class="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-lg md:p-6"><div class="flex flex-wrap items-end justify-between gap-3"><div><h2 class="text-lg font-black">Istoric evenimente</h2><p class="mt-1 text-xs text-slate-400">Evenimentele arhivate și cele finalizate rămân aici pentru consultare ulterioară.</p></div><button id="refresh-events" type="button" class="rounded-xl border border-slate-700 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800">Reîncarcă</button></div><div id="events-list" class="mt-5 space-y-3"><p class="rounded-xl border border-dashed border-slate-700 p-5 text-sm text-slate-400">Se încarcă…</p></div></section>
+    </div>
+  </main>
+  <script src="js/organization-events.js?v=1.2.0"></script>
+</body>
+</html>

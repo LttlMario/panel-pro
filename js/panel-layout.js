@@ -41,7 +41,7 @@ window.panelCloseLegacyMobileMenu = window.panelCloseLegacyMobileMenu || functio
 if (document.head && !document.head.querySelector('meta[http-equiv="Content-Security-Policy"]')) {
     const panelCsp = document.createElement('meta');
     panelCsp.httpEquiv = 'Content-Security-Policy';
-    panelCsp.content = "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self'; manifest-src 'self'; worker-src 'self' blob:;";
+    panelCsp.content = "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' http://127.0.0.1:8787 http://localhost:8787 https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self'; manifest-src 'self'; worker-src 'self' blob:;";
     document.head.prepend(panelCsp);
 }
 window.panelEscapeHtml = window.panelEscapeHtml || function panelEscapeHtml(value) {
@@ -1365,6 +1365,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 ['cereri-angajati.html', '📋', 'Învoiri angajați'],
                 ['cereri-organizatie.html', '🏢', 'Învoiri organizație'],
                 ['contracte.html', '📜', 'Contracte'],
+                ['organizatie-evenimente.html', '🗓️', 'Evenimente și remindere'],
                 ['rapoarte.html', '📈', 'Rapoarte']
             ]],
             ['resurse', 'Resurse', [

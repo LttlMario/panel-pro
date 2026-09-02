@@ -2,8 +2,10 @@
 // Consola rămâne disponibilă pentru diagnosticarea erorilor de autentificare.
 // Nu logăm tokenuri sau date private în acest fișier.
 
+const panelRemoteSupabaseUrl = 'https://vkvsabbbawyiurnaiugo.supabase.co';
+const panelIsLocalDevelopment = /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname || '');
 window.PANEL_SUPABASE_CONFIG = Object.freeze({
-    url: 'https://vkvsabbbawyiurnaiugo.supabase.co',
+    url: panelIsLocalDevelopment ? 'http://127.0.0.1:8787' : panelRemoteSupabaseUrl,
     publishableKey: 'sb_publishable_gRM7uXmfknjfFiOg7jjqDA_y-VGPMVD'
 });
 
