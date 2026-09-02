@@ -67,16 +67,16 @@ window.PANEL_ASSISTANT_KNOWLEDGE = [
         answer: 'În Istoricul meu de înștiințări găsești cererile tale și opțiunile disponibile pentru modificare sau gestionare.'
     },
     {
-        title: 'Craft Mecanic',
-        category: 'craft', page: 'craftmecanics.html',
+        title: 'Craft Mecanic în Calculator',
+        category: 'craft', page: 'calculator.html',
         keywords: ['craft', 'reteta', 'unelte', 'masa lucru', 'kit reparatii', 'limitator viteza'],
         answer: 'Craft Mecanic conține galeria locală de rețete și echipamente. Poți căuta după numele obiectului, al uneltei, al setului de roți sau al modelului de jantă.'
     },
     {
         title: 'Set roți Runflat',
-        category: 'craft', page: 'craftmecanics.html?search=Set%20ro%C8%9Bi%20Runflat',
+        category: 'craft', page: 'calculator.html?search=Set%20ro%C8%9Bi%20Runflat',
         keywords: ['runflat', 'roti runflat', 'set roti', 'pana'],
-        answer: 'Setul de roți Runflat este prezent în Craft Mecanic și este descris ca un set special care permite rularea în caz de pană. Deschide pagina pentru captura și detaliile rețetei.'
+        answer: 'Setul de roți Runflat este prezent în secțiunea Craft Mecanic din Calculator și este descris ca un set special care permite rularea în caz de pană. Deschide Calculatorul pentru imaginea și detaliile rețetei.'
     },
     {
         title: 'Marketplace intern',
@@ -194,7 +194,6 @@ window.PANEL_ASSISTANT_PAGES = [
     { file: 'bucatarie.html', label: 'Bucătărie' },
     { file: 'anunturi.html', label: 'Anunțuri și sondaje' },
     { file: 'cereri.html', label: 'Cereri / Absențe' },
-    { file: 'craftmecanics.html', label: 'Craft Mecanic' },
     { file: 'marketplace.html', label: 'Marketplace' },
     { file: 'calculator.html', label: 'Calculator' },
     { file: 'calculatorilegal.html', label: 'Calculator Ilegal' },

@@ -107,7 +107,7 @@
     function quickQuestions() {
         return [
             ['Cum pornesc pontajul?', 'pontaj.html'],
-            ['Unde găsesc Runflat?', 'craftmecanics.html'],
+            ['Unde găsesc Runflat?', 'calculator.html'],
             ['Cum trimit o învoire?', 'cereri.html'],
             ['Ce găsesc la locații ilegale?', 'locatiiilegale.html'],
             ['Cum văd pontajele active?', 'rapoarte.html'],

@@ -168,7 +168,7 @@
         if ((page === 'calculator.html' || page === 'calculatorilegal.html') && typeof window.filterCalculatorRecipes === 'function') {
             window.filterCalculatorRecipes(query);
         }
-        if ((page === 'craftmecanics.html' || page === 'bucatarie.html') && typeof window.filterGallery === 'function') {
+        if (page === 'bucatarie.html' && typeof window.filterGallery === 'function') {
             window.filterGallery(query);
         }
     }

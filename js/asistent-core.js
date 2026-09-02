@@ -296,7 +296,7 @@
                 addEntry({
                     title,
                     category: page.label,
-                    page: page.file === 'craftmecanics.html' ? `${page.file}?search=${encodeURIComponent(title)}` : page.file,
+                    page: page.file,
                     keywords: [title, description, page.label],
                     answer: describe(element, description ? `${title}: ${description}` : `${title} este disponibil.`)
                 }, 'page');
@@ -474,7 +474,7 @@
             (craft.croitorie || []).forEach((recipe) => result.push({ ...recipe, category: 'Croitorie', page: 'calculator.html' }));
             (craft.topitorie || []).forEach((recipe) => result.push({ ...recipe, category: 'Topitorie', page: 'calculatorilegal.html' }));
             Object.entries(craft.chains || {}).forEach(([chain, recipes]) => recipes.forEach(([id, name, cost]) => result.push({ id, name, base: cost, category: 'Masă Crafting', page: 'calculator.html', chain })));
-            (window.PANEL_CRAFT_MECHANIC_RECIPES || []).forEach((recipe) => result.push({ ...recipe, category: 'Craft Mecanic', page: 'craftmecanics.html' }));
+            (window.PANEL_CRAFT_MECHANIC_RECIPES || []).forEach((recipe) => result.push({ ...recipe, category: 'Craft Mecanic', page: 'calculator.html' }));
             const illegal = data.illegal || {};
             Object.entries(illegal.weapons || {}).forEach(([name, recipe]) => result.push({ ...recipe, id: `weapon_${normalize(name).replace(/ /g, '_')}`, name, category: 'Calculator ilegal · arme', page: 'calculatorilegal.html', kind: 'weapon' }));
             Object.entries(illegal.ammo || {}).forEach(([name, recipe]) => result.push({ id: `ammo_${normalize(name).replace(/ /g, '_')}`, name, batch: recipe[0], casing: recipe[1], fill: recipe[2], category: 'Calculator ilegal · muniții', page: 'calculatorilegal.html', kind: 'ammo' }));
@@ -551,7 +551,7 @@
         }
 
         function makeCalculatorAction(item, quantity) {
-            const page = item.page === 'craftmecanics.html' ? item.page : item.page || 'calculator.html';
+            const page = item.page || 'calculator.html';
             const target = page === 'calculatorilegal.html' ? `${page}#calculator` : `${page}?assistant_item=${encodeURIComponent(item.id || item.name)}&assistant_qty=${encodeURIComponent(quantity)}`;
             return { type: 'open', label: 'Calculează', page: target };
         }
@@ -578,7 +578,7 @@
             const directText = Object.entries(direct).filter(([, value]) => value > 0).map(([name, value]) => `${name} x${value}`).join(', ') || '—';
             const rawText = Object.entries(raw).filter(([, value]) => value > 0).map(([name, value]) => `${name} x${value}`).join(', ') || '—';
             const page = item.page || 'calculator.html';
-            const actions = [makeCalculatorAction(item, quantity), { type: 'open', label: 'Vezi rețeta', page: item.page === 'craftmecanics.html' ? `${page}?search=${encodeURIComponent(item.name)}` : page }];
+            const actions = [makeCalculatorAction(item, quantity), { type: 'open', label: 'Vezi rețeta', page }];
             return {
                 answer: `Pentru ${quantity} × ${item.name}:\n\nMateriale directe: ${directText}\nMateriale brute: ${rawText}\n\nAceste cantități sunt calculate după rețeta și randamentul din calculator.`,
                 page, title: item.name, links: [{ page, title: item.name }], actions

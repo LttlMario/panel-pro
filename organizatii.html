@@ -379,7 +379,7 @@ let organizations=[],
 const pagePermissionGroups=[
     {key:'dashboard',label:'Dashboard',mode:'all',pages:[['index.html','Dashboard']]},
     {key:'illegal',label:'Ilegale',description:'Calculator ilegal, locații ilegale, marketplace ilegal, minigames și stash.',mode:'group',pages:[['calculatorilegal.html','Calculator ilegal'],['locatiiilegale.html','Locații ilegale'],['marketplace-ilegal.html','Marketplace ilegal'],['minigames.html','Minigames'],['stash.html','Stash organizație']]},
-    {key:'resources',label:'Resurse',description:'Marketplace, calculator, bucătărie și Craft Mecanic.',mode:'group',pages:[['marketplace.html','Marketplace'],['calculator.html','Calculator'],['bucatarie.html','Bucătărie'],['craftmecanics.html','Craft Mecanic']]},
+    {key:'resources',label:'Resurse',description:'Marketplace, calculator cu Craft Mecanic integrat și bucătărie.',mode:'group',pages:[['marketplace.html','Marketplace'],['calculator.html','Calculator & Craft Mecanic'],['bucatarie.html','Bucătărie']]},
     {key:'management',label:'Management',description:'Contracte, evenimente și rapoarte.',mode:'group',pages:[['contracte.html','Contracte'],['organizatie-evenimente.html','Evenimente și remindere'],['rapoarte.html','Rapoarte']]},
     {key:'individual',label:'Pagini individuale',mode:'individual',pages:[['anunturi.html','Anunțuri și sondaje'],['pontaj.html','Pontaj'],['cereri.html','Cereri și absențe'],['asistent.html','Asistent']]}
 ];
@@ -387,7 +387,7 @@ const configurablePages=pagePermissionGroups.flatMap(group=>group.pages);
 const assistantPageGroups=[
     {key:'general',label:'Generale',pages:[['index.html','Dashboard'],['pontaj.html','Pontaj'],['cereri.html','Cereri și absențe'],['bucatarie.html','Bucătărie'],['asistent.html','Asistent']]},
     {key:'legal',label:'Legale',pages:[['anunturi.html','Anunțuri și sondaje'],['contracte.html','Contracte'],['marketplace.html','Marketplace legal'],['rapoarte.html','Rapoarte']]},
-    {key:'illegal',label:'Ilegale',pages:[['calculatorilegal.html','Calculator ilegal'],['craftmecanics.html','Craft Mecanic'],['locatiiilegale.html','Locații ilegale'],['marketplace-ilegal.html','Marketplace ilegal'],['minigames.html','Minigames'],['stash.html','Stash organizație']]}
+    {key:'illegal',label:'Ilegale',pages:[['calculatorilegal.html','Calculator ilegal'],['locatiiilegale.html','Locații ilegale'],['marketplace-ilegal.html','Marketplace ilegal'],['minigames.html','Minigames'],['stash.html','Stash organizație']]}
 ];
 const webhookDefinitions={
     organization:{

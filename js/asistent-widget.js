@@ -337,7 +337,7 @@
     function suggestionsForRole() {
         return [
             ['Cum pornesc pontajul?', 'pontaj.html'],
-            ['Unde găsesc Runflat?', 'craftmecanics.html'],
+            ['Unde găsesc Runflat?', 'calculator.html'],
             ['Cum trimit o învoire?', 'cereri.html'],
             ['Unde se procesează cocaina?', 'locatiiilegale.html'],
             ['Cine este pontat acum?', 'rapoarte.html'],

@@ -84,13 +84,6 @@
             text: 'Calculatorul te ajută să estimezi rapid materialele și componentele pentru rețetele disponibile. Introdu cantitățile dorite, apoi verifică rezultatele calculate automat.'
         },
         {
-            page: 'craftmecanics.html',
-            selector: 'main',
-            section: 'Instrumente',
-            title: 'Craft Mecanic',
-            text: 'În Craft Mecanic găsești rețete, echipamente și explicații pentru activitățile mecanicilor. Poți căuta articole și deschide detaliile atunci când rolul tău are acces la această secțiune.'
-        },
-        {
             page: 'contracte.html',
             selector: 'main',
             section: 'Administrare',

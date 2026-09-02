@@ -1224,12 +1224,6 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             return;
         }
 
-        if (currentPage === 'craftmecanics.html') {
-            if (!header) return;
-            header.className = 'panel-global-header';
-            header.innerHTML = '<div class="panel-global-title"><h2>🔨 Craft Mecanic</h2><p>Galerie capturi, rețete și echipamente.</p></div>';
-            return;
-        }
         if (currentPage === 'bucatarie.html') {
             if (!header) return;
             header.className = 'panel-global-header';
