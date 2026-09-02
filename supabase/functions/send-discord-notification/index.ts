@@ -2,15 +2,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 import { resolvePackageFeatures } from '../_shared/package-features.ts';
 import { deliverDiscordRoute, routeCandidates } from '../_shared/discord-delivery.ts';
+import { corsOptions, getCorsHeaders } from '../_shared/cors.ts';
 
-const cors = {
-  'Access-Control-Allow-Origin': 'https://panel-pro.ro',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
-  'Content-Type': 'application/json',
-};
-
-const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: cors });
+const reply = (request: Request, data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: getCorsHeaders(request) });
 const errorMessage = (error: unknown, fallback = 'Eroare necunoscută.') => {
   if (error instanceof Error && error.message) return error.message;
   if (error && typeof error === 'object') {
@@ -59,8 +53,8 @@ const consolidatedContentRoutes: Record<string, string> = {
 };
 
 Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
-  if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
+  if (request.method === 'OPTIONS') return corsOptions(request);
+  if (request.method !== 'POST') return reply(request, { error: 'Metodă invalidă.' }, 405);
 
   try {
     const contentType = request.headers.get('content-type') || '';
@@ -104,7 +98,7 @@ Deno.serve(async (request) => {
         ? 'log_requests_organization'
         : 'log_requests_departments';
     }
-    if (!channels.has(finalChannel)) return reply({ error: 'Canal Discord invalid.' }, 400);
+    if (!channels.has(finalChannel)) return reply(request, { error: 'Canal Discord invalid.' }, 400);
 
     const keys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || keys.default;
@@ -119,7 +113,7 @@ Deno.serve(async (request) => {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sesiunea panelului nu este validă.';
       if (/sesiunea|autentifică-te|reautentifică-te|expirat|invalidă/i.test(message)) {
-        return reply({ error: message }, 401);
+        return reply(request, { error: message }, 401);
       }
       throw error;
     }
@@ -131,7 +125,7 @@ Deno.serve(async (request) => {
       p_window_seconds: 900,
     });
     if (notificationRateError) throw notificationRateError;
-    if (notificationAllowed === false) return reply({ error: 'Ai atins limita temporară de notificări Discord. Încearcă din nou mai târziu.' }, 429);
+    if (notificationAllowed === false) return reply(request, { error: 'Ai atins limita temporară de notificări Discord. Încearcă din nou mai târziu.' }, 429);
 
     const sessionOrganizationId = String(session.organization_id || '');
     if (!sessionOrganizationId) throw new Error('Organizația activă nu a fost identificată.');
@@ -159,7 +153,7 @@ Deno.serve(async (request) => {
             ? 'illegal_marketplace'
             : null;
     if (requiredFeature && !packageFeatures.includes(requiredFeature)) {
-      return reply({ error: 'Acest canal Discord nu este inclus în pachetul organizației.' }, 403);
+      return reply(request, { error: 'Acest canal Discord nu este inclus în pachetul organizației.' }, 403);
     }
 
     const isGlobalMarketplace = ['marketplace', 'illegal_marketplace'].includes(finalChannel);
@@ -192,7 +186,7 @@ Deno.serve(async (request) => {
         }
       }
       if (!messages.length) throw new Error(failures.join(' | ') || 'Nu există canale Discord configurate pentru acest mesaj.');
-      return reply({ ok: true, channel: finalChannel, organization_id: sessionOrganizationId, routes: messages.length, messages, fallback_failures: failures });
+      return reply(request, { ok: true, channel: finalChannel, organization_id: sessionOrganizationId, routes: messages.length, messages, fallback_failures: failures });
     }
 
     const { data: settings, error: settingsError } = await db
@@ -357,7 +351,7 @@ Deno.serve(async (request) => {
       if (absenceMessageError) throw absenceMessageError;
     }
 
-    return reply({
+    return reply(request, {
       ok: true,
       channel: finalChannel,
       organization_id: sessionOrganizationId,
@@ -367,6 +361,8 @@ Deno.serve(async (request) => {
     });
   } catch (error) {
     console.error('[send-discord-notification]', error);
-    return reply({ error: errorMessage(error) }, 400);
+    const message = errorMessage(error);
+    const status = /Botul Discord nu are permisiuni|Discord bot HTTP 403/i.test(message) ? 403 : 400;
+    return reply(request, { error: message }, status);
   }
 });

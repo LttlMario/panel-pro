@@ -90,7 +90,15 @@
   root.closest('details')?.before(section);
   const grid = section.querySelector('#discord-channel-grid');
   const status = section.querySelector('#discord-channel-status');
-  const selectedPontajTargets = () => ['primary', 'secondary'].filter((target) => validChannel(selectedChannel('pontaj', target)));
+  const channelIsAccessible = (target, key) => {
+    const channelId = selectedChannel(key, target);
+    if (!validChannel(channelId)) return false;
+    if (!state.discoveryAttempted) return true;
+    const guildId = guildIdForTarget(target);
+    const discovered = state.channelsByGuild[guildId] || [];
+    return Boolean(guildId && state.guildAvailability[target] !== false && discovered.some((channel) => String(channel.id) === channelId));
+  };
+  const selectedPontajTargets = () => ['primary', 'secondary'].filter((target) => channelIsAccessible(target, 'pontaj'));
   const buildPontajPanelPayload = () => ({
     allowed_mentions: { parse: [] },
     embeds: [{
@@ -157,7 +165,7 @@
       syncPontajPublishState(false);
     }
   };
-  const selectedContractsTargets = () => ['primary', 'secondary'].filter((target) => validChannel(selectedChannel('contracts', target)));
+  const selectedContractsTargets = () => ['primary', 'secondary'].filter((target) => channelIsAccessible(target, 'contracts'));
   const buildContractsPanelPayload = () => ({
     allowed_mentions: { parse: [] },
     embeds: [{
@@ -236,7 +244,7 @@
        ],
     };
   };
-  const selectedAnnouncementTargets = (key) => ['primary', 'secondary'].filter((target) => validChannel(selectedChannel(key, target)));
+  const selectedAnnouncementTargets = (key) => ['primary', 'secondary'].filter((target) => channelIsAccessible(target, key));
   const syncAnnouncementPublishState = (key, resetStatus = true) => {
     const button = section.querySelector(`#discord-${key}-publish`);
     const statusNode = section.querySelector(`#discord-${key}-publish-status`);
@@ -266,7 +274,7 @@
     } catch (error) { statusNode.textContent = error.message || 'Embedul nu a putut fi publicat.'; }
     finally { delete statusNode.dataset.busy; syncAnnouncementPublishState(key, false); }
   };
-  const selectedRouteTargets = (key) => ['primary', 'secondary'].filter((target) => validChannel(selectedChannel(key, target)));
+  const selectedRouteTargets = (key) => ['primary', 'secondary'].filter((target) => channelIsAccessible(target, key));
   const buildRequestsPanelPayload = (key) => {
     const definition = requestPanelDefinition(key);
     const prefix = key === 'requests_organization' ? 'organization' : 'departments';
