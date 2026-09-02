@@ -32,6 +32,7 @@ demoScreens.locatii = { title:'Locații ilegale', subtitle:'Păstrează hărțil
 delete demoScreens.blackmarket;
 delete demoScreens['calculator-ilegal'];
 delete demoScreens.locatii;
+delete demoScreens.craft;
 
 const titleEl = document.getElementById('demo-title');
 const subtitleEl = document.getElementById('demo-subtitle');
@@ -167,7 +168,6 @@ function initDemoShell() {
       <button class="demo-nav-item" data-demo="marketplace"><span class="nav-icon">◇</span> Marketplace</button>
       <button class="demo-nav-item" data-demo="calculator"><span class="nav-icon">⊞</span> Calculator</button>
       <button class="demo-nav-item" data-demo="bucatarie"><span class="nav-icon">♨</span> Bucătărie</button>
-      <button class="demo-nav-item" data-demo="craft"><span class="nav-icon">⌁</span> Craft Mecanic</button>
       <p class="nav-label">Administrație</p>
       <button class="demo-nav-item" data-demo="administrare"><span class="nav-icon">⚙</span> Administrare organizație</button>`;
   }
