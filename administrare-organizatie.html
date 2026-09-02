@@ -223,9 +223,12 @@
           }));
         } catch (_) {}
       };
-      const restoreOwnerDraft = () => {
+      const restoreOwnerDraft = (serverUpdatedAt = '') => {
         const draft = readOwnerDraft();
         if (!draft) return false;
+        const draftTime = Date.parse(draft.updated_at || '');
+        const serverTime = Date.parse(serverUpdatedAt || '');
+        if (serverTime && !Number.isNaN(serverTime) && (!draftTime || draftTime <= serverTime)) return false;
         Object.entries(draft.values || {}).forEach(([id, value]) => { if ($(id)) $(id).value = value || ''; });
         ownerRoleRows = Array.isArray(draft.role_rows) ? draft.role_rows : ownerRoleRows;
         pagePermissions = draft.page_permissions && typeof draft.page_permissions === 'object' ? draft.page_permissions : pagePermissions;
@@ -425,7 +428,7 @@
            fillWebhooks(data.settings?.webhook_routes || {});
            window.discordChannelRoutesInitial = data.settings?.discord_channel_routes || {};
            window.setDiscordChannelRoutes?.(data.settings?.discord_channel_routes || {});
-           const restoredLocalDraft = restoreOwnerDraft();
+           const restoredLocalDraft = restoreOwnerDraft(org.updated_at);
            if (restoredLocalDraft) $('owner-status').textContent = 'Au fost încărcate valorile salvate local. Apasă „Salvează modificările” pentru a le trimite pe server.';
            $('owner-form').classList.remove('hidden');
         } catch (error) {
