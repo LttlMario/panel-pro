@@ -552,7 +552,7 @@
         async function sendGeneralDiscordWebhook(title, description, color, messageKey = '') {
             const payload = { embeds: [{ title: title, description: description, color: color, timestamp: new Date().toISOString() }] };
             try {
-                await sendPanelDiscord('pontaj', payload, { messageKey });
+                await sendPanelDiscord('log_pontaj', payload, { messageKey });
             } catch (err) {}
         }
 
@@ -571,7 +571,7 @@
                 }]
             };
             try {
-                await sendPanelDiscord('pontaj', payload, { messageKey: String(data.message_key || '') });
+                await sendPanelDiscord('log_pontaj', payload, { messageKey: String(data.message_key || '') });
             } catch (err) {}
         }
 

@@ -596,7 +596,7 @@ Semnătură:`;
             if (button) { button.disabled = true; button.textContent = 'Se trimite…'; }
             try {
                 const result = await contractApi('manual_discord_export', { employee_ids: ids });
-                alert(`Au fost trimise ${result.row_count} rânduri pe Discord prin webhook-ul contractelor.`);
+                alert(`Au fost trimise ${result.row_count} rânduri pe Discord prin bot.`);
                 await loadEmployeeExportPanel();
             } catch (error) { alert(error.message || 'Exportul nu a putut fi trimis pe Discord.'); }
             finally { if (button) { button.disabled = false; button.textContent = 'Trimite manual pe Discord'; } }

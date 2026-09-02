@@ -575,6 +575,7 @@ console.log(
             }
             const newAbsence = {
                 organization_id: activeOrganization.id,
+                request_audience: requestPageAudience === 'departments' ? 'departments' : 'organization',
                 discord_id: currentUser.discord_id,
                 colleague_name: `${activeName} [${activeRole}]`,
                 notice_type: noticeType,
@@ -589,11 +590,14 @@ console.log(
             };
 
 try {
-    const { error } = await supabaseClient
+    const { data: savedAbsence, error } = await supabaseClient
         .from('absences')
-        .insert([newAbsence]);
+        .insert([newAbsence])
+        .select('*')
+        .single();
 
     if (error) throw error;
+    Object.assign(newAbsence, savedAbsence || {});
 
 } catch (err) {
     console.error(
@@ -775,6 +779,7 @@ fetchAbsences();
             const days = Math.max(1, Math.floor((getNoticeDateTime(endAt) - getNoticeDateTime(startAt)) / 86400000) + 1);
 
             const updatedData = {
+                request_audience: requestPageAudience === 'departments' ? 'departments' : 'organization',
                 notice_type: noticeType,
                 reason: reason,
                 start_date: startDate,
@@ -799,6 +804,12 @@ fetchAbsences();
                     .eq('discord_id', currentUser.discord_id);
 
                 if (error) throw error;
+
+                try {
+                    await sendDiscordWebhook({ ...updatedData, id }, currentUser.role || currentUser.default_role || 'Rol Discord', 'Învoire Actualizată');
+                } catch (notificationError) {
+                    console.error('Învoirea a fost actualizată, dar logul Discord nu a putut fi actualizat:', notificationError);
+                }
 
                 alert('Învoirea a fost actualizată cu succes!');
 
@@ -829,7 +840,7 @@ fetchAbsences();
                     fields: [
                         { name: 'Începe', value: formatNoticeDate(data.start_at || data.start_date), inline: true },
                         { name: 'Se termină', value: formatNoticeDate(getAbsenceEndAt(data)), inline: true },
-                        { name: "👤 Membru / Funcție", value: data.colleague_name, inline: true },
+                        { name: "👤 Membru / Funcție", value: data.colleague_name || `${currentUser.display_name || currentUser.username || 'Utilizator Discord'} [${role}]`, inline: true },
                         { name: "🛠️ Rol în Bază", value: role, inline: true },
                         { name: "📌 Tip", value: data.notice_type || 'Învoire', inline: true },
                         { name: "🗓️ Interval", value: `${formatNoticeDate(data.start_at)} → ${formatNoticeDate(data.end_at)}`, inline: false },
@@ -847,10 +858,10 @@ fetchAbsences();
                     );
                 }
 
-                await sendPanelDiscord(
-                    requestRoute?.channel || 'requests',
-                    payload
-                );
+                const logChannel = requestRoute?.channel === 'requests_departments'
+                    ? 'log_requests_departments'
+                    : 'log_requests_organization';
+                await sendPanelDiscord(logChannel, payload, { messageKey: data.id || '' });
 
             } catch (err) {
                 console.error(
@@ -862,7 +873,7 @@ fetchAbsences();
             }
         }
     </script>
-    <script src="js/discord-notifications.js"></script>
+    <script src="js/discord-notifications.js?v=20260902-requests-logs"></script>
     <script src="js/global-footer.js"></script>
 </body>
 </html>

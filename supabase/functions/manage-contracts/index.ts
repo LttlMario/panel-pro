@@ -106,7 +106,7 @@ async function listContracts(db: any, organizationId: string) {
   await syncEmployees(db, organizationId, await getPlatformSecret(db, 'discord_bot_token'));
   const [{ data: employees, error: employeesError }, { data: contracts, error: contractsError }, { data: batches, error: batchesError }, { data: members, error: membersError }] = await Promise.all([
     db.from('organization_employees').select('id,discord_id,full_name,cnp,status,joined_at,left_at,last_discord_seen_at,created_at,updated_at').eq('organization_id', organizationId).is('archived_at', null).order('status').order('full_name'),
-    db.from('organization_contracts').select('id,employee_id,contract_number,phone,position,salary,schedule,start_date,created_at,created_by_discord_id').eq('organization_id', organizationId).order('created_at', { ascending: false }),
+    db.from('organization_contracts').select('id,employee_id,contract_number,phone,position,salary,schedule,start_date,created_at,created_by_discord_id,id_card_url,signed_contract_url,discord_message_id,discord_message_ids').eq('organization_id', organizationId).order('created_at', { ascending: false }),
     db.from('contract_export_batches').select('id,created_at,row_count,completed_at').eq('organization_id', organizationId).eq('export_type', 'manual').eq('status', 'completed').order('created_at', { ascending: false }).limit(100),
     db.from('organization_members').select('discord_id,active,panel_role').eq('organization_id', organizationId).eq('active', true).order('discord_id'),
   ]);

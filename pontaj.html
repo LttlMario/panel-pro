@@ -2,7 +2,7 @@
 <html lang="ro" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' http://127.0.0.1:8787 http://localhost:8787 https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' http://127.0.0.1:8787 http://localhost:8787 ws://127.0.0.1:8787 ws://localhost:8787 https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pontaj - Panel</title>
     <!-- Tailwind CSS CDN -->
@@ -539,7 +539,7 @@
                 if (error) throw error;
                 activeShiftRecord = data;
                 syncActiveShiftUI(); startTimer();
-                await sendGeneralDiscordWebhook('▶️ Pontaj Start', `Angajatul **${currentUser.display_name}** a pornit tura de **${selectedShiftType.toUpperCase()}**.`, 3066993, String(data.id));
+                await sendGeneralDiscordWebhook('▶️ Pontaj Start', `Angajatul **${currentUser.display_name}** a pornit tura de **${selectedShiftType.toUpperCase()}**.`, 3066993, String(data.id), data, 'În tură');
             } catch (error) {
                 console.error('Eroare pornire pontaj:', error);
                 alert(`Pontajul nu a putut fi pornit: ${error?.message || 'eroare necunoscută'}`);
@@ -574,7 +574,7 @@
                 const { data, error } = await supabaseClient.from('shifts').update(update).eq('id', activeShiftRecord.id).eq('organization_id', currentUser.organization_id).select('*').single();
                 if (error) throw error;
                 activeShiftRecord = data; syncActiveShiftUI();
-                await sendGeneralDiscordWebhook(activeShiftRecord.status === 'paused' ? '⏸️ Pontaj Pauză' : '▶️ Pontaj Reluat', `Angajatul **${currentUser.display_name}** a ${activeShiftRecord.status === 'paused' ? 'pus tura pe pauză' : 'reluat tura'}.`, activeShiftRecord.status === 'paused' ? 16776960 : 3066993, String(activeShiftRecord.id));
+                await sendGeneralDiscordWebhook(activeShiftRecord.status === 'paused' ? '⏸️ Pontaj Pauză' : '▶️ Pontaj Reluat', `Angajatul **${currentUser.display_name}** a ${activeShiftRecord.status === 'paused' ? 'pus tura pe pauză' : 'reluat tura'}.`, activeShiftRecord.status === 'paused' ? 16776960 : 3066993, String(activeShiftRecord.id), activeShiftRecord, activeShiftRecord.status === 'paused' ? 'În pauză' : 'În tură');
             } catch (error) { console.error('Eroare pauză pontaj:', error); alert('Starea pauzei nu a putut fi salvată.'); }
             finally { isActionProcessing = false; }
         }
@@ -636,9 +636,24 @@
             document.getElementById('btn-start').disabled = false; document.getElementById('btn-pause').disabled = true; document.getElementById('btn-stop').disabled = true; document.getElementById('pause-btn-text').textContent = 'Pauză'; selectedShiftType = null; resetUIButtons();
         }
 
-        async function sendGeneralDiscordWebhook(title, description, color, messageKey = '') {
-            const payload = { embeds: [{ title, description, color, timestamp: new Date().toISOString() }] };
-            try { await sendPanelDiscord('pontaj', payload, { messageKey }); return true; }
+        function buildPontajLogEmbed(data, title, color, statusLabel = '') {
+            const isFinished = ['completed', 'auto_completed'].includes(String(data?.status || '')) || Boolean(data?.end_time);
+            const end = data?.end_time || (statusLabel === 'În pauză' ? 'În pauză' : 'În desfășurare');
+            const fields = [
+                { name: '👤 Angajat', value: data?.colleague_name || currentUser.display_name || 'Angajat', inline: true },
+                { name: '📅 Data', value: data?.date || getRomanianDate(new Date()), inline: true },
+                { name: '⏰ Început', value: `${data?.date || getRomanianDate(new Date())} · ${data?.start_time || getRomanianTime(new Date())}`, inline: false },
+                { name: '⏱️ Interval', value: `${data?.start_time || getRomanianTime(new Date())} - ${end}`, inline: false },
+                { name: '⏳ Timp Total Lucrat', value: `**${isFinished ? (data?.duration || '00:00:00') : formatTime(getWorkedSeconds(data))}**`, inline: true },
+            ];
+            if (isFinished) fields.push({ name: '📝 Motiv', value: data?.reason || data?.stop_reason || 'Încheiere manuală', inline: false });
+            else fields.push({ name: '📌 Status', value: statusLabel || 'În tură', inline: true });
+            return { title: `${title} - Tură de ${String(data?.shift_type || selectedShiftType || '').toUpperCase()}`, color, fields, footer: { text: 'Panel Pro · Pontaj' }, timestamp: new Date().toISOString() };
+        }
+
+        async function sendGeneralDiscordWebhook(title, description, color, messageKey = '', data = activeShiftRecord, statusLabel = '') {
+            const payload = { embeds: [buildPontajLogEmbed(data || {}, title, color, statusLabel)] };
+            try { await sendPanelDiscord('log_pontaj', payload, { messageKey }); return true; }
             catch (error) { console.error('Eroare webhook pontaj:', error); return false; }
         }
 
@@ -648,7 +663,7 @@
                 { name: '⏰ Interval', value: `${data.start_time} - ${data.end_time}`, inline: false }, { name: '⏳ Timp Total Lucrat', value: `**${data.duration}**`, inline: true },
                 { name: '📝 Motiv', value: data.reason || data.stop_reason || 'Încheiere manuală', inline: false }
             ], timestamp: new Date().toISOString() }] };
-            try { await sendPanelDiscord('pontaj', payload, { messageKey: String(data.id || '') }); return true; }
+            try { await sendPanelDiscord('log_pontaj', payload, { messageKey: String(data.id || '') }); return true; }
             catch (error) { console.error('Eroare webhook oprire:', error); return false; }
         }
 

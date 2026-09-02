@@ -67,7 +67,7 @@
     $('discipline-heading').textContent = kind === 'warnings' ? 'Avertismente' : 'Sancțiuni financiare';
     $('discipline-description').textContent = kind === 'warnings'
       ? 'Avertismentele sunt numărate separat pentru fiecare angajat sau organizație.'
-      : 'Sancțiunile sunt create manual după atingerea pragului de 3 avertismente active.';
+       : 'Sancțiunile pot fi aplicate direct, fără un număr minim de avertismente.';
     $('discipline-feed').innerHTML = rows.length ? rows.map((row) => card(row, kind === 'warnings' ? 'warning' : 'sanction')).join('') : '<div class="empty">Nu există înregistrări în această categorie.</div>';
     bindDisciplineActions($('discipline-feed'));
   }
@@ -266,7 +266,7 @@
         if (state.filter) render();
       } catch (error) {
         if (kind === 'sanction' && error.status === 409) {
-          notice(error.message || 'Sancțiunea poate fi emisă după 3 avertismente active pentru aceeași persoană.', 'error');
+          notice(error.message || 'Sancțiunea nu a putut fi salvată.', 'error');
         } else {
           notice(error.message, 'error');
         }

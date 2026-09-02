@@ -41,7 +41,7 @@ window.panelCloseLegacyMobileMenu = window.panelCloseLegacyMobileMenu || functio
 if (document.head && !document.head.querySelector('meta[http-equiv="Content-Security-Policy"]')) {
     const panelCsp = document.createElement('meta');
     panelCsp.httpEquiv = 'Content-Security-Policy';
-    panelCsp.content = "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' http://127.0.0.1:8787 http://localhost:8787 https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self'; manifest-src 'self'; worker-src 'self' blob:;";
+    panelCsp.content = "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' http://127.0.0.1:8787 http://localhost:8787 ws://127.0.0.1:8787 ws://localhost:8787 https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self'; worker-src 'self' blob:;";
     document.head.prepend(panelCsp);
 }
 window.panelEscapeHtml = window.panelEscapeHtml || function panelEscapeHtml(value) {
@@ -1811,6 +1811,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const wrapper = document.createElement('div');
     wrapper.dataset.organizationSwitcher = 'true';
     wrapper.style.cssText = 'margin-left:auto;display:flex;align-items:center;gap:8px;padding-left:12px';
+    try {
+        const platformContext = JSON.parse(localStorage.getItem('panel_platform_context') || 'null');
+        if (platformContext?.mode === 'platform_admin' && String(platformContext.organization_id) === String(active.id)) {
+            const context = document.createElement('span');
+            context.textContent = `Mod test · ${platformContext.organization_name || active.name}`;
+            context.title = 'Acțiunile panelului sunt salvate în organizația selectată.';
+            context.style.cssText = 'color:#fde68a;border:1px solid #92400e;background:#451a0355;border-radius:999px;padding:6px 10px;font-size:10px;font-weight:900;white-space:nowrap';
+            wrapper.appendChild(context);
+        }
+    } catch (_) {}
     if (organizations.length > 1) {
         const select = document.createElement('select');
         select.setAttribute('aria-label', 'Organizația activă');

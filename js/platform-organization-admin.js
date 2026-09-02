@@ -96,6 +96,42 @@
   const packageAction = async () => { const code = $('#package-code-editor')?.value || selected().package?.code || 'standard'; const features = [...document.querySelectorAll('[data-package-feature]:checked')].map((input) => input.dataset.packageFeature); await action('set_package', { package_code: code, features, unlimited: selected().package?.unlimited === true, expires_at: selected().package?.expires_at || null }); await refreshAfterAction(`Pachetul ${code} și modulele selectate au fost salvate.`); };
   const themeAction = async () => { const organization = selected(); const enabled = $('#seasonal-theme-enabled')?.value === 'enabled'; const theme = $('#seasonal-theme-code')?.value || 'none'; const intensity = $('#seasonal-theme-intensity')?.value || 'normal'; await action('set_theme', { enabled, theme, intensity }); await refreshAfterAction(`Tema pentru ${organization.name} a fost ${enabled ? 'activată' : 'dezactivată'}.`); };
   const loadAudit = async () => { const result = await action('list_audit'); state.audit = result.events || []; renderDetail(); };
+  const enterOrganization = async () => {
+    const organization = selected();
+    if (!organization) return;
+    const accessToken = window.getPanelDiscordAccessToken?.() || '';
+    if (!accessToken) { toast('Sesiunea Discord lipsește. Autentifică-te din nou.', true); return; }
+    if (!window.confirm(`Te conectezi la „${organization.name}” în modul Admin platformă? Datele de test vor fi salvate numai în această organizație.`)) return;
+    try {
+      const result = await window.panelRequestJson('sync-discord-role', { method: 'POST', timeoutMs: 30000, body: JSON.stringify({ access_token: accessToken, organization_id: organization.id }) });
+      if (!result?.session_token || !result?.active_organization?.id) throw new Error('Organizația nu a putut fi activată.');
+      const previous = window.getActiveOrganization?.();
+      localStorage.setItem('panel_platform_return_organization', JSON.stringify(previous || {}));
+      localStorage.setItem('panel_platform_context', JSON.stringify({ organization_id: result.active_organization.id, organization_name: result.active_organization.name || organization.name, entered_at: new Date().toISOString(), mode: 'platform_admin' }));
+      localStorage.setItem('discord_user', JSON.stringify(result.user || {}));
+      localStorage.setItem('user_role', result.user?.role || result.active_organization?.panel_role || 'Administrator platformă');
+      localStorage.setItem('panel_session_token', result.session_token);
+      localStorage.setItem('panel_session_expires_at', result.expires_at || '');
+      localStorage.setItem('panel_active_organization', JSON.stringify(result.active_organization));
+      localStorage.setItem('panel_organizations', JSON.stringify(result.organizations || []));
+      localStorage.setItem('panel_role_synced_at', String(Date.now()));
+      window.location.href = 'index.html';
+    } catch (error) { toast(error.message || 'Organizația nu a putut fi activată.', true); }
+  };
+  const mountEnterOrganizationButton = () => {
+    const grid = document.querySelector('#organization-detail .action-grid');
+    if (!grid || grid.querySelector('[data-action="enter-organization"]')) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'button small warning';
+    button.dataset.action = 'enter-organization';
+    button.textContent = '🧪 Intră în organizație · mod test';
+    grid.prepend(button);
+  };
+  const detailObserver = new MutationObserver(mountEnterOrganizationButton);
+  const detailTarget = document.querySelector('#organization-detail');
+  if (detailTarget) detailObserver.observe(detailTarget, { childList: true, subtree: true });
+  mountEnterOrganizationButton();
   const health = async () => { const area = $('#organization-health-result'); area.innerHTML = '<div class="health-result">Se verifică guildurile și configurația Discord…</div>'; try { const result = await action('health_check'); state.health = result.health; const rows = (result.health.guilds || []).map((guild) => `<div class="health-row"><span><i class="dot ${guild.status === 'ok' ? 'ok' : guild.status === 'error' ? 'error' : 'warn'}"></i>${esc(guild.guild_name || guild.guild_id)}</span><strong>${esc(guild.status)} · ${guild.role_count || 0} roluri${guild.error ? ` · ${esc(guild.error)}` : ''}</strong></div>`).join(''); area.innerHTML = `<div class="health-result"><strong>Verificare ${esc(date(result.checked_at))}</strong>${rows || '<div class="health-row"><span>Niciun guild configurat</span></div>'}</div>`; await load(true); } catch (error) { area.innerHTML = `<div class="health-result">${esc(error.message)}</div>`; } };
   const runAction = async (name, element) => { const organization = selected(); if (!organization || state.busy) return; if (element) element.disabled = true; try { if (name === 'health') return await health(); if (name === 'audit') return await loadAudit(); if (name === 'extend') return await extend(Number(element.dataset.days)); if (name === 'custom-date') return await customDate(); if (name === 'no-expiry') { if (!window.confirm(`Elimini expirarea pentru „${organization.name}”? Organizația va rămâne activă până când o dezactivezi manual.`)) return; await action('set_access', { expires_at: '', active: true }); return await refreshAfterAction('Organizația a fost setată fără expirare.'); } if (name === 'package' || name === 'save-package') return await packageAction(); if (name === 'publish') { if (!window.confirm(`Publici draftul „${organization.name}”?`)) return; await action('publish'); return await refreshAfterAction('Draftul a fost publicat.'); } if (name === 'toggle') { const active = statusFor(organization) !== 'active'; if (!window.confirm(`${active ? 'Activezi' : 'Dezactivezi'} organizația „${organization.name}”?`)) return; await action('set_access', { expires_at: organization.access?.expires_at || '', active }); return await refreshAfterAction(`Organizația a fost ${active ? 'activată' : 'dezactivată'}.`); } if (name === 'sessions') { if (!window.confirm(`Revoci toate sesiunile active pentru „${organization.name}”? Utilizatorii vor trebui să se autentifice din nou.`)) return; const result = await action('revoke_organization_sessions'); return await refreshAfterAction(`${result.revoked_sessions || 0} sesiuni au fost revocate.`); } if (name === 'delete') { const confirmation = window.prompt(`Pentru ștergere definitivă, scrie exact numele organizației: ${organization.name}`); if (confirmation !== organization.name) { if (confirmation !== null) toast('Numele introdus nu corespunde.', true); return; } if (!window.confirm('Această acțiune șterge datele organizației și nu poate fi anulată. Continui?')) return; await action('delete', { confirm_name: confirmation }); state.selectedId = ''; state.audit = []; return await refreshAfterAction('Organizația și datele ei au fost șterse.'); } } catch (error) { toast(error.message || 'Acțiunea a eșuat.', true); } finally { if (element) element.disabled = false; } };
   const exportOrganizations = () => { const rows = [['Nume', 'Slug', 'Status', 'Pachet', 'Expirare', 'Guilduri', 'Roluri', 'Membri', 'Sesiuni', 'Probleme']]; filteredOrganizations().forEach((organization) => rows.push([organization.name, organization.slug || '', statusLabel(statusFor(organization)), packageLabel(organization), shortDate(organization.access?.expires_at), organization.guilds?.length || 0, organization.roles?.length || 0, organization.metrics?.members || 0, organization.metrics?.active_sessions || 0, issueLabel(organization)])); const csv = rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n'); const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `organizatii-platforma-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(url); };
@@ -106,5 +142,9 @@
   $('#export-organizations')?.addEventListener('click', exportOrganizations);
   document.addEventListener('click', (event) => { const button = event.target.closest('[data-action="save-theme"]'); if (button) themeAction().catch((error) => toast(error.message || 'Tema nu a putut fi salvată.', true)); });
   document.addEventListener('change', (event) => { if (event.target.matches('#seasonal-theme-enabled, #seasonal-theme-code, #seasonal-theme-intensity')) previewTheme(); });
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-action="enter-organization"]');
+    if (button) enterOrganization();
+  });
   load(false);
 })();

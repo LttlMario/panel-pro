@@ -84,7 +84,8 @@ Deno.serve(async (request) => {
 
   const results = await Promise.all((expired ?? []).map(async (shift) => {
     const { data: panelConfig } = await supabase.from('organization_settings').select('discord_channel_routes').eq('organization_id', shift.organization_id).maybeSingle();
-    const destinations = routeCandidates(panelConfig, 'pontaj');
+    const destinations = routeCandidates(panelConfig, 'log_pontaj');
+    const logMessageIds = shift.discord_log_message_ids && typeof shift.discord_log_message_ids === 'object' ? shift.discord_log_message_ids : {};
     const alreadyClosed = shift.status === 'auto_completed';
     const finishedAt = alreadyClosed && shift.ended_at ? new Date(String(shift.ended_at)) : now;
     const seconds = alreadyClosed && Number(shift.duration_ms) >= 0
@@ -107,25 +108,29 @@ Deno.serve(async (request) => {
     }
 
     if (!destinations.some((item) => item.candidates.length)) {
-      await supabase.from('shifts').update({ discord_close_notification_error: 'Canalul Discord de pontaj nu este configurat.' }).eq('id', shift.id);
+      await supabase.from('shifts').update({ discord_close_notification_error: 'Canalul Discord de log pontaj nu este configurat.' }).eq('id', shift.id);
       return { id: shift.id, closed: true, notified: false };
     }
 
     try {
-      const delivery = await deliverDiscordRoute(supabase, panelConfig, 'pontaj', JSON.stringify({ embeds: [{
+      const delivery = await deliverDiscordRoute(supabase, panelConfig, 'log_pontaj', JSON.stringify({ embeds: [{
           title: `⏹️ Pontaj Încheiat - Tură de ${String(shift.shift_type).toUpperCase()}`,
           color: shift.shift_type === 'zi' ? 16766720 : 65535,
           fields: [
-            { name: '👤 Mecanic', value: colleagueName, inline: true },
+            { name: '👤 Angajat', value: colleagueName, inline: true },
             { name: '📅 Data', value: String(shift.date || ''), inline: true },
+            { name: '⏰ Început', value: `${String(shift.date || '')} · ${String(shift.start_time || '')}`, inline: false },
+            { name: '⏱️ Interval', value: `${String(shift.start_time || '')} - ${String(shift.end_time || '')}`, inline: false },
             { name: '⏳ Timp Total Lucrat', value: `**${formatDuration(seconds)}**`, inline: true },
             { name: '📝 Motiv', value: reason, inline: false },
           ], timestamp: finishedAt.toISOString(),
-        }] }));
+        }] }), { messageIds: logMessageIds });
       if (!delivery.results.length) throw new Error(delivery.failures.join(' | ') || 'Discord nu a acceptat notificarea.');
+      const nextMessageIds = { ...logMessageIds, ...Object.fromEntries(delivery.results.filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)])) };
       await supabase.from('shifts').update({
         discord_close_notified_at: new Date().toISOString(),
         discord_close_notification_error: null,
+        discord_log_message_ids: nextMessageIds,
       }).eq('id', shift.id);
       return { id: shift.id, closed: true, notified: true };
     } catch (notificationError) {

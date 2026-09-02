@@ -2,7 +2,7 @@
 <html lang="ro" class="dark">
 <head>
   <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' http://127.0.0.1:8787 http://localhost:8787 https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' http://127.0.0.1:8787 http://localhost:8787 ws://127.0.0.1:8787 ws://localhost:8787 https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self';">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Administrare organizații - Panel</title>
   <link rel="stylesheet" href="css/tailwind.css">
@@ -32,7 +32,7 @@
     </section>
     <section class="org-layout"><section class="panel-card"><div class="panel-card-head"><div><h2>Registru organizații</h2><p>Selectează o organizație pentru administrarea completă.</p></div></div><div id="organization-list" class="org-list"><div class="empty-state">Se încarcă organizațiile…</div></div></section><aside class="panel-card detail"><div class="panel-card-head"><div><h2>Detalii și acțiuni</h2><p>Acțiunile sunt validate server-side și înregistrate în audit.</p></div></div><div id="organization-detail" class="detail-body"><div class="detail-empty">Selectează o organizație din registru.</div></div></aside></section>
   </main>
-  <script src="js/platform-organization-admin.js?v=20260830-seasonal-themes-v2-v2"></script>
+  <script src="js/platform-organization-admin.js?v=20260902-org-context-test"></script>
   <script src="js/global-footer.js"></script>
 </body>
 </html>

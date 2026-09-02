@@ -13,6 +13,16 @@ export type DiscordDeliveryTarget = {
 export const validDiscordChannelId = (value: unknown) => /^\d{15,22}$/.test(String(value || '').trim());
 
 const clean = (value: unknown, max = 500) => String(value || '').trim().slice(0, max);
+const errorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === 'object') {
+    const value = error as Record<string, unknown>;
+    if (String(value.message || '').trim()) return String(value.message).trim();
+    if (String(value.details || '').trim()) return String(value.details).trim();
+    if (String(value.hint || '').trim()) return String(value.hint).trim();
+  }
+  return 'Eroare Discord.';
+};
 
 export const routeCandidates = (settings: any, routeKey: string, _legacyWebhookUrls: string[] = [], fallbackRouteKey = '') => {
   const channelRoutes = settings?.discord_channel_routes || {};
@@ -89,7 +99,7 @@ export async function deliverDiscordRoute(
         delivered = true;
         break;
       } catch (error) {
-        lastError = error instanceof Error ? error.message : 'Eroare Discord.';
+        lastError = errorMessage(error);
       }
     }
     if (!delivered) failures.push(`${target}: ${lastError || 'destinație indisponibilă'}`);

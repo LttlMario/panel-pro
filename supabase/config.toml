@@ -25,6 +25,9 @@ verify_jwt = false
 [functions.send-discord-notification]
 verify_jwt = false
 
+[functions.discord-interactions]
+verify_jwt = false
+
 [functions.close-expired-shifts]
 verify_jwt = false
 

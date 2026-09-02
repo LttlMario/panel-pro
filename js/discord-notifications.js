@@ -5,6 +5,20 @@
     const PENDING_KEY = 'panel_pending_discord_notification';
 
     window.sendPanelDiscord = async (channel, payload, options = {}) => {
+        // Păstrăm compatibilitatea cu pagini mai vechi care foloseau o rută
+        // comună pentru învoiri, dar trimitem în continuare în loguri separate.
+        const rawChannel = String(channel || '').trim();
+        const requestType = payload && !(payload instanceof FormData)
+            ? String(payload.request_type || '').toLowerCase()
+            : '';
+        const isOrganizationRequest = ['organization', 'organizatie', 'org'].includes(requestType);
+        let resolvedChannel = rawChannel;
+        if (rawChannel === 'requests') {
+            resolvedChannel = isOrganizationRequest ? 'requests_organization' : 'requests_departments';
+        } else if (rawChannel === 'log_requests') {
+            resolvedChannel = isOrganizationRequest ? 'log_requests_organization' : 'log_requests_departments';
+        }
+
         const accessToken = window.getPanelDiscordAccessToken?.() || '';
 
         // Reface automat contextul dacă panelul a păstrat tokenul, dar a
@@ -33,7 +47,7 @@
         if (payload instanceof FormData) {
             body = payload;
 
-            body.append('_panel_channel', channel);
+            body.append('_panel_channel', resolvedChannel);
             if (accessToken) body.append('_panel_access_token', accessToken);
             body.append('_panel_organization_id', organizationId);
         } else {
@@ -41,9 +55,10 @@
             headers['Content-Type'] = 'application/json';
 
             body = JSON.stringify({
-                channel,
+                channel: resolvedChannel,
                 payload,
                 message_key: options?.messageKey ? String(options.messageKey) : '',
+                channel_routes: options?.channelRoutes && typeof options.channelRoutes === 'object' ? options.channelRoutes : undefined,
                 organization_id: organizationId
             });
         }
@@ -71,7 +86,7 @@
                 sessionStorage.setItem(
                     PENDING_KEY,
                     JSON.stringify({
-                        channel,
+                        channel: resolvedChannel,
                         payload,
                         options: options || {}
                     })

@@ -9,6 +9,8 @@ const cors={'Access-Control-Allow-Origin':'https://panel-pro.ro','Access-Control
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
 const normalizeBlackMarketName=(value:unknown)=>String(value??'').replace(/^\s*\d{1,12}\s+/,'').replace(/^\s*\d{1,12}\s*[|:/#-]\s*/,'').replace(/\s*[|:/#-]\s*\d{1,12}\s*$/,'').replace(/\s+\d{1,12}\s*$/,'').replace(/\s*[[(]\s*\d{1,12}\s*[\])]\s*$/,'').replace(/\s{2,}/g,' ').trim();
 const allowedCommunityReactions=new Set(['✅','❌','👍','❤️','🤔']);
+const disciplineDiscordComponents=(scope:string,kind:'warning'|'sanction',id:string)=>[{type:1,components:kind==='warning'?[{type:2,style:3,label:'Marchează rezolvat',custom_id:`panel:discipline:${scope}:resolve:warning:${id}`},{type:2,style:4,label:'Șterge',custom_id:`panel:discipline:${scope}:delete:warning:${id}`}]:[{type:2,style:3,label:'Marchează achitată',custom_id:`panel:discipline:${scope}:resolve:sanction:${id}`},{type:2,style:2,label:'Anulează',custom_id:`panel:discipline:${scope}:cancel:sanction:${id}`},{type:2,style:4,label:'Șterge',custom_id:`panel:discipline:${scope}:delete:sanction:${id}`}]}];
+const actionDiscordComponents=(id:string)=>[{type:1,components:[{type:2,style:4,label:'Șterge acțiunea',custom_id:`panel:actions:organization:delete:${id}`}]}];
 Deno.serve(async(req)=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return reply({error:'Method not allowed'},405);let stage='request';try{
  stage='parse_body';
  const body=await req.json();
@@ -286,10 +288,11 @@ const loadDisciplineTargets = async (scope:string) => {
 };
 const notifyActionDiscord = async (record:any) => {
     const { data: settings } = await db.from('organization_settings').select('webhook_routes,discord_channel_routes,panel_public_url').eq('organization_id', organizationId).maybeSingle();
-    if (!routeCandidates(settings, 'actions_organization').some((item) => item.candidates.length)) return null;
+    const routeKey = 'log_announcements_organization';
+    if (!routeCandidates(settings, routeKey).some((item) => item.candidates.length)) return null;
     const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
     const participants = Array.isArray(record.participants) ? record.participants : [];
-    const delivery = await deliverDiscordRoute(db, settings, 'actions_organization', JSON.stringify({ embeds: [{ title: `✅ Acțiune nouă: ${record.action_label}`, description: record.description || 'A fost înregistrată o acțiune a organizației.', color: 5763719, url: `${site}/anunturi.html?actions=${record.id}`, fields: [{ name: 'Tip', value: record.action_type || record.action_label, inline: true }, { name: 'Participanți', value: participants.length ? participants.map((item:any) => `• ${item.name}`).join('\n').slice(0, 1024) : 'Nespecificați' }, ...(record.notes ? [{ name: 'Note', value: String(record.notes).slice(0, 1024) }] : [])], footer: { text: `Panel Pro · ${record.created_by_name || record.created_by_discord_id}` } }] }));
+    const delivery = await deliverDiscordRoute(db, settings, routeKey, JSON.stringify({ embeds: [{ title: `✅ Acțiune nouă: ${record.action_label}`, description: record.description || 'A fost înregistrată o acțiune a organizației.', color: 5763719, url: `${site}/anunturi.html?actions=${record.id}`, fields: [{ name: 'Tip', value: record.action_type || record.action_label, inline: true }, { name: 'Participanți', value: participants.length ? participants.map((item:any) => `• ${item.name}`).join('\n').slice(0, 1024) : 'Nespecificați' }, ...(record.notes ? [{ name: 'Note', value: String(record.notes).slice(0, 1024) }] : [])], footer: { text: `Panel Pro · ${record.created_by_name || record.created_by_discord_id}` } }], components: actionDiscordComponents(String(record.id)) }));
     return delivery.results[0]?.id || null;
 };
 if (String(body.action || '').startsWith('actions_')) {
@@ -369,7 +372,7 @@ if (String(body.action || '').startsWith('actions_')) {
         if (loadError) throw loadError;
         if (!row) return reply({ error: 'Acțiunea nu există.' }, 404);
         const { data: settings } = await db.from('organization_settings').select('webhook_routes,discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
-        const candidate = routeCandidates(settings, 'actions_organization').flatMap((item) => item.candidates)[0];
+        const candidate = routeCandidates(settings, 'log_announcements_organization').flatMap((item) => item.candidates)[0];
         if (row.discord_message_id && candidate) await requestDiscordTarget(db, candidate, null, { method: 'DELETE', messageId: String(row.discord_message_id) }).catch(() => null);
         const { error } = await db.from('organization_actions').delete().eq('organization_id', organizationId).eq('id', id);
         if (error) throw error;
@@ -496,6 +499,9 @@ const audienceRoles = (audience:string, kind:'read'|'write') =>
         : [];
 const canForAudience = (audience:string, kind:'read'|'write') =>
     hasCommunicationFeature(audience) && (isPlatformAdmin || roleIdsForAudience(audience).some(roleId => audienceRoles(audience, kind).includes(roleId)));
+const canManageAudience = (audience:string) => communicationSetting
+    ? canForAudience(audience, 'write')
+    : canPublishAnnouncements;
 const disciplineRoles = (scope:string, action:'read'|'write'|'sanction') =>
     Array.isArray(disciplinePermissions?.[scope]?.[action])
         ? disciplinePermissions[scope][action].map(String)
@@ -569,11 +575,8 @@ const notifyDisciplineDiscord = async (kind:'warning'|'sanction', record:any) =>
         .eq('organization_id', organizationId)
         .maybeSingle();
     const audience = record.target_scope === 'departments' ? 'departments' : 'organization';
-    const routeKey = kind === 'warning'
-        ? (audience === 'departments' ? 'warnings_departments' : 'warnings_organization')
-        : (audience === 'departments' ? 'sanctions_departments' : 'sanctions_organization');
-    const fallbackKey = audience === 'departments' ? 'fines_departments' : 'fines_organization';
-    if (!routeCandidates(settings, routeKey, [], fallbackKey).some((item) => item.candidates.length)) return null;
+    const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
+    if (!routeCandidates(settings, routeKey).some((item) => item.candidates.length)) return null;
     const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
     const detailUrl = `${site}/anunturi.html?discipline=${kind}&id=${record.id}`;
     const delivery = await deliverDiscordRoute(db, settings, routeKey, JSON.stringify({ embeds: [{
@@ -582,7 +585,7 @@ const notifyDisciplineDiscord = async (kind:'warning'|'sanction', record:any) =>
             color: kind === 'warning' ? 16753920 : 15548997,
             url: detailUrl,
             footer: { text: 'Panel Pro · acces controlat' }
-        }] }), { fallbackRouteKey: fallbackKey });
+        }], components: disciplineDiscordComponents(audience, kind, String(record.id)) }));
     return delivery.results[0]?.id || null;
 };
 
@@ -636,7 +639,6 @@ if (body.action === 'discipline_create_sanction') {
     if (!canDiscipline(scope, 'sanction')) return reply({ error: 'Rolul tău nu poate aplica sancțiuni pentru această categorie.' }, 403);
     const target = await resolveDisciplineTarget(scope, String(body.target_discord_id || ''));
     const count = await activeDisciplineCount(scope, target.discordId);
-    if (count < 3) return reply({ error: `Sancțiunea devine disponibilă după 3 avertismente active. Acum există ${count}.` }, 409);
     const amount = Number(body.amount);
     if (!Number.isFinite(amount) || amount <= 0) return reply({ error: 'Introdu o sumă validă mai mare decât 0.' }, 400);
     const currency = String(body.currency || 'USD').trim().toUpperCase();
@@ -679,11 +681,8 @@ if (body.action === 'discipline_delete') {
     const { data: settings } = await db.from('organization_settings').select('webhook_routes,discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
     if (item.discord_message_id) {
         const audience = item.target_scope === 'departments' ? 'departments' : 'organization';
-        const routeKey = kind === 'warning'
-            ? (audience === 'departments' ? 'warnings_departments' : 'warnings_organization')
-            : (audience === 'departments' ? 'sanctions_departments' : 'sanctions_organization');
-        const fallbackKey = audience === 'departments' ? 'fines_departments' : 'fines_organization';
-        const targets = routeCandidates(settings, routeKey, [], fallbackKey).flatMap((item) => item.candidates);
+        const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
+        const targets = routeCandidates(settings, routeKey).flatMap((item) => item.candidates);
         await Promise.all(targets.map((target) => requestDiscordTarget(db, target, null, { method: 'DELETE', messageId: String(item.discord_message_id) }).catch(() => null)));
     }
     const { error } = await db.from(table).delete().eq('organization_id', organizationId).eq('id', body.id);
@@ -709,16 +708,7 @@ const own = async (id:string) => {
         );
     }
 
-    if (
-        !isPlatformAdmin &&
-        String(data.author_discord_id) !== String(du.id)
-    ) {
-        throw new Error(
-            'Poți administra numai postările tale.'
-        );
-    }
-
-    return data;
+     return data;
 };
  if(body.action==='create'){
 
@@ -770,10 +760,10 @@ const own = async (id:string) => {
 
     return reply({ post, discord_delivery: discordMessageId ? 'sent' : 'unavailable', discord_warning: discordDeliveryWarning || null });
  }
- if(body.action==='update'){const post=await own(body.post_id);if(communicationSetting&&!canForAudience(String(post.audience||'organization'),'write'))return reply({error:'Rolul tău nu poate modifica această audiență.'},403);const {error}=await db.from('community_posts').update({title:body.title,content:body.content,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',body.post_id);if(error)throw error;if(post.post_type==='poll'&&Array.isArray(body.options)){if(body.options.length<2)throw new Error('Sondajul trebuie să aibă minimum două opțiuni.');const {data:existing}=await db.from('community_poll_options').select('option_text').eq('organization_id',organizationId).eq('post_id',body.post_id).order('position');const changed=JSON.stringify((existing||[]).map((x:any)=>x.option_text))!==JSON.stringify(body.options);if(changed){const {error:deleteOptionsError}=await db.from('community_poll_options').delete().eq('organization_id',organizationId).eq('post_id',body.post_id);if(deleteOptionsError)throw deleteOptionsError;const {error:insertOptionsError}=await db.from('community_poll_options').insert(body.options.map((text:string,position:number)=>({organization_id:organizationId,post_id:body.post_id,option_text:text,position})));if(insertOptionsError)throw insertOptionsError}}return reply({ok:true})}
+ if(body.action==='update'){const post=await own(body.post_id);if(!canManageAudience(String(post.audience||'organization')))return reply({error:'Rolul tău nu poate modifica această audiență.'},403);const {error}=await db.from('community_posts').update({title:body.title,content:body.content,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',body.post_id);if(error)throw error;if(post.post_type==='poll'&&Array.isArray(body.options)){if(body.options.length<2)throw new Error('Sondajul trebuie să aibă minimum două opțiuni.');const {data:existing}=await db.from('community_poll_options').select('option_text').eq('organization_id',organizationId).eq('post_id',body.post_id).order('position');const changed=JSON.stringify((existing||[]).map((x:any)=>x.option_text))!==JSON.stringify(body.options);if(changed){const {error:deleteOptionsError}=await db.from('community_poll_options').delete().eq('organization_id',organizationId).eq('post_id',body.post_id);if(deleteOptionsError)throw deleteOptionsError;const {error:insertOptionsError}=await db.from('community_poll_options').insert(body.options.map((text:string,position:number)=>({organization_id:organizationId,post_id:body.post_id,option_text:text,position})));if(insertOptionsError)throw insertOptionsError}}return reply({ok:true})}
  if (body.action === 'delete') {
     const post = await own(body.post_id);
-    if (communicationSetting && !canForAudience(String(post.audience || 'organization'), 'write')) {
+     if (!canManageAudience(String(post.audience || 'organization'))) {
         return reply({ error: 'Rolul tău nu poate șterge această audiență.' }, 403);
     }
 
@@ -802,9 +792,7 @@ const own = async (id:string) => {
                 ? 'departments'
                 : 'organization';
 
-        const routeKey = post.post_type === 'fine'
-            ? (audience === 'departments' ? 'fines_departments' : 'fines_organization')
-            : audience;
+        const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
         const targets = routeCandidates(cfg, routeKey).flatMap((item) => item.candidates);
         for (const target of targets) {
             await requestDiscordTarget(db, target, null, { method: 'DELETE', messageId: String(post.discord_message_id) }).catch(() => null);
@@ -853,6 +841,38 @@ const own = async (id:string) => {
  if(body.action==='react'){const reaction=String(body.reaction||'');if(!allowedCommunityReactions.has(reaction))return reply({error:'Reacție invalidă.'},400);const key={organization_id:organizationId,post_id:body.post_id,user_discord_id:du.id,reaction};const {data}=await db.from('community_reactions').select('id').match(key).maybeSingle();const q=data?db.from('community_reactions').delete().eq('organization_id',organizationId).eq('id',data.id):db.from('community_reactions').insert(key);const {error}=await q;if(error)throw error;return reply({ok:true})}
  if(body.action==='vote'){const {data:option}=await db.from('community_poll_options').select('post_id').eq('organization_id',organizationId).eq('id',body.option_id).single();if(!option||option.post_id!==body.post_id)throw new Error('Opțiune invalidă.');const {error}=await db.from('community_poll_votes').upsert({organization_id:organizationId,post_id:body.post_id,option_id:body.option_id,user_discord_id:du.id},{onConflict:'post_id,user_discord_id'});if(error)throw error;await updateDiscordPoll(body.post_id);return reply({ok:true})}
  return reply({error:'Acțiune necunoscută.'},400);
+const communityReactionChoices = ['✅', '❌', '👍', '❤️', '🤔'];
+const communityPostComponents = (post:any, options:string[] = []) => {
+    const audience = post.audience === 'departments' ? 'departments' : 'organization';
+    const rows:any[] = [{ type: 1, components: communityReactionChoices.map((reaction:string, index:number) => ({ type: 2, style: 2, label: reaction, custom_id: `panel:announcements:${audience}:react:${post.id}:${index}` })) }];
+    if (post.post_type === 'poll') {
+        const pollOptions = options.slice(0, 10);
+        for (let index = 0; index < pollOptions.length; index += 5) rows.push({ type: 1, components: pollOptions.slice(index, index + 5).map((option:string, optionIndex:number) => ({ type: 2, style: 1, label: option.slice(0, 80), custom_id: `panel:announcements:${audience}:vote:${post.id}:${index + optionIndex}` })) });
+    }
+    rows.push({ type: 1, components: [{ type: 2, style: 2, label: 'Editează', custom_id: `panel:announcements:${audience}:edit:${post.id}` }, { type: 2, style: 4, label: 'Șterge', custom_id: `panel:announcements:${audience}:delete:${post.id}` }] });
+    return rows.slice(0, 5);
+};
+const notifyCommunityLog = async (post:any, action:string) => {
+    const { data: settings } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
+    const audience = post?.audience === 'departments' ? 'departments' : 'organization';
+    const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
+    const audienceLabel = audience === 'departments' ? 'Angajați' : 'Organizație';
+    try {
+        await deliverDiscordRoute(db, settings, routeKey, JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{
+            title: `📝 ${action} · ${audienceLabel}`,
+            color: action.toLowerCase().includes('șters') ? 0xef4444 : 0x64748b,
+            fields: [
+                { name: '👤 Autor', value: String(post.author_name || post.author_discord_id || 'Utilizator').slice(0, 1024), inline: true },
+                { name: '📌 Tip', value: post.post_type === 'poll' ? 'Sondaj' : post.post_type === 'question' ? 'Întrebare' : 'Anunț', inline: true },
+                { name: '🧾 Titlu', value: String(post.title || 'Comunicare').slice(0, 1024), inline: false },
+                { name: '💬 Conținut', value: String(post.content || '—').slice(0, 1024), inline: false },
+            ],
+            footer: { text: `Panel Pro · Log anunțuri · ${audienceLabel}` },
+            timestamp: new Date().toISOString(),
+        }] }));
+    } catch (error) { console.error('Logul Anunțuri nu a putut fi trimis:', error); }
+};
+
 async function notifyDiscord(post:any, options:string[], audience:string){
 
     const {data:discordConfig}=await db
@@ -862,9 +882,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
         .maybeSingle();
 
 
-    const routeKey = post.post_type === 'fine'
-        ? (audience === 'departments' ? 'fines_departments' : 'fines_organization')
-        : (audience === 'departments' ? 'departments' : 'organization');
+    const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
     if (!routeCandidates(discordConfig, routeKey).some((item) => item.candidates.length)) return null;
 
     const site = (
@@ -908,7 +926,8 @@ async function notifyDiscord(post:any, options:string[], audience:string){
             fields,
             url: postUrl,
             footer: { text: `${post.post_type === 'poll' ? 'Sondaj' : post.post_type === 'question' ? 'Întrebare' : 'Anunț'} • ${post.author_name}` }
-        }]
+        }],
+        components: communityPostComponents(post, options)
     }));
     if (!delivery.results.length) throw new Error(`Postarea a fost creată, dar Discord nu a acceptat mesajul. ${delivery.failures.join(' | ')}`);
     return delivery.results[0]?.id || null;
@@ -976,9 +995,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
             ? 'departments'
             : 'organization';
 
-    const routeKey = post.post_type === 'fine'
-        ? (audience === 'departments' ? 'fines_departments' : 'fines_organization')
-        : audience;
+    const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
     if (!routeCandidates(discordConfig, routeKey).some((item) => item.candidates.length)) return;
 
 
@@ -1001,7 +1018,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
             { name: '🗳️ Votează în panel', value: `[Deschide sondajul](${postUrl})` }
         ],
         footer: { text: `Sondaj • ${post.author_name}` }
-    }] }), { messageIds: { primary: String(post.discord_message_id) } });
+    }], components: communityPostComponents(post, (options || []).map((item:any) => item.option_text)) }), { messageIds: { primary: String(post.discord_message_id) } });
 
 }
  }catch(e){
