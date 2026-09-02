@@ -217,6 +217,7 @@
             action_permissions: actionPermissions,
             assistant_page_permissions: assistantPagePermissions,
             assistant_knowledge: assistantKnowledge,
+            global_permissions: globalPermissions,
             communication_permissions: communicationPermissions,
             discipline_permissions: disciplinePermissions
           }));
@@ -231,9 +232,10 @@
         actionPermissions = draft.action_permissions && typeof draft.action_permissions === 'object' ? draft.action_permissions : actionPermissions;
         assistantPagePermissions = draft.assistant_page_permissions && typeof draft.assistant_page_permissions === 'object' ? draft.assistant_page_permissions : assistantPagePermissions;
         assistantKnowledge = Array.isArray(draft.assistant_knowledge) ? draft.assistant_knowledge : assistantKnowledge;
+        globalPermissions = draft.global_permissions && typeof draft.global_permissions === 'object' ? draft.global_permissions : globalPermissions;
+        globalPermissionsInitialized = Boolean(draft.global_permissions && typeof draft.global_permissions === 'object');
         communicationPermissions = draft.communication_permissions && typeof draft.communication_permissions === 'object' ? draft.communication_permissions : communicationPermissions;
        disciplinePermissions = draft.discipline_permissions && typeof draft.discipline_permissions === 'object' ? draft.discipline_permissions : disciplinePermissions;
-        globalPermissionsInitialized = false;
        renderAllPermissions();
         fillWebhooks(draft.webhook_routes || {});
         window.discordChannelRoutesInitial = draft.discord_channel_routes || {};
@@ -411,6 +413,8 @@
            ownerRoleRows = Array.isArray(data.role_mappings) ? data.role_mappings.map((role) => ({ guild_id: String(role.guild_id || ''), discord_role_id: String(role.discord_role_id || ''), discord_role_name: String(role.discord_role_name || ''), panel_role: String(role.panel_role || role.discord_role_name || '') })) : [];
            pagePermissions = data.page_permissions && typeof data.page_permissions === 'object' ? data.page_permissions : {};
            actionPermissions = data.action_permissions && typeof data.action_permissions === 'object' ? data.action_permissions : {};
+           globalPermissions = data.global_permissions && typeof data.global_permissions === 'object' ? data.global_permissions : { organization: { read: [], write: [] }, departments: { read: [], write: [] } };
+           globalPermissionsInitialized = Boolean(data.global_permissions && typeof data.global_permissions === 'object');
            assistantPagePermissions = data.assistant_page_permissions && typeof data.assistant_page_permissions === 'object' ? data.assistant_page_permissions : {};
            assistantKnowledge = Array.isArray(data.assistant_knowledge) ? data.assistant_knowledge : [];
            const savedCommunication = data.communication_permissions && typeof data.communication_permissions === 'object' ? data.communication_permissions : {};
@@ -440,13 +444,15 @@
           const contractTemplate = title || template || salary ? { title, template, defaults: { salary } } : null;
           const roles = selectedOwnerRoles();
           if (!roles.length) throw new Error('Configurează cel puțin un rol Discord.');
-          const response = await call({ action: 'owner_update', organization_id: organizationId, organization: { name: $('owner-org-name').value.trim(), illegal_name: $('owner-org-illegal-name').value.trim(), code: $('owner-org-code').value.trim(), address: $('owner-org-address').value.trim(), description: $('owner-org-description').value.trim(), panel_public_url: $('owner-panel-url').value.trim(), logo_url: $('owner-org-logo').value.trim() }, discord_channel_routes: window.getDiscordChannelRoutes?.() || {}, contract_template: contractTemplate, roles, page_permissions: pagePermissions, action_permissions: actionPermissions, assistant_page_permissions: assistantPagePermissions, assistant_knowledge: assistantKnowledge, communication_permissions: communicationPermissions, discipline_permissions: disciplinePermissions });
+          const response = await call({ action: 'owner_update', organization_id: organizationId, organization: { name: $('owner-org-name').value.trim(), illegal_name: $('owner-org-illegal-name').value.trim(), code: $('owner-org-code').value.trim(), address: $('owner-org-address').value.trim(), description: $('owner-org-description').value.trim(), panel_public_url: $('owner-panel-url').value.trim(), logo_url: $('owner-org-logo').value.trim() }, discord_channel_routes: window.getDiscordChannelRoutes?.() || {}, contract_template: contractTemplate, roles, page_permissions: pagePermissions, action_permissions: actionPermissions, global_permissions: globalPermissions, assistant_page_permissions: assistantPagePermissions, assistant_knowledge: assistantKnowledge, communication_permissions: communicationPermissions, discipline_permissions: disciplinePermissions });
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || 'Modificările nu au putut fi salvate.');
           discoveredDiscordRoles = Array.isArray(data.discord_roles) ? data.discord_roles : discoveredDiscordRoles;
            ownerRoleRows = Array.isArray(data.role_mappings) ? data.role_mappings.map((role) => ({ guild_id: String(role.guild_id || ''), discord_role_id: String(role.discord_role_id || ''), discord_role_name: String(role.discord_role_name || ''), panel_role: String(role.panel_role || role.discord_role_name || '') })) : ownerRoleRows;
            pagePermissions = data.page_permissions && typeof data.page_permissions === 'object' ? data.page_permissions : pagePermissions;
            actionPermissions = data.action_permissions && typeof data.action_permissions === 'object' ? data.action_permissions : actionPermissions;
+           globalPermissions = data.global_permissions && typeof data.global_permissions === 'object' ? data.global_permissions : globalPermissions;
+           globalPermissionsInitialized = Boolean(data.global_permissions && typeof data.global_permissions === 'object');
            assistantPagePermissions = data.assistant_page_permissions && typeof data.assistant_page_permissions === 'object' ? data.assistant_page_permissions : assistantPagePermissions;
            assistantKnowledge = Array.isArray(data.assistant_knowledge) ? data.assistant_knowledge : assistantKnowledge;
            const updatedCommunication = data.communication_permissions && typeof data.communication_permissions === 'object' ? data.communication_permissions : {};

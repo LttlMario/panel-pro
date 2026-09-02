@@ -163,6 +163,7 @@ Deno.serve(async request=>{
               'page_permissions',
               'assistant_page_permissions',
               'action_permissions',
+              'global_permissions',
               'communication_permissions',
               'discipline_permissions',
               'organization_package'
@@ -201,7 +202,7 @@ Deno.serve(async request=>{
         ids.length?db.from('organization_guilds').select('organization_id,guild_id,guild_name,kind,enabled').in('organization_id',ids):Promise.resolve({data:[],error:null}),
         ids.length?db.from('organization_role_mappings').select('organization_id,guild_id,discord_role_id,discord_role_name,panel_role,enabled').in('organization_id',ids):Promise.resolve({data:[],error:null}),
         ids.length?db.from('organization_settings').select('organization_id,discord_client_id,panel_public_url,discord_channel_routes,updated_at').in('organization_id',ids):Promise.resolve({data:[],error:null}),
-        ids.length?db.from('app_settings').select('organization_id,key,value,updated_at').in('organization_id',ids).in('key',['organization_access','organization_package','organization_theme','page_permissions','action_permissions','discipline_permissions']):Promise.resolve({data:[],error:null})
+        ids.length?db.from('app_settings').select('organization_id,key,value,updated_at').in('organization_id',ids).in('key',['organization_access','organization_package','organization_theme','page_permissions','assistant_page_permissions','action_permissions','global_permissions','communication_permissions','discipline_permissions']):Promise.resolve({data:[],error:null})
       ]);
       if(guildError||roleError||settingsError||appError)throw guildError||roleError||settingsError||appError;
       const now=Date.now();
@@ -565,6 +566,31 @@ const { data: policyPackageSetting, error: policyPackageError } = await db
   .maybeSingle();
 if (policyPackageError) throw policyPackageError;
 const policyPackageFeatures = resolvePackageFeatures(policyPackageSetting?.value || {});
+
+if (body.global_permissions && typeof body.global_permissions === 'object') {
+  const clean = (audience: string, kind: string) => [
+    ...new Set(
+      (Array.isArray(body.global_permissions[audience]?.[kind])
+        ? body.global_permissions[audience][kind]
+        : [])
+        .map(String)
+        .filter(id => /^\d{15,22}$/.test(id))
+    )
+  ];
+  const globalRules = {
+    organization: policyPackageFeatures.includes('announcements_organization')
+      ? { read: clean('organization', 'read'), write: clean('organization', 'write') }
+      : { read: [], write: [] },
+    departments: { read: clean('departments', 'read'), write: clean('departments', 'write') }
+  };
+  const { error } = await db.from('app_settings').upsert({
+    organization_id: organizationId,
+    key: 'global_permissions',
+    value: globalRules,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'organization_id,key' });
+  if (error) throw error;
+}
 
 if(
   body.action_permissions &&
