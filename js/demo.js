@@ -33,6 +33,7 @@ delete demoScreens.blackmarket;
 delete demoScreens['calculator-ilegal'];
 delete demoScreens.locatii;
 delete demoScreens.craft;
+delete demoScreens.asistent;
 
 const titleEl = document.getElementById('demo-title');
 const subtitleEl = document.getElementById('demo-subtitle');
@@ -158,7 +159,6 @@ function initDemoShell() {
     demoNav.innerHTML = `<p class="nav-label">Operațiuni</p>
       <button class="demo-nav-item is-active" data-demo="dashboard"><span class="nav-icon">▣</span> Dashboard</button>
       <button class="demo-nav-item" data-demo="anunturi"><span class="nav-icon">▰</span> Anunțuri &amp; Sondaje</button>
-      <button class="demo-nav-item" data-demo="asistent"><span class="nav-icon">✦</span> Asistent Panel</button>
       <button class="demo-nav-item" data-demo="pontaj"><span class="nav-icon">◷</span> Pontaj</button>
        <button class="demo-nav-item" data-demo="cereri"><span class="nav-icon">▱</span> Cereri / Absențe</button>
        <button class="demo-nav-item" data-demo="contracte"><span class="nav-icon">▤</span> Contracte</button>
@@ -389,7 +389,43 @@ function renderDemo(key) {
   document.querySelectorAll('.demo-nav-item').forEach((item) => item.classList.toggle('is-active', item.dataset.demo === key));
 }
 
+function initDemoAssistant() {
+  const launcher = document.getElementById('demo-assistant-launcher');
+  const close = document.getElementById('demo-assistant-close');
+  const panel = document.getElementById('demo-assistant-panel');
+  const form = document.getElementById('demo-assistant-form');
+  const input = document.getElementById('demo-assistant-input');
+  const messages = document.getElementById('demo-assistant-messages');
+  if (!launcher || !panel || !form || !input || !messages) return;
+  const setOpen = (open) => {
+    panel.hidden = !open;
+    launcher.setAttribute('aria-expanded', String(open));
+    if (open) input.focus();
+  };
+  launcher.addEventListener('click', () => setOpen(panel.hidden));
+  close?.addEventListener('click', () => setOpen(false));
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const question = input.value.trim();
+    if (!question) return;
+    const query = question.toLocaleLowerCase('ro-RO');
+    const answer = /craft|rețet|retet|runflat|mecanic/.test(query)
+      ? 'Craft Mecanic este integrat în Calculator. Deschide Calculatorul și alege categoria „Craft Mecanic” pentru galerie, rețete și cantități.'
+      : /eveniment|reminder|14 zile/.test(query)
+        ? 'În Evenimente și remindere alegi tipul și data. În varianta reală, evenimentul se postează pe canalul Discord ales, apoi botul trimite zilnic câte zile au rămas până la ziua 14.'
+        : /pontaj|tură|tura|ore/.test(query)
+          ? 'Pentru Pontaj alegi tipul turei, apoi folosești Start, Pauză și Oprește. În demo cronometrul este doar local.'
+          : /rol|permisi|citire|scriere|ștergere|stergere/.test(query)
+            ? 'Permisiunile se bazează pe rolurile Discord. În configurația reală, rolurile cu scriere pot modifica și șterge, iar rolurile cu citire pot consulta informațiile permise.'
+            : 'Îți pot explica modulele din demo, inclusiv Calculatorul, Craft Mecanic, Pontajul și Evenimentele. Încearcă o întrebare mai specifică.';
+    messages.insertAdjacentHTML('beforeend', `<div class="demo-assistant-message user">${escapeHtml(question)}</div><div class="demo-assistant-message assistant">${escapeHtml(answer)}</div>`);
+    messages.scrollTop = messages.scrollHeight;
+    input.value = '';
+  });
+}
+
 initDemoShell();
+initDemoAssistant();
 document.querySelectorAll('.demo-nav-item').forEach((item) => item.addEventListener('click', () => { closeDemoMenu(); renderDemo(item.dataset.demo); }));
 document.addEventListener('paste', (event) => {
   const activeElement = document.activeElement;

@@ -7,7 +7,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Panel Pro · Demo interactiv</title>
   <link rel="icon" href="img/favicon.ico">
-  <link rel="stylesheet" href="css/demo.css">
+  <link rel="stylesheet" href="css/demo.css?v=20260902-assistant-widget">
   <script src="js/text-normalizer.js?v=1.0.1"></script>
 </head>
 <body>
@@ -34,7 +34,6 @@
           <button class="demo-nav-item" data-demo="calculator"><span class="nav-icon">⊞</span> Calculator</button>
           <button class="demo-nav-item" data-demo="bucatarie"><span class="nav-icon">♨</span> Bucătărie</button>
           <button class="demo-nav-item" data-demo="anunturi"><span class="nav-icon">◉</span> Anunțuri &amp; Sondaje</button>
-          <button class="demo-nav-item" data-demo="asistent"><span class="nav-icon">✦</span> Asistent Panel</button>
           <p class="nav-label">ADMINISTRAȚIE</p>
           <button class="demo-nav-item" data-demo="administrare"><span class="nav-icon">⚙</span> Administrare</button>
         </nav>
@@ -65,7 +64,16 @@
       </main>
     </div>
   </div>
+  <aside class="demo-assistant" id="demo-assistant" aria-label="Asistent Panel demo">
+    <button class="demo-assistant-launcher" id="demo-assistant-launcher" type="button" aria-label="Deschide asistentul demo" aria-controls="demo-assistant-panel" aria-expanded="false"><img src="css/robot-assistant.svg" alt="Asistent demo"><span class="demo-assistant-online"></span></button>
+    <section class="demo-assistant-panel" id="demo-assistant-panel" hidden>
+      <header><div><span class="panel-eyebrow">ASISTENT PANEL</span><strong>Cu ce te pot ajuta?</strong></div><button id="demo-assistant-close" type="button" aria-label="Închide asistentul">×</button></header>
+      <div class="demo-assistant-messages" id="demo-assistant-messages"><div class="demo-assistant-message assistant">Salut! Sunt asistentul demo. Îți pot explica unde găsești Craft Mecanic, cum funcționează evenimentele sau cum pornești un pontaj.</div></div>
+      <form class="demo-assistant-form" id="demo-assistant-form"><input id="demo-assistant-input" type="text" autocomplete="off" placeholder="Întreabă despre panel..."><button type="submit" aria-label="Trimite întrebarea">↗</button></form>
+      <small class="demo-assistant-note">Răspunsuri locale · fără date reale</small>
+    </section>
+  </aside>
   <div class="demo-toast" id="demo-toast" role="status" aria-live="polite"></div>
-  <script src="js/demo.js"></script>
+  <script src="js/demo.js?v=20260902-assistant-widget"></script>
 </body>
 </html>
