@@ -56,18 +56,6 @@
             <div class="rounded-xl border border-slate-700 bg-slate-950 p-3 md:col-span-2"><span class="block text-xs font-bold text-slate-400">Serverele Discord ale organizației</span><div id="owner-guilds-readonly" class="mt-1 space-y-1 text-sm">Se încarcă...</div><span class="mt-1 block text-xs text-slate-500">Guild ID-urile sunt gestionate administrativ și nu pot fi schimbate de aici.</span></div>
           </div>
 
-          <section class="rounded-2xl border border-emerald-700/50 bg-emerald-950/15 p-4">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div><span class="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-300">Acces organizație</span><h2 class="mt-1 text-base font-black">Status și prelungire</h2><p class="mt-1 text-xs text-slate-400">Vezi pachetul activ și prelungește accesul cu un voucher alocat organizației.</p></div>
-              <a href="prelungire-voucher.html" class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-black text-emerald-200 hover:bg-emerald-500/20">Aplică voucher</a>
-            </div>
-            <div class="mt-4 grid gap-3 sm:grid-cols-3">
-              <div class="rounded-xl bg-slate-950/70 p-3"><span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Pachet</span><strong id="owner-package-status" class="mt-1 block text-sm text-slate-100">Se încarcă...</strong></div>
-              <div class="rounded-xl bg-slate-950/70 p-3"><span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Acces</span><strong id="owner-access-status" class="mt-1 block text-sm text-slate-100">Se încarcă...</strong></div>
-              <div class="rounded-xl bg-slate-950/70 p-3"><span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Expiră la</span><strong id="owner-expires-status" class="mt-1 block text-sm text-slate-100">Se încarcă...</strong></div>
-            </div>
-          </section>
-
           <details class="rounded-xl border border-indigo-700/60 bg-indigo-950/15 p-4" open>
             <summary class="cursor-pointer font-bold">Roluri Discord și acces pe pagini</summary>
             <p class="mt-2 text-xs text-slate-400">Alege rolurile reale din serverele organizației. Numele rolului este citit direct din Discord; ID-urile rămân ascunse și sunt folosite doar intern.</p>
@@ -101,9 +89,9 @@
             <button id="owner-assistant-add" type="button" class="mt-3 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-emerald-500/20">＋ Adaugă întrebare</button>
           </details>
 
-          <details class="rounded-xl border border-slate-700 p-4" open>
-            <summary class="cursor-pointer font-bold">Webhookurile organizației</summary>
-            <p class="mt-2 text-xs text-slate-400">Configurează notificările Discord pentru organizația ta. Nu poți modifica webhookurile altor organizații.</p>
+          <details class="rounded-xl border border-slate-700 p-4">
+            <summary class="cursor-pointer font-bold">Webhookuri backup</summary>
+            <p class="mt-2 text-xs text-slate-400">Botul este metoda principală de trimitere. Aceste webhookuri rămân doar ca rezervă dacă botul nu poate trimite.</p>
             <p class="mt-1 text-[11px] text-emerald-300/80">Valorile completate se salvează automat local în acest browser și se repopulează când revii.</p>
             <div id="owner-webhooks" class="mt-3 grid gap-3 md:grid-cols-2"></div>
           </details>
@@ -202,14 +190,7 @@
         return Number.isNaN(date.getTime()) ? 'Dată invalidă' : date.toLocaleString('ro-RO', { dateStyle: 'medium', timeStyle: 'short' });
       };
       const renderAccess = (access, packageState, active, deactivationReason) => {
-        const expiresAt = access?.expires_at || '';
-        const expired = expiresAt && Date.parse(expiresAt) <= Date.now();
         ownerPackageCode = String(packageState?.code || 'standard').toLowerCase();
-        $('owner-package-status').textContent = String(packageState?.code || 'standard').toUpperCase();
-        const statusLabel = expired ? 'Expirat — aplică voucher' : active === false ? (deactivationReason === 'expired' ? 'Expirat' : deactivationReason === 'manual' ? 'Dezactivat manual' : 'Dezactivat') : 'Activ';
-        $('owner-access-status').textContent = statusLabel;
-        $('owner-access-status').className = `mt-1 block text-sm ${expired || active === false ? 'text-rose-300' : 'text-emerald-300'}`;
-        $('owner-expires-status').textContent = formatExpiry(expiresAt);
         document.querySelectorAll('[data-owner-webhook-fieldset]').forEach((fieldset) => { fieldset.hidden = !ownerAllowsWebhook(fieldset.dataset.ownerWebhookFieldset); });
       };
       const collectWebhooks = () => { const routes = {}; document.querySelectorAll('[data-owner-webhook]').forEach((input) => { const key = input.dataset.ownerWebhook, target = input.dataset.target; if (!ownerAllowsWebhook(key)) return; const url = input.value.trim(), enabled = document.querySelector(`[data-owner-webhook-enabled="${key}"][data-target="${target}"]`)?.checked === true; routes[key] ||= {}; routes[key][target] = { enabled, url }; }); return routes; };
@@ -313,7 +294,7 @@
       };
       const renderOwnerActionPermissions = () => {
         const host = $('owner-action-permissions');
-        const groups = [['anunturi.publish', 'Publicare anunțuri și sondaje', 'Cine poate scrie, modifica sau șterge anunțuri.', ''], ...(ownerAllowsFeature('actions_organization') ? [['actions.organization.read', 'Acțiuni — citire', 'Cine poate vedea acțiunile organizației.', 'organization'], ['actions.organization.write', 'Acțiuni — scriere și ștergere', 'Cine poate înregistra, modifica și șterge acțiuni.', 'organization']] : []), ...(ownerAllowsFeature('event_reminders') ? [['events.read', 'Evenimente — citire', 'Cine poate accesa pagina și consulta istoricul evenimentelor.', ''], ['events.write', 'Evenimente — scriere și ștergere', 'Cine poate adăuga, modifica și arhiva evenimentele păstrate în istoric.', '']] : []), ...(ownerAllowsFeature('requests_organization') ? [['cereri.organization', 'Învoiri → Organizație', 'Cine poate trimite învoiri pentru organizație.', 'organization']] : []), ...(ownerAllowsFeature('requests_departments') ? [['cereri.departments', 'Învoiri → Angajați', 'Cine poate trimite învoiri pentru angajați.', 'departments']] : [])];
+        const groups = [['anunturi.publish', 'Publicare anunțuri și sondaje', 'Cine poate scrie, modifica sau șterge anunțuri.', ''], ...(ownerAllowsFeature('actions_organization') ? [['actions.organization.read', 'Acțiuni — citire', 'Cine poate vedea acțiunile organizației.', 'organization'], ['actions.organization.write', 'Acțiuni — scriere și ștergere', 'Cine poate înregistra, modifica și șterge acțiuni.', 'organization']] : []), ...(ownerAllowsFeature('event_reminders') ? [['events.read', 'Evenimente — citire', 'Cine poate accesa pagina și consulta istoricul evenimentelor.', ''], ['events.write', 'Evenimente — scriere și ștergere', 'Cine poate adăuga, modifica și șterge evenimentele păstrate în istoric.', '']] : []), ...(ownerAllowsFeature('requests_organization') ? [['cereri.organization', 'Învoiri → Organizație', 'Cine poate trimite învoiri pentru organizație.', 'organization']] : []), ...(ownerAllowsFeature('requests_departments') ? [['cereri.departments', 'Învoiri → Angajați', 'Cine poate trimite învoiri pentru angajați.', 'departments']] : [])];
         host.innerHTML = groups.map(([key, title, help]) => `<div class="owner-permission-card"><b class="text-sm">${esc(title)}</b><p class="mt-1 text-xs text-slate-400">${esc(help)}</p><div class="mt-3 flex flex-wrap gap-2" data-owner-action-host="${esc(key)}"></div></div>`).join('');
         groups.forEach(([key, , , audience]) => checkboxList(host.querySelector(`[data-owner-action-host="${key}"]`), actionPermissions, key, permissionRoles(audience), 'action'));
       };
