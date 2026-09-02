@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
+import { requestDiscordTarget, routeCandidates } from '../_shared/discord-delivery.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://panel-pro.ro',
@@ -128,7 +129,7 @@ Deno.serve(async (request) => {
       .select('name,live_status_message_id,live_status_last_update')
       .eq('id', organizationId)
       .maybeSingle(),      
-      db.from('organization_settings').select('webhook_routes').eq('organization_id', organizationId).maybeSingle(),
+      db.from('organization_settings').select('webhook_routes,discord_channel_routes').eq('organization_id', organizationId).maybeSingle(),
       db.from('shifts').select('*').eq('organization_id', organizationId).in('status', ['active', 'paused']).is('end_time', null),
     ]);
     if (shiftsError) throw shiftsError;
@@ -148,65 +149,38 @@ Deno.serve(async (request) => {
     const route = directWebhookUrl
       ? { direct: { enabled: true, url: directWebhookUrl } }
       : settings?.webhook_routes?.status_live || {};
+    const configuredTargets = directWebhookUrl
+      ? [{ target: 'direct', candidates: [{ target: 'direct', transport: 'webhook' as const, url: directWebhookUrl }] }]
+      : routeCandidates(settings, 'status_live');
     const storedMessageId = String(
       organization?.live_status_message_id || ''
     ).trim();
 
     const messageIds: Record<string, string> = {};
 
-    const targets = directWebhookUrl ? ['direct'] : ['primary', 'secondary'];
-    for (const target of targets) {
-      const configured = route[target];
-      if (!configured?.enabled || !configured.url) continue;
-      const webhook = discordUrl(String(configured.url));
-      const existingId = target === 'primary'
-        ? storedMessageId
-        : target === 'secondary'
-          ? String(configured.message_id || '').trim()
-          : '';
-      let response: Response;
-
-      if (existingId && /^\d{15,22}$/.test(existingId)) {
-          const patchUrl =
-              `${webhook.origin}${webhook.pathname}/messages/${existingId}`;
-
-          console.log('Status Live PATCH:', {
-              organizationId,
-              organizationName: organization?.name,
-              target,
-              existingId,
-              patchUrl
-          });
-
-          response = await fetch(
-              patchUrl,
-              {
-                  method: 'PATCH',
-                  headers: {
-                      'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify(payload)
-              }
-          );
-
-          console.log(
-              'Status Live PATCH response:',
-              response.status,
-              await response.clone().text()
-          );
+    const usedTargets: Record<string, any> = {};
+    for (const destination of configuredTargets) {
+      const target = destination.target;
+      if (!destination.candidates.length) continue;
+      let response: Response | null = null;
+      let selectedMessageId = '';
+      for (const candidate of destination.candidates) {
+        // Un ID păstrat în organizations poate aparține mesajului vechi creat
+        // de webhook. Botul nu îl poate edita, așa că pentru bot folosim doar
+        // ID-ul salvat pe ruta botului; dacă lipsește, publicăm un mesaj nou.
+        const existingId = candidate.transport === 'bot'
+          ? String(candidate.message_id || '').trim()
+          : target === 'primary'
+            ? String(candidate.message_id || storedMessageId || '').trim()
+            : String(candidate.message_id || route.secondary?.message_id || '').trim();
+        selectedMessageId = existingId;
+        response = await requestDiscordTarget(db, candidate, JSON.stringify(payload), { messageId: existingId });
+        if (!response.ok && existingId && response.status === 404) response = await requestDiscordTarget(db, { ...candidate, message_id: '' }, JSON.stringify(payload));
+        if (response.ok) { usedTargets[target] = candidate; break; }
       }
-
-      else {
-        webhook.searchParams.set('wait', 'true');
-        response = await fetch(webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      }
-      if (response.status === 404 && existingId) {
-        webhook.searchParams.set('wait', 'true');
-        response = await fetch(webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      }
-      if (!response.ok) throw new Error(`Discord a răspuns cu HTTP ${response.status}.`);
+      if (!response?.ok) throw new Error(`Discord a răspuns cu HTTP ${response?.status || 500}.`);
       const data = await response.json().catch(() => ({}));
-      if (data.id) messageIds[target] = String(data.id); else if (existingId) messageIds[target] = existingId;
+      if (data.id) messageIds[target] = String(data.id); else if (selectedMessageId) messageIds[target] = selectedMessageId;
     }
         const primaryMessageId = messageIds.primary || storedMessageId || null;
 
@@ -228,6 +202,23 @@ Deno.serve(async (request) => {
             })
             .eq('organization_id', organizationId);
           if (secondaryRouteError) throw secondaryRouteError;
+        }
+
+        if (!directWebhookUrl && Object.keys(messageIds).some((target) => usedTargets[target]?.transport === 'bot')) {
+          const channelRoutes = settings?.discord_channel_routes && typeof settings.discord_channel_routes === 'object'
+            ? settings.discord_channel_routes
+            : {};
+          const statusRoute = { ...(channelRoutes.status_live || {}) };
+          for (const target of ['primary', 'secondary']) {
+            if (usedTargets[target]?.transport === 'bot' && messageIds[target]) {
+              statusRoute[target] = { ...(statusRoute[target] || {}), enabled: true, message_id: messageIds[target] };
+            }
+          }
+          const { error: channelRouteError } = await db
+            .from('organization_settings')
+            .update({ discord_channel_routes: { ...channelRoutes, status_live: statusRoute }, updated_at: new Date(now).toISOString() })
+            .eq('organization_id', organizationId);
+          if (channelRouteError) throw channelRouteError;
         }
 
         if (persistDirectWebhook && messageIds.direct) {
