@@ -1,0 +1,14 @@
+# GitHub Pages publică doar site-ul web, nu copiile sursă și build-urile mobile.
+# Arhivele de versiuni rămân disponibile prin manifest/README, fără duplicatele
+# mari ale surselor web incluse în fiecare snapshot.
+exclude:
+  - panel-android
+  - panel-ios
+  - panel-project-versions/*/source
+  - supabase
+  - scripts
+  - tools
+  - .github
+  - .openai
+  - CONFIGURARE-DISCORD.md
+  - Prezentare-Panel-Pro.pptx
