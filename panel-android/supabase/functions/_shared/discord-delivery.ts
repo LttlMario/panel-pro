@@ -5,60 +5,48 @@ const TARGETS = ['primary', 'secondary'] as const;
 
 export type DiscordDeliveryTarget = {
   target: string;
-  transport: 'bot' | 'webhook';
+  transport: 'bot';
   channel_id?: string;
-  url?: string;
+  guild_id?: string;
   message_id?: string;
 };
 
 export const validDiscordChannelId = (value: unknown) => /^\d{15,22}$/.test(String(value || '').trim());
 
-export const validDiscordWebhookUrl = (value: unknown) => {
-  try {
-    const url = new URL(String(value || '').trim());
-    return url.protocol === 'https:'
-      && ['discord.com', 'discordapp.com'].includes(url.hostname)
-      && url.pathname.startsWith('/api/webhooks/');
-  } catch (_) {
-    return false;
+const clean = (value: unknown, max = 500) => String(value || '').trim().slice(0, max);
+const errorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === 'object') {
+    const value = error as Record<string, unknown>;
+    if (String(value.message || '').trim()) return String(value.message).trim();
+    if (String(value.details || '').trim()) return String(value.details).trim();
+    if (String(value.hint || '').trim()) return String(value.hint).trim();
   }
+  return 'Eroare Discord.';
 };
 
-const clean = (value: unknown, max = 500) => String(value || '').trim().slice(0, max);
-
-export const routeCandidates = (settings: any, routeKey: string, legacyWebhookUrls: string[] = [], fallbackRouteKey = '') => {
-  const channelRoute = settings?.discord_channel_routes?.[routeKey] || settings?.discord_channel_routes?.[fallbackRouteKey] || {};
-  const webhookRoute = settings?.webhook_routes?.[routeKey] || settings?.webhook_routes?.[fallbackRouteKey] || {};
-  return TARGETS.map((target, index) => {
+export const routeCandidates = (settings: any, routeKey: string, _legacyWebhookUrls: string[] = [], fallbackRouteKey = '') => {
+  const channelRoutes = settings?.discord_channel_routes || {};
+  const channelRoute = channelRoutes?.[routeKey] || {};
+  const fallbackRoute = channelRoutes?.[fallbackRouteKey] || {};
+  return TARGETS.map((target) => {
     const candidates: DiscordDeliveryTarget[] = [];
-    const channel = channelRoute?.[target];
+    const channel = channelRoute?.[target] || fallbackRoute?.[target];
     if (channel?.enabled !== false && validDiscordChannelId(channel?.channel_id)) {
       candidates.push({
         target,
         transport: 'bot',
         channel_id: clean(channel.channel_id, 30),
+        guild_id: validDiscordChannelId(channel.guild_id) ? clean(channel.guild_id, 30) : '',
         message_id: validDiscordChannelId(channel.message_id) ? clean(channel.message_id, 30) : '',
       });
-    }
-    const webhook = webhookRoute?.[target];
-    if (webhook?.enabled !== false && validDiscordWebhookUrl(webhook?.url)) {
-      candidates.push({
-        target,
-        transport: 'webhook',
-        url: clean(webhook.url),
-        message_id: validDiscordChannelId(webhook.message_id) ? clean(webhook.message_id, 30) : '',
-      });
-    }
-    const legacy = clean(legacyWebhookUrls[index] || '');
-    if (legacy && validDiscordWebhookUrl(legacy) && !candidates.some((item) => item.url === legacy)) {
-      candidates.push({ target, transport: 'webhook', url: legacy });
     }
     return { target, candidates };
   });
 };
 
 const jsonHeaders = (body: BodyInit | null, headers: Record<string, string> = {}) => {
-  const result = { ...headers };
+  const result = { 'User-Agent': 'Panel Pro Discord Bot (+https://panel-pro.ro)', ...headers };
   if (typeof body === 'string' && !Object.keys(result).some((key) => key.toLowerCase() === 'content-type')) {
     result['Content-Type'] = 'application/json';
   }
@@ -80,15 +68,6 @@ export async function requestDiscordTarget(
     url = `${DISCORD_API}/channels/${encodeURIComponent(String(target.channel_id))}/messages`;
     if (options.messageId) url += `/${encodeURIComponent(String(options.messageId))}`;
     headers = { Authorization: `Bot ${botToken}`, ...headers };
-  } else {
-    url = String(target.url || '');
-    if (options.messageId) {
-      url = `${url.replace(/\/$/, '')}/messages/${encodeURIComponent(String(options.messageId))}`;
-    } else if (method === 'POST') {
-      const parsed = new URL(url);
-      parsed.searchParams.set('wait', 'true');
-      url = parsed.toString();
-    }
   }
   return fetch(url, { method, headers: jsonHeaders(body, headers), body: method === 'DELETE' ? undefined : body });
 }
@@ -114,15 +93,19 @@ export async function deliverDiscordRoute(
           response = await requestDiscordTarget(db, { ...candidate, message_id: '' }, body, { headers: options.headers });
         }
         if (!response.ok) {
-          lastError = `Discord ${candidate.transport} HTTP ${response.status}`;
+          const details = await response.clone().json().catch(() => ({}));
+          const discordMessage = String(details?.message || '').trim();
+          lastError = response.status === 403
+            ? `Botul Discord nu are permisiuni în canalul ${candidate.channel_id}. Verifică View Channel, Send Messages și Embed Links pentru bot.`
+            : `Discord ${candidate.transport} HTTP ${response.status}${discordMessage ? `: ${discordMessage}` : ''}`;
           continue;
         }
         const data = await response.clone().json().catch(() => ({}));
-        results.push({ target, transport: candidate.transport, channel_id: candidate.channel_id || null, url: candidate.url || null, id: data?.id ? String(data.id) : requestedMessageId || candidate.message_id || null });
+        results.push({ target, transport: candidate.transport, channel_id: candidate.channel_id || null, id: data?.id ? String(data.id) : requestedMessageId || candidate.message_id || null });
         delivered = true;
         break;
       } catch (error) {
-        lastError = error instanceof Error ? error.message : 'Eroare Discord.';
+        lastError = errorMessage(error);
       }
     }
     if (!delivered) failures.push(`${target}: ${lastError || 'destinație indisponibilă'}`);
