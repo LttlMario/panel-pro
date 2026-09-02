@@ -1,0 +1,112 @@
+# Prezentare Panel Pro
+
+## STANDARD
+
+Soluția ideală pentru organizațiile care doresc să își digitalizeze activitatea și să automatizeze procesele esențiale.
+
+Pachetul Standard este destinat unei singure organizații și include acces pe web, în aplicația mobilă Android și în aplicația mobilă iOS.
+
+### Include:
+
+- Sistem complet de autentificare
+- Dashboard modern
+- Sistem de pontaj
+- Cereri și învoiri
+- Management membri
+- Marketplace intern
+- Calculator operațional
+- Modul informațional
+- Anunțuri interne
+- Bucătărie / Rețete interne
+- Asistent integrat
+- Rapoarte
+- Sistem de loguri
+- Sistem de permisiuni
+- Configurarea organizației
+- 1 server Discord conectat la panel
+- Maximum 10 roluri configurabile
+- Numele și codul organizației
+- Adresă de lucru pentru contracte
+- Logo și banner personalizat
+- Contracte
+- Webhook-uri pentru funcțiile principale
+- Perioadă de activare limitată sau nelimitată
+- Administrarea organizației proprii
+- Configurarea paginilor și permisiunilor pentru fiecare rol
+- Vouchere unice
+- Activare pe ID-ul serverului
+- Protecție împotriva reutilizării voucherelor
+- Suspendare și reactivare
+- Notificări înainte de expirare
+- Păstrarea organizației și a datelor după expirare
+- Statusuri Draft, Activă, Grație și Pauză
+- Reactivare fără pierderea datelor
+- Integrare completă cu o singură aplicație albastră
+- Notificări automate
+- Compatibilitate PC și Mobile
+- Actualizări gratuite
+
+### Preț
+
+4.000 Gold sau 2.000.000$
+
+## PREMIUM
+
+Pachetul complet, destinat organizațiilor care doresc control total și administrarea mai multor organizații dintr-o singură platformă.
+
+Pachetul Premium include tot ce se regăsește în Standard, cu acces pe web, în aplicația mobilă Android și în aplicația mobilă iOS.
+
+### Funcții exclusive:
+
+- Management complet Multi-Organizație
+- Administrarea mai multor organizații dintr-un singur panel
+- Baze de date independente pentru fiecare organizație
+- Configurări separate pentru fiecare organizație
+- Marketplace dedicat fiecărei organizații
+- Roluri și permisiuni independente
+- Webhook-uri individuale pentru fiecare organizație
+- Statistici și rapoarte separate
+- Module operaționale dedicate utilizatorilor autorizați
+- Automatizări avansate între panel și aplicația albastră
+- Control centralizat asupra tuturor organizațiilor
+- Prioritate la actualizările majore
+- Integrare simultană cu două aplicații albastre, fiecare cu propriile roluri, webhook-uri și configurări independente
+- 2 servere Discord conectate: principal și secundar
+- 2 template-uri Discord, câte unul pentru fiecare server
+- Roluri nelimitate și webhook-uri separate
+- Acces extins la toate modulele panelului
+- Marketplace și resurse configurate avansat
+- Sincronizare și administrare avansată a membrilor
+- Disciplină și comunicare separate pe structuri
+- Audit, diagnostic și rapoarte extinse
+- Automatizări pentru expirare și notificări
+- Import și export de configurație
+- Branding complet pentru organizație
+- Posibilitate de extindere fără modificarea structurii organizației
+- Configurare avansată a accesului pe roluri
+- Funcții avansate cu acces controlat în funcție de permisiunile organizației
+
+### Preț
+
+6.000 Gold sau 3.000.000$
+
+## Toate pachetele includ
+
+- Actualizări gratuite ale platformei
+- Compatibilitate PC și Mobile
+- Interfață modernă și intuitivă
+- Sistem avansat de permisiuni
+- Automatizări și notificări în timp real
+- Suport pentru instalare și configurare
+- Configurare individuală pentru fiecare organizație
+- Păstrarea datelor organizației
+- Administrare centralizată din panel
+- Integrare cu serverele Discord
+
+## Contact
+
+Nu ești sigur ce variantă ți se potrivește?
+
+Contactează-mă în privat și te voi ajuta să alegi pachetul potrivit organizației tale.
+
+Little Mario · 765 4321 · Discord

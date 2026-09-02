@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contracte - Panel</title>
+    <!-- Tailwind CSS CDN -->
+    <link rel="stylesheet" href="css/tailwind.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+    <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+    <script src="js/permissions.js?v=4.6.0"></script>
+    <script src="js/panel-layout.js?v=4.23.0"></script>
+    <style>
+        .paste-zone {
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+        .paste-zone.has-image {
+            border-style: solid;
+            border-color: #22c55e;
+            padding: 4px;
+        }
+        .remove-img-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: background 0.2s;
+        }
+        .remove-img-btn:hover {
+            background: #dc2626;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #22c55e;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-weight: 600;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: transform 0.3s, opacity 0.3s;
+            z-index: 1000;
+        }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+    <link rel="stylesheet" href="css/global-footer.css">
+    <script src="js/project-version.js?v=3.11.3"></script>
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm">
+
+    <!-- Containerul Principal -->
+    <div class="flex h-screen w-full overflow-hidden">
+
+        <!-- Sidebar / Meniu Lateral Dinamic -->
+
+            <!-- Container Grid Principal -->
+        
+
+        <!-- Conținut Principal -->
+        <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            <section class="panel-action-bar"><div><span class="inline-flex items-center px-2.5 py-1 rounded-full text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>Sistem Activ • Realtime</span></div></section>
+            <div class="p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto w-full">
+
+                <!-- Panou Stânga: Formular (5 coloane) -->
+                <div class="lg:col-span-5 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-6">
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                        <span id="contractFormTitle" class="text-sm font-bold text-slate-100 uppercase tracking-wide">Date Contract</span>
+                        <span id="contractNumberDisplay" class="text-xs font-mono font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-lg">CN-2026-00001</span>
+                    </div>
+
+                    <form id="contractForm" onsubmit="return false;" class="space-y-4">
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-slate-400">Companie</label>
+                            <input type="text" id="company" value="S.C. Familia Es Todo S.R.L." class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-slate-400">Manager * (Rol: Manager / Admin)</label>
+                            <input type="text" id="manager" placeholder="Introduceți numele managerului" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-slate-400">Nume Complet Angajat *</label>
+                            <input type="text" id="employeeName" placeholder="Nume și Prenume" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-slate-400">CNP Angajat *</label>
+                            <input type="text" id="cnp" placeholder="Cod Numeric Personal" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-slate-400">Număr Telefon Angajat *</label>
+                            <input type="text" id="phone" placeholder="Număr de telefon" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-slate-400">Funcție / Poziție *</label>
+                            <select id="position" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
+                                <option value="Angajat">Angajat</option>
+                                <option value="Manager">Manager</option>
+                                <option value="HR">HR</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-slate-400">Salariu</label>
+                            <input type="text" id="salary" value="100 lei/lună" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-slate-400">Program de Lucru</label>
+                            <input type="text" id="schedule" value="20:00-23:00" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-slate-400">Data Începerii *</label>
+                            <input type="text" id="startDate" placeholder="DD.MM.YYYY" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div class="pt-4 space-y-2.5">
+                            <button type="button" onclick="generateContract()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow cursor-pointer">Generează Contract</button>
+                            <button type="button" onclick="copyContract()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow cursor-pointer">Copiază Contract</button>
+                            <button type="button" onclick="resetForm()" class="w-full bg-transparent border border-rose-500/50 hover:bg-rose-500/10 text-rose-400 font-semibold py-2.5 rounded-xl text-xs transition cursor-pointer">Resetează Formularul</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Panou Dreapta: Previzualizare și Discord (7 coloane) -->
+                <div class="lg:col-span-7 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg flex flex-col justify-between space-y-6">
+                    <div>
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+                            <span id="contractPreviewTitle" class="text-sm font-bold text-slate-100 uppercase tracking-wide">Previzualizare Contract</span>
+                            <div class="flex items-center space-x-3 text-[11px] text-slate-400">
+                                <span id="currentDateTime">Data: --</span>
+                                <span id="statusIndicator" class="font-semibold text-amber-400">Așteptare generare...</span>
+                            </div>
+                        </div>
+
+                        <div id="contractPreview" class="bg-slate-950 border border-slate-800 p-4 rounded-xl font-mono text-xs text-slate-300 h-96 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                            Completați formularul și apăsați "Generează Contract" pentru a vizualiza documentul final.
+                        </div>
+                    </div>
+
+                    <!-- Discord Webhook Integration Section -->
+                    <div id="discordSection" class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-4 hidden">
+                        <div class="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">
+                            <span>Atașare Imagini (Click & Apasă Ctrl+V) & Trimitere Discord</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-[11px] text-slate-400">Imagine Buletin</label>
+                                <div class="paste-zone w-full h-20 bg-slate-900 border border-dashed border-slate-700 rounded-xl flex items-center justify-center text-center text-[11px] text-slate-400 cursor-pointer p-2" id="pasteZone1" tabindex="0" onclick="this.focus()">
+                                    <span id="pasteText1">Click & Dă Paste (Ctrl+V)</span>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[11px] text-slate-400">Imagine Contract</label>
+                                <div class="paste-zone w-full h-20 bg-slate-900 border border-dashed border-slate-700 rounded-xl flex items-center justify-center text-center text-[11px] text-slate-400 cursor-pointer p-2" id="pasteZone2" tabindex="0" onclick="this.focus()">
+                                    <span id="pasteText2">Click & Dă Paste (Ctrl+V)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" id="sendDiscordBtn" onclick="sendToDiscord()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-xs transition cursor-pointer shadow">Trimite Raportul pe Discord</button>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal imagine mărită -->
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <span class="absolute top-5 right-8 text-white text-3xl font-bold cursor-pointer">&times;</span>
+        <img id="modalImg" class="max-w-[80%] max-h-[80%] rounded-xl shadow-2xl" alt="Imagine mărită">
+    </div>
+
+    <div class="toast" id="toastNotification">Contractul a fost copiat în clipboard!</div>
+
+    <!-- Scriptul logic complet integrat -->
+    <script>
+        let imageData1 = null;
+        let imageData2 = null;
+
+        let contractTemplate = `CONTRACT INDIVIDUAL DE MUNCĂ
+
+Încheiat între:
+
+Angajator: {{COMPANY}}, cu sediul la {{ADDRESS}}, reprezentată legal de {{MANAGER}}, denumită în continuare Angajator,
+
+și
+
+Salariat:
+{{EMPLOYEE_NAME}}
+
+domiciliat(ă) în Los Santos,
+CNP: {{CNP}},
+Telefon: {{PHONE}},
+denumit(ă) în continuare Angajat.
+
+Art. 1 – Obiectul contractului
+
+Angajatul este încadrat în funcția de {{POSITION}} în cadrul activității de service auto și/sau spălătorie auto, conform fișei postului anexate la prezentul contract.
+
+Art. 2 – Durata contractului
+
+Contractul se încheie pe perioadă: Perioada Nedeterminata
+
+Data începerii activității este {{START_DATE}}.
+
+Art. 3 – Locul muncii
+
+Activitatea se va desfășura la punctul de lucru al {{COMPANY}}, situat la {{ADDRESS}}, precum și în alte locații ale societății, dacă este necesar.
+
+Art. 4 – Programul de lucru
+
+Programul normal de lucru este de 3 ore/zi, între ora {{PROGRAM}}, conform programului stabilit de angajator si Primaria Orasului Los Santos.
+
+Art. 5 – Salarizarea
+
+Salariul de bază net: {{SALARY}}.
+Plata salariului se efectuează săptămânal în fiecare duminică.
+Angajatul poate beneficia de bonusuri sau prime de performanță, conform politicii societății.
+Orele suplimentare se efectuează numai cu aprobarea angajatorului și nu sunt remunerate prin salariul de bază. Compensarea acestora se realizează exclusiv din sumele încasate cu titlu de bacșiș („ciubuc”) sau din veniturile obținute în urma lucrărilor efectuate în intervalul respectiv, conform înțelegerii dintre părți.
+
+Art. 6 – Obligațiile angajatului
+
+Angajatul se obligă:
+
+să respecte programul de lucru;
+să execute atribuțiile prevăzute în fișa postului;
+să utilizeze corespunzător echipamentele și uneltele societății;
+să respecte normele de securitate și sănătate în muncă;
+să păstreze confidențialitatea informațiilor privind activitatea societății și a clienților;
+să manifeste un comportament profesionist față de clienți și colegi;
+să informeze imediat angajatorul despre orice incident sau defecțiune constatată.
+
+Art. 7 – Obligațiile angajatorului
+
+Angajatorul se obligă:
+
+să asigure condiții corespunzătoare de muncă;
+să achite salariul la termen;
+să pună la dispoziția angajatului echipamentele necesare;
+să respecte drepturile prevăzute de legislația muncii;
+să asigure instruirea privind securitatea și sănătatea în muncă.
+
+Art. 8 – Demisia și încetarea contractului
+
+Angajatul poate demisiona prin notificare scrisă, cu respectarea termenului de preaviz prevăzut de lege sau de prezentul contract.
+
+Angajatorul poate dispune încetarea contractului numai în condițiile și pentru motivele prevăzute de legislația muncii, cu respectarea procedurilor legale.
+
+La încetarea raporturilor de muncă, angajatul va preda toate bunurile, echipamentele, documentele și materialele aparținând societății.
+
+Art. 9 – Fișa postului
+
+Atribuții principale
+
+executarea lucrărilor specifice postului ocupat;
+menținerea curățeniei la locul de muncă;
+utilizarea corectă a echipamentelor și sculelor;
+respectarea procedurilor interne;
+comunicarea cu superiorul direct privind desfășurarea activității;
+respectarea normelor de protecția muncii și PSI.
+
+Art. 10 – Dispoziții finale
+
+Prezentul contract produce efecte începând cu data de {{START_DATE}}.
+
+Orice modificare se face numai prin act adițional, semnat de ambele părți.
+
+Contractul este întocmit în două exemplare originale, câte unul pentru fiecare parte.
+
+ANGAJATOR
+
+Compania: {{COMPANY}}
+
+Reprezentant: {{MANAGER}}
+
+Semnătură: {{MANAGER}}
+
+ANGAJAT
+
+Nume: {{EMPLOYEE_NAME}}
+
+Semnătură:`;
+
+        let currentContractNumber = "";
+        const contractCounterKey = () => `contract_counter_${window.getActiveOrganizationId?.() || 'default'}`;
+        let currentUser = JSON.parse(localStorage.getItem('discord_user')) || JSON.parse(localStorage.getItem('workforce_user')) || { display_name: 'Admin', role: 'admin' };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const organization = window.getActiveOrganization?.();
+                const db = window.createPanelSupabaseClient?.();
+                if (organization?.name) document.getElementById('company').value = organization.name;
+                const organizationId = String(
+                    organization?.id ||
+                    window.getActiveOrganizationId?.() ||
+                    ''
+                ).trim();
+                if (db && organizationId) {
+                    const { data } = await db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'contract_template').maybeSingle();
+                    const custom = data?.value;
+                    if (custom?.template) contractTemplate = String(custom.template);
+                    if (custom?.defaults?.salary) document.getElementById('salary').value = String(custom.defaults.salary);
+                    if (custom?.title) {
+                        document.getElementById('contractSystemTitle')?.setAttribute('data-title', `${custom.title} — ${organization?.name || ''}`);
+                        document.getElementById('contractFormTitle')?.replaceChildren(document.createTextNode(custom.title));
+                        document.getElementById('contractPreviewTitle')?.replaceChildren(document.createTextNode(`Previzualizare: ${custom.title}`));
+                    } else if (organization?.name) document.getElementById('contractSystemTitle').textContent = `Contracte — ${organization.name}`;
+                }
+            } catch (error) { console.warn('Șablonul contractului nu a putut fi încărcat.', error); }
+            const currentPage = window.location.pathname.split("/").pop() || "index.html";
+            document.querySelectorAll('.nav-link').forEach(link => {
+                const linkHref = link.getAttribute('href');
+                if (linkHref === currentPage) {
+                    link.classList.remove('text-slate-300', 'hover:bg-slate-800');
+                    link.classList.add('bg-emerald-500/10', 'text-emerald-400', 'font-medium');
+                }
+            });
+
+            const activeRole = currentUser.role || currentUser.default_role || 'admin';
+
+            const navLogs = document.getElementById('nav-logs');
+            if (navLogs) navLogs.classList.remove('hidden');
+
+            const managerInput = document.getElementById('manager');
+            if (managerInput && !managerInput.value) {
+                managerInput.value = currentUser.display_name || currentUser.username || currentUser.name || 'Admin';
+            }
+
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    localStorage.clear();
+                    window.location.href = 'login.html';
+                });
+            }
+
+            setDefaultDate();
+            updateDateTime();
+            loadOrInitContractNumber();
+            setInterval(updateDateTime, 1000);
+            setupPasteHandlers();
+        });
+
+        function setDefaultDate() {
+            const today = new Date();
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const yyyy = today.getFullYear();
+            document.getElementById('startDate').value = `${dd}.${mm}.${yyyy}`;
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ro-RO');
+            const timeStr = now.toLocaleTimeString('ro-RO');
+            document.getElementById('currentDateTime').innerText = `Data: ${dateStr} | Ora: ${timeStr}`;
+        }
+
+        function loadOrInitContractNumber() {
+            let counter = localStorage.getItem(contractCounterKey());
+            const currentYear = new Date().getFullYear();
+
+            if (!counter) {
+                counter = 1;
+            } else {
+                counter = parseInt(counter, 10);
+            }
+
+            currentContractNumber = formatContractNumber(currentYear, counter);
+            document.getElementById('contractNumberDisplay').innerText = currentContractNumber;
+        }
+
+        function formatContractNumber(year, number) {
+            return `CN-${year}-${String(number).padStart(5, '0')}`;
+        }
+
+        function incrementContractNumber() {
+            let counter = localStorage.getItem(contractCounterKey());
+            const currentYear = new Date().getFullYear();
+
+            if (!counter) {
+                counter = 1;
+            } else {
+                counter = parseInt(counter, 10) + 1;
+            }
+
+            localStorage.setItem(contractCounterKey(), counter);
+            currentContractNumber = formatContractNumber(currentYear, counter);
+            document.getElementById('contractNumberDisplay').innerText = currentContractNumber;
+        }
+
+        function generateContract() {
+            const company = document.getElementById('company').value.trim();
+            const address = String(window.getActiveOrganization?.()?.address || '').trim();
+            const manager = document.getElementById('manager').value.trim();
+            const employeeName = document.getElementById('employeeName').value.trim();
+            const cnp = document.getElementById('cnp').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const position = document.getElementById('position').value;
+            const salary = document.getElementById('salary').value.trim();
+            const schedule = document.getElementById('schedule').value.trim();
+            const startDate = document.getElementById('startDate').value.trim();
+
+            const values={COMPANY:company,ADDRESS:address,MANAGER:manager,EMPLOYEE_NAME:employeeName,CNP:cnp,PHONE:phone,POSITION:position,SALARY:salary,PROGRAM:schedule,START_DATE:startDate,CONTRACT_NUMBER:currentContractNumber};
+            const labels={COMPANY:'Companie',ADDRESS:'Adresă',MANAGER:'Manager',EMPLOYEE_NAME:'Nume angajat',CNP:'CNP',PHONE:'Telefon',POSITION:'Funcție',SALARY:'Salariu',PROGRAM:'Program',START_DATE:'Data începerii',CONTRACT_NUMBER:'Număr contract'};
+            const missing=Object.entries(values).filter(([key,value])=>contractTemplate.includes(`{{${key}}}`)&&!String(value).trim()).map(([key])=>labels[key]);if(missing.length){alert(`Completează câmpurile folosite de acest contract: ${missing.join(', ')}.`);return}
+
+            let finalContract = contractTemplate
+                .replaceAll('{{CONTRACT_NUMBER}}', currentContractNumber)
+                .replaceAll('{{COMPANY}}', company)
+                .replaceAll('{{ADDRESS}}', address)
+                .replaceAll('{{MANAGER}}', manager)
+                .replaceAll('{{EMPLOYEE_NAME}}', employeeName)
+                .replaceAll('{{CNP}}', cnp)
+                .replaceAll('{{PHONE}}', phone)
+                .replaceAll('{{POSITION}}', position)
+                .replaceAll('{{SALARY}}', salary)
+                .replaceAll('{{PROGRAM}}', schedule)
+                .replaceAll('{{START_DATE}}', startDate);
+
+            finalContract = `Număr Contract: ${currentContractNumber}\n\n` + finalContract;
+
+            document.getElementById('contractPreview').innerText = finalContract;
+            document.getElementById('statusIndicator').innerText = 'Generat cu succes';
+            document.getElementById('statusIndicator').style.color = '#22c55e';
+
+            incrementContractNumber();
+        }
+
+        function copyContract() {
+            const previewText = document.getElementById('contractPreview').innerText;
+            if (!previewText || previewText.startsWith('Completați formularul')) {
+                alert('Mai întâi generați un contract pentru a-l putea copia!');
+                return;
+            }
+
+            navigator.clipboard.writeText(previewText).then(() => {
+                showToast();
+                document.getElementById('discordSection').classList.remove('hidden');
+            }).catch(err => {
+                alert('Eroare la copierea în clipboard: ' + err);
+            });
+        }
+
+        function resetForm() {
+            document.getElementById('contractForm').reset();
+            document.getElementById('company').value = 'S.C. Familia Es Todo S.R.L.';
+            document.getElementById('salary').value = '100 lei/lună';
+            document.getElementById('schedule').value = '20:00-23:00';
+            const displayNameToRender = currentUser.display_name || currentUser.username || '';
+            document.getElementById('manager').value = displayNameToRender;
+            setDefaultDate();
+            document.getElementById('contractPreview').innerText = 'Completați formularul și apăsați "Generează Contract" pentru a vizualiza documentul final.';
+            document.getElementById('statusIndicator').innerText = 'Formular resetat';
+            document.getElementById('statusIndicator').style.color = '#f59e0b';
+            document.getElementById('discordSection').classList.add('hidden');
+
+            clearPasteZone(1);
+            clearPasteZone(2);
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toastNotification');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function setupPasteHandlers() {
+            setupZone(1);
+            setupZone(2);
+        }
+
+        function setupZone(id) {
+            const zone = document.getElementById(`pasteZone${id}`);
+
+            zone.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                        const blob = items[i].getAsFile();
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            if (id === 1) imageData1 = event.target.result;
+                            if (id === 2) imageData2 = event.target.result;
+
+                            zone.innerHTML = `
+                                <img src="${event.target.result}" alt="Imagine ${id}" class="max-h-full max-w-full object-contain cursor-pointer rounded-lg" onclick="openModal('${event.target.result}')" title="Click pentru a mări">
+                                <button type="button" class="remove-img-btn" onclick="event.stopPropagation(); clearPasteZone(${id});" title="Șterge imaginea">&times;</button>
+                            `;
+                            zone.classList.add('has-image');
+                        };
+                        reader.readAsDataURL(blob);
+                        break;
+                    }
+                }
+            });
+        }
+
+        function openModal(src) {
+            document.getElementById('modalImg').src = src;
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        function clearPasteZone(id) {
+            const textMsg = "Click & Dă Paste (Ctrl+V)";
+            const zone = document.getElementById(`pasteZone${id}`);
+            zone.innerHTML = `<span id="pasteText${id}">${textMsg}</span>`;
+            zone.classList.remove('has-image');
+            if (id === 1) imageData1 = null;
+            if (id === 2) imageData2 = null;
+        }
+
+        async function sendToDiscord() {
+            const address = String(window.getActiveOrganization?.()?.address || '').trim();
+            const manager = document.getElementById('manager').value.trim();
+            const employeeName = document.getElementById('employeeName').value.trim();
+            const cnp = document.getElementById('cnp').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const position = document.getElementById('position').value;
+            const salary = document.getElementById('salary').value.trim();
+            const startDate = document.getElementById('startDate').value.trim();
+
+
+            const sendBtn = document.getElementById('sendDiscordBtn');
+            sendBtn.innerText = 'Se trimite...';
+            sendBtn.disabled = true;
+
+            try {
+                const formData = new FormData();
+
+                const embedFields = [
+                    { name: "📋 Număr Contract", value: currentContractNumber, inline: false },
+                    { name: "📍 Adresă", value: address, inline: false },
+                    { name: "👔 Manager / Admin Responsabil", value: manager, inline: true },
+                    { name: "👤 Angajat", value: employeeName, inline: true },
+                    { name: "🆔 CNP", value: cnp, inline: true },
+                    { name: "📞 Telefon", value: phone, inline: true },
+                    { name: "💼 Funcție", value: position, inline: true },
+                    { name: "💰 Salariu", value: salary, inline: true },
+                    { name: "📅 Data Începerii", value: startDate, inline: true }
+                ].filter(field => String(field.value || '').trim());
+
+                let attachments = [];
+                let filesCount = 0;
+
+                if (imageData1) {
+                    filesCount++;
+                    const file1 = dataURItoBlob(imageData1, "buletin.png");
+                    formData.append(`files[${filesCount - 1}]`, file1, "buletin.png");
+                    attachments.push({ id: filesCount - 1, filename: "buletin.png" });
+                }
+
+                if (imageData2) {
+                    filesCount++;
+                    const file2 = dataURItoBlob(imageData2, "contract.png");
+                    formData.append(`files[${filesCount - 1}]`, file2, "contract.png");
+                    attachments.push({ id: filesCount - 1, filename: "contract.png" });
+                }
+
+                let embedsList = [];
+
+                if (attachments.length > 0) {
+                    let embed1 = {
+                        title: "Detalii Contract & Angajare (Manager / Admin)",
+                        color: 39423,
+                        fields: embedFields,
+                        image: { url: `attachment://${attachments[0].filename}` },
+                        timestamp: new Date().toISOString()
+                    };
+                    embedsList.push(embed1);
+
+                    if (attachments.length > 1) {
+                        let embed2 = {
+                            color: 39423,
+                            image: { url: `attachment://${attachments[1].filename}` }
+                        };
+                        embedsList.push(embed2);
+                    }
+                } else {
+                    let embed1 = {
+                        title: "Detalii Contract & Angajare (Manager / Admin)",
+                        color: 39423,
+                        fields: embedFields,
+                        timestamp: new Date().toISOString()
+                    };
+                    embedsList.push(embed1);
+                }
+
+                const payload = {
+                    content: `🔔 **Contract nou generat de administratorul / managerul \`${manager}\`!**`,
+                    embeds: embedsList
+                };
+
+                formData.append('payload_json', JSON.stringify(payload));
+
+                let response = await sendPanelDiscord('contracts', formData);
+
+                if (!response.ok && response.status !== 204) {
+                    throw new Error('Eroare la trimiterea mesajului pe Discord.');
+                }
+
+                alert('Raportul a fost trimis cu succes pe Discord!');
+            } catch (error) {
+                alert('Eroare: ' + error.message);
+            } finally {
+                sendBtn.innerText = 'Trimite Raportul pe Discord';
+                sendBtn.disabled = false;
+            }
+        }
+
+        function dataURItoBlob(dataUrl, filename) {
+            const arr = dataUrl.split(',');
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new File([u8arr], filename, { type: mime });
+        }
+    </script>
+    <script src="js/discord-notifications.js"></script>
+    <script src="js/global-footer.js"></script>
+</body>
+</html>

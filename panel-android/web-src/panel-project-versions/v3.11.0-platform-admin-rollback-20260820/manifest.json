@@ -1,0 +1,27 @@
+{
+  "version": "3.11.0",
+  "releasedAt": "2026-08-20",
+  "title": "Administrare platformă și arhive de rollback",
+  "supabaseProjectRef": "vkvsabbbawyiurnaiugo",
+  "githubRepository": "LttlMario/panel-pro",
+  "pullRequest": 132,
+  "parentCommit": "6c30bc3cac9c2bfcecb7c9506f18a9c4967f0882",
+  "releaseCommit": "see GitHub history for this archive",
+  "supabaseMigrationApplied": true,
+  "supabaseFunctionsDeployed": [
+    "manage-admin-center",
+    "sync-discord-role",
+    "manage-organizations",
+    "manage-owned-organization",
+    "manage-discord-config",
+    "manage-community-posts"
+  ],
+  "pagesDeployment": "GitHub Pages build passed",
+  "sourceFiles": [
+    "source/pages/ — toate paginile HTML la momentul release-ului",
+    "source/js/ — toate fișierele JavaScript la momentul release-ului"
+  ],
+  "sqlFiles": [
+    "20260820000100_platform_admins_and_bans.sql"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "version": "3.11.5",
+  "releasedAt": "2026-08-20",
+  "title": "Wrapper intern pentru verificare sistem",
+  "supabaseProjectRef": "vkvsabbbawyiurnaiugo",
+  "githubRepository": "LttlMario/panel-pro",
+  "parentCommit": "55053264b2958682c753cb930989dca2073c1adb",
+  "releaseCommit": "0098896",
+  "backupCommit": "see GitHub history for archive commit",
+  "supabaseMigrationApplied": false,
+  "supabaseFunctionsDeployed": [],
+  "pagesDeployment": "Pending validation and GitHub Pages deployment",
+  "backupFileCounts": {
+    "source": 225,
+    "functions": 33,
+    "sql": 37,
+    "supabase": 10,
+    "automation": 2,
+    "payloadTotal": 307,
+    "archiveMetadata": 2,
+    "archiveTotal": 309
+  },
+  "sourceFiles": [
+    "source/pages/ — toate paginile HTML",
+    "source/css/ — toate fișierele CSS",
+    "source/js/ — toate fișierele JavaScript",
+    "source/img/ și source/vendor/ — activele web",
+    "source/root/ — fișierele auxiliare"
+  ],
+  "sqlFiles": [
+    "sql/ — toate migrațiile Supabase",
+    "sql/manual/ — scripturile SQL manuale"
+  ],
+  "functionFiles": [
+    "functions/ — toate funcțiile Supabase și _shared"
+  ]
+}

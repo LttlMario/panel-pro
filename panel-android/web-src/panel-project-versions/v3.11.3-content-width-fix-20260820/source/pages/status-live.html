@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status Live - Panel</title>    <!-- Tailwind CSS CDN -->
+    <link rel="stylesheet" href="css/tailwind.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+    <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+    <script src="js/permissions.js?v=4.6.0"></script>
+    <script src="js/panel-layout.js?v=4.23.0"></script>
+    <link rel="stylesheet" href="css/global-footer.css">
+    <script src="js/project-version.js?v=3.11.3"></script>
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm">
+
+    <!-- Containerul Principal -->
+    <div id="app-container" class="flex h-screen w-full overflow-hidden">
+
+
+        <!-- Conținut Principal -->
+        <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+
+            <div class="mt-3 flex items-center gap-3">
+
+                <input
+                    id="live-status-webhook"
+                    type="password"
+                    placeholder="Webhook Discord Status Live"
+                    class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs">
+
+                <button
+                    onclick="saveLiveWebhook()"
+                    class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-semibold">
+
+                    Salvează Webhook
+
+                </button>
+
+            </div>
+
+            <div class="p-8 space-y-6 max-w-5xl mx-auto w-full">
+                <!-- Panou Vizualizare Live în Interfața Web -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-6">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-100">Previzualizare Status Live</h3>
+                            <p id="active-organization-display"
+                            class="text-xs text-slate-400 mt-0.5">
+                                Se identifică organizația activă...
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="text-xs font-medium text-emerald-400">Sistem Online</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- În pontaj -->
+                        <div class="bg-slate-950 border border-slate-800 p-5 rounded-xl space-y-3">
+                            <h4 class="text-sm font-bold text-emerald-400 flex items-center justify-between">
+                                <span>🟢 În pontaj</span>
+                                <span id="count-active" class="text-xs bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">0</span>
+                            </h4>
+                            <div id="list-active" class="space-y-2 text-xs text-slate-300 min-h-[100px]">
+                                <p class="text-slate-500 italic">Se încarcă utilizatorii...</p>
+                            </div>
+                        </div>
+
+                        <!-- În pauză -->
+                        <div class="bg-slate-950 border border-slate-800 p-5 rounded-xl space-y-3">
+                            <h4 class="text-sm font-bold text-amber-400 flex items-center justify-between">
+                                <span>☕ În pauză</span>
+                                <span id="count-paused" class="text-xs bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">0</span>
+                            </h4>
+                            <div id="list-paused" class="space-y-2 text-xs text-slate-300 min-h-[100px]">
+                                <p class="text-slate-500 italic">Se încarcă utilizatorii...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                        <span>📊 Total pontați: <strong id="total-pontaged" class="text-slate-200">0</strong></span>
+                        <span>⏱️ Actualizat: <span id="last-update-time" class="text-slate-200 font-mono">acum</span></span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Logica unificată bazată pe rapoarte.html și anunturi.html / discord-notifications.js -->
+    <script>
+
+        const supabaseClient = window.createPanelSupabaseClient();
+
+        let usersMap = {};
+        let activeShiftsData = [];
+        let activeOrganization = null;
+        let activeOrganizationId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Autentificare reutilizată din rapoarte.html
+            const cachedUser = localStorage.getItem('discord_user') || localStorage.getItem('workforce_user');
+            if (!cachedUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+            try {
+                if (typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
+                const refreshedActiveOrganization = localStorage.getItem('panel_active_organization');
+                if (!refreshedActiveOrganization) throw new Error('Organizația activă nu există în sesiune.');
+                activeOrganization = JSON.parse(refreshedActiveOrganization);
+            } catch (error) {
+                console.error(
+                    'Status Live: datele organizației active sunt invalide.',
+                    error
+                );
+
+                alert(
+                    'Datele organizației active sunt invalide. Autentifică-te din nou.'
+                );
+
+                window.location.href = 'login.html';
+                return;
+            }
+
+            activeOrganizationId = window.getActiveOrganizationId?.() || null;
+
+            if (!activeOrganizationId) {
+                console.error(
+                    'Status Live: organizația activă nu conține un ID valid.',
+                    activeOrganization
+                );
+                const organizationDisplay =
+                    document.getElementById('active-organization-display');
+
+                if (organizationDisplay) {
+                    organizationDisplay.textContent =
+                        `Organizație activă: ${
+                            activeOrganization?.name ||
+                            activeOrganization?.organization_name ||
+                            activeOrganizationId
+                        }`;
+                }
+
+                alert(
+                    'ID-ul organizației active nu a putut fi identificat.'
+                );
+
+                return;
+            }
+            const organizationDisplay =
+                document.getElementById('active-organization-display');
+
+            if (organizationDisplay) {
+                organizationDisplay.textContent =
+                    `Organizație activă: ${
+                        activeOrganization?.name ||
+                        activeOrganization?.organization_name ||
+                        'Organizație'
+                    }`;
+            }
+
+            console.log(
+                'Status Live — organizație activă:',
+                activeOrganizationId,
+                activeOrganization
+            );
+
+            try {
+                const localData = JSON.parse(cachedUser);
+                if (!localData || (!localData.discord_id && !localData.id)) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+
+
+                const savedWebhook =
+                    localStorage.getItem('status_live_webhook');
+
+                if (savedWebhook) {
+
+                    document.getElementById(
+                        'live-status-webhook'
+                    ).value = savedWebhook;
+
+                }
+
+                await fetchUsersData();
+                await fetchAndRenderActiveShifts();
+
+                // Realtime nativ Supabase existent în proiect pentru actualizare automată
+                supabaseClient
+                    .channel(`status-live-realtime-${activeOrganizationId}`)
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'shifts',
+                            filter: `organization_id=eq.${activeOrganizationId}`
+                        },
+                        payload => {
+                            console.log(
+                                'Status Live — modificare pontaj pentru organizația activă:',
+                                payload
+                            );
+
+                            fetchAndRenderActiveShifts();
+                        }
+                    )
+                    .subscribe(status => {
+                        console.log(
+                            'Status Live — stare conexiune Realtime:',
+                            status
+                        );
+                    });
+
+                // Sincronizare periodică automată cu Discord (la fiecare 60 de secunde)
+                setInterval(() => {
+                    fetchAndRenderActiveShifts(true);
+                }, 60000);
+
+            } catch (err) {
+                console.error('Erore sesiune status-live:', err);
+                window.location.href = 'login.html';
+            }
+        });
+
+
+
+        // Citirea utilizatorilor (reutilizată exact din rapoarte.html)
+        async function fetchUsersData() {
+            const result = await window.loadPanelOrganizationDirectory?.(activeOrganizationId);
+            if (result?.error) return;
+            (result?.data || []).forEach(user => {
+                const id = String(user.discord_id || '').trim();
+                if (id) usersMap[id] = user.display_name || user.username || id;
+            });
+        }
+
+        // Citirea tabelului shifts pentru pontaje active (reutilizată din rapoarte.html)
+        async function fetchAndRenderActiveShifts(sendDiscord = false) {
+            try {
+                if (!activeOrganizationId) {
+                    throw new Error(
+                        'Organizația activă nu este disponibilă pentru filtrarea pontajelor.'
+                    );
+                }
+
+                let { data, error } = await supabaseClient
+                    .from('shifts')
+                    .select('*')
+                    .eq('organization_id', activeOrganizationId)
+                    .in('status', ['active', 'paused'])
+                    .is('end_time', null);
+
+                if (error) throw error;
+                activeShiftsData = data || [];
+
+                renderLiveUI(activeShiftsData);
+
+                if (sendDiscord) {
+                    await sendStatusLiveToDiscord(activeShiftsData);
+                }
+            } catch (err) {
+                console.error('Erore preluare ture active:', err);
+            }
+        }
+
+        function calculateElapsed(shift) {
+            const start = new Date(`${shift.date}T${shift.start_time || '00:00:00'}`);
+            if (Number.isNaN(start.getTime())) return '00:00:00';
+            const diffSec = Math.max(0, Math.floor((Date.now() - start.getTime()) / 1000));
+            const h = Math.floor(diffSec / 3600).toString().padStart(2, '0');
+            const m = Math.floor((diffSec % 3600) / 60).toString().padStart(2, '0');
+            const s = (diffSec % 3600 % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+
+        function renderLiveUI(shifts) {
+            const activeList = shifts.filter(s => s.status !== 'paused');
+            const pausedList = shifts.filter(s => s.status === 'paused');
+
+            document.getElementById('count-active').textContent = activeList.length;
+            document.getElementById('count-paused').textContent = pausedList.length;
+            document.getElementById('total-pontaged').textContent = shifts.length;
+            document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString('ro-RO');
+
+
+            // Simplificat pentru randare sigură
+            document.getElementById('list-active').innerHTML = activeList.length === 0
+                ? '<p class="text-slate-500 italic">Niciun membru în pontaj.</p>'
+                : activeList.map(s => {
+                    const name =
+                        s.colleague_name ||
+                        usersMap[String(s.discord_id).trim()] ||
+                        'Utilizator';
+                    return `<div class="flex items-center justify-between bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span>${escapeHtml(name)}</span><span class="font-mono text-emerald-400">${calculateElapsed(s)}</span></div>`;
+                }).join('');
+
+            document.getElementById('list-paused').innerHTML = pausedList.length === 0
+                ? '<p class="text-slate-500 italic">Niciun membru în pauză.</p>'
+                : pausedList.map(s => {
+                    const name =
+                        s.colleague_name ||
+                        usersMap[String(s.discord_id).trim()] ||
+                        'Utilizator';
+                    return `<div class="flex items-center justify-between bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span>${escapeHtml(name)}</span><span class="font-mono text-amber-400">${calculateElapsed(s)}</span></div>`;
+                }).join('');
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+        function saveLiveWebhook() {
+
+            const webhook =
+                document.getElementById('live-status-webhook').value.trim();
+
+            if (!webhook) {
+                alert('Introdu webhook-ul.');
+                return;
+            }
+
+            localStorage.setItem(
+                'status_live_webhook',
+                webhook
+            );
+
+            alert('Webhook salvat.');
+
+        }
+        async function manualSyncStatusLive() {
+            await fetchAndRenderActiveShifts(true);
+            alert('Statusul Live a fost trimis/actualizat pe Discord cu succes!');
+        }
+
+        // Sistem de webhook Discord reutilizat din anunturi.html / js/discord-notifications.js
+    async function sendStatusLiveToDiscord(shifts) {
+
+        const activeList = shifts.filter(s => s.status !== 'paused');
+        const pausedList = shifts.filter(s => s.status === 'paused');
+
+        const activeText = activeList.length === 0
+            ? '_Niciun membru activ_'
+            : activeList.map(s =>
+                `🟢 **${s.colleague_name || usersMap[String(s.discord_id).trim()] || 'Utilizator'}** .......... ${calculateElapsed(s)}`
+            ).join('\n');
+
+        const pausedText = pausedList.length === 0
+            ? '_Niciun membru în pauză_'
+            : pausedList.map(s =>
+                `☕ **${s.colleague_name || usersMap[String(s.discord_id).trim()] || 'Utilizator'}** .......... ${calculateElapsed(s)}`
+            ).join('\n');
+
+        const payload = {
+            embeds: [{
+                title: "📡 STATUS LIVE",
+                description:
+    `━━━━━━━━━━━━━━
+
+    🟢 **În pontaj (${activeList.length})**
+
+    ${activeText}
+
+    ━━━━━━━━━━━━━━
+
+    ☕ **În pauză (${pausedList.length})**
+
+    ${pausedText}
+
+    ━━━━━━━━━━━━━━
+
+    📊 **Total pontați:** ${shifts.length}
+    ⏱️ **Actualizat:** <t:${Math.floor(Date.now()/1000)}:R>
+
+    🟢 **Sistem Online**`,
+                color: 3066993,
+                timestamp: new Date().toISOString()
+            }]
+        };
+
+        try {
+
+        const webhook =
+            localStorage.getItem('status_live_webhook');
+
+        if (!webhook) {
+
+            alert('Configurează mai întâi webhook-ul.');
+
+            return;
+
+        }
+
+        const response = await fetch(webhook, {
+
+            method: 'POST',
+
+            headers: {
+                'Content-Type': 'application/json'
+            },
+
+            body: JSON.stringify(payload)
+
+        });
+
+        if (!response.ok) {
+
+            throw new Error(
+                `Discord a raspuns cu ${response.status}`
+            );
+
+        }
+
+        } catch (error) {
+
+            console.error(
+                'Status Live Discord:',
+                error
+            );
+
+            alert(
+                error.message || 'Eroare la trimiterea pe Discord.'
+            );
+
+        }
+
+    }
+    </script>
+    <script src="js/discord-notifications.js"></script>
+    <script src="js/status-live.js"></script>
+    <script src="js/global-footer.js"></script>
+</body>
+</html>

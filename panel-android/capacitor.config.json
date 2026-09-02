@@ -1,0 +1,24 @@
+{
+  "appId": "ro.littlemario.panelmafie",
+  "appName": "Panel",
+  "webDir": "www",
+  "server": {
+    "url": "https://panel-pro.ro/",
+    "allowNavigation": [
+      "panel-pro.ro",
+      "www.panel-pro.ro",
+      "discord.com",
+      "*.discord.com",
+      "discordapp.com",
+      "*.discordapp.com"
+    ],
+    "hostname": "panel.local",
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "adjustMarginsForEdgeToEdge": "force",
+    "webContentsDebuggingEnabled": false
+  }
+}

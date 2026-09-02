@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirmare email - Panel</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/global-footer.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js?v=20260813-authfix"></script>
+  <script src="js/discord-config.js"></script>
+  <style>
+    #email-discord-connect {
+      display: flex !important;
+      min-height: 58px;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: 1px solid rgba(129, 140, 248, .75) !important;
+      border-radius: 14px !important;
+      background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+      box-shadow: 0 12px 30px rgba(79, 70, 229, .25);
+      cursor: pointer;
+      font-weight: 900;
+      letter-spacing: .01em;
+      transition: transform .18s ease, filter .18s ease, opacity .18s ease;
+    }
+    #email-discord-connect::before { content: '✓'; font-size: 1.15rem; }
+    #email-discord-connect:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+    #email-discord-connect:focus-visible { outline: 3px solid rgba(103, 232, 249, .55); outline-offset: 3px; }
+    #email-discord-connect:disabled { cursor: not-allowed; opacity: .45; filter: grayscale(.35); box-shadow: none; }
+    #email-discord-connect .connect-copy { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+    #email-discord-connect .connect-subtitle { color: rgba(224, 231, 255, .8); font-size: .72rem; font-weight: 600; }
+  </style>
+  <link rel="icon" href="img/favicon.ico">
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+  <main class="mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-3xl items-center justify-center px-5 py-12">
+    <section class="w-full rounded-3xl border border-cyan-400/20 bg-slate-900/80 p-7 shadow-[0_0_70px_rgba(34,211,238,0.10)] sm:p-10">
+      <div class="mb-8 flex items-start gap-4">
+        <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-emerald-300/30 bg-emerald-400/10 text-2xl text-emerald-300">✓</div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">Pasul 2 din 2</p>
+          <h1 class="mt-1 text-3xl font-black text-white">Email verificat cu succes</h1>
+          <p class="mt-2 max-w-xl text-sm leading-6 text-slate-400">Pentru accesul la panel, confirmă o singură dată serverul Discord pe care botul poate verifica rolul tău.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="rounded-2xl border border-emerald-400/25 bg-emerald-400/10 p-5">
+          <p class="text-sm font-black text-emerald-200">Pasul 1 — adresa ta de email este confirmată.</p>
+          <p class="mt-2 text-sm leading-6 text-slate-300">Acum revino la login și autentifică-te cu username-ul și parola alese la înregistrare.</p>
+        </div>
+        <div class="rounded-2xl border border-indigo-400/25 bg-indigo-500/10 p-5">
+          <p class="text-sm font-black text-indigo-100">Pasul 2 — confirmă accesul Discord.</p>
+          <p class="mt-2 text-sm leading-6 text-slate-300">Poți face verificarea direct acum sau poți reveni la login și apăsa același buton din cont. După aprobare, vei alege dintre guildurile tale eligibile, iar botul va verifica rolul configurat pentru organizația respectivă.</p>
+          <p class="mt-3 text-xs leading-5 text-indigo-100/75">Potrivirea se face după Guild ID, nu după numele serverului. Nu trebuie să scrii sau să introduci manual numele Discord.</p>
+        </div>
+        <div class="rounded-2xl border border-indigo-400/40 bg-indigo-500/15 p-5">
+          <p class="text-sm font-black text-white">Aprobă accesul Discord</p>
+          <p class="mt-2 text-xs leading-5 text-slate-300">Discord îți va arăta exact permisiunile minime cerute: ID-ul tehnic Discord și lista serverelor Discord din care faci parte. Nu cerem emailul, avatarul sau alte date de profil, nu cerem parola Discord și nu salvăm tokenul Discord pentru contul email.</p>
+          <button id="email-verification-discord" type="button" class="mt-4 inline-flex w-full items-center justify-center rounded-xl border-2 border-indigo-300/70 bg-indigo-500 px-4 py-3.5 text-sm font-black text-white shadow-[0_8px_24px_rgba(99,102,241,0.25)] transition hover:-translate-y-0.5 hover:bg-indigo-400">Continuă cu Discord</button>
+          <p id="email-verification-discord-status" class="mt-3 min-h-[20px] text-xs leading-5 text-rose-300" role="status"></p>
+        </div>
+        <a href="login.html" class="inline-flex w-full items-center justify-center rounded-xl border-2 border-cyan-300/60 bg-cyan-500/10 px-4 py-3.5 text-sm font-black text-cyan-100 transition hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-cyan-400/20">Continuă la login</a>
+      </div>
+    </section>
+  </main>
+  <div data-panel-footer-host class="w-full"></div>
+
+  <script>
+    window.createPanelAuthClient?.({ persistSession: true });
+    const discordButton = document.getElementById('email-verification-discord');
+    const discordStatus = document.getElementById('email-verification-discord-status');
+    discordButton?.addEventListener('click', () => {
+      const config = window.PANEL_DISCORD_CONFIG || {};
+      if (!config.clientId) {
+        discordStatus.textContent = 'Conectarea Discord nu este configurată pentru această adresă.';
+        return;
+      }
+      const state = crypto.randomUUID();
+      sessionStorage.setItem('panel_email_discord_link_flow', '1');
+      sessionStorage.setItem('discord_oauth_state', state);
+      const params = new URLSearchParams({
+        client_id: config.clientId,
+        redirect_uri: `${window.location.origin}${window.location.pathname.replace(/email-verificat\.html$/, 'login.html')}`,
+        response_type: 'token',
+        scope: 'identify guilds',
+        state,
+      });
+      discordButton.disabled = true;
+      discordButton.textContent = 'Se deschide Discord...';
+      window.location.href = `https://discord.com/oauth2/authorize?${params.toString()}`;
+    });
+  </script>
+
+</body>
+</html>
+

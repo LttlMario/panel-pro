@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galerie Crafting & Echipamente - Mecanic</title>
+    <!-- Tailwind CSS CDN -->
+    <link rel="stylesheet" href="css/tailwind.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+    <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+    <script src="js/permissions.js?v=4.6.0"></script>
+    <script src="js/panel-layout.js?v=4.23.0"></script>
+    <style>
+
+        /* Stiluri suplimentare pentru galerie și modal */
+        main {
+            padding-bottom: 0 !important;
+        }
+
+        .zoom-btn {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid #1e293b;
+            color: #f1f5f9;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+            z-index: 10;
+        }
+
+        .zoom-btn:hover {
+            background: #0f172a;
+            border-color: #34d399;
+        }
+
+        .zoom-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(2, 6, 23, 0.9);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 1000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+    </style>
+    <link rel="stylesheet" href="css/global-footer.css">
+    <script src="js/project-version.js?v=3.11.5"></script>
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm">
+
+    <!-- Containerul Principal -->
+    <div class="flex h-screen w-full overflow-hidden">
+
+        <!-- Sidebar / Meniu Lateral -->
+
+            <!-- Grila Galeriei - 52 Imagini unice -->
+        
+
+        <!-- Conținutul Principal (Galerie) -->
+        <main class="flex-1 overflow-y-auto p-0 flex flex-col items-center bg-slate-950">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-7xl px-4 md:px-8 pt-8 pb-8 mx-auto" id="galleryGrid">
+
+                <!-- 1 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Unelte x 10" data-desc="Set format din 10 unelte esențiale pentru activitățile de mecanică.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/1.png" alt="Unelte x 10" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('1.png', 'Unelte x 10', 'Set format din 10 unelte esențiale pentru activitățile de mecanică.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Unelte x 10</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Set format din 10 unelte esențiale pentru activitățile de mecanică.</div>
+                    </div>
+                </div>
+
+                <!-- 2 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Masă de lucru Mecanic" data-desc="Stația principală de crafting și organizare pentru unelte și piese auto.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/2.png" alt="Masă de lucru Mecanic" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('2.png', 'Masă de lucru Mecanic', 'Stația principală de crafting și organizare pentru unelte și piese auto.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Masă de lucru Mecanic</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Stația principală de crafting și organizare pentru unelte și piese auto.</div>
+                    </div>
+                </div>
+
+                <!-- 3 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Limitator de viteză" data-desc="Modul utilitar pentru reglarea și restricționarea vitezei maxime a vehiculelor.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/3.png" alt="Limitator de viteză" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('3.png', 'Limitator de viteză', 'Modul utilitar pentru reglarea și restricționarea vitezei maxime a vehiculelor.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Limitator de viteză</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Modul utilitar pentru reglarea și restricționarea vitezei maxime a vehiculelor.</div>
+                    </div>
+                </div>
+
+                <!-- 4 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Set cauciucuri" data-desc="Set complet de anvelope destinate înlocuirii și îmbunătățirii aderenței.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/4.png" alt="Set cauciucuri" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('4.png', 'Set cauciucuri', 'Set complet de anvelope destinate înlocuirii și îmbunătățirii aderenței.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Set cauciucuri</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Set complet de anvelope destinate înlocuirii și îmbunătățirii aderenței.</div>
+                    </div>
+                </div>
+
+                <!-- 5 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Kit de reparații avansat" data-desc="Echipament complex utilizat pentru reparații capitale aduse autovehiculelor.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/5.png" alt="Kit de reparații avansat" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('5.png', 'Kit de reparații avansat', 'Echipament complex utilizat pentru reparații capitale aduse autovehiculelor.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Kit de reparații avansat</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Echipament complex utilizat pentru reparații capitale aduse autovehiculelor.</div>
+                    </div>
+                </div>
+
+                <!-- 6 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Jante Addon 80" data-desc="Model custom de jante addon 80 pentru personalizarea estetică a roților.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/6.png" alt="Jante Addon 80" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('6.png', 'Jante Addon 80', 'Model custom de jante addon 80 pentru personalizarea estetică a roților.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Jante Addon 80</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Model custom de jante addon 80 pentru personalizarea estetică a roților.</div>
+                    </div>
+                </div>
+
+                <!-- 7 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Jante Addon 85" data-desc="Model custom de jante addon 85 pentru personalizarea estetică a roților.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/7.png" alt="Jante Addon 85" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('7.png', 'Jante Addon 85', 'Model custom de jante addon 85 pentru personalizarea estetică a roților.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/36.png" alt="Jante Addon 68" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('36.png', 'Jante Addon 68', 'Model custom de jante addon 68 pentru personalizarea estetică a roților.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Jante Addon 68</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Model custom de jante addon 68 pentru personalizarea estetică a roților.</div>
+                    </div>
+                </div>
+
+                <!-- 37 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Jante Addon 69" data-desc="Model custom de jante addon 69 pentru personalizarea estetică a roților.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/37.png" alt="Jante Addon 69" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('37.png', 'Jante Addon 69', 'Model custom de jante addon 69 pentru personalizarea estetică a roților.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Jante Addon 69</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Model custom de jante addon 69 pentru personalizarea estetică a roților.</div>
+                    </div>
+                </div>
+
+                <!-- 38 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Jante Addon 70" data-desc="Model custom de jante addon 70 pentru personalizarea estetică a roților.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/38.png" alt="Jante Addon 70" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('38.png', 'Jante Addon 70', 'Model custom de jante addon 70 pentru personalizarea estetică a roților.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Jante Addon 70</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Model custom de jante addon 70 pentru personalizarea estetică a roților.</div>
+                    </div>
+                </div>
+
+                <!-- 39 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Jante Addon 71" data-desc="Model custom de jante addon 71 pentru personalizarea estetică a roților.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/39.png" alt="Jante Addon 71" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('39.png', 'Jante Addon 71', 'Model custom de jante addon 71 pentru personalizarea estetică a roților.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Jante Addon 71</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Model custom de jante addon 71 pentru personalizarea estetică a roților.</div>
+                    </div>
+                </div>
+
+                <!-- 40 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Jante Addon 72" data-desc="Model custom de jante addon 72 pentru personalizarea estetică a roților.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/40.png" alt="Jante Addon 72" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('40.png', 'Jante Addon 72', 'Model custom de jante addon 72 pentru personalizarea estetică a roților.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Jante Addon 72</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Model custom de jante addon 72 pentru personalizarea estetică a roților.</div>
+                    </div>
+                </div>
+
+                <!-- 41 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Jante Addon 92" data-desc="Model custom de jante addon 92 pentru personalizarea estetică a roților.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/41.png" alt="Jante Addon 92" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('41.png', 'Jante Addon 92', 'Model custom de jante addon 92 pentru personalizarea estetică a roților.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Jante Addon 92</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Model custom de jante addon 92 pentru personalizarea estetică a roților.</div>
+                    </div>
+                </div>
+
+                <!-- 42 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Set roți" data-desc="Pachet standard de roți pregătit pentru montaj pe vehicule.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/42.png" alt="Set roți" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('42.png', 'Set roți', 'Pachet standard de roți pregătit pentru montaj pe vehicule.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Set roți</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Pachet standard de roți pregătit pentru montaj pe vehicule.</div>
+                    </div>
+                </div>
+
+                <!-- 43 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Set roți Runflat" data-desc="Set de roți speciale dotate cu tehnologie Runflat pentru rulare în caz de pană.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/43.png" alt="Set roți Runflat" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('43.png', 'Set roți Runflat', 'Set de roți speciale dotate cu tehnologie Runflat pentru rulare în caz de pană.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Set roți Runflat</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Set de roți speciale dotate cu tehnologie Runflat pentru rulare în caz de pană.</div>
+                    </div>
+                </div>
+
+                <!-- 44 -->
+                <div class="gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg" data-title="Jante Addon 79" data-desc="Model custom de jante addon 79 pentru personalizarea estetică a roților.">
+                    <div class="w-full h-48 bg-black relative overflow-hidden">
+                        <img src="img/44.png" alt="Jante Addon 79" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                        <button class="zoom-btn" onclick="openModal('44.png', 'Jante Addon 79', 'Model custom de jante addon 79 pentru personalizarea estetică a roților.')" title="Mărește imaginea">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-5 flex flex-col gap-2 flex-1">
+                        <div class="font-semibold text-slate-100 text-base">Jante Addon 79</div>
+                        <div class="text-xs text-slate-400 leading-relaxed">Model custom de jante addon 79 pentru personalizarea estetică a roților.</div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal pentru Zoom Imagine -->
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <div class="relative max-w-5xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
+            <button class="absolute -top-12 right-0 text-slate-400 hover:text-white text-lg font-bold bg-slate-900 border border-slate-800 rounded-full w-9 h-9 flex items-center justify-center transition" onclick="closeModal()">✕</button>
+            <img id="modalImg" src="" alt="Zoom" class="max-w-full max-h-[75vh] object-contain rounded-xl border border-slate-800 shadow-2xl bg-black">
+            <div class="mt-4 text-center">
+                <h3 id="modalTitle" class="text-lg font-semibold text-slate-100"></h3>
+                <p id="modalDesc" class="text-xs text-slate-400 mt-1"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripturi Supabase și Logica de Profil -->
+    <script>
+        // Configurare Supabase - aceeași sesiune ca în dashboard
+        const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
+        const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
+        const supabaseClient = window.createPanelSupabaseClient();
+
+        // Funcții Galerie
+        function filterGallery(value) {
+            const input = String(value ?? document.getElementById('searchInput')?.value ?? '').toLowerCase();
+            const cards = document.getElementsByClassName('gallery-card');
+
+            for (let i = 0; i < cards.length; i++) {
+                const title = cards[i].getAttribute('data-title').toLowerCase();
+                const desc = cards[i].getAttribute('data-desc').toLowerCase();
+                if (title.includes(input) || desc.includes(input)) {
+                    cards[i].style.display = "flex";
+                } else {
+                    cards[i].style.display = "none";
+                }
+            }
+        }
+
+        function openModal(src, title, desc) {
+            document.getElementById('modalImg').src = `img/${src}`;
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalDesc').textContent = desc;
+            document.getElementById('imageModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').classList.remove('active');
+        }
+
+        document.querySelectorAll('.gallery-card img').forEach((image) => {
+            image.style.cursor = 'zoom-in';
+
+            image.addEventListener('click', () => {
+                image.parentElement.querySelector('.zoom-btn')?.click();
+            });
+        });
+
+        // Citire Profil Utilizator din sesiunea Discord și tabela users
+        async function loadUserProfile() {
+            const cachedUser = localStorage.getItem('discord_user');
+
+            if (!cachedUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const localData = JSON.parse(cachedUser);
+                if (!localData || !localData.discord_id) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const { data: dbUser, error } = await supabaseClient
+                    .from('users')
+                    .select('discord_id,username,display_name,avatar,role,default_role')
+                    .eq('discord_id', localData.discord_id)
+                    .maybeSingle();
+
+                if (error) {
+                    console.error('Eroare la preluarea profilului:', error.message);
+                }
+
+                const activeUser = dbUser ? { ...localData, ...dbUser } : localData;
+                const isPrivileged = typeof isPlatformAdmin === 'function' && isPlatformAdmin();
+                const navLogs = document.getElementById('nav-logs');
+                if (isPrivileged && navLogs) {
+                    navLogs.classList.remove('hidden');
+                }
+
+                localStorage.setItem('discord_user', JSON.stringify(activeUser));
+            } catch (err) {
+                console.error('Eroare neașteptată:', err);
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Buton Logout
+        document.getElementById('logout-btn')?.addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        });
+
+        // Apelare la încărcarea paginii
+        window.addEventListener('DOMContentLoaded', () => {
+            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            document.querySelectorAll('.nav-link').forEach(link => {
+                if (link.getAttribute('href') === currentPage) {
+                    link.classList.remove('text-slate-300', 'hover:bg-slate-800');
+                    link.classList.add('bg-emerald-500/10', 'text-emerald-400', 'font-medium');
+                }
+            });
+
+            loadUserProfile();
+            const searchedItem = new URLSearchParams(window.location.search).get('search');
+            if (searchedItem) {
+                filterGallery(searchedItem);
+            }
+        });
+    </script>
+    <script>
+      // Completeaza automat galeria cu toate imaginile 1.png - 52.png.
+      // Cardurile existente isi pastreaza titlurile si descrierile originale.
+      document.addEventListener('DOMContentLoaded', () => {
+        const gallery = document.getElementById('galleryGrid');
+        if (!gallery) return;
+
+        const craftTitles = {
+          8: 'Jante Addon 98',
+          9: 'Xenon albastru',
+          10: 'Xenon albastru deschis',
+          11: 'Xenon verde',
+          12: 'Xenon verde deschis',
+          13: 'Xenon galben deschis',
+          14: 'Xenon galben',
+          15: 'Xenon portocaliu',
+          16: 'Xenon roșu',
+          17: 'Xenon roz deschis',
+          18: 'Xenon roz',
+          19: 'Xenon mov',
+          20: 'Xenon mov deschis',
+          21: 'Turometru - TB Numeric',
+          22: 'Turometru - GMG',
+          23: 'Jante Addon 55',
+          24: 'Jante Addon 56',
+          25: 'Jante Addon 57',
+          26: 'Jante Addon 58',
+          27: 'Jante Addon 59',
+          28: 'Jante Addon 60',
+          29: 'Jante Addon 61',
+          30: 'Jante Addon 62',
+          31: 'Jante Addon 63',
+          32: 'Jante Addon 64',
+          33: 'Jante Addon 65',
+          34: 'Jante Addon 66',
+          35: 'Jante Addon 67',
+          45: 'Jante Addon 96',
+          46: 'Jante Addon 97',
+          47: 'Jante Addon 100',
+          48: 'Jante Addon 101',
+          49: 'Jante Addon 124',
+          50: 'Jante Addon 125',
+          51: 'Jante Addon 126',
+          52: 'Jante Addon 191'
+        };
+
+        const existing = new Map();
+        gallery.querySelectorAll('.gallery-card').forEach(card => {
+          const image = card.querySelector('img[src^="img/"]');
+          const match = image?.getAttribute('src')?.match(/img\/(\d+)\.png$/i);
+          if (match) existing.set(Number(match[1]), card);
+        });
+
+        for (let number = 1; number <= 52; number++) {
+          if (!existing.has(number)) {
+            const title = craftTitles[number] || `Craft Mecanic ${number}`;
+            const description = `Rețetă de crafting pentru ${title}.`;
+            const card = document.createElement('div');
+            card.className = 'gallery-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col transition hover:-translate-y-1 hover:border-emerald-500/50 shadow-lg';
+            card.dataset.title = title;
+            card.dataset.desc = description;
+            card.innerHTML = `
+              <div class="w-full h-48 bg-black relative overflow-hidden">
+                <img src="img/${number}.png" alt="${title}" class="w-full h-full object-cover transition duration-300 hover:scale-105">
+                <button class="zoom-btn" type="button" title="Mărește imaginea">🔍</button>
+              </div>
+              <div class="p-5 flex flex-col gap-2 flex-1">
+                <div class="font-semibold text-slate-100 text-base">${title}</div>
+                <div class="text-xs text-slate-400 leading-relaxed">${description}</div>
+              </div>`;
+            card.querySelector('.zoom-btn').addEventListener('click', () => openModal(`${number}.png`, title, description));
+            existing.set(number, card);
+          }
+        }
+
+        [...existing.entries()].sort((a, b) => a[0] - b[0]).forEach(([, card]) => gallery.appendChild(card));
+      });
+    </script>
+    <script src="js/global-footer.js"></script>
+</body>
+</html>

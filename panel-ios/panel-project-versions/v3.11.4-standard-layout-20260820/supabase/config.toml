@@ -1,0 +1,83 @@
+[functions.sync-discord-role]
+verify_jwt = false
+
+[functions.username-login]
+verify_jwt = false
+
+[functions.link-discord-account]
+verify_jwt = true
+
+[functions.manage-discord-config]
+verify_jwt = false
+
+[functions.manage-community-posts]
+verify_jwt = false
+
+[functions.send-discord-notification]
+verify_jwt = false
+
+[functions.close-expired-shifts]
+verify_jwt = false
+
+[functions.send-weekly-shift-report]
+verify_jwt = false
+
+[functions.send-organization-expiry-notifications]
+verify_jwt = false
+
+[functions.manage-admin-center]
+verify_jwt = false
+
+[functions.manage-platform-secrets]
+verify_jwt = false
+
+[functions.manage-organizations]
+verify_jwt = false
+
+[functions.manage-owned-organization]
+verify_jwt = false
+
+[functions.redeem-organization-voucher]
+verify_jwt = false
+
+[functions.status-live-sync]
+verify_jwt = false
+
+[functions.mark-tutorial-read]
+verify_jwt = false
+
+[functions.create-voucher-organization]
+verify_jwt = false
+
+[functions.get-organization-status]
+verify_jwt = true
+
+[functions.finalize-organization]
+verify_jwt = true
+
+[functions.manage-draft-organization]
+verify_jwt = false
+
+[functions.discover-draft-roles]
+verify_jwt = false
+
+[functions.save-draft-roles]
+verify_jwt = false
+
+[functions.touch-panel-session]
+verify_jwt = false
+
+[functions.update-user-account-settings]
+verify_jwt = true
+
+[functions.list-email-discord-guilds]
+verify_jwt = true
+
+[functions.link-email-discord-guild]
+verify_jwt = true
+
+[functions.manage-email-account]
+verify_jwt = true
+
+[functions.manage-discord-account]
+verify_jwt = false

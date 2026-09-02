@@ -1,0 +1,213 @@
+/* Ay-eye Minigames — shared stylesheet */
+
+:root {
+    --accent: #00e0b8;
+    --danger: #ff3b5c;
+    --success: #39d98a;
+    --bg: #0a0e14;
+    --panel: rgba(14, 19, 28, 0.92);
+    --line: rgba(255, 255, 255, 0.08);
+    --text: #e8edf2;
+    --muted: #6b7686;
+    --display: 'Chakra Petch', sans-serif;
+    --mono: 'Azeret Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: transparent;
+    font-family: var(--mono);
+    color: var(--text);
+    user-select: none;
+}
+
+.hidden { display: none !important; }
+
+#root {
+    position: fixed; inset: 0;
+    display: grid; place-items: center;
+}
+
+#stage {
+    position: relative; z-index: 1;
+    width: 560px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,0.4),
+        0 30px 80px rgba(0,0,0,0.6),
+        0 0 60px -20px var(--accent);
+    overflow: hidden;
+    animation: panel-in 0.28s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+@keyframes panel-in {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* ---------------- HUD ---------------- */
+#hud {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
+}
+#hud-title { display: flex; flex-direction: column; gap: 2px; }
+#hud-tag {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 3px;
+    color: var(--accent); text-transform: uppercase;
+}
+#hud-name {
+    font-family: var(--display); font-weight: 700;
+    font-size: 18px; letter-spacing: 0.5px;
+}
+#hud-timer { display: flex; align-items: center; gap: 10px; }
+#mg-close {
+    display: grid; place-items: center;
+    width: 30px; height: 30px; flex: 0 0 30px;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 8px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.04);
+    font: 700 20px/1 var(--display);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.15s;
+}
+#mg-close:hover,
+#mg-close:focus-visible {
+    border-color: var(--danger);
+    color: #fff;
+    background: rgba(255,59,92,0.16);
+    outline: none;
+    transform: scale(1.04);
+}
+#timer-bar {
+    width: 120px; height: 6px; border-radius: 3px;
+    background: rgba(255,255,255,0.08); overflow: hidden;
+}
+#timer-fill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, var(--accent), #fff);
+    transition: width 0.1s linear;
+}
+#timer-text {
+    font-variant-numeric: tabular-nums;
+    font-size: 13px; color: var(--muted); min-width: 34px; text-align: right;
+}
+
+/* ---------------- Board ---------------- */
+#board {
+    position: relative;
+    min-height: 320px;
+    padding: 26px;
+    display: flex; align-items: center; justify-content: center;
+}
+#board canvas { display: block; }
+
+/* ---------------- Footer ---------------- */
+#footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line);
+    min-height: 44px;
+}
+#dots { display: flex; gap: 7px; }
+.dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: rgba(255,255,255,0.14);
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.dot.done { background: var(--success); box-shadow: 0 0 10px var(--success); }
+.dot.fail { background: var(--danger);  box-shadow: 0 0 10px var(--danger); }
+.dot.active { background: var(--accent); transform: scale(1.3); }
+#hint {
+    font-size: 11px; letter-spacing: 1px; color: var(--muted);
+    text-transform: uppercase;
+}
+
+/* ---------------- Flash overlay ---------------- */
+#flash {
+    position: fixed; inset: 0; z-index: 5;
+    display: grid; place-items: center;
+    pointer-events: none;
+    background: transparent;
+}
+#flash-text {
+    font-family: var(--display); font-weight: 700;
+    font-size: 48px; letter-spacing: 6px; text-transform: uppercase;
+    padding: 14px 36px; border-radius: 12px;
+    background: rgba(10, 14, 20, 0.82);
+    animation: flash-pop 0.4s cubic-bezier(0.2,0.9,0.2,1) both;
+}
+#flash.win  #flash-text { color: var(--success); text-shadow: 0 0 30px var(--success); }
+#flash.lose #flash-text { color: var(--danger);  text-shadow: 0 0 30px var(--danger); }
+@keyframes flash-pop {
+    from { opacity: 0; transform: scale(0.6); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* ---------------- Reusable bits for games ---------------- */
+.btn {
+    font-family: var(--display); font-weight: 600;
+    letter-spacing: 1px; font-size: 14px;
+    padding: 12px 20px; border-radius: 8px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,0.04);
+    color: var(--text); cursor: pointer;
+    transition: all 0.15s;
+}
+.btn:hover { border-color: var(--accent); background: rgba(0,224,184,0.08); }
+.btn.danger:hover { border-color: var(--danger); background: rgba(255,59,92,0.08); }
+
+.label {
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 8px;
+}
+
+.shake { animation: shake 0.3s; }
+@keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-7px); }
+    75% { transform: translateX(7px); }
+}
+
+.glow-accent  { color: var(--accent); }
+.glow-success { color: var(--success); }
+.glow-danger  { color: var(--danger); }
+
+/* Panel integration: keep the original NUI game visuals inside a page modal. */
+html:has(body.minigames-page) {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+body.minigames-page {
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    user-select: auto;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body.minigames-page #root:not(.hidden) {
+    z-index: 1200;
+    background: rgba(2, 6, 23, 0.78);
+    backdrop-filter: blur(7px);
+}
+
+body.minigames-page #root .panel-header-tools,
+body.minigames-page #root #global-search {
+    display: none !important;
+}
+
+body.minigames-page #root:not(.hidden) #stage {
+    max-width: calc(100vw - 28px);
+    max-height: calc(100vh - 28px);
+    overflow-y: auto;
+    font-family: var(--mono);
+}

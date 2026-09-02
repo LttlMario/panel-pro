@@ -1,0 +1,143 @@
+Prezentare Panel
+
+Panelul oferă organizației un sistem complet de administrare, comunicare și gestionare a activităților, conectat la aplicația albastră și configurat în funcție de necesități.
+
+Pachet Standard
+
+Pachetul Standard este recomandat organizațiilor mici și medii care au nevoie de un panel complet și ușor de administrat.
+
+Include:
+
+1 server Discord conectat la panel;
+
+maximum 10 roluri configurabile;
+
+numele și codul organizației;
+
+adresă de lucru pentru contracte;
+
+logo și banner personalizat;
+
+Dashboard;
+
+Anunțuri;
+
+Pontaj;
+
+Cereri și învoiri;
+
+Calculator;
+
+Bucătărie;
+
+Craft Mecanic;
+
+Marketplace;
+
+Contracte;
+
+Rapoarte;
+
+Asistent;
+
+webhook-uri pentru funcțiile principale;
+
+perioadă de activare limitată sau nelimitată;
+
+suspendare și reactivare;
+
+notificări înainte de expirare;
+
+administrarea organizației proprii;
+
+configurarea paginilor și permisiunilor pentru fiecare rol;
+
+vouchere unice;
+
+activare pe ID-ul serverului;
+
+protecție împotriva reutilizării voucherelor;
+
+păstrarea organizației și a datelor după expirare;
+
+statusuri Draft, Activă, Grație și Pauză;
+
+reactivare fără pierderea datelor.
+
+Ofertă promoțională pentru prima lună: 2.160 Gold sau 1.080.000$.
+
+Începând cu luna a doua, tariful Standard este de 4.000 Gold sau 2.000.000$ pe lună.
+
+Pachetul Standard este potrivit pentru o organizație care dorește toate funcțiile importante într-o singură structură, cu o configurare simplă și eficientă.
+
+Pachet Full
+
+Pachetul Full este destinat organizațiilor mai mari sau celor care au nevoie de mai mult control, flexibilitate și posibilități de extindere.
+
+Include toate funcțiile din pachetul Standard, plus:
+
+2 servere Discord conectate la panel: principal și secundar;
+
+roluri nelimitate;
+
+webhook-uri separate pentru ambele servere;
+
+acces extins la toate modulele panelului;
+
+configurare avansată pentru Marketplace și resursele organizației;
+
+sincronizare avansată a rolurilor;
+
+administrare avansată a membrilor;
+
+audit extins;
+
+diagnostic complet;
+
+rapoarte extinse;
+
+asistent cu acces la toate paginile permise;
+
+automatizări pentru expirare și notificări;
+
+import și export de configurație;
+
+branding complet pentru organizație;
+
+posibilitatea de extindere fără modificarea structurii organizației;
+
+configurare avansată a accesului pe roluri;
+
+funcții avansate cu acces controlat, în funcție de permisiunile organizației.
+
+Ofertă promoțională pentru prima lună: 4.440 Gold sau 2.220.000$.
+
+Începând cu luna a doua, tariful Full este de 6.000 Gold sau 3.000.000$ pe lună.
+
+Pachetul Full este recomandat organizațiilor care folosesc mai multe structuri, au mai multe roluri și doresc o administrare mai complexă și mai bine automatizată.
+
+Siguranță și administrare
+
+Ambele pachete beneficiază de:
+
+activare controlată prin voucher;
+
+configurare individuală pentru fiecare organizație;
+
+permisiuni separate pentru fiecare rol;
+
+notificări automate;
+
+posibilitatea de suspendare și reactivare;
+
+păstrarea datelor organizației;
+
+administrare centralizată din panel;
+
+integrare cu serverele Discord;
+
+posibilitatea de personalizare în funcție de necesitățile organizației.
+
+Diferența principală este nivelul de extindere: Standard oferă o structură completă pentru un singur server Discord, iar Full oferă două servere Discord, roluri nelimitate și funcții avansate de administrare și automatizare.
+
+Pentru activare, este necesară configurarea organizației, alegerea pachetului și asocierea serverului sau serverelor Discord la panel.

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mulțumim pentru susținere</title>
+  <link rel="stylesheet" href="css/global-footer.css">
+  <script src="js/text-normalizer.js?v=1.0.0"></script>
+  <script src="js/project-version.js?v=3.11.0"></script>
+  <style>
+    *{box-sizing:border-box} body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:#020617;color:#f8fafc;font-family:Inter,Segoe UI,Arial,sans-serif}
+    main{width:min(100% - 28px,680px);margin:auto;padding:28px 0;flex:1;display:grid;place-items:center}
+    .card{width:100%;padding:34px;border:1px solid rgba(52,211,153,.25);border-radius:26px;background:#0f172a;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+    .icon{font-size:54px} h1{margin:12px 0 0;font-size:32px} p{margin:14px auto 0;max-width:520px;color:#cbd5e1;line-height:1.7;font-size:14px}
+    a{display:inline-flex;margin-top:24px;padding:11px 18px;border:1px solid #10b981;border-radius:12px;background:#059669;color:white;text-decoration:none;font-size:13px;font-weight:800}
+  </style>
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body>
+  <main>
+    <section class="card">
+      <div class="icon">❤️</div>
+      <h1>Îți mulțumesc pentru susținere!</h1>
+      <p>Contribuția ta ajută la întreținerea și dezvoltarea în continuare a panelului. Confirmarea este manuală, deoarece pagina Revolut.me nu transmite automat rezultatul plății către panel.</p>
+      <a id="return-link" href="index.html">Înapoi la panel</a>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const requested = new URLSearchParams(location.search).get("from") || "index.html";
+      const safe = /^[a-zA-Z0-9._-]+\.html$/.test(requested) ? requested : "index.html";
+      document.getElementById("return-link").href = safe;
+    })();
+  </script>
+  <script src="js/global-footer.js"></script>
+</body>
+</html>

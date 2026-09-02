@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator Legal - Arme & Muniție & Plicuri</title>
+    <!-- Tailwind CSS CDN -->
+    <link rel="stylesheet" href="css/tailwind.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+    <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+    <script src="js/permissions.js?v=4.6.0"></script>
+    <script src="js/panel-layout.js?v=4.22.0"></script>
+    <style>
+        :root {
+            --bg-main: #030712;
+            --bg-panel: #080f1d;
+            --bg-input: #030712;
+            --border-color: #223047;
+            --text-main: #e5edf8;
+            --text-muted: #91a0b6;
+            --accent: #5ce1e6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #dc2626;
+            --radius: 0.75rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+
+    
+
+        /* Conținutul Principal (Dreapta) */
+        .main-content {
+            flex: 1 1 0%;
+            min-width: 0;
+            min-height: 100vh;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: none;
+        }
+
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        header img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin-bottom: 6px;
+            border-radius: 50%;
+            background: var(--bg-panel);
+            padding: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        header h2 {
+            font-size: 1.3rem;
+            color: var(--text-main);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        header .author {
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .calculator-container {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 24px;
+            width: 100%;
+            max-width: 1200px;
+            margin: 1rem auto 0;
+            padding: 0 2rem 2rem;
+        }
+
+
+        @media (max-width: 1100px) {
+            .calculator-container {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                width: 4.5rem;
+            }
+            .sidebar-brand span, .sidebar-nav span, .user-details {
+                display: none;
+            }
+        }
+
+        .mobile-results-button,
+        .mobile-edit-selection {
+            display: none;
+        }
+
+        .mobile-results-overlay {
+            display: none;
+        }
+
+        @media (max-width: 767px) {
+            .calculator-container { gap: 14px; margin-top: 1rem; padding: 0 12px 18px; }
+            .calculator-container > .panel { padding: 14px; }
+            .mobile-results-button,
+            .mobile-edit-selection {
+                display: flex;
+                width: 100%;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                border: 1px solid rgba(16,185,129,.55);
+                border-radius: 11px;
+                background: linear-gradient(135deg,#059669,#047857);
+                color: #fff;
+                padding: 11px 14px;
+                font-size: .86rem;
+                font-weight: 800;
+                cursor: pointer;
+                box-shadow: 0 8px 20px rgba(5,150,105,.22);
+            }
+            .mobile-results-button { margin-top: 10px; }
+            .mobile-edit-selection {
+                position: sticky;
+                top: 0;
+                z-index: 2;
+                margin-bottom: 14px;
+                background: linear-gradient(135deg,#334155,#1e293b);
+                border-color: #475569;
+            }
+            #calculator-results { display: none; }
+            #calculator-results.mobile-modal-open {
+                display: block;
+                position: fixed;
+                inset: 12px;
+                z-index: 10001;
+                max-height: calc(100dvh - 24px);
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                border-color: rgba(56,189,248,.45);
+                box-shadow: 0 24px 80px rgba(0,0,0,.72);
+            }
+            .mobile-results-overlay.active {
+                display: block;
+                position: fixed;
+                inset: 0;
+                z-index: 10000;
+                background: rgba(2,6,23,.82);
+                backdrop-filter: blur(5px);
+            }
+            body.calculator-modal-open { overflow: hidden !important; }
+            .grid-results { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        }
+
+        .panel {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+        }
+
+        .category-group {
+            margin-bottom: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: rgba(11, 15, 25, 0.4);
+            overflow: hidden;
+        }
+
+        .category-header {
+            padding: 12px 15px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+            background: rgba(19, 27, 46, 0.8);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .category-header:hover {
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .category-header::after {
+            content: '▼';
+            font-size: 0.75rem;
+            transition: transform 0.2s;
+            color: var(--text-muted);
+        }
+
+        .category-group.active .category-header::after {
+            transform: rotate(180deg);
+        }
+
+        .category-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+            padding: 0 12px;
+        }
+
+        .category-group.active .category-content {
+            max-height: 1400px;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .item-row {
+            display: grid;
+            grid-template-columns: 1fr 90px;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+            background: rgba(11, 15, 25, 0.6);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .item-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .item-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #cbd5e1;
+        }
+
+        input[type="number"], select {
+            width: 100%;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 6px 8px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+            text-align: center;
+        }
+
+        input[type="number"]:focus, select:focus {
+            border-color: var(--accent);
+        }
+
+        .btn-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-danger {
+            width: 100%;
+            background-color: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            border-radius: var(--radius);
+            padding: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn-danger:hover {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .results-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .result-box {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 16px;
+            display: none;
+        }
+
+        .result-box.active {
+            display: block;
+        }
+
+        .result-box h3 {
+            font-size: 1rem;
+            margin-bottom: 12px;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+        }
+
+        .grid-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+        }
+
+        .result-card {
+            background: rgba(19, 27, 46, 0.6);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .result-card .item-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .result-card .item-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .result-card .item-value.gold {
+            color: var(--warning);
+        }
+    </style>
+    <link rel="stylesheet" href="css/global-footer.css">
+    <script src="js/project-version.js?v=3.11.0"></script>
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm">
+
+    <!-- Aplicația Principală -->
+    <div id="app-content" style="display: flex; width: 100%; min-height: 100vh;">
+
+
+        <!-- Conținutul principal din dreapta -->
+        <main class="main-content">
+
+<div class="calculator-container">
+                <!-- Panou Stânga: Input-uri -->
+                <div class="panel" id="calculator-input-panel">
+                    <div style="font-size: 1.0rem; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                        Selecție Rețete (Live)
+                    </div>
+
+<!-- Categorie 1: Arme -->
+                    <div class="category-group" id="cat-weapons">
+                        <div class="category-header" onclick="toggleCategory('cat-weapons')">🔫 Arme</div>
+                        <div class="category-content" id="weaponsForm"></div>
+                    </div>
+
+                    <!-- Categorie 2: Piese de Armă -->
+                    <div class="category-group" id="cat-weapon-parts">
+                        <div class="category-header" onclick="toggleCategory('cat-weapon-parts')">⚙️ Piese de Armă</div>
+                        <div class="category-content" id="weaponPartsForm">
+                            <div class="item-row">
+                                <span class="item-name">Piese de armă</span>
+                                <input type="number" id="part_total_piese" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
+                            <div class="item-row">
+                                <span class="item-name">Teavă Pistol</span>
+                                <input type="number" id="part_teava_pistol" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
+                            <div class="item-row">
+                                <span class="item-name">Corp Pistol</span>
+                                <input type="number" id="part_corp_pistol" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
+                            <div class="item-row">
+                                <span class="item-name">Teavă SMG</span>
+                                <input type="number" id="part_teava_smg" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
+                            <div class="item-row">
+                                <span class="item-name">Corp SMG</span>
+                                <input type="number" id="part_corp_smg" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
+                            <div class="item-row">
+                                <span class="item-name">Teavă Rifle</span>
+                                <input type="number" id="part_teava_rifle" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
+                            <div class="item-row">
+                                <span class="item-name">Corp Rifle</span>
+                                <input type="number" id="part_corp_rifle" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
+                            <div class="item-row">
+                                <span class="item-name">Butstock</span>
+                                <input type="number" id="part_butstock" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Categorie 3: Muniție -->
+                    <div class="category-group" id="cat-ammo">
+                        <div class="category-header" onclick="toggleCategory('cat-ammo')">📦 Muniție (Gloanțe)</div>
+                        <div class="category-content" id="ammoForm"></div>
+                    </div>
+
+                    <!-- Categorie 4: Plicuri -->
+                    <div class="category-group" id="cat-plicuri">
+                        <div class="category-header" onclick="toggleCategory('cat-plicuri')">💊 Plicuri Cocaină</div>
+                        <div class="category-content" id="plicuriForm">
+                            <div class="item-row" style="margin-bottom: 10px;">
+                                <span class="item-name">Tip Resursă</span>
+                                <select id="plicuriResource" onchange="calculateAll()" style="width: 100%;">
+                                    <option value="frunze">Frunze</option>
+                                    <option value="tavi">Tăvi</option>
+                                    <option value="ape">Ape (Sticle)</option>
+                                    <option value="brichete">Brichete</option>
+                                    <option value="plicuri_goale">Plicuri Goale</option>
+                                    <option value="plicuri_facute">Plicuri Făcute</option>
+                                </select>
+                            </div>
+                            <div class="item-row">
+                                <span class="item-name">Cantitate</span>
+                                <input type="number" id="plicuriQty" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Categorie 5: Marijuana -->
+                    <div class="category-group" id="cat-weed">
+                        <div class="category-header" onclick="toggleCategory('cat-weed')">🌿 Marijuana (Joints)</div>
+                        <div class="category-content" id="weedForm">
+                            <div class="item-row" style="margin-bottom: 10px;">
+                                <span class="item-name">Tip Resursă</span>
+                                <select id="weedResource" onchange="calculateAll()" style="width: 100%;">
+                                    <option value="frunze">Frunze</option>
+                                    <option value="foite">Foițe</option>
+                                    <option value="jointuri">Joint-uri</option>
+                                </select>
+                            </div>
+                            <div class="item-row">
+                                <span class="item-name">Cantitate</span>
+                                <input type="number" id="weedQty" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Categorie 6: Plicuri Ciuperci -->
+                    <div class="category-group" id="cat-mushrooms">
+                        <div class="category-header" onclick="toggleCategory('cat-mushrooms')">🍄 Plicuri Ciuperci</div>
+                        <div class="category-content" id="mushroomsForm">
+                            <div class="item-row" style="margin-bottom: 10px;">
+                                <span class="item-name">Tip Plic Ciuperci</span>
+                                <select id="mushroomsResource" onchange="calculateAll()" style="width: 100%;">
+                                    <option value="red_fire_x3">Red Fire x3</option>
+                                    <option value="green_haze">Green Haze x3</option>
+                                    <option value="blue_current_x3">Blue Current x3</option>
+                                </select>
+                            </div>
+                            <div class="item-row">
+                                <span class="item-name">Cantitate</span>
+                                <input type="number" id="mushroomsQty" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Categorie 7: Topitorie -->
+                    <div class="category-group" id="cat-smeltery">
+                        <div class="category-header" onclick="toggleCategory('cat-smeltery')">🏭 Topitorie</div>
+                        <div class="category-content" id="smelteryForm">
+                            <div class="item-row" style="margin-bottom: 10px;">
+                                <span class="item-name">Produs</span>
+                                <select id="smelteryResource" onchange="calculateAll()" style="width: 100%;">
+                                    <option value="carbune_minereu">1 Cărbune = 4 Minereu cărbune</option>
+                                    <option value="carbune_mesteacan">1 Cărbune = 1 Mesteacăn</option>
+                                    <option value="sulf_minereu">1 Sulf = 4 Minereu de sulf</option>
+                                    <option value="cupru_minereu">1 Cupru = 4 Minereu de cupru</option>
+                                    <option value="fier_minereu">1 Fier = 4 Minereu de fier</option>
+                                    <option value="aur_minereu">1 Aur = 4 Minereu de aur</option>
+                                    <option value="aluminiu_minereu">1 Aluminiu = 4 Minereu de aluminiu</option>
+                                    <option value="plumb_minereu">1 Plumb = 4 Minereu de plumb</option>
+                                    <option value="otel">1 Oțel = 1 Fier + 1 Cărbune</option>
+                                    <option value="arc">1 Arc = 1 Aluminiu</option>
+                                    <option value="tava_x2">Tavă x2 = 1 Oțel</option>
+                                    <option value="carbune_stejar">Cărbune x2 = 1 Stejar</option>
+                                    <option value="carbune_cedru">Cărbune x3 = 1 Cedru</option>
+                                    <option value="janta_aluminiu">1 Jantă aluminiu = 10 Aluminiu</option>
+                                </select>
+                            </div>
+                            <div class="item-row">
+                                <span class="item-name">Cantitate dorită</span>
+                                <input type="number" id="smelteryQty" min="0" step="1" value="0" placeholder="0" oninput="calculateAll()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-container">
+                        <button type="button" class="btn-danger" onclick="resetCalculator()">Resetează Totul</button>
+                        <button type="button" class="mobile-results-button" onclick="showMobileResults()">Vezi rezultatele ↓</button>
+                    </div>
+                </div>
+
+                <!-- Panou Dreapta: Rezultate Agregate -->
+                <div class="mobile-results-overlay" id="calculator-results-overlay" onclick="showMobileCalculator()"></div>
+                <div class="panel results-section" id="calculator-results" role="dialog" aria-modal="true" aria-label="Rezultatele calculului">
+                    <button type="button" class="mobile-edit-selection" onclick="showMobileCalculator()">✕ Închide rezultatele</button>
+                    <!-- Box 1A: Componente din Arme -->
+                    <div class="result-box" id="box_weapon_total">
+                        <h3>Total piese de armă înainte de componente armă</h3>
+                        <div class="grid-results" id="weaponTotalResultsGrid">
+                            <div class="result-card"><div class="item-title">Total piese de armă necesare</div><div class="item-value" id="res_w_total_piese">0</div></div>
+                        </div>
+                    </div>
+
+                    <div class="result-box" id="box_weapons">
+                        <h3>Componente Necesarare</h3>
+                        <div class="grid-results" id="weaponsResultsGrid">
+                            <div class="result-card"><div class="item-title">Necesar Piese Armă</div><div class="item-value" id="res_w_piese_arme">0</div></div>
+                            <div class="result-card"><div class="item-title">Blueprint-uri</div><div class="item-value" id="res_w_blueprint">0</div></div>
+                            <div class="result-card"><div class="item-title">Teavă Pistol</div><div class="item-value" id="res_w_teava_pistol">0</div></div>
+                            <div class="result-card"><div class="item-title">Corp Pistol</div><div class="item-value" id="res_w_corp_pistol">0</div></div>
+                            <div class="result-card"><div class="item-title">Teavă SMG</div><div class="item-value" id="res_w_teava_smg">0</div></div>
+                            <div class="result-card"><div class="item-title">Corp SMG</div><div class="item-value" id="res_w_corp_smg">0</div></div>
+                            <div class="result-card"><div class="item-title">Teavă Rifle</div><div class="item-value" id="res_w_teava_rifle">0</div></div>
+                            <div class="result-card"><div class="item-title">Corp Rifle</div><div class="item-value" id="res_w_corp_rifle">0</div></div>
+                            <div class="result-card"><div class="item-title">Butstock</div><div class="item-value" id="res_w_butstock">0</div></div>
+                            <div class="result-card"><div class="item-title">Aur</div><div class="item-value gold" id="res_w_gold">0</div></div>
+                            <div class="result-card"><div class="item-title">Diamante</div><div class="item-value" id="res_w_diamonds">0</div></div>
+                            <div class="result-card"><div class="item-title">Rubine</div><div class="item-value" id="res_w_rubies">0</div></div>
+                            <div class="result-card"><div class="item-title">Emeralde</div><div class="item-value" id="res_w_emeralds">0</div></div>
+                        </div>
+                    </div>
+
+                    <!-- Box 1B: Materiale pentru Piese de Armă -->
+                    <div class="result-box" id="box_weapon_parts">
+                        <h3>Necesar Materiale (Din Meniul Independent de Piese)</h3>
+                        <div class="grid-results" id="partsResultsGrid">
+                            <div class="result-card"><div class="item-title">Total Piese Armă</div><div class="item-value" id="res_p_total_piese">0</div></div>
+                        </div>
+                    </div>
+
+                    <!-- Box 2: Necesar Materiale Plicuri Cocaină -->
+                    <div class="result-box" id="box_plicuri">
+                        <h3>Necesar Materiale Plicuri Cocaină</h3>
+                        <div class="grid-results" id="plicuriResultsGrid">
+                            <div class="result-card"><div class="item-title">Frunze</div><div class="item-value" id="plic_res_frunze">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Tăvi</div><div class="item-value" id="plic_res_tavi">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Ape (Sticle)</div><div class="item-value" id="plic_res_ape">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Brichete</div><div class="item-value" id="plic_res_brichete">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Plicuri Goale</div><div class="item-value" id="plic_res_goale">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Plicuri Făcute</div><div class="item-value" id="plic_res_facute">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Total Greutate</div><div class="item-value" id="plic_res_kg">0.0 KG</div></div>
+                            <div class="result-card"><div class="item-title">Profit Estimat</div><div class="item-value gold" id="plic_res_profit">0 $</div></div>
+                        </div>
+                    </div>
+
+                    <!-- Box 3: Necesar Materiale Marijuana -->
+                    <div class="result-box" id="box_weed">
+                        <h3>Necesar Materiale Marijuana</h3>
+                        <div class="grid-results" id="weedResultsGrid">
+                            <div class="result-card"><div class="item-title">Frunze</div><div class="item-value" id="weed_res_frunze">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Foițe</div><div class="item-value" id="weed_res_foite">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Joint-uri</div><div class="item-value" id="weed_res_jointuri">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Total Greutate</div><div class="item-value" id="weed_res_kg">0.0 KG</div></div>
+                        </div>
+                    </div>
+
+                    <!-- Box 5: Necesar Materiale Plicuri Ciuperci -->
+                    <div class="result-box" id="box_mushrooms">
+                        <h3>Necesar Materiale Plicuri Ciuperci</h3>
+                        <div class="grid-results" id="mushroomsResultsGrid">
+                            <div class="result-card"><div class="item-title">Acetona</div><div class="item-value" id="mush_res_acetona">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Pink Light</div><div class="item-value" id="mush_res_pink_light">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Oyster Rosu</div><div class="item-value" id="mush_res_oyster_rosu">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Amanita Rosie</div><div class="item-value" id="mush_res_amanita_rosie">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Blue Light</div><div class="item-value" id="mush_res_blue_light">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Oyster Galben</div><div class="item-value" id="mush_res_oyster_galben">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Amanita Verde</div><div class="item-value" id="mush_res_amanita_verde">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Purple Light</div><div class="item-value" id="mush_res_purple_light">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Oyster Albastru</div><div class="item-value" id="mush_res_oyster_albastru">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Psilocybe</div><div class="item-value" id="mush_res_psilocybe">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Plicuri Goale</div><div class="item-value" id="mush_res_plicuri_goale">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Total Greutate</div><div class="item-value" id="mush_res_kg">0.0 KG</div></div>
+                        </div>
+                    </div>
+
+                    <!-- Box 6: Necesar Materiale Topitorie -->
+                    <div class="result-box" id="box_smeltery">
+                        <h3>Necesar Materiale Topitorie</h3>
+                        <div class="grid-results" id="smelteryResultsGrid"></div>
+                    </div>
+
+
+                    <!-- Box 4: Total Materiale Brute -->
+                    <div class="result-box" id="box_raw_materials">
+                        <h3>Total Materiale Brute Necesare (Arme, Componente & Muniții)</h3>
+                        <div class="grid-results" id="rawMaterialsResultsGrid">
+                            <div class="result-card"><div class="item-title">Arc</div><div class="item-value" id="raw_arc">0</div></div>
+                            <div class="result-card"><div class="item-title">Oțel</div><div class="item-value" id="raw_otel">0</div></div>
+                            <div class="result-card"><div class="item-title">Plumb</div><div class="item-value" id="raw_plumb">0</div></div>
+                            <div class="result-card"><div class="item-title">Aluminiu</div><div class="item-value" id="raw_aluminiu">0</div></div>
+                            <div class="result-card"><div class="item-title">Praf de Pusca</div><div class="item-value" id="raw_p_praf">0</div></div>
+                            <div class="result-card"><div class="item-title">Sulf</div><div class="item-value" id="raw_sulf">0</div></div>
+                            <div class="result-card"><div class="item-title">Cărbune</div><div class="item-value" id="raw_carbune">0</div></div>
+                            <div class="result-card"><div class="item-title">Fier</div><div class="item-value" id="raw_fier">0</div></div>
+                            <div class="result-card"><div class="item-title">Plastic</div><div class="item-value" id="raw_plastic">0</div></div>
+                            <div class="result-card"><div class="item-title">Scrap</div><div class="item-value" id="raw_scrap">0</div></div>
+                            <div class="result-card"><div class="item-title">Cupru</div><div class="item-value" id="raw_cupru">0</div></div>
+                            <div class="result-card">
+                                <div class="item-title">Casing-uri</div>
+                                <div class="item-value" id="raw_casinguri">0</div>
+                            </div>
+                            <div class="result-card">
+                                <div class="item-title">Aur</div>
+                                <div class="item-value gold" id="raw_aur">0</div>
+                            </div>
+
+                            <div class="result-card">
+                                <div class="item-title">Diamant</div>
+                                <div class="item-value" id="raw_diamant">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script de integrare Supabase și interfață identic cu index.html -->
+    <script>
+        const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
+        const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
+        const supabaseClient = window.createPanelSupabaseClient();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const currentPage = window.location.pathname.split("/").pop() || "index.html";
+            document.querySelectorAll('.nav-link').forEach(link => {
+                const linkHref = link.getAttribute('href');
+                if (linkHref === currentPage) {
+                    link.classList.remove('text-slate-300', 'hover:bg-slate-800');
+                    link.classList.add('bg-emerald-500/10', 'text-emerald-400', 'font-medium');
+                }
+            });
+
+            const cachedUser = localStorage.getItem('discord_user');
+            if (!cachedUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const localData = JSON.parse(cachedUser);
+                if (!localData || !localData.discord_id) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                let { data: dbUser } = await supabaseClient
+                    .from('users')
+                    .select('discord_id,username,display_name,avatar,role,default_role')
+                    .eq('discord_id', localData.discord_id)
+                    .maybeSingle();
+
+                let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
+
+                const isPrivileged = typeof isPlatformAdmin === 'function' && isPlatformAdmin();
+
+                if (isPrivileged) {
+                    const navLogs = document.getElementById('nav-logs');
+                    if (navLogs) navLogs.classList.remove('hidden');
+                }
+
+                localStorage.setItem('discord_user', JSON.stringify(activeUser));
+
+                initForms();
+            } catch (err) {
+                console.error('Erore sesiune:', err);
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    localStorage.clear();
+                    window.location.href = 'login.html';
+                });
+            }
+        });
+
+        const PRICE_PER_ENVELOPE = 13600;
+
+        const componentCost = {
+            "Teava Pistol": 1,
+            "Corp Pistol": 1,
+            "Teava SMG": 2,
+            "Corp SMG": 2,
+            "Corp Rifle": 3,
+            "Teava Rifle": 3,
+            "Butstock": 2
+        };
+
+        const weapons = {
+            "Navy Pistol": { blueprint: 1, parts: 6, components: ["Teava Rifle", "Corp Pistol"] },
+            "Combat MG": { blueprint: 1, parts: 4, components: ["Teava Rifle", "Corp Rifle", "Butstock"] },
+            "Assault SMG": { blueprint: 1, parts: 4, components: ["Teava SMG", "Corp Rifle", "Butstock"] },
+            "Gadget Pistol": { blueprint: 1, parts: 20, components: ["Teava Rifle", "Corp Pistol"], gold: 10, diamonds: 2, rubies: 2, emeralds: 2 },
+            "Shotgun": { blueprint: 1, parts: 4, components: ["Teava SMG", "Corp Pistol"] },
+            "Heavy Revolver": { blueprint: 1, parts: 4, components: ["Teava Rifle", "Corp Pistol"] },
+            "MG": { parts: 3, components: ["Teava Rifle", "Corp Rifle", "Butstock"] },
+            "Assault Rifle MK2": { parts: 3, components: ["Teava Rifle", "Corp Rifle", "Butstock"] },
+            "Pistol": { components: ["Corp Pistol", "Teava Pistol"] },
+            "Tec-9": { parts: 1, components: ["Corp Pistol", "Teava SMG"] },
+            "Pistol Mk2": { parts: 1, components: ["Corp Pistol", "Teava Pistol"] },
+            "Micro SMG": { parts: 1, components: ["Corp SMG", "Teava SMG"] },
+            "Mini Ak": { parts: 1, components: ["Corp Rifle", "Teava SMG"] },
+            "Vintage Pistol": { parts: 2, components: ["Corp Pistol", "Teava Pistol"] },
+            "SMG Mk2": { parts: 1, components: ["Corp SMG", "Teava SMG"] },
+            "Tommy Gun": { parts: 1, components: ["Teava Rifle", "Corp Rifle", "Butstock"] },
+            "DB": { parts: 3, components: ["Corp Pistol", "Teava Pistol"], gold: 1 }
+        };
+
+        const ammoData = {
+
+            ".44 Marlin": {
+                id: "ammo_44_marlin",
+                batch: 30,
+                casing: {
+                    "Cupru": 2
+                },
+                fill: {
+                    "Plumb": 1,
+                    "Praf de Pusca": 2
+                }
+            },
+
+            "7.62mm": {
+                id: "ammo_762mm",
+                batch: 30,
+                casing: {
+                    "Cupru": 2
+                },
+                fill: {
+                    "Plumb": 2,
+                    "Praf de Pusca": 2
+                }
+            },
+
+            ".45 ACP": {
+                id: "ammo_45_acp",
+                batch: 30,
+                casing: {
+                    "Cupru": 1
+                },
+                fill: {
+                    "Plumb": 1,
+                    "Praf de Pusca": 1
+                }
+            },
+
+            "9mm PBM": {
+                id: "ammo_9mm_pbm",
+                batch: 30,
+                casing: {
+                    "Cupru": 1
+                },
+                fill: {
+                    "Plumb": 1,
+                    "Praf de Pusca": 1
+                }
+            },
+
+            "9mm ACP": {
+                id: "ammo_9mm_acp",
+                batch: 30,
+                casing: {
+                    "Cupru": 2
+                },
+                fill: {
+                    "Plumb": 1,
+                    "Praf de Pusca": 1
+                }
+            },
+
+            ".38 Magnum": {
+                id: "ammo_38_magnum",
+                batch: 20,
+                casing: {
+                    "Cupru": 2
+                },
+                fill: {
+                    "Plumb": 2,
+                    "Praf de Pusca": 3
+                }
+            },
+
+            "7.65mm": {
+                id: "ammo_765mm",
+                batch: 20,
+                casing: {
+                    "Cupru": 2
+                },
+                fill: {
+                    "Plumb": 2,
+                    "Praf de Pusca": 2
+                }
+            },
+
+            ".50 DAP": {
+                id: "ammo_50_dap",
+                batch: 20,
+                casing: {
+                    "Cupru": 4,
+                    "Aur": 1
+                },
+                fill: {
+                    "Plumb": 3,
+                    "Praf de Pusca": 4,
+                    "Diamant": 1
+                }
+            },
+
+            "Buckshot": {
+                id: "ammo_buckshot",
+                batch: 20,
+                casing: {
+                    "Aluminiu": 2,
+                    "Plastic": 5,
+                    "Cupru": 1
+                },
+                fill: {
+                    "Plumb": 2,
+                    "Praf de Pusca": 2
+                }
+            }
+
+        };
+
+        const smelteryRecipes = {
+            carbune_minereu: { name: 'Cărbune', equation: '1 Cărbune = 4 Minereu cărbune', produces: 1, base: { 'Minereu cărbune': 4 } },
+            carbune_mesteacan: { name: 'Cărbune', equation: '1 Cărbune = 1 Mesteacăn', produces: 1, base: { 'Mesteacăn': 1 } },
+            sulf_minereu: { name: 'Sulf', equation: '1 Sulf = 4 Minereu de sulf', produces: 1, base: { 'Minereu de sulf': 4 } },
+            cupru_minereu: { name: 'Cupru', equation: '1 Cupru = 4 Minereu de cupru', produces: 1, base: { 'Minereu de cupru': 4 } },
+            fier_minereu: { name: 'Fier', equation: '1 Fier = 4 Minereu de fier', produces: 1, base: { 'Minereu de fier': 4 } },
+            aur_minereu: { name: 'Aur', equation: '1 Aur = 4 Minereu de aur', produces: 1, base: { 'Minereu de aur': 4 } },
+            aluminiu_minereu: { name: 'Aluminiu', equation: '1 Aluminiu = 4 Minereu de aluminiu', produces: 1, base: { 'Minereu de aluminiu': 4 } },
+            plumb_minereu: { name: 'Plumb', equation: '1 Plumb = 4 Minereu de plumb', produces: 1, base: { 'Minereu de plumb': 4 } },
+            otel: { name: 'Oțel', equation: '1 Oțel = 1 Fier + 1 Cărbune', produces: 1, base: { 'Fier': 1, 'Cărbune': 1 } },
+            arc: { name: 'Arc', equation: '1 Arc = 1 Aluminiu', produces: 1, base: { 'Aluminiu': 1 } },
+            tava_x2: { name: 'Tavă', equation: 'Tavă x2 = 1 Oțel', produces: 2, base: { 'Oțel': 1 } },
+            carbune_stejar: { name: 'Cărbune', equation: 'Cărbune x2 = 1 Stejar', produces: 2, base: { 'Stejar': 1 } },
+            carbune_cedru: { name: 'Cărbune', equation: 'Cărbune x3 = 1 Cedru', produces: 3, base: { 'Cedru': 1 } },
+            janta_aluminiu: { name: 'Jantă aluminiu', equation: '1 Jantă aluminiu = 10 Aluminiu', produces: 1, base: { 'Aluminiu': 10 } }
+        };
+
+        function toggleCategory(catId) {
+            const currentElement = document.getElementById(catId);
+            const isOpen = currentElement.classList.contains('active');
+
+            const allCategories = document.querySelectorAll('.category-group');
+            allCategories.forEach(cat => cat.classList.remove('active'));
+
+            if (!isOpen) {
+                currentElement.classList.add('active');
+            }
+        }
+        function filterCalculatorRecipes(value) {
+            const query = String(value || '').trim().toLocaleLowerCase('ro');
+            document.querySelectorAll('#calculator-input-panel .category-group').forEach(category => {
+                const header = category.querySelector('.category-header');
+                const rows = Array.from(category.querySelectorAll('.item-row'));
+                const headerMatches = (header?.textContent || '').toLocaleLowerCase('ro').includes(query);
+
+                if (!query) {
+                    category.style.display = '';
+                    rows.forEach(row => row.style.display = '');
+                    category.classList.remove('active');
+                    return;
+                }
+
+                let visibleRows = 0;
+                rows.forEach(row => {
+                    const matches = headerMatches || row.textContent.toLocaleLowerCase('ro').includes(query);
+                    row.style.display = matches ? '' : 'none';
+                    if (matches) visibleRows++;
+                });
+
+                const categoryMatches = headerMatches || visibleRows > 0;
+                category.style.display = categoryMatches ? '' : 'none';
+                category.classList.toggle('active', categoryMatches);
+            });
+        }
+
+
+        function initForms() {
+            const weaponsContainer = document.getElementById('weaponsForm');
+            let wHtml = '';
+            for (let wName in weapons) {
+                let wId = wName.toLowerCase().replace(/[\s\.]+/g, '_');
+                wHtml += `
+                    <div class="item-row">
+                        <span class="item-name">${wName}</span>
+                        <input type="number" id="w_${wId}" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                    </div>
+                `;
+            }
+            weaponsContainer.innerHTML = wHtml;
+
+            const ammoContainer = document.getElementById('ammoForm');
+            let aHtml = '';
+            for (let aName in ammoData) {
+                let a = ammoData[aName];
+                aHtml += `
+                    <div class="item-row">
+                        <span class="item-name">${aName}</span>
+                        <input type="number" id="a_${a.id}" min="0" value="0" placeholder="0" oninput="calculateAll()">
+                    </div>
+                `;
+            }
+            ammoContainer.innerHTML = aHtml;
+        }
+
+        function resetCalculator() {
+            const inputs = document.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => input.value = 0);
+            document.getElementById('plicuriResource').selectedIndex = 0;
+            document.getElementById('weedResource').selectedIndex = 0;
+            document.getElementById('mushroomsResource').selectedIndex = 0;
+            document.getElementById('smelteryResource').selectedIndex = 0;
+            calculateAll();
+        }
+
+        function showMobileResults() {
+            const firstResult = document.querySelector('.result-box.active');
+            if (!firstResult) {
+                alert('Introdu mai întâi o cantitate pentru calcul.');
+                return;
+            }
+            const resultsPanel = document.getElementById('calculator-results');
+            const overlay = document.getElementById('calculator-results-overlay');
+            resultsPanel.classList.add('mobile-modal-open');
+            overlay.classList.add('active');
+            document.body.classList.add('calculator-modal-open');
+            resultsPanel.scrollTop = 0;
+        }
+
+        function showMobileCalculator() {
+            const resultsPanel = document.getElementById('calculator-results');
+            const overlay = document.getElementById('calculator-results-overlay');
+            resultsPanel.classList.remove('mobile-modal-open');
+            overlay.classList.remove('active');
+            document.body.classList.remove('calculator-modal-open');
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') showMobileCalculator();
+        });
+
+        function calculateAll() {
+            let hasWeapons = false;
+            let totalWParts = 0;
+            let wTotals = {
+                "Blueprint": 0, "Gold": 0, "Diamonds": 0, "Rubies": 0, "Emeralds": 0,
+                "Teava Pistol": 0, "Corp Pistol": 0, "Teava SMG": 0, "Corp SMG": 0,
+                "Teava Rifle": 0, "Corp Rifle": 0, "Butstock": 0
+            };
+
+            for (let wName in weapons) {
+                let wId = wName.toLowerCase().replace(/[\s\.]+/g, '_');
+                let inputElement = document.getElementById(`w_${wId}`);
+                let qty = inputElement ? (parseInt(inputElement.value) || 0) : 0;
+
+                if (qty > 0) {
+                    hasWeapons = true;
+                    let weapon = weapons[wName];
+
+                    wTotals["Blueprint"] += (weapon.blueprint || 0) * qty;
+                    totalWParts += (weapon.parts || 0) * qty;
+                    wTotals["Gold"] += (weapon.gold || 0) * qty;
+                    wTotals["Diamonds"] += (weapon.diamonds || 0) * qty;
+                    wTotals["Rubies"] += (weapon.rubies || 0) * qty;
+                    wTotals["Emeralds"] += (weapon.emeralds || 0) * qty;
+
+                    if (weapon.components) {
+                        weapon.components.forEach(comp => {
+                            wTotals[comp] = (wTotals[comp] || 0) + qty;
+                        });
+                    }
+                }
+            }
+
+            let weaponComponentsAsParts = 0;
+            for (let compName in componentCost) {
+                weaponComponentsAsParts += (wTotals[compName] || 0) * (componentCost[compName] || 0);
+            }
+
+            const totalPartsQty = parseInt(document.getElementById('part_total_piese').value) || 0;
+
+            let independentParts = {
+                "Teava Pistol": parseInt(document.getElementById('part_teava_pistol').value) || 0,
+                "Corp Pistol": parseInt(document.getElementById('part_corp_pistol').value) || 0,
+                "Teava SMG": parseInt(document.getElementById('part_teava_smg').value) || 0,
+                "Corp SMG": parseInt(document.getElementById('part_corp_smg').value) || 0,
+                "Teava Rifle": parseInt(document.getElementById('part_teava_rifle').value) || 0,
+                "Corp Rifle": parseInt(document.getElementById('part_corp_rifle').value) || 0,
+                "Butstock": parseInt(document.getElementById('part_butstock').value) || 0
+            };
+
+            let hasIndependentParts = totalPartsQty > 0;
+            let totalIndependentPartsConsumed = totalPartsQty;
+
+            for (let pName in independentParts) {
+                let count = independentParts[pName];
+                if (count > 0) {
+                    hasIndependentParts = true;
+                    totalIndependentPartsConsumed += count * (componentCost[pName] || 0);
+                }
+            }
+
+            let independentPartsCrafts = Math.ceil(totalIndependentPartsConsumed / 2);
+
+            let partsRawMats = {
+                "Arc": independentPartsCrafts,
+                "Oțel": independentPartsCrafts,
+                "Plastic": independentPartsCrafts,
+                "Scrap": independentPartsCrafts * 2
+            };
+
+            let hasAmmo = false;
+
+            let ammoCasingTotals = {};
+            let ammoFillTotals = {};
+            let totalCasings = 0;
+            let cleanRawMats = {
+                "Arc": 0,
+                "Oțel": 0,
+                "Plumb": 0,
+                "Aluminiu": 0,
+                "Praf de Pusca": 0,
+                "Sulf": 0,
+                "Cărbune": 0,
+                "Fier": 0,
+                "Plastic": 0,
+                "Scrap": 0,
+                "Cupru": 0,
+                "Casing-uri": 0,
+                "Aur": 0,
+                "Diamant": 0
+            };
+
+            let rawPartsForWeapons = Math.ceil(totalWParts / 2);
+
+            cleanRawMats["Arc"] += rawPartsForWeapons;
+            cleanRawMats["Oțel"] += rawPartsForWeapons;
+            cleanRawMats["Plastic"] += rawPartsForWeapons;
+            cleanRawMats["Scrap"] += rawPartsForWeapons * 2;
+
+            let weaponComponentsConsumedParts = Math.ceil(weaponComponentsAsParts / 2);
+
+            cleanRawMats["Arc"] += weaponComponentsConsumedParts;
+            cleanRawMats["Oțel"] += weaponComponentsConsumedParts;
+            cleanRawMats["Plastic"] += weaponComponentsConsumedParts;
+            cleanRawMats["Scrap"] += weaponComponentsConsumedParts * 2;
+
+            cleanRawMats["Arc"] += partsRawMats["Arc"];
+            cleanRawMats["Oțel"] += partsRawMats["Oțel"];
+            cleanRawMats["Plastic"] += partsRawMats["Plastic"];
+            cleanRawMats["Scrap"] += partsRawMats["Scrap"];
+
+            for (let aName in ammoData) {
+                let a = ammoData[aName];
+
+                let bulletsQty =
+                    parseInt(document.getElementById(`a_${a.id}`).value) || 0;
+
+                if (bulletsQty > 0) {
+                    hasAmmo = true;
+
+                    // Numărul de crafturi necesare
+                    let crafts = Math.ceil(bulletsQty / a.batch);
+
+                    // Casing-uri necesare
+                    let casingsNeeded = crafts * a.batch;
+                    totalCasings += casingsNeeded;
+
+                    // Materialele necesare pentru casing-uri
+                    for (let mat in a.casing) {
+                        let amount = a.casing[mat] * crafts;
+
+                        cleanRawMats[mat] =
+                            (cleanRawMats[mat] || 0) + amount;
+                    }
+
+                    // Materialele necesare pentru umplere
+                    for (let mat in a.fill) {
+                        let amount = a.fill[mat] * crafts;
+
+                        cleanRawMats[mat] =
+                            (cleanRawMats[mat] || 0) + amount;
+                    }
+                }
+            }
+
+            cleanRawMats["Casing-uri"] += totalCasings;
+            const resource = document.getElementById('plicuriResource').value;
+            const qtyVal = document.getElementById('plicuriQty').value;
+            let factor = 0;
+            let hasPlicuri = false;
+
+            if (qtyVal !== '' && !isNaN(qtyVal) && parseFloat(qtyVal) > 0) {
+                hasPlicuri = true;
+                const qty = parseFloat(qtyVal);
+                if (resource === 'frunze') factor = qty / 1000;
+                else if (resource === 'tavi' || resource === 'ape' || resource === 'brichete') factor = qty / 50;
+                else if (resource === 'plicuri_goale' || resource === 'plicuri_facute') factor = qty / 100;
+            }
+
+            const totalFrunze = factor * 1000;
+            const totalTavi = factor * 50;
+            const totalApe = factor * 50;
+            const totalBrichete = factor * 50;
+            const totalPlicuriGoale = factor * 100;
+            const plicuriFacute = factor * 100;
+            const totalKg = (totalFrunze * 0.04) + (totalTavi * 0.3) + (totalApe * 0.4) + (totalBrichete * 0.2) + (totalPlicuriGoale * 0.03);
+            const profit = Math.round(plicuriFacute) * PRICE_PER_ENVELOPE;
+            const formatNr = (nr) => nr % 1 !== 0 ? nr.toFixed(1) : Math.round(nr);
+
+            const weedResource = document.getElementById('weedResource').value;
+            const weedQtyVal = document.getElementById('weedQty').value;
+            let weedFactor = 0;
+            let hasWeed = false;
+
+            if (weedQtyVal !== '' && !isNaN(weedQtyVal) && parseFloat(weedQtyVal) > 0) {
+                hasWeed = true;
+                const wQty = parseFloat(weedQtyVal);
+                if (weedResource === 'frunze') weedFactor = wQty / 20;
+                else if (weedResource === 'foite') weedFactor = wQty / 1;
+                else if (weedResource === 'jointuri') weedFactor = wQty;
+            }
+
+            const weedTotalFrunze = weedFactor * 20;
+            const weedTotalFoite = weedFactor * 1;
+            const weedTotalJoints = weedFactor * 1;
+            const weedTotalKg = (weedTotalFrunze * 0.04) + (weedTotalFoite * 0.01);
+
+            const mushroomsResource = document.getElementById('mushroomsResource').value;
+            const mushroomsQtyVal = document.getElementById('mushroomsQty').value;
+            let mushQty = 0;
+            let hasMushrooms = false;
+
+            if (mushroomsQtyVal !== '' && !isNaN(mushroomsQtyVal) && parseFloat(mushroomsQtyVal) > 0) {
+                hasMushrooms = true;
+                mushQty = parseFloat(mushroomsQtyVal);
+            }
+
+            let mushAcetona = 0;
+            let mushPinkLight = 0;
+            let mushOysterRosu = 0;
+            let mushAmanitaRosie = 0;
+            let mushBlueLight = 0;
+            let mushOysterGalben = 0;
+            let mushAmanitaVerde = 0;
+            let mushPurpleLight = 0;
+            let mushOysterAlbastru = 0;
+            let mushPsilocybe = 0;
+            let mushPlicuriGoale = 0;
+
+            if (mushroomsResource === 'red_fire_x3') {
+                mushAcetona = mushQty * 1;
+                mushPinkLight = mushQty * 3;
+                mushOysterRosu = mushQty * 3;
+                mushAmanitaRosie = mushQty * 3;
+                mushPlicuriGoale = mushQty * 3;
+            } else if (mushroomsResource === 'green_haze') {
+                mushAcetona = mushQty * 1;
+                mushBlueLight = mushQty * 3;
+                mushOysterGalben = mushQty * 3;
+                mushAmanitaVerde = mushQty * 3;
+                mushPlicuriGoale = mushQty * 3;
+            } else if (mushroomsResource === 'blue_current_x3') {
+                mushAcetona = mushQty * 1;
+                mushPurpleLight = mushQty * 3;
+                mushOysterAlbastru = mushQty * 3;
+                mushPsilocybe = mushQty * 3;
+                mushPlicuriGoale = mushQty * 3;
+            }
+
+            const totalMushroomsCount = mushPinkLight + mushOysterRosu + mushAmanitaRosie + mushBlueLight + mushOysterGalben + mushAmanitaVerde + mushPurpleLight + mushOysterAlbastru + mushPsilocybe;
+            const mushTotalKg = (mushAcetona * 2) + ((totalMushroomsCount + mushPlicuriGoale) * 0.10);
+
+            const smelteryResource = document.getElementById('smelteryResource').value;
+            const smelteryQtyVal = document.getElementById('smelteryQty').value;
+            let hasSmeltery = false;
+            let smelteryQty = 0;
+            let smelteryCrafts = 0;
+            let smelteryRecipe = smelteryRecipes[smelteryResource];
+            let smelteryMaterials = {};
+
+            if (smelteryQtyVal !== '' && !isNaN(smelteryQtyVal) && parseFloat(smelteryQtyVal) > 0 && smelteryRecipe) {
+                hasSmeltery = true;
+                smelteryQty = parseFloat(smelteryQtyVal);
+                smelteryCrafts = Math.ceil(smelteryQty / smelteryRecipe.produces);
+
+                for (const material in smelteryRecipe.base) {
+                    smelteryMaterials[material] = smelteryRecipe.base[material] * smelteryCrafts;
+                }
+            }
+
+            const boxWeaponTotal = document.getElementById('box_weapon_total');
+            const boxWeapons = document.getElementById('box_weapons');
+            const boxWeaponParts = document.getElementById('box_weapon_parts');
+            const boxPlicuri = document.getElementById('box_plicuri');
+            const boxWeed = document.getElementById('box_weed');
+            const boxMushrooms = document.getElementById('box_mushrooms');
+            const boxSmeltery = document.getElementById('box_smeltery');
+            const boxRawMaterials = document.getElementById('box_raw_materials');
+
+
+            if (hasWeapons) {
+                boxWeaponTotal.classList.add('active');
+                document.getElementById('res_w_total_piese').innerText = totalWParts + weaponComponentsAsParts;
+                boxWeapons.classList.add('active');
+                document.getElementById('res_w_piese_arme').innerText = totalWParts;
+                document.getElementById('res_w_blueprint').innerText = wTotals["Blueprint"];
+                document.getElementById('res_w_teava_pistol').innerText = wTotals["Teava Pistol"];
+                document.getElementById('res_w_corp_pistol').innerText = wTotals["Corp Pistol"];
+                document.getElementById('res_w_teava_smg').innerText = wTotals["Teava SMG"];
+                document.getElementById('res_w_corp_smg').innerText = wTotals["Corp SMG"];
+                document.getElementById('res_w_teava_rifle').innerText = wTotals["Teava Rifle"];
+                document.getElementById('res_w_corp_rifle').innerText = wTotals["Corp Rifle"];
+                document.getElementById('res_w_butstock').innerText = wTotals["Butstock"];
+                document.getElementById('res_w_gold').innerText = wTotals["Gold"];
+                document.getElementById('res_w_diamonds').innerText = wTotals["Diamonds"];
+                document.getElementById('res_w_rubies').innerText = wTotals["Rubies"];
+                document.getElementById('res_w_emeralds').innerText = wTotals["Emeralds"];
+            } else {
+                boxWeaponTotal.classList.remove('active');
+                boxWeapons.classList.remove('active');
+            }
+
+            if (hasIndependentParts) {
+                boxWeaponParts.classList.add('active');
+                document.getElementById('res_p_total_piese').innerText = totalIndependentPartsConsumed;
+            } else {
+                boxWeaponParts.classList.remove('active');
+            }
+
+            if (hasPlicuri) {
+                boxPlicuri.classList.add('active');
+                document.getElementById('plic_res_frunze').innerText = formatNr(totalFrunze) + " buc";
+                document.getElementById('plic_res_tavi').innerText = formatNr(totalTavi) + " buc";
+                document.getElementById('plic_res_ape').innerText = formatNr(totalApe) + " buc";
+                document.getElementById('plic_res_brichete').innerText = formatNr(totalBrichete) + " buc";
+                document.getElementById('plic_res_goale').innerText = formatNr(totalPlicuriGoale) + " buc";
+                document.getElementById('plic_res_facute').innerText = formatNr(plicuriFacute) + " buc";
+                document.getElementById('plic_res_kg').innerText = totalKg.toFixed(2) + " KG";
+                document.getElementById('plic_res_profit').innerText = profit.toLocaleString() + " $";
+            } else {
+                boxPlicuri.classList.remove('active');
+            }
+
+            if (hasWeed) {
+                boxWeed.classList.add('active');
+                document.getElementById('weed_res_frunze').innerText = formatNr(weedTotalFrunze) + " buc";
+                document.getElementById('weed_res_foite').innerText = formatNr(weedTotalFoite) + " buc";
+                document.getElementById('weed_res_jointuri').innerText = formatNr(weedTotalJoints) + " buc";
+                document.getElementById('weed_res_kg').innerText = weedTotalKg.toFixed(2) + " KG";
+            } else {
+                boxWeed.classList.remove('active');
+            }
+
+            if (hasMushrooms) {
+                boxMushrooms.classList.add('active');
+                document.getElementById('mush_res_acetona').innerText = formatNr(mushAcetona) + " buc";
+                document.getElementById('mush_res_pink_light').innerText = formatNr(mushPinkLight) + " buc";
+                document.getElementById('mush_res_oyster_rosu').innerText = formatNr(mushOysterRosu) + " buc";
+                document.getElementById('mush_res_amanita_rosie').innerText = formatNr(mushAmanitaRosie) + " buc";
+                document.getElementById('mush_res_blue_light').innerText = formatNr(mushBlueLight) + " buc";
+                document.getElementById('mush_res_oyster_galben').innerText = formatNr(mushOysterGalben) + " buc";
+                document.getElementById('mush_res_amanita_verde').innerText = formatNr(mushAmanitaVerde) + " buc";
+                document.getElementById('mush_res_purple_light').innerText = formatNr(mushPurpleLight) + " buc";
+                document.getElementById('mush_res_oyster_albastru').innerText = formatNr(mushOysterAlbastru) + " buc";
+                document.getElementById('mush_res_psilocybe').innerText = formatNr(mushPsilocybe) + " buc";
+                document.getElementById('mush_res_plicuri_goale').innerText = formatNr(mushPlicuriGoale) + " buc";
+                document.getElementById('mush_res_kg').innerText = mushTotalKg.toFixed(2) + " KG";
+            } else {
+                boxMushrooms.classList.remove('active');
+            }
+
+            if (hasSmeltery) {
+                boxSmeltery.classList.add('active');
+                const smelteryGrid = document.getElementById('smelteryResultsGrid');
+                smelteryGrid.innerHTML = '';
+
+                const addSmelteryCard = (title, value) => {
+                    const card = document.createElement('div');
+                    card.className = 'result-card';
+                    card.innerHTML = `<div class="item-title">${title}</div><div class="item-value">${value}</div>`;
+                    smelteryGrid.appendChild(card);
+                };
+
+                addSmelteryCard('Produs', smelteryRecipe.name);
+                addSmelteryCard('Rețetă', smelteryRecipe.equation);
+                addSmelteryCard('Cantitate dorită', formatNr(smelteryQty));
+                addSmelteryCard('Loturi necesare', smelteryCrafts);
+                addSmelteryCard('Cantitate produsă', smelteryCrafts * smelteryRecipe.produces);
+
+                for (const material in smelteryMaterials) {
+                    addSmelteryCard(material, formatNr(smelteryMaterials[material]));
+                }
+            } else {
+                boxSmeltery.classList.remove('active');
+                document.getElementById('smelteryResultsGrid').innerHTML = '';
+            }
+
+            if (hasWeapons || hasAmmo || hasIndependentParts) {
+                boxRawMaterials.classList.add('active');
+                document.getElementById('raw_arc').innerText = cleanRawMats["Arc"];
+                document.getElementById('raw_otel').innerText = cleanRawMats["Oțel"];
+                document.getElementById('raw_plumb').innerText = cleanRawMats["Plumb"];
+                document.getElementById('raw_aluminiu').innerText = cleanRawMats["Aluminiu"];
+                document.getElementById('raw_p_praf').innerText = cleanRawMats["Praf de Pusca"];
+                document.getElementById('raw_sulf').innerText = cleanRawMats["Sulf"];
+                document.getElementById('raw_carbune').innerText = cleanRawMats["Cărbune"];
+                document.getElementById('raw_fier').innerText = cleanRawMats["Fier"];
+                document.getElementById('raw_plastic').innerText = cleanRawMats["Plastic"];
+                document.getElementById('raw_scrap').innerText = cleanRawMats["Scrap"];
+                document.getElementById('raw_cupru').innerText = cleanRawMats["Cupru"];
+                document.getElementById('raw_casinguri').innerText = cleanRawMats["Casing-uri"];
+                document.getElementById('raw_aur').innerText = cleanRawMats["Aur"];
+                document.getElementById('raw_diamant').innerText = cleanRawMats["Diamant"];
+            } else {
+                boxRawMaterials.classList.remove('active');
+            }
+        }
+    </script>
+    <script src="js/global-footer.js"></script>
+</body>
+</html>

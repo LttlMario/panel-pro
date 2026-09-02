@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loguri - Panel</title>
+    <link rel="stylesheet" href="css/tailwind.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+    <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+    <script src="js/panel-operations.js?v=20260820-profile-menu"></script>
+    <script src="js/permissions.js?v=4.6.0"></script>
+    <script src="js/panel-layout.js?v=4.23.0"></script>
+    <link rel="stylesheet" href="css/global-footer.css">
+    <script src="js/project-version.js?v=3.11.2"></script>
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen text-sm">
+        <main class="flex-1 min-w-0">
+            <div class="p-5 md:p-8 max-w-7xl mx-auto w-full space-y-6">
+            <section class="panel-action-bar"><div><button onclick="loadLogs()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl text-xs font-semibold">↻ Reîmprospătează</button></div></section>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5"><p class="text-[10px] uppercase tracking-wider text-slate-500">Evenimente afișate</p><p id="count-all" class="text-3xl font-black mt-1">0</p></div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5"><p class="text-[10px] uppercase tracking-wider text-slate-500">Pontaje active</p><p id="count-active" class="text-3xl font-black mt-1 text-emerald-400">0</p></div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5"><p class="text-[10px] uppercase tracking-wider text-slate-500">Învoiri active</p><p id="count-absences" class="text-3xl font-black mt-1 text-indigo-400">0</p></div>
+                </div>
+
+                <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-4">
+                    <div class="flex flex-col md:flex-row md:items-end gap-3"><label class="block flex-1"><span class="text-xs text-slate-400">Caută</span><input id="search" oninput="renderLogs()" placeholder="Nume, ID, motiv sau produs..." class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 outline-none focus:border-emerald-500"></label><label class="block md:w-52"><span class="text-xs text-slate-400">Tip</span><select id="type-filter" onchange="renderLogs()" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5"><option value="all">Toate</option><option value="pontaj">Pontaj</option><option value="absenta">Învoire / absență</option><option value="marketplace">Marketplace</option><option value="marketplace_ilegal">Black Market</option></select></label><label class="block md:w-44"><span class="text-xs text-slate-400">Perioadă</span><select id="period-filter" onchange="renderLogs()" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5"><option value="all">Tot istoricul</option><option value="today">Astăzi</option><option value="7">Ultimele 7 zile</option><option value="30">Ultimele 30 zile</option></select></label></div>
+                </section>
+
+                <section class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden"><div class="px-5 py-4 border-b border-slate-800 flex justify-between"><h3 class="font-bold">Evenimente</h3><span id="visible-count" class="text-xs text-slate-500">0 rezultate</span></div><div id="logs-list" class="max-h-[62vh] overflow-y-auto divide-y divide-slate-800"><p class="p-8 text-center text-slate-500">Se încarcă logurile...</p></div></section>
+            </div>
+        </main>
+
+    <script>
+        let events = [], usersMap = {};
+        const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+        const dateText = value => value ? new Date(value).toLocaleString('ro-RO', {dateStyle:'medium',timeStyle:'medium'}) : 'Dată necunoscută';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadLogs();
+        });
+
+        async function loadLogs() {
+            const list=document.getElementById('logs-list'); list.innerHTML='<p class="p-8 text-center text-slate-500">Se actualizează logurile...</p>';
+            let result;
+            try { result = await window.panelAdminInvoke('logs'); }
+            catch (error) { list.innerHTML=`<p class="p-8 text-center text-rose-300">Logurile nu au putut fi încărcate: ${escapeHtml(error?.message || 'eroare necunoscută')}</p>`; return; }
+            const users=result.users||[], shifts=result.shifts||[], absences=result.absences||[], market=result.marketplace||[], blackMarket=result.marketplace_ilegal||[], audit=result.audit||[];
+            usersMap=Object.fromEntries(users.map(user=>[user.discord_id,user.display_name || user.username || user.discord_id]));
+            events=[
+                ...shifts.map(shift=>({type:'pontaj',at:shift.ended_at || shift.started_at || shift.created_at,person:usersMap[shift.discord_id] || shift.discord_id,title:shift.status==='active'?'Pontaj pornit':shift.status==='paused'?'Pontaj în pauză':shift.status==='auto_completed'?'Pontaj încheiat automat':'Pontaj încheiat',detail:`Tură ${(shift.shift_type||'').toUpperCase()} · ${shift.duration || '00:00:00'}${shift.stop_reason ? ' · '+shift.stop_reason : ''}`,state:shift.status})),
+                ...absences.map(item=>({type:'absenta',at:item.created_at,person:item.colleague_name || usersMap[item.discord_id] || item.discord_id,title:'Învoire / absență înregistrată',detail:`${item.notice_type || 'Învoire'} · ${item.reason || item.notes || 'Fără motiv'}`,state:'absenta'})),
+                ...market.map(item=>({type:'marketplace',at:item.created_at,person:item.nume || item.display_name || 'Utilizator',title:'Anunț nou în Marketplace',detail:`${item.tip_actiune || ''} · ${item.produse || 'Fără detalii'}${item.pret ? ' · '+item.pret : ''}`,state:'marketplace'})),
+                ...blackMarket.map(item=>({type:'marketplace_ilegal',at:item.created_at,person:item.nume || 'Utilizator',title:'Anunț nou în Black Market',detail:`${item.tip_actiune || ''} · ${item.produse || 'Fără detalii'}${item.pret ? ' · '+item.pret : ''}`,state:'marketplace_ilegal'})),
+                ...audit.map(item=>({type:'admin',at:item.created_at,person:item.actor_name || item.actor_discord_id,title:'Acțiune administrativă',detail:`${item.action}${item.target_type ? ' · '+item.target_type : ''}${item.target_id ? ' #'+item.target_id : ''}`,state:'admin'}))
+            ].sort((a,b)=>new Date(b.at)-new Date(a.at));
+            document.getElementById('count-active').textContent=shifts.filter(shift=>['active','paused'].includes(shift.status)).length;
+            document.getElementById('count-absences').textContent=absences.filter(item=>item.end_at && new Date(item.end_at)>=new Date()).length;
+            document.getElementById('count-all').textContent=events.length;
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const query=document.getElementById('search').value.toLowerCase().trim(), type=document.getElementById('type-filter').value, period=document.getElementById('period-filter').value;
+            const now=Date.now(), maxAge=period==='today'?new Date().setHours(0,0,0,0):period==='all'?0:now-Number(period)*86400000;
+            const filtered=events.filter(item=>(type==='all'||item.type===type)&&(!maxAge||new Date(item.at)>=maxAge)&&(`${item.person} ${item.title} ${item.detail}`).toLowerCase().includes(query));
+            const icons={pontaj:'⏱️',absenta:'📋',marketplace:'🛒',marketplace_ilegal:'🚨',admin:'🛡️'};
+            const colors={pontaj:'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',absenta:'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',marketplace:'text-amber-400 bg-amber-500/10 border-amber-500/20',marketplace_ilegal:'text-rose-400 bg-rose-500/10 border-rose-500/20',admin:'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'};
+            document.getElementById('visible-count').textContent=`${filtered.length} rezultate`;
+            document.getElementById('logs-list').innerHTML=filtered.length?filtered.map(item=>`<article class="p-4 md:px-5 flex gap-4 hover:bg-slate-800/30"><span class="w-9 h-9 flex-none grid place-items-center rounded-xl border ${colors[item.type]}">${icons[item.type]}</span><div class="min-w-0 flex-1"><div class="flex flex-col sm:flex-row sm:justify-between gap-1"><p class="font-semibold text-slate-100">${escapeHtml(item.title)}</p><time class="text-[11px] text-slate-500 whitespace-nowrap">${dateText(item.at)}</time></div><p class="text-xs text-emerald-400 mt-1">${escapeHtml(item.person)}</p><p class="text-xs text-slate-400 mt-1 break-words">${escapeHtml(item.detail)}</p></div></article>`).join(''):'<p class="p-8 text-center text-slate-500">Nu există loguri pentru filtrele alese.</p>';
+        }
+    </script>
+    <script src="js/global-footer.js"></script>
+</body>
+</html>

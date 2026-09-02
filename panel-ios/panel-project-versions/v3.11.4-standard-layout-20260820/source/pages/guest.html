@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bun venit - Panel</title>
+    <!-- Tailwind CSS CDN -->
+    <link rel="stylesheet" href="css/tailwind.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+    <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+    <script src="js/permissions.js?v=4.6.0"></script>
+    <script src="js/panel-layout.js?v=4.23.0"></script>
+    <link rel="stylesheet" href="css/global-footer.css">
+    <script src="js/project-version.js?v=3.11.4"></script>
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm">
+
+    <!-- Containerul Principal -->
+    <div class="flex h-screen w-full overflow-hidden">
+
+        <!-- Sidebar / Meniu Lateral -->
+        <div class="p-4 md:p-8 max-w-7xl mx-auto w-full">
+
+        
+
+        <!-- Meniu mobil: conținutul este preluat automat din meniul desktop. -->
+        <div id="mobile-menu-backdrop" class="hidden fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-40 md:hidden" onclick="closeMobileMenu()"></div>
+        
+
+        <!-- Conținut Principal Dashboard -->
+        <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            
+
+                <div class="flex items-center gap-4 mb-6">
+
+                    <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-3xl">
+                        👋
+                    </div>
+
+                    <div>
+                        <h1 class="text-3xl font-bold text-slate-100">
+                            Bun venit în Panel
+                        </h1>
+
+                        <p class="text-slate-400 mt-2">
+                            Ai acces la platformă, însă contul tău nu este încă aprobat pentru utilizarea modulelor interne.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="rounded-xl border border-amber-500/20 bg-amber-500/10 p-5">
+
+                    <h2 class="text-lg font-semibold text-amber-300">
+                        🟡 Cont Vizitator
+                    </h2>
+
+                    <p class="text-slate-300 mt-2">
+                        În prezent folosești un cont de tip <strong>Vizitator</strong>.
+                        Accesul la modulele panelului va fi activat după aprobarea unui administrator.
+                    </p>
+                    </div>
+                <div class="mt-6 bg-slate-900 border border-slate-800 rounded-2xl p-8">
+
+                    <h2 class="text-2xl font-bold text-slate-100 mb-6">
+                        📦 Ce conține Panelul?
+                    </h2>
+
+                    <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+                        <div class="rounded-xl bg-slate-800/50 border border-slate-700 p-5">
+                            <h3 class="font-semibold text-slate-100">⏱️ Pontaj</h3>
+                            <p class="text-slate-400 text-sm mt-2">
+                                Evidența programului de lucru și istoricul turelor.
+                            </p>
+                        </div>
+
+                        <div class="rounded-xl bg-slate-800/50 border border-slate-700 p-5">
+                            <h3 class="font-semibold text-slate-100">📋 Cereri</h3>
+                            <p class="text-slate-400 text-sm mt-2">
+                                Trimiterea cererilor și gestionarea absențelor.
+                            </p>
+                        </div>
+
+                        <div class="rounded-xl bg-slate-800/50 border border-slate-700 p-5">
+                            <h3 class="font-semibold text-slate-100">📜 Contracte</h3>
+                            <p class="text-slate-400 text-sm mt-2">
+                                Administrarea documentelor și contractelor interne.
+                            </p>
+                        </div>
+
+                        <div class="rounded-xl bg-slate-800/50 border border-slate-700 p-5">
+                            <h3 class="font-semibold text-slate-100">📈 Rapoarte</h3>
+                            <p class="text-slate-400 text-sm mt-2">
+                                Statistici și rapoarte privind activitatea personalului.
+                            </p>
+                        </div>
+
+                        <div class="rounded-xl bg-slate-800/50 border border-slate-700 p-5">
+                            <h3 class="font-semibold text-slate-100">🛒 Marketplace</h3>
+                            <p class="text-slate-400 text-sm mt-2">
+                                Instrumente și resurse disponibile membrilor autorizați.
+                            </p>
+                        </div>
+
+                        <div class="rounded-xl bg-slate-800/50 border border-slate-700 p-5">
+                            <h3 class="font-semibold text-slate-100">🤖 AI Assistant</h3>
+                            <p class="text-slate-400 text-sm mt-2">
+                                Asistent dedicat pentru întrebări și suport în utilizarea platformei.
+                            </p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+            <div class="mt-6 bg-slate-900 border border-slate-800 rounded-2xl p-8">
+
+                <h2 class="text-2xl font-bold text-slate-100 mb-6">
+                    🔑 Cum obții acces?
+                </h2>
+
+                <div class="space-y-4">
+
+                    <div class="flex items-start gap-4">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">
+                            1
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-slate-100">Autentificare</h3>
+                            <p class="text-slate-400 text-sm">
+                                Conectează-te folosind contul tău de Discord.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-4">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">
+                            2
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-slate-100">Așteaptă aprobarea</h3>
+                            <p class="text-slate-400 text-sm">
+                                Un manager sau administrator îți va verifica rolurile și îți va activa accesul în platformă.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-4">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">
+                            3
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-slate-100">Acces complet</h3>
+                            <p class="text-slate-400 text-sm">
+                                După aprobarea contului vei avea acces automat la modulele disponibile pentru rolul tău.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="mt-8 rounded-xl border border-sky-500/20 bg-sky-500/10 p-5">
+                    <p class="text-sky-300 font-medium">
+                        ℹ️ Dacă ai fost deja acceptat în organizație și încă vezi această pagină, contactează un manager sau un coordonator pentru activarea contului.
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
+        </main>
+
+        </div>
+    <!-- Script de integrare Supabase și interfață -->
+    <script>
+        const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
+        const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
+        const supabaseClient = window.createPanelSupabaseClient();
+
+        function toggleMobileMenu() {
+            if (typeof window.__panelMobileToggle === 'function') {
+                window.__panelMobileToggle();
+                return;
+            }
+            const menu = document.getElementById('mobile-menu');
+            const backdrop = document.getElementById('mobile-menu-backdrop');
+            if (!menu || !backdrop) return;
+            menu.classList.remove('-translate-x-full');
+            backdrop.classList.remove('hidden');
+        }
+
+        function closeMobileMenu() {
+            if (typeof window.__panelMobileClose === 'function') {
+                window.__panelMobileClose();
+                return;
+            }
+            const menu = document.getElementById('mobile-menu');
+            const backdrop = document.getElementById('mobile-menu-backdrop');
+            if (!menu || !backdrop) return;
+            menu.classList.add('-translate-x-full');
+            backdrop.classList.add('hidden');
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const currentPage = window.location.pathname.split("/").pop() || "index.html";
+            document.querySelectorAll('.nav-link').forEach(link => {
+                const linkHref = link.getAttribute('href');
+                if (linkHref === currentPage) {
+                    link.classList.remove('text-slate-300', 'hover:bg-slate-800');
+                    link.classList.add('bg-emerald-500/10', 'text-emerald-400', 'font-medium');
+                }
+            });
+
+            const desktopNav = document.getElementById('sidebar-nav');
+            const mobileNav = document.getElementById('mobile-sidebar-nav');
+            if (desktopNav && mobileNav) {
+                mobileNav.innerHTML = desktopNav.innerHTML;
+                mobileNav.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMobileMenu));
+                if (typeof applyRoleBasedVisibility === 'function') applyRoleBasedVisibility(getRole());
+            }
+
+            const cachedUser = localStorage.getItem('discord_user');
+            if (!cachedUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const localData = JSON.parse(cachedUser);
+                if (!localData || !localData.discord_id) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                let { data: dbUser } = await supabaseClient
+                    .from('users')
+                    .select('discord_id,username,display_name,avatar,role,default_role')
+                    .eq('discord_id', localData.discord_id)
+                    .maybeSingle();
+
+                let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
+
+                const isPrivileged = typeof isPlatformAdmin === 'function' && isPlatformAdmin();
+
+                if (isPrivileged) {
+                    const navLogs = document.getElementById('nav-logs');
+                    if (navLogs) navLogs.classList.remove('hidden');
+                }
+
+                localStorage.setItem('discord_user', JSON.stringify(activeUser));
+
+            } catch (err) {
+                console.error('Erore sesiune:', err);
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    localStorage.clear();
+                    window.location.href = 'login.html';
+                });
+            }
+        });
+
+        function escapeSearchText(value) { return String(value || '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char])); }
+
+
+    </script>
+    <script src="js/global-footer.js"></script>
+</body>
+</html>

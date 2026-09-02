@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self';">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prelungire organizație prin voucher · Panel</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/global-footer.css">
+  <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+  <style>
+    html, body { min-height: 100%; }
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    body > main { width: 100%; flex: 1 1 auto; display: flex; justify-content: center; padding: 24px; }
+    .voucher-shell { width: min(100%, 720px); margin: auto; }
+    .voucher-field { display: block; width: 100%; margin-top: 7px; border: 1px solid #334155; border-radius: 12px; background: #020617; color: #e2e8f0; padding: 12px; box-sizing: border-box; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100">
+  <main>
+    <section class="voucher-shell rounded-3xl border border-emerald-700/50 bg-slate-900 p-6 shadow-2xl shadow-emerald-950/20 md:p-8">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <span class="text-xs font-black uppercase tracking-[0.25em] text-emerald-300">Acces pentru membri</span>
+          <h1 class="mt-2 text-2xl font-black md:text-3xl">Prelungire organizație prin voucher</h1>
+          <p class="mt-3 text-sm leading-6 text-slate-400">Orice membru al organizației poate aplica un voucher alocat serverului Discord, indiferent de rangul din panel. Organizația poate fi activă sau expirată.</p>
+        </div>
+        <a href="index.html" class="rounded-xl border border-slate-700 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800">Înapoi</a>
+      </div>
+
+      <div id="voucher-auth" class="mt-6 hidden rounded-2xl border border-amber-700/50 bg-amber-950/20 p-4">
+        <strong class="block text-sm text-amber-200">Autentificarea Discord este necesară</strong>
+        <p class="mt-1 text-xs leading-5 text-amber-100/70">Ne autentificăm pentru a verifica organizațiile în care ești membru. Rangul Discord nu este folosit ca filtru.</p>
+        <button id="voucher-login" type="button" class="mt-4 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-black text-white hover:bg-indigo-500">Autentifică-te cu Discord</button>
+      </div>
+
+      <form id="voucher-form" class="mt-6 hidden space-y-5">
+        <label class="block text-xs font-bold text-slate-300">Organizația
+          <select id="voucher-organization" class="voucher-field" required></select>
+        </label>
+        <label class="block text-xs font-bold text-slate-300">Cod voucher
+          <input id="voucher-code" class="voucher-field font-mono uppercase tracking-wider" autocomplete="off" maxlength="100" placeholder="Introdu codul primit" required>
+        </label>
+        <div class="rounded-xl border border-slate-700 bg-slate-950/60 p-4 text-xs leading-5 text-slate-400">Voucherul este de unică folosință. Dacă accesul actual nu a expirat încă, zilele se adaugă la data existentă.</div>
+        <div class="flex flex-wrap items-center gap-3"><button id="voucher-submit" type="submit" class="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black hover:bg-emerald-600">Aplică voucherul</button><span id="voucher-status" class="text-sm text-slate-400"></span></div>
+      </form>
+      <div id="voucher-empty" class="mt-6 hidden rounded-2xl border border-slate-700 bg-slate-950/60 p-4 text-sm text-slate-300">Nu am găsit o organizație în care să fii membru cu acest cont Discord.</div>
+    </section>
+  </main>
+  <div data-panel-footer-host="true" class="w-full"></div>
+  <script src="js/global-footer.js?v=20260819-voucher-extension"></script>
+  <script>
+    (() => {
+      const config = window.PANEL_SUPABASE_CONFIG;
+      const $ = (id) => document.getElementById(id);
+      const sessionToken = () => localStorage.getItem('panel_session_token') || '';
+      const accessToken = () => window.getPanelDiscordAccessToken?.() || '';
+      const endpoint = () => `${config.url}/functions/v1/redeem-organization-voucher`;
+      const login = () => {
+        sessionStorage.setItem('panel_return_after_login', `${location.pathname}${location.search}${location.hash}`);
+        location.href = 'login.html?v=20260819-voucher-extension';
+      };
+      $('voucher-login').onclick = login;
+      const setStatus = (message, error = false) => { $('voucher-status').textContent = message; $('voucher-status').className = `text-sm ${error ? 'text-rose-300' : 'text-slate-400'}`; };
+      const call = async (body) => {
+        const token = accessToken();
+        const response = await fetch(endpoint(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': sessionToken() },
+          body: JSON.stringify({ ...body, ...(token ? { access_token: token } : {}) })
+        });
+        let data = {};
+        try { data = await response.json(); } catch (_) {}
+        if (!response.ok) { const error = new Error(data.error || 'Operația nu a putut fi finalizată.'); error.status = response.status; throw error; }
+        return data;
+      };
+      const formatDate = (value) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleString('ro-RO', { dateStyle: 'medium', timeStyle: 'short' }); };
+      const renderOrganizations = (organizations) => {
+        const list = Array.isArray(organizations) ? organizations : [];
+        $('voucher-organization').innerHTML = list.map((organization) => `<option value="${String(organization.id).replaceAll('"', '&quot;')}">${String(organization.name || organization.guild_name)} · ${String(organization.guild_name || '')}</option>`).join('');
+        $('voucher-form').classList.toggle('hidden', !list.length);
+        $('voucher-empty').classList.toggle('hidden', Boolean(list.length));
+      };
+      async function load() {
+        $('voucher-auth').classList.add('hidden');
+        try {
+          const data = await call({ action: 'list_member_organizations' });
+          renderOrganizations(data.organizations);
+        } catch (error) {
+          if (error.status === 401) { $('voucher-auth').classList.remove('hidden'); $('voucher-form').classList.add('hidden'); $('voucher-empty').classList.add('hidden'); return; }
+          $('voucher-form').classList.add('hidden'); $('voucher-empty').textContent = error.message; $('voucher-empty').classList.remove('hidden');
+        }
+      }
+      $('voucher-form').onsubmit = async (event) => {
+        event.preventDefault();
+        const button = $('voucher-submit'); button.disabled = true; setStatus('Se verifică și se aplică voucherul...');
+        try {
+          const data = await call({ action: 'redeem', organization_id: $('voucher-organization').value, voucher_code: $('voucher-code').value.trim().toUpperCase() });
+          setStatus(`Voucher aplicat. Accesul este valabil până la ${formatDate(data.expires_at)} (+${data.added_days} zile).`);
+          $('voucher-code').value = '';
+          await load();
+        } catch (error) { setStatus(error.message || 'Voucherul nu a putut fi aplicat.', true); }
+        button.disabled = false;
+      };
+      load();
+    })();
+  </script>
+</body>
+</html>

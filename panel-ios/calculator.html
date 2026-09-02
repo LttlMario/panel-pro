@@ -1,0 +1,2348 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator Crafting & Croitorie</title>
+    <!-- Tailwind CSS CDN -->
+    <link rel="stylesheet" href="css/tailwind.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+    <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+    <script src="js/permissions.js?v=4.6.2"></script>
+    <script src="js/panel-layout.js?v=4.28.9"></script>
+    <script src="js/craft-mechanic-recipes.js?v=20260825-craft-calculator"></script>
+    <style>
+        :root {
+            --bg-main: #030712;
+            --bg-panel: #080f1d;
+            --bg-input: #030712;
+            --border-color: #223047;
+            --text-main: #e5edf8;
+            --text-muted: #91a0b6;
+            --accent: #5ce1e6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #dc2626;
+            --radius: 0.75rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+
+        /* Layout Principal cu Sidebar Fix și Conținut */
+        #app-content {
+            display: none;
+            width: 100%;
+            min-height: 100vh;
+        }
+        /* Conținutul Principal (Dreapta) */
+        .main-content {
+            flex: 1 1 0%;
+            min-width: 0;
+            min-height: 100vh;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: none;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        header img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin-bottom: 6px;
+            border-radius: 50%;
+            background: var(--bg-panel);
+            padding: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        header h2 {
+            font-size: 1.3rem;
+            color: var(--text-main);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        header .author {
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .calculator-container {
+            display: grid;
+            grid-template-columns: minmax(300px, 400px) minmax(0, 1fr);
+            align-items: start;
+            gap: 24px;
+            width: 100%;
+            min-width: 0;
+            max-width: 1200px;
+            margin: 1rem auto 0;
+            padding: 0 2rem 2rem;
+        }
+
+        .panel-action-bar {
+            grid-column: 1 / -1;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: -4px;
+        }
+
+        .panel-action-bar .search-container {
+            width: min(100%, 720px);
+            max-width: none;
+        }
+
+
+
+
+        .mobile-results-button,
+        .mobile-edit-selection {
+            display: none;
+        }
+
+        .mobile-results-overlay {
+            display: none;
+        }
+
+        @media (max-width: 767px) {
+            .calculator-container {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 14px;
+                margin-top: 1rem;
+                padding: 0 12px 18px;
+            }
+            .panel-action-bar { grid-column: 1; margin-bottom: 0; }
+            .calculator-container > .panel { padding: 14px; }
+            .mobile-results-button,
+            .mobile-edit-selection {
+                display: flex;
+                width: 100%;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                border: 1px solid rgba(16,185,129,.55);
+                border-radius: 11px;
+                background: linear-gradient(135deg,#059669,#047857);
+                color: #fff;
+                padding: 11px 14px;
+                font-size: .86rem;
+                font-weight: 800;
+                cursor: pointer;
+                box-shadow: 0 8px 20px rgba(5,150,105,.22);
+            }
+            .mobile-results-button { margin-top: 10px; }
+            .mobile-edit-selection {
+                position: sticky;
+                top: 0;
+                z-index: 2;
+                margin-bottom: 14px;
+                background: linear-gradient(135deg,#334155,#1e293b);
+                border-color: #475569;
+            }
+            #calculator-results { display: none; }
+            #calculator-results.mobile-modal-open {
+                display: block;
+                position: fixed;
+                inset: 12px;
+                z-index: 10001;
+                max-height: calc(100dvh - 24px);
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                border-color: rgba(56,189,248,.45);
+                box-shadow: 0 24px 80px rgba(0,0,0,.72);
+            }
+            .mobile-results-overlay.active {
+                display: block;
+                position: fixed;
+                inset: 0;
+                z-index: 10000;
+                background: rgba(2,6,23,.82);
+                backdrop-filter: blur(5px);
+            }
+            body.calculator-modal-open { overflow: hidden !important; }
+            .grid-results { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        }
+
+        .panel {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        #calculator-input-panel {
+            max-height: calc(100vh - var(--panel-footer-visible-height, 0px) - 24px);
+            max-height: calc(100dvh - var(--panel-footer-visible-height, 0px) - 24px);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-gutter: stable;
+        }
+
+        .category-group {
+            margin-bottom: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: rgba(11, 15, 25, 0.4);
+            overflow: hidden;
+        }
+
+        .category-header {
+            padding: 12px 15px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+            background: rgba(19, 27, 46, 0.8);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .category-header:hover {
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .category-header::after {
+            content: '▼';
+            font-size: 0.75rem;
+            transition: transform 0.2s;
+            color: var(--text-muted);
+        }
+
+        .category-group.active .category-header::after {
+            transform: rotate(180deg);
+        }
+
+        .category-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+            padding: 0 12px;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .category-group.active .category-content {
+            max-height: min(850px, max(88px, calc(100vh - var(--panel-footer-visible-height, 0px) - 310px)));
+            max-height: min(850px, max(88px, calc(100dvh - var(--panel-footer-visible-height, 0px) - 310px)));
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-gutter: stable;
+            padding: 15px 12px 12px;
+        }
+
+        .item-row {
+            display: grid;
+            grid-template-columns: 1fr 90px;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+            background: rgba(11, 15, 25, 0.6);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .item-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .item-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #cbd5e1;
+        }
+
+        input[type="number"], select {
+            width: 100%;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 6px 8px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+            text-align: center;
+        }
+
+        input[type="number"]:focus, select:focus {
+            border-color: var(--accent);
+        }
+
+        .btn-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-danger {
+            width: 100%;
+            background-color: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            border-radius: var(--radius);
+            padding: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn-danger:hover {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .results-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .croitorie-result-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .croitorie-result-preview {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 12px;
+            text-align: center;
+        }
+
+        .croitorie-result-preview-title {
+            color: var(--text-main);
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .croitorie-result-preview img {
+            display: block;
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: contain;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.55);
+        }
+
+        .croitorie-result-preview-trigger {
+            display: block;
+            width: 100%;
+            padding: 0;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            cursor: zoom-in;
+        }
+
+        .croitorie-result-preview-trigger:focus-visible {
+            outline: 2px solid var(--success);
+            outline-offset: 3px;
+        }
+
+        .croitorie-image-lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            background: rgba(2, 6, 23, 0.88);
+        }
+
+        .croitorie-image-lightbox[hidden] {
+            display: none;
+        }
+
+        .croitorie-image-lightbox-content {
+            position: relative;
+            width: min(92vw, 760px);
+            max-height: 92vh;
+            padding: 18px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: var(--bg-input);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+        }
+
+        .croitorie-image-lightbox-content img {
+            display: block;
+            width: 100%;
+            max-height: 78vh;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .croitorie-image-lightbox-title {
+            margin-top: 12px;
+            color: var(--text-main);
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .croitorie-image-lightbox-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 34px;
+            height: 34px;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            color: var(--text-main);
+            background: rgba(15, 23, 42, 0.9);
+            cursor: pointer;
+        }
+
+        body.calculator-image-preview-open {
+            overflow: hidden;
+        }
+
+        .result-box {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 16px;
+            display: none;
+        }
+
+        .result-box.active {
+            display: block;
+        }
+
+        .result-box h3 {
+            font-size: 1rem;
+            margin-bottom: 12px;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+        }
+
+        .grid-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+        }
+
+        .result-card {
+            background: rgba(19, 27, 46, 0.6);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .result-card .item-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .result-card .item-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .result-card .item-value.is-non-zero {
+            color: #f87171 !important;
+        }
+
+        .calculator-number {
+            color: #f87171;
+            font-weight: 800;
+        }
+
+        .result-card .item-value.gold {
+            color: var(--warning);
+        }
+
+        .sub-options-box {
+            margin-top: 6px;
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius);
+            padding: 6px 8px;
+            display: none;
+        }
+
+        .sub-options-box.active {
+            display: block;
+        }
+
+        .mecanic-gallery-view[hidden],
+        .mecanic-selection-view[hidden] {
+            display: none !important;
+        }
+
+        .mecanic-gallery-intro {
+            margin-bottom: 10px;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            line-height: 1.35;
+        }
+
+        .mecanic-gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 7px;
+            max-height: min(760px, max(88px, calc(100vh - var(--panel-footer-visible-height, 0px) - 400px)));
+            max-height: min(760px, max(88px, calc(100dvh - var(--panel-footer-visible-height, 0px) - 400px)));
+            overflow-y: auto;
+            padding-right: 2px;
+            scrollbar-gutter: stable;
+        }
+
+        .mecanic-gallery-card {
+            min-width: 0;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: rgba(3, 7, 18, 0.72);
+            color: var(--text-main);
+            cursor: pointer;
+            text-align: left;
+            transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+        }
+
+        .mecanic-gallery-card:hover,
+        .mecanic-gallery-card:focus-visible {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(92, 225, 230, .14), 0 8px 18px rgba(0, 0, 0, .22);
+            transform: translateY(-1px);
+            outline: none;
+        }
+
+        .mecanic-gallery-card img {
+            display: block;
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 5px;
+            background: #071522;
+        }
+
+        .mecanic-gallery-card span {
+            display: block;
+            overflow: hidden;
+            margin-top: 4px;
+            color: var(--text-muted);
+            font-size: .66rem;
+            line-height: 1.15;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .mecanic-selection-back {
+            width: 100%;
+            margin-bottom: 8px;
+            border: 1px solid rgba(92, 225, 230, .45);
+            border-radius: 7px;
+            padding: 7px 9px;
+            background: rgba(92, 225, 230, .08);
+            color: var(--accent);
+            cursor: pointer;
+            font-size: .78rem;
+            font-weight: 700;
+        }
+
+        @media (max-width: 767px) {
+            .category-group.active .category-content {
+                max-height: min(560px, max(88px, calc(100vh - var(--panel-footer-visible-height, 0px) - 250px)));
+                max-height: min(560px, max(88px, calc(100dvh - var(--panel-footer-visible-height, 0px) - 250px)));
+            }
+            .mecanic-gallery-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                max-height: min(460px, max(88px, calc(100vh - var(--panel-footer-visible-height, 0px) - 320px)));
+                max-height: min(460px, max(88px, calc(100dvh - var(--panel-footer-visible-height, 0px) - 320px)));
+            }
+            .mecanic-gallery-card span { font-size: .6rem; }
+        }
+
+        @media (max-width: 760px) {
+            .croitorie-result-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .croitorie-result-preview {
+                width: min(100%, 260px);
+                margin: 0 auto;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="css/global-footer.css">
+    <script src="js/project-version.js?v=3.13.0"></script>
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm">
+
+    <!-- Aplicația Principală -->
+    <div id="app-content" style="display: flex; width: 100%; min-height: 100vh;">
+        <div id="panel-sidebar-host"></div>
+        <!-- Meniu Lateral (Sidebar) Sincronizat cu index.html -->
+        
+
+        <!-- Conținutul principal din dreapta -->
+        <main class="main-content">
+
+            <div class="calculator-container">
+                <!-- Panou Stânga: Input-uri -->
+                <div class="panel" id="calculator-input-panel">
+                    <div style="font-size: 1.0rem; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                        Selecție Rețete (Live)
+                    </div>
+
+                    <!-- Categorie Masă Crafting -->
+                    <div class="category-group" id="cat-masa">
+                        <div class="category-header" onclick="toggleCategory('cat-masa')">🛠️ Masă Crafting</div>
+                        <div class="category-content" id="masaForm">
+                            <div class="mecanic-gallery-view" id="masaGalleryView">
+                                <div class="mecanic-gallery-intro">Alege imaginea sistemului pentru a deschide calculatorul direct pe rețeta respectivă.</div>
+                                <div class="mecanic-gallery-grid" id="masaGalleryGrid" aria-label="Sisteme Masă Crafting"></div>
+                            </div>
+                            <div class="mecanic-selection-view" id="masaSelectionView" hidden>
+                                <button type="button" class="mecanic-selection-back" onclick="showMasaGallery()">← Înapoi la imagini</button>
+                                <div class="item-row" style="margin-bottom: 8px;">
+                                    <span class="item-name">Obiect</span>
+                                    <select id="masaItemSelect" onchange="onItemChange()" style="width: 100%;">
+                                    <option value="ziptip">Zip Tie</option>
+                                    <option value="momeala">Momeală de pește (x10)</option>
+                                    <option value="undita_plastic">Undiță de plastic</option>
+                                    <option value="undita_cupru">Undiță de cupru</option>
+                                    <option value="undita_aluminiu">Undiță de aluminiu</option>
+                                    <option value="undita_fier">Undiță de fier</option>
+                                    <option value="placa_mesteacan">Placă mesteacăn</option>
+                                    <option value="placa_stejar">Placă stejar (x2)</option>
+                                    <option value="placa_cedru">Placă de cedru (x3)</option>
+                                    <option value="teava">Țeavă de metal</option>
+                                    <option value="plicuri">Plicuri goale (x10)</option>
+                                    <option value="aprinzator">Aprinzător</option>
+                                    <option value="cleste">Clește</option>
+                                    <option value="tableta_hacking">Tabletă de hacking</option>
+                                    <option value="flash_drive">Flash drive de hack</option>
+                                    <option value="lockpick">Lockpick (x5)</option>
+                                    <option value="cauciuc_1">Cauciuc x1</option>
+                                    <option value="cauciuc_2">Cauciuc x2</option>
+                                    <option value="cauciuc_3">Cauciuc x3</option>
+                                    <option value="tarnacop_cupru">Târnacop de cupru</option>
+                                    <option value="tarnacop_fier">Târnacop de fier</option>
+                                    <option value="tarnacop_otel">Târnacop de oțel</option>
+                                    <option value="tarnacop_aur">Târnacop de aur</option>
+                                    <option value="tarnacop_diamant">Târnacop diamant</option>
+                                    <option value="topor_cupru">Topor de cupru</option>
+                                    <option value="topor_fier">Topor de fier</option>
+                                    <option value="topor_otel">Topor de oțel</option>
+                                    <option value="topor_aur">Topor de aur</option>
+                                    <option value="topor_diamant">Topor de diamant</option>
+                                    </select>
+                                </div>
+
+                                <div class="sub-options-box" id="subOptionsBox">
+                                    <span class="item-name" style="display:block; margin-bottom: 4px; color: var(--warning);">Deții deja un model anterior?</span>
+                                    <select id="ownedVariantSelect" onchange="calculateAll()" style="width: 100%; font-size: 0.8rem;">
+                                        <option value="none">Nu, pornesc de la zero</option>
+                                    </select>
+                                </div>
+
+                                <div class="item-row" style="margin-top: 8px;">
+                                    <span class="item-name">Cantitate</span>
+                                    <input type="number" id="masaQty" min="0" step="1" value="0" placeholder="0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Categorie Croitorie -->
+                    <div class="category-group" id="cat-croitor">
+                        <div class="category-header" onclick="toggleCategory('cat-croitor')">🧵 Croitorie</div>
+                        <div class="category-content" id="croitorForm">
+                            <div class="mecanic-gallery-view" id="croitorGalleryView">
+                                <div class="mecanic-gallery-intro">Alege imaginea sistemului pentru a deschide calculatorul direct pe rețeta respectivă.</div>
+                                <div class="mecanic-gallery-grid" id="croitorGalleryGrid" aria-label="Sisteme Croitorie"></div>
+                            </div>
+                            <div class="mecanic-selection-view" id="croitorSelectionView" hidden>
+                                <button type="button" class="mecanic-selection-back" onclick="showCroitorieGallery()">← Înapoi la imagini</button>
+                                <div class="item-row" style="margin-bottom: 8px;">
+                                    <span class="item-name">Obiect</span>
+                                    <select id="croitorItemSelect" onchange="onCroitorItemChange()" style="width: 100%;">
+                                    <option value="ata_x2">Ață x 2</option>
+                                    <option value="sfoara">Sfoară</option>
+                                    <option value="fibra">Fibră</option>
+                                    <option value="bandaj_improvizat">Bandaj improvizat x 2</option>
+                                    <option value="fibra_kevlar">Fibră de Kevlar</option>
+                                    <option value="armura_kevlar">Armură kevlar</option>
+                                    <option value="sac_fibra">Sac de fibră</option>
+                                    <option value="parasuta">Parașută</option>
+                                    </select>
+                                </div>
+                                <div class="item-row">
+                                    <span class="item-name">Cantitate</span>
+                                    <input type="number" id="croitorQty" min="0" step="1" value="0" placeholder="0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Categorie Craft Mecanic -->
+                    <div class="category-group" id="cat-mecanic">
+                        <div class="category-header" onclick="toggleCategory('cat-mecanic')">
+                            <span style="display:flex;align-items:center;gap:8px;">
+                                <span>🔧</span>
+                                Craft Mecanic
+                            </span>
+                        </div>
+                        <div class="category-content" id="mecanicForm">
+                            <div class="mecanic-gallery-view" id="mecanicGalleryView">
+                                <div class="mecanic-gallery-intro">Alege imaginea sistemului pentru a deschide calculatorul direct pe rețeta respectivă.</div>
+                                <div class="mecanic-gallery-grid" id="mecanicGalleryGrid" aria-label="Sisteme Craft Mecanic"></div>
+                            </div>
+                            <div class="mecanic-selection-view" id="mecanicSelectionView" hidden>
+                                <button type="button" class="mecanic-selection-back" onclick="showMecanicGallery()">← Înapoi la imagini</button>
+                                <div class="item-row" style="margin-bottom: 8px;">
+                                    <span class="item-name">Obiect</span>
+                                    <select id="mecanicItemSelect" onchange="onMecanicItemChange()" style="width: 100%;"></select>
+                                </div>
+                                <div class="item-row">
+                                    <span class="item-name">Cantitate</span>
+                                    <input type="number" id="mecanicQty" min="0" step="1" value="0" placeholder="0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-container">
+                        <button type="button" class="btn-danger" onclick="resetCalculator()">Resetează Totul</button>
+                        <button type="button" class="mobile-results-button" onclick="showMobileResults()">Vezi Rezultate</button>
+                    </div>
+                </div>
+
+                <!-- Panou Dreapta: Rezultate Agregate -->
+                <div class="mobile-results-overlay" id="calculator-results-overlay" onclick="showMobileCalculator()"></div>
+                <div class="panel results-section" id="calculator-results" role="dialog" aria-modal="true" aria-label="Rezultatele calculului">
+                    <button type="button" class="mobile-edit-selection" onclick="showMobileCalculator()">✕ Închide rezultatele</button>
+                    
+                    <!-- Box 1: Necesar Ingrediente Directe -->
+                    <div class="croitorie-result-layout" id="croitorieResultLayout">
+                        <div class="result-box" id="box_direct">
+                            <h3>Necesar Specific Obiect Selectat (Ingrediente Directe)</h3>
+                            <div class="grid-results" id="directResultsGrid"></div>
+                        </div>
+                        <aside class="croitorie-result-preview" id="croitorieResultPreview" hidden aria-label="Imaginea obiectului selectat">
+                            <div class="croitorie-result-preview-title" id="croitorieResultPreviewTitle"></div>
+                            <button type="button" class="croitorie-result-preview-trigger" onclick="openCroitorieImagePreview()" aria-label="Mărește imaginea obiectului selectat">
+                                <img id="croitorieResultPreviewImage" alt="" loading="lazy">
+                            </button>
+                        </aside>
+                    </div>
+
+                    <!-- Box 2: Total Materiale Brute / Resurse Finale -->
+                    <div class="result-box" id="box_raw_materials">
+                        <h3>Total Necesar (Materiale Brute / Resurse Finale)</h3>
+                        <div class="grid-results" id="rawMaterialsResultsGrid">
+                            <div class="result-card"><div class="item-title">Plastic</div><div class="item-value" id="res_plastic">0</div></div>
+                            <div class="result-card">
+                                <div class="item-title">Undiță normală</div>
+                                <div class="item-value" id="res_undita_normala">0</div>
+                            </div>
+                            <div class="result-card"><div class="item-title">Cupru</div><div class="item-value" id="res_cupru">0</div></div>
+                            <div class="result-card"><div class="item-title">Aluminiu</div><div class="item-value" id="res_aluminiu">0</div></div>
+                            <div class="result-card"><div class="item-title">Fier</div><div class="item-value" id="res_fier">0</div></div>
+                            <div class="result-card"><div class="item-title">Scrap Metal</div><div class="item-value" id="res_scrap_metal">0</div></div>
+                            <div class="result-card"><div class="item-title">Țeavă</div><div class="item-value" id="res_teava">0</div></div>
+                            <div class="result-card"><div class="item-title">Butelie</div><div class="item-value" id="res_butelie">0</div></div>
+                            <div class="result-card"><div class="item-title">Oțel</div><div class="item-value" id="res_otel">0</div></div>
+                            <div class="result-card"><div class="item-title">Cărbune</div><div class="item-value" id="res_carbune">0</div></div>
+                            <div class="result-card"><div class="item-title">Aur</div><div class="item-value" id="res_aur">0</div></div>
+                            <div class="result-card"><div class="item-title">Diamant</div><div class="item-value" id="res_diamant">0</div></div>
+                            <div class="result-card">
+                                <div class="item-title">Târnacop Aluminiu</div>
+                                <div class="item-value" id="res_tarnacop_aluminiu">0</div>
+                            </div>
+
+                            <div class="result-card">
+                                <div class="item-title">Topor Aluminiu</div>
+                                <div class="item-value" id="res_topor_aluminiu">0</div>
+                            </div>
+                            <div class="result-card"><div class="item-title">Copac Mesteacăn</div><div class="item-value" id="res_copac_mesteacan">0</div></div>
+                            <div class="result-card"><div class="item-title">Copac Stejar</div><div class="item-value" id="res_copac_stejar">0</div></div>
+                            <div class="result-card"><div class="item-title">Copac Cedru</div><div class="item-value" id="res_copac_cedru">0</div></div>
+                            <div class="result-card"><div class="item-title">USB</div><div class="item-value" id="res_usb">0</div></div>
+                            <div class="result-card"><div class="item-title">Keycard</div><div class="item-value" id="res_keycard">0</div></div>
+                            <div class="result-card"><div class="item-title">Card albastru</div><div class="item-value" id="res_card_albastru">0</div></div>
+                            <div class="result-card"><div class="item-title">Card roșu</div><div class="item-value" id="res_card_rosu">0</div></div>
+                            <div class="result-card"><div class="item-title">Cip</div><div class="item-value" id="res_cip">0</div></div>
+                            <div class="result-card"><div class="item-title">Cip vechi</div><div class="item-value" id="res_cip_vechi">0</div></div>
+                            <div class="result-card"><div class="item-title">Cip clasic</div><div class="item-value" id="res_cip_clasic">0</div></div>
+                            <div class="result-card"><div class="item-title">Cip nou</div><div class="item-value" id="res_cip_nou">0</div></div>
+                            <div class="result-card"><div class="item-title">Clești</div><div class="item-value" id="res_clesti">0</div></div>
+                            <div class="result-card"><div class="item-title">Bumbac</div><div class="item-value" id="res_bumbac">0</div></div>
+                            <div class="result-card"><div class="item-title">Ață</div><div class="item-value" id="res_ata">0</div></div>
+                            <div class="result-card"><div class="item-title">Aloe Vera</div><div class="item-value" id="res_aloe_vera">0</div></div>
+                            <div class="result-card"><div class="item-title">Cauciuc</div><div class="item-value" id="res_cauciuc">0</div></div>
+                            <div class="result-card"><div class="item-title">Fibră</div><div class="item-value" id="res_fibra">0</div></div>
+                            <div class="result-card"><div class="item-title">Sfoară</div><div class="item-value" id="res_sfoara">0</div></div>
+                            <div class="result-card"><div class="item-title">Arc</div><div class="item-value" id="res_arc">0</div></div>
+                            <div class="result-card"><div class="item-title">Plumb</div><div class="item-value" id="res_plumb">0</div></div>
+                            <div class="result-card"><div class="item-title">Safir</div><div class="item-value" id="res_safir">0</div></div>
+                            <div class="result-card"><div class="item-title">Emerald</div><div class="item-value" id="res_emerald">0</div></div>
+                            <div class="result-card"><div class="item-title">Rubin</div><div class="item-value" id="res_rubin">0</div></div>
+                            <div class="result-card"><div class="item-title">Blueprint</div><div class="item-value" id="res_blueprint">0</div></div>
+                            <div class="result-card"><div class="item-title">Set jante aluminiu</div><div class="item-value" id="res_set_jante_aluminiu">0</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="croitorie-image-lightbox" id="croitorieImageLightbox" hidden onclick="closeCroitorieImagePreview(event)">
+                    <div class="croitorie-image-lightbox-content" role="dialog" aria-modal="true" aria-labelledby="croitorieImageLightboxTitle" onclick="event.stopPropagation()">
+                        <button type="button" class="croitorie-image-lightbox-close" onclick="closeCroitorieImagePreview()" aria-label="Închide imaginea mărită">✕</button>
+                        <img id="croitorieImageLightboxImage" alt="">
+                        <div class="croitorie-image-lightbox-title" id="croitorieImageLightboxTitle"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script de integrare Supabase și interfață -->
+    <script>
+        const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
+        const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
+
+        function applyAssistantSelection() {
+            const params = new URLSearchParams(window.location.search);
+            const requested = String(params.get('assistant_item') || '').trim();
+            if (!requested) return false;
+            const quantity = Math.max(1, Number.parseInt(params.get('assistant_qty') || '1', 10) || 1);
+            const normalized = requested.toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const targets = [
+                ['masaItemSelect', 'masaQty', typeof onItemChange === 'function' ? onItemChange : null],
+                ['croitorItemSelect', 'croitorQty', typeof onCroitorItemChange === 'function' ? onCroitorItemChange : null],
+                ['mecanicItemSelect', 'mecanicQty', typeof onMecanicItemChange === 'function' ? onMecanicItemChange : null]
+            ];
+            for (const [selectId, qtyId, handler] of targets) {
+                const select = document.getElementById(selectId);
+                if (!select) continue;
+                const option = Array.from(select.options).find((candidate) => {
+                    const value = String(candidate.value || '').toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    const label = String(candidate.textContent || '').toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    return value === normalized || label === normalized || value.includes(normalized) || label.includes(normalized);
+                });
+                if (!option) continue;
+                select.value = option.value;
+                const qty = document.getElementById(qtyId);
+                if (qty) qty.value = String(quantity);
+                if (selectId === 'masaItemSelect') {
+                    openMasaRecipe(option.value, quantity);
+                } else if (selectId === 'croitorItemSelect') {
+                    openCroitorieRecipe(option.value, quantity);
+                } else if (selectId === 'mecanicItemSelect') {
+                    openMecanicRecipe(option.value, quantity);
+                } else {
+                    handler?.();
+                }
+                return true;
+            }
+            return false;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+
+            await initializePanelLayout();
+
+            populateMecanicOptions();
+            renderMasaGallery();
+            renderCroitorieGallery();
+            const assistantApplied = applyAssistantSelection();
+            if (!assistantApplied) onItemChange();
+            calculateAll();
+        
+        });
+
+const upgradeChains = {
+    "undita": [
+        {
+            id: "undita_plastic",
+            name: "Undiță de plastic",
+            cost: {
+                "Undiță normală": 1,
+                "Plastic": 5
+            }
+        },
+        {
+            id: "undita_cupru",
+            name: "Undiță de cupru",
+            cost: {
+                "Undiță de plastic": 1,
+                "Cupru": 3
+            }
+        },
+        {
+            id: "undita_aluminiu",
+            name: "Undiță de aluminiu",
+            cost: {
+                "Undiță de cupru": 1,
+                "Aluminiu": 3
+            }
+        },
+        {
+            id: "undita_fier",
+            name: "Undiță de fier",
+            cost: {
+                "Undiță de aluminiu": 1,
+                "Fier": 3
+            }
+        }
+    ],
+
+    "tarnacop": [
+        {
+            id: "tarnacop_cupru",
+            name: "Târnacop de cupru",
+            cost: {
+                "Târnacop Aluminiu": 1,
+                "Cupru": 5
+            }
+        },
+        {
+            id: "tarnacop_fier",
+            name: "Târnacop de fier",
+            cost: {
+                "Fier": 5
+            }
+        },
+        {
+            id: "tarnacop_otel",
+            name: "Târnacop de oțel",
+            cost: {
+                "Oțel": 5
+            }
+        },
+        {
+            id: "tarnacop_aur",
+            name: "Târnacop de aur",
+            cost: {
+                "Aur": 2,
+                "Oțel": 3
+            }
+        },
+        {
+            id: "tarnacop_diamant",
+            name: "Târnacop diamant",
+            cost: {
+                "Diamant": 1,
+                "Aur": 2
+            }
+        }
+    ],
+
+
+    "topor": [
+        {
+            id: "topor_cupru",
+            name: "Topor de cupru",
+            cost: {
+                "Topor Aluminiu": 1,
+                "Cupru": 5
+            }
+        },
+        {
+            id: "topor_fier",
+            name: "Topor de fier",
+            cost: {
+                "Fier": 5
+            }
+        },
+        {
+            id: "topor_otel",
+            name: "Topor de oțel",
+            cost: {
+                "Oțel": 5
+            }
+        },
+        {
+            id: "topor_aur",
+            name: "Topor de aur",
+            cost: {
+                "Aur": 2,
+                "Oțel": 3
+            }
+        },
+        {
+            id: "topor_diamant",
+            name: "Topor diamant",
+            cost: {
+                "Diamant": 1,
+                "Aur": 2
+            }
+        }
+    ]
+
+};
+
+        const recipesMasa = {
+
+            "ziptip": {
+                name: "Zip Tie",
+                base: {
+                    "Plastic": 10
+                }
+            },
+
+            "momeala": {
+                name: "Momeală de pește x10",
+                base: {
+                    "Plastic": 1
+                }
+            },
+
+            "undita_plastic": {
+                name: "Undiță de plastic",
+                base: {
+                    "Undiță normală": 1,
+                    "Plastic": 5
+                }
+            },
+
+            "undita_cupru": {
+                name: "Undiță de cupru",
+                base: {
+                    "Undiță de plastic": 1,
+                    "Cupru": 3
+                }
+            },
+
+            "undita_aluminiu": {
+                name: "Undiță de aluminiu",
+                base: {
+                    "Undiță de cupru": 1,
+                    "Aluminiu": 3
+                }
+            },
+
+            "undita_fier": {
+                name: "Undiță de fier",
+                base: {
+                    "Undiță de aluminiu": 1,
+                    "Fier": 3
+                }
+            },
+
+            "placa_mesteacan": {
+                name: "Placă mesteacăn",
+                base: {
+                    "Copac Mesteacăn": 1
+                }
+            },
+
+            "placa_stejar": {
+                name: "Placă stejar x2",
+                base: {
+                    "Copac Stejar": 1
+                }
+            },
+
+            "placa_cedru": {
+                name: "Placă cedru x3",
+                base: {
+                    "Copac Cedru": 1
+                }
+            },
+
+            "teava": {
+                name: "Țeavă de metal",
+                base: {
+                    "Scrap Metal": 10,
+                    "Fier": 2
+                }
+            },
+
+            "plicuri": {
+                name: "Plicuri goale x10",
+                base: {
+                    "Plastic": 1
+                }
+            },
+
+            "aprinzator": {
+                name: "Aprinzător",
+                base: {
+                    "Scrap Metal": 15,
+                    "Țeavă de metal": 1,
+                    "Butelie": 1
+                }
+            },
+
+            "cleste": {
+                name: "Clește",
+                base: {
+                    "Scrap Metal": 20,
+                    "Fier": 2,
+                    "Aluminiu": 4,
+                    "Plastic": 5
+                }
+            },
+
+            "tableta_hacking": {
+                name: "Tabletă de hacking",
+                base: {
+                    "Card albastru": 2,
+                    "Cip vechi": 3,
+                    "Cip clasic": 3,
+                    "Cip nou": 3
+                }
+            },
+
+            "flash_drive": {
+                name: "Flash drive de hack",
+                base: {
+                    "USB": 1,
+                    "Card roșu": 1,
+                    "Cip nou": 5,
+                    "Cabluri": 5
+                }
+            },
+
+            "lockpick": {
+                name: "Lockpick x5",
+                base: {
+                    "Fier": 1,
+                    "Scrap Metal": 5
+                }
+            },
+
+            "cauciuc_1": {
+                name: "Cauciuc x1",
+                produces: 1,
+                base: {
+                    "Copac Mesteacăn": 1
+                }
+            },
+
+            "cauciuc_2": {
+                name: "Cauciuc x2",
+                produces: 2,
+                base: {
+                    "Copac Stejar": 1
+                }
+            },
+
+            "cauciuc_3": {
+                name: "Cauciuc x3",
+                produces: 3,
+                base: {
+                    "Copac Cedru": 1
+                }
+            },
+
+            "tarnacop_cupru": {
+                name: "Târnacop de cupru",
+                base: {
+                    "Târnacop aluminiu": 1,
+                    "Cupru": 5
+                }
+            },
+
+            "tarnacop_fier": {
+                name: "Târnacop de fier",
+                base: {
+                    "Târnacop cupru": 1,
+                    "Fier": 5
+                }
+            },
+
+            "tarnacop_otel": {
+                name: "Târnacop de oțel",
+                base: {
+                    "Târnacop fier": 1,
+                    "Oțel": 5
+                }
+            },
+
+            "tarnacop_aur": {
+                name: "Târnacop de aur",
+                base: {
+                    "Târnacop fier": 1,
+                    "Aur": 2,
+                    "Oțel": 3
+                }
+            },
+
+            "tarnacop_diamant": {
+                name: "Târnacop diamant",
+                base: {
+                    "Târnacop aur": 1,
+                    "Diamant": 1,
+                    "Aur": 2
+                }
+            },
+
+            "topor_cupru": {
+                name: "Topor de cupru",
+                base: {
+                    "Topor aluminiu": 1,
+                    "Cupru": 5
+                }
+            },
+
+            "topor_fier": {
+                name: "Topor de fier",
+                base: {
+                    "Topor cupru": 1,
+                    "Fier": 5
+                }
+            },
+
+            "topor_otel": {
+                name: "Topor de oțel",
+                base: {
+                    "Topor fier": 1,
+                    "Oțel": 5
+                }
+            },
+
+            "topor_aur": {
+                name: "Topor de aur",
+                base: {
+                    "Topor fier": 1,
+                    "Aur": 2,
+                    "Oțel": 3
+                }
+            },
+
+            "topor_diamant": {
+                name: "Topor diamant",
+                base: {
+                    "Topor aur": 1,
+                    "Diamant": 1,
+                    "Aur": 2
+                }
+            }
+
+        };
+
+        upgradeChains["tarnacop"].forEach((item, index, arr) => {
+            let combinedCost = {};
+            for (let i = 0; i <= index; i++) {
+                for (let mat in arr[i].cost) {
+                    combinedCost[mat] = (combinedCost[mat] || 0) + arr[i].cost[mat];
+                }
+            }
+            recipesMasa[item.id] = { name: item.name, base: combinedCost };
+        });
+
+        upgradeChains["topor"].forEach((item, index, arr) => {
+            let combinedCost = {};
+            for (let i = 0; i <= index; i++) {
+                for (let mat in arr[i].cost) {
+                    combinedCost[mat] = (combinedCost[mat] || 0) + arr[i].cost[mat];
+                }
+            }
+            recipesMasa[item.id] = { name: item.name, base: combinedCost };
+        });
+        upgradeChains["undita"].forEach((item, index, arr) => {
+
+            let combinedCost = {};
+
+            for (let i = 0; i <= index; i++) {
+
+                for (let mat in arr[i].cost) {
+
+                    combinedCost[mat] =
+                        (combinedCost[mat] || 0) + arr[i].cost[mat];
+
+                }
+
+            }
+
+            recipesMasa[item.id] = {
+                name: item.name,
+                base: combinedCost
+            };
+
+        });
+        const recipesCroitor = {
+
+            "ata_x2": {
+                name: "Ață x2",
+                produces: 2,
+                base: {
+                    "Bumbac": 10
+                }
+            },
+
+            "sfoara": {
+                name: "Sfoară",
+                produces: 1,
+                base: {
+                    "Ață": 30,
+                    "Scrap Metal": 5
+                }
+            },
+
+            "fibra": {
+                name: "Fibră",
+                produces: 1,
+                base: {
+                    "Bumbac": 10
+                }
+            },
+
+            "bandaj_improvizat": {
+                name: "Bandaj improvizat x2",
+                produces: 2,
+                base: {
+                    "Fibră": 2,
+                    "Aloe Vera": 2
+                }
+            },
+
+            "fibra_kevlar": {
+                name: "Fibră Kevlar",
+                produces: 1,
+                base: {
+                    "Fibră": 2,
+                    "Cauciuc": 2
+                }
+            },
+
+            "armura_kevlar": {
+                name: "Armură Kevlar",
+                produces: 1,
+                base: {
+                    "Fibră Kevlar": 3,
+                    "Ață": 5,
+                    "Cupru": 1,
+                    "Oțel": 1
+                }
+            },
+
+            "sac_fibra": {
+                name: "Sac de fibră",
+                produces: 1,
+                base: {
+                    "Fibră": 4,
+                    "Ață": 2
+                }
+            },
+
+            "parasuta": {
+                name: "Parașută",
+                produces: 1,
+                base: {
+                    "Sfoară": 2,
+                    "Fibră": 20,
+                    "Cauciuc": 8
+                }
+            }
+
+        };
+
+        const croitorieImageByItem = Object.freeze({
+            ata_x2: 'croitorie1.jpg',
+            sfoara: 'croitorie2.jpg',
+            fibra: 'croitorie3.jpg',
+            bandaj_improvizat: 'croitorie4.jpg',
+            fibra_kevlar: 'croitorie6.jpg',
+            armura_kevlar: 'croitorie5.jpg',
+            sac_fibra: 'croitorie7.jpg',
+            parasuta: 'croitorie8.jpg'
+        });
+
+        const craftImageByItem = Object.freeze({
+            ziptip: 'craft1.png',
+            momeala: 'craft2.png',
+            undita_plastic: 'craft3.png',
+            undita_cupru: 'craft4.png',
+            undita_aluminiu: 'craft5.png',
+            undita_fier: 'craft11.png',
+            placa_mesteacan: 'craft6.png',
+            placa_stejar: 'craft12.png',
+            placa_cedru: 'craft17.png',
+            teava: 'craft7.png',
+            plicuri: 'craft8.png',
+            aprinzator: 'craft13.png',
+            cleste: 'craft18.png',
+            tableta_hacking: 'craft14.png',
+            flash_drive: 'craft21.png',
+            lockpick: 'craft22.png',
+            cauciuc_1: 'craft25.png',
+            cauciuc_2: 'craft26.png',
+            cauciuc_3: 'craft27.png',
+            tarnacop_cupru: 'craft9.png',
+            tarnacop_fier: 'craft15.png',
+            tarnacop_otel: 'craft19.png',
+            tarnacop_aur: 'craft23.png',
+            tarnacop_diamant: 'craft28.png',
+            topor_cupru: 'craft10.png',
+            topor_fier: 'craft16.png',
+            topor_otel: 'craft20.png',
+            topor_aur: 'craft24.png',
+            topor_diamant: 'craft29.png'
+        });
+
+        const recipesMecanic = Object.fromEntries(
+            (window.PANEL_CRAFT_MECHANIC_RECIPES || []).map(recipe => [recipe.id, recipe])
+        );
+
+        const craftMecanicImageByItem = Object.freeze(Object.fromEntries(
+            (window.PANEL_CRAFT_MECHANIC_RECIPES || [])
+                .filter(recipe => !recipe.componentOnly)
+                .map((recipe, index) => [recipe.id, `masa${index + 1}.png`])
+        ));
+
+        // Referințe din Calculator Ilegal / Topitorie:
+        // 1 Oțel = 1 Fier + 1 Cărbune; 1 Arc = 1 Aluminiu.
+        const recipesTopitorie = {
+            otel: { name: "Oțel", base: { "Fier": 1, "Cărbune": 1 } },
+            arc: { name: "Arc", base: { "Aluminiu": 1 } }
+        };
+
+        const materialKeys = [
+            "Plastic",
+            "Undiță normală",
+            "Cupru",
+            "Aluminiu",
+            "Fier",
+            "Scrap Metal",
+            "Teava",
+            "Butelie",
+            "Otel",
+            "Cărbune",
+            "Aur",
+            "Diamant",
+
+            "Târnacop Aluminiu",
+            "Topor Aluminiu",
+
+            "Copac Mesteacan",
+            "Copac Stejar",
+            "Copac Cedru",
+
+            "USB",
+            "Tabletă",
+            "Keycard",
+            "Card albastru",
+            "Card roșu",
+            "Cip",
+            "Cip vechi",
+            "Cip clasic",
+            "Cip nou",
+            "Clesti",
+
+            "Bumbac",
+            "Ata",
+            "Aloe Vera",
+            "Cauciuc",
+            "Fibra",
+            "Sfoara",
+            "Arc",
+            "Plumb",
+            "Safir",
+            "Emerald",
+            "Rubin",
+            "Blueprint",
+            "Set jante aluminiu"
+        ];
+
+        function populateMecanicOptions() {
+            const select = document.getElementById('mecanicItemSelect');
+            if (!select) return;
+
+            select.replaceChildren();
+            (window.PANEL_CRAFT_MECHANIC_RECIPES || [])
+                .filter(recipe => !recipe.componentOnly)
+                .forEach(recipe => {
+                    const option = document.createElement('option');
+                    option.value = recipe.id;
+                    option.textContent = recipe.name;
+                select.appendChild(option);
+            });
+
+            renderMecanicGallery();
+
+        }
+
+        function renderMecanicGallery() {
+            const gallery = document.getElementById('mecanicGalleryGrid');
+            if (!gallery || gallery.dataset.rendered === 'true') return;
+
+            const recipes = (window.PANEL_CRAFT_MECHANIC_RECIPES || []).filter(recipe => !recipe.componentOnly);
+            gallery.replaceChildren();
+            recipes.forEach((recipe, index) => {
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = 'mecanic-gallery-card';
+                card.dataset.recipeId = recipe.id;
+                card.setAttribute('aria-label', `Deschide calculatorul pentru ${recipe.name}`);
+
+                const image = document.createElement('img');
+                image.src = `img/masa${index + 1}.png`;
+                image.alt = recipe.name;
+                image.loading = index < 9 ? 'eager' : 'lazy';
+                image.decoding = 'async';
+
+                const label = document.createElement('span');
+                label.textContent = recipe.name;
+                card.append(image, label);
+                card.addEventListener('click', () => openMecanicRecipe(recipe.id));
+                gallery.appendChild(card);
+            });
+            gallery.dataset.rendered = 'true';
+        }
+
+        function showMecanicGallery() {
+            const galleryView = document.getElementById('mecanicGalleryView');
+            const selectionView = document.getElementById('mecanicSelectionView');
+            const mechanicQty = document.getElementById('mecanicQty');
+            if (!galleryView || !selectionView) return;
+
+            galleryView.hidden = false;
+            selectionView.hidden = true;
+            if (mechanicQty) mechanicQty.value = 0;
+            clearCalculatorSelections('mecanic');
+            calculateAll();
+        }
+
+        function openMecanicRecipe(recipeId, requestedQuantity = 1) {
+            const select = document.getElementById('mecanicItemSelect');
+            const quantity = document.getElementById('mecanicQty');
+            const galleryView = document.getElementById('mecanicGalleryView');
+            const selectionView = document.getElementById('mecanicSelectionView');
+            if (!select || !quantity || !galleryView || !selectionView) return;
+
+            select.value = recipeId;
+            quantity.value = Math.max(1, Number.parseInt(requestedQuantity, 10) || 1);
+            galleryView.hidden = true;
+            selectionView.hidden = false;
+            onMecanicItemChange();
+        }
+
+        function clearCalculatorSelections() {
+            const masaQty = document.getElementById('masaQty');
+            const croitorQty = document.getElementById('croitorQty');
+            const mecanicQty = document.getElementById('mecanicQty');
+            if (masaQty) masaQty.value = 0;
+            if (croitorQty) croitorQty.value = 0;
+            if (mecanicQty) mecanicQty.value = 0;
+            const subBox = document.getElementById('subOptionsBox');
+            if (subBox) subBox.classList.remove('active');
+        }
+
+        function createRecipeGalleryCard(recipeId, recipeName, imageFile, openRecipe) {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'mecanic-gallery-card';
+            card.dataset.recipeId = recipeId;
+            card.setAttribute('aria-label', `Deschide calculatorul pentru ${recipeName}`);
+
+            const image = document.createElement('img');
+            image.src = `img/${imageFile}`;
+            image.alt = recipeName;
+            image.loading = 'lazy';
+            image.decoding = 'async';
+
+            const label = document.createElement('span');
+            label.textContent = recipeName;
+            card.append(image, label);
+            card.addEventListener('click', () => openRecipe(recipeId));
+            return card;
+        }
+
+        function renderMasaGallery() {
+            const gallery = document.getElementById('masaGalleryGrid');
+            const select = document.getElementById('masaItemSelect');
+            if (!gallery || !select || gallery.dataset.rendered === 'true') return;
+
+            gallery.replaceChildren();
+            Array.from(select.options).forEach((option, index) => {
+                const imageFile = craftImageByItem[option.value];
+                if (!imageFile) return;
+                const recipeName = recipesMasa[option.value]?.name || option.textContent.trim();
+                gallery.appendChild(createRecipeGalleryCard(option.value, recipeName, imageFile, openMasaRecipe));
+            });
+            gallery.dataset.rendered = 'true';
+        }
+
+        function renderCroitorieGallery() {
+            const gallery = document.getElementById('croitorGalleryGrid');
+            const select = document.getElementById('croitorItemSelect');
+            if (!gallery || !select || gallery.dataset.rendered === 'true') return;
+
+            gallery.replaceChildren();
+            Array.from(select.options).forEach((option) => {
+                const imageFile = croitorieImageByItem[option.value];
+                if (!imageFile) return;
+                const recipeName = recipesCroitor[option.value]?.name || option.textContent.trim();
+                gallery.appendChild(createRecipeGalleryCard(option.value, recipeName, imageFile, openCroitorieRecipe));
+            });
+            gallery.dataset.rendered = 'true';
+        }
+
+        function showMasaGallery() {
+            const galleryView = document.getElementById('masaGalleryView');
+            const selectionView = document.getElementById('masaSelectionView');
+            if (!galleryView || !selectionView) return;
+            galleryView.hidden = false;
+            selectionView.hidden = true;
+            clearCalculatorSelections('masa');
+            calculateAll();
+        }
+
+        function showCroitorieGallery() {
+            const galleryView = document.getElementById('croitorGalleryView');
+            const selectionView = document.getElementById('croitorSelectionView');
+            if (!galleryView || !selectionView) return;
+            galleryView.hidden = false;
+            selectionView.hidden = true;
+            clearCalculatorSelections('croitorie');
+            calculateAll();
+        }
+
+        function openMasaRecipe(recipeId, requestedQuantity = 1) {
+            const select = document.getElementById('masaItemSelect');
+            const quantity = document.getElementById('masaQty');
+            const galleryView = document.getElementById('masaGalleryView');
+            const selectionView = document.getElementById('masaSelectionView');
+            if (!select || !quantity || !galleryView || !selectionView) return;
+
+            select.value = recipeId;
+            quantity.value = Math.max(1, Number.parseInt(requestedQuantity, 10) || 1);
+            galleryView.hidden = true;
+            selectionView.hidden = false;
+            onItemChange();
+        }
+
+        function openCroitorieRecipe(recipeId, requestedQuantity = 1) {
+            const select = document.getElementById('croitorItemSelect');
+            const quantity = document.getElementById('croitorQty');
+            const galleryView = document.getElementById('croitorGalleryView');
+            const selectionView = document.getElementById('croitorSelectionView');
+            if (!select || !quantity || !galleryView || !selectionView) return;
+
+            select.value = recipeId;
+            quantity.value = Math.max(1, Number.parseInt(requestedQuantity, 10) || 1);
+            galleryView.hidden = true;
+            selectionView.hidden = false;
+            onCroitorItemChange();
+        }
+
+        function toggleCategory(catId) {
+            const currentElement = document.getElementById(catId);
+            const isOpen = currentElement.classList.contains('active');
+
+            const allCategories = document.querySelectorAll('.category-group');
+            allCategories.forEach(cat => cat.classList.remove('active'));
+
+            if (!isOpen) {
+                currentElement.classList.add('active');
+                if (catId === 'cat-masa') showMasaGallery();
+                if (catId === 'cat-croitor') showCroitorieGallery();
+                if (catId === 'cat-mecanic') showMecanicGallery();
+            }
+        }
+
+        function filterCalculatorRecipes(value) {
+        
+            const search = value.toLowerCase().trim();
+        
+            document.querySelectorAll(".category-group").forEach(group => {
+        
+                const select = group.querySelector("select");
+        
+                if (!select) return;
+        
+                let found = false;
+        
+                Array.from(select.options).forEach(option => {
+        
+                    const match = option.text.toLowerCase().includes(search);
+        
+                    option.hidden = !match;
+        
+                    if (match) found = true;
+        
+                });
+        
+                if (search === "") {
+        
+                    group.style.display = "";
+        
+                    Array.from(select.options).forEach(option => option.hidden = false);
+        
+                    group.classList.remove("active");
+        
+                    return;
+        
+                }
+        
+                group.style.display = found ? "" : "none";
+        
+                group.classList.toggle("active", found);
+        
+            });
+        
+        }
+
+        function onItemChange() {
+            const itemKey = document.getElementById('masaItemSelect').value;
+            const subBox = document.getElementById('subOptionsBox');
+            const ownedSelect = document.getElementById('ownedVariantSelect');
+            
+            ownedSelect.innerHTML = '<option value="none">Nu, pornesc de la zero</option>';
+            let chainType = null;
+            if (upgradeChains["undita"].some(item => item.id === itemKey)) {
+                chainType = "undita";
+            }
+
+            if (upgradeChains["tarnacop"].some(item => item.id === itemKey)) {
+                chainType = "tarnacop";
+            }
+
+            if (upgradeChains["topor"].some(item => item.id === itemKey)) {
+                chainType = "topor";
+            }
+
+            if (chainType) {
+                let chain = upgradeChains[chainType];
+                let currentIndex = chain.findIndex(i => i.id === itemKey);
+                
+                for (let i = 0; i < currentIndex; i++) {
+                    let opt = document.createElement('option');
+                    opt.value = chain[i].id;
+                    opt.textContent = "Am deja: " + chain[i].name;
+                    ownedSelect.appendChild(opt);
+                }
+
+                if (currentIndex > 0) subBox.classList.add('active');
+                else subBox.classList.remove('active');
+            } else {
+                subBox.classList.remove('active');
+            }
+
+            const croitorQty = document.getElementById('croitorQty');
+            if (croitorQty) croitorQty.value = 0;
+            const mecanicQty = document.getElementById('mecanicQty');
+            if (mecanicQty) mecanicQty.value = 0;
+
+            calculateAll();
+        }
+
+        function onCroitorItemChange() {
+            const masaQty = document.getElementById('masaQty');
+            if (masaQty) masaQty.value = 0;
+            const mecanicQty = document.getElementById('mecanicQty');
+            if (mecanicQty) mecanicQty.value = 0;
+            const subBox = document.getElementById('subOptionsBox');
+            if (subBox) subBox.classList.remove('active');
+
+            calculateAll();
+        }
+
+        function onMecanicItemChange() {
+            const masaQty = document.getElementById('masaQty');
+            const croitorQty = document.getElementById('croitorQty');
+            if (masaQty) masaQty.value = 0;
+            if (croitorQty) croitorQty.value = 0;
+            const subBox = document.getElementById('subOptionsBox');
+            if (subBox) subBox.classList.remove('active');
+            calculateAll();
+        }
+
+        function resetCalculator() {
+
+            document.getElementById('masaQty').value = 0;
+            document.getElementById('croitorQty').value = 0;
+            const mecanicQty = document.getElementById('mecanicQty');
+            if (mecanicQty) mecanicQty.value = 0;
+
+            document.getElementById('masaItemSelect').value = "ziptip";
+            document.getElementById('croitorItemSelect').selectedIndex = 0;
+            const mecanicSelect = document.getElementById('mecanicItemSelect');
+            if (mecanicSelect?.options.length) mecanicSelect.selectedIndex = 0;
+
+            const ownedSelect = document.getElementById('ownedVariantSelect');
+            ownedSelect.innerHTML = '<option value="none">Nu, pornesc de la zero</option>';
+
+            const subBox = document.getElementById('subOptionsBox');
+            subBox.classList.remove('active');
+
+            showMecanicGallery();
+        }
+
+        function showMobileResults() {
+            const resultsPanel = document.getElementById('calculator-results');
+            const overlay = document.getElementById('calculator-results-overlay');
+            resultsPanel.classList.add('mobile-modal-open');
+            overlay.classList.add('active');
+            document.body.classList.add('calculator-modal-open');
+            resultsPanel.scrollTop = 0;
+        }
+
+        function showMobileCalculator() {
+            const resultsPanel = document.getElementById('calculator-results');
+            const overlay = document.getElementById('calculator-results-overlay');
+            resultsPanel.classList.remove('mobile-modal-open');
+            overlay.classList.remove('active');
+            document.body.classList.remove('calculator-modal-open');
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                closeCroitorieImagePreview();
+                showMobileCalculator();
+            }
+        });
+
+        function getNormalizedKey(str) {
+            return str.toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^a-z0-9]/g, "_")
+                .replace(/_+/g, "_")
+                .replace(/^_|_$/g, "");
+        }
+
+        function updateCroitorieResultPreview(masaItemKey, masaRecipe, hasMasaResults, itemKey, recipe, hasCroitorieResults, mechanicRecipe, hasMecanicResults) {
+            const preview = document.getElementById('croitorieResultPreview');
+            const title = document.getElementById('croitorieResultPreviewTitle');
+            const image = document.getElementById('croitorieResultPreviewImage');
+            const selectedRecipe = hasMasaResults ? masaRecipe : (hasCroitorieResults ? recipe : (hasMecanicResults ? mechanicRecipe : null));
+            const imageFile = hasMasaResults
+                ? craftImageByItem[masaItemKey]
+                : (hasCroitorieResults
+                    ? croitorieImageByItem[itemKey]
+                    : (hasMecanicResults ? craftMecanicImageByItem[selectedRecipe?.id] : selectedRecipe?.image));
+
+            if (!preview || !title || !image || !selectedRecipe?.name || !imageFile) {
+                if (preview) preview.hidden = true;
+                if (image) image.removeAttribute('src');
+                closeCroitorieImagePreview();
+                return;
+            }
+
+            title.textContent = selectedRecipe.name;
+            image.alt = selectedRecipe.name;
+            image.src = `img/${imageFile}`;
+            image.onerror = () => {
+                preview.hidden = true;
+                image.removeAttribute('src');
+                closeCroitorieImagePreview();
+            };
+            preview.hidden = false;
+        }
+
+        function openCroitorieImagePreview() {
+            const sourceImage = document.getElementById('croitorieResultPreviewImage');
+            const lightbox = document.getElementById('croitorieImageLightbox');
+            const lightboxImage = document.getElementById('croitorieImageLightboxImage');
+            const lightboxTitle = document.getElementById('croitorieImageLightboxTitle');
+            if (!sourceImage?.src || !lightbox || !lightboxImage || !lightboxTitle) return;
+
+            lightboxImage.src = sourceImage.src;
+            lightboxImage.alt = sourceImage.alt;
+            lightboxTitle.textContent = sourceImage.alt;
+            lightbox.hidden = false;
+            document.body.classList.add('calculator-image-preview-open');
+        }
+
+        function closeCroitorieImagePreview(event) {
+            if (event && event.target !== event.currentTarget) return;
+            const lightbox = document.getElementById('croitorieImageLightbox');
+            const lightboxImage = document.getElementById('croitorieImageLightboxImage');
+            if (!lightbox) return;
+
+            lightbox.hidden = true;
+            if (lightboxImage) lightboxImage.removeAttribute('src');
+            document.body.classList.remove('calculator-image-preview-open');
+        }
+        function addRawMaterial(materialName, amount, accumulated) {
+            const normalizedMaterial = getNormalizedKey(materialName);
+        
+            const materialKey = materialKeys.find(
+                key => getNormalizedKey(key) === normalizedMaterial
+            );
+        
+            const finalKey = materialKey || materialName;
+        
+            accumulated[finalKey] =
+                (accumulated[finalKey] || 0) + amount;
+        }
+        function getDirectIngredientDisplayName(materialName) {
+            const displayNames = {
+                "unelte x10": "Unelte",
+                "bujii x10": "Bujii",
+                "cabluri x10": "Cabluri"
+            };
+            return displayNames[getNormalizedKey(materialName)] || materialName;
+        }
+        function resolveMaterialTree(itemName, qty, accumulated) {
+
+            let recipe = null;
+            // Tratament special pentru cauciuc
+            if (getNormalizedKey(itemName) === "cauciuc") {
+
+                let rubberRecipe = null;
+
+                if (qty === 1) {
+                    rubberRecipe = recipesMasa["cauciuc_1"];
+                }
+                else if (qty === 2) {
+                    rubberRecipe = recipesMasa["cauciuc_2"];
+                }
+                else if (qty === 3) {
+                    rubberRecipe = recipesMasa["cauciuc_3"];
+                }
+
+                if (rubberRecipe) {
+
+                    const produces = rubberRecipe.produces || qty;
+
+                    const craftsNeeded = Math.ceil(
+                        qty / produces
+                    );
+
+                    for (const material in rubberRecipe.base) {
+
+                        resolveMaterialTree(
+                            material,
+                            rubberRecipe.base[material] * craftsNeeded,
+                            accumulated
+                        );
+
+                    }
+
+                    return;
+                }
+            }
+            // Tratament special pentru Ață
+            if (getNormalizedKey(itemName) === "ata") {
+
+                const ataRecipe = recipesCroitor["ata_x2"];
+
+                const craftsNeeded = Math.ceil(
+                    qty / ataRecipe.produces
+                );
+
+                for (const material in ataRecipe.base) {
+
+                    resolveMaterialTree(
+                        material,
+                        ataRecipe.base[material] * craftsNeeded,
+                        accumulated
+                    );
+
+                }
+
+                return;
+            }
+            // Tratament special pentru Fibra Kevlar
+            if (getNormalizedKey(itemName) === "fibra_kevlar") {
+
+                const kevlarRecipe = recipesCroitor["fibra_kevlar"];
+
+                const craftsNeeded = Math.ceil(
+                    qty / (kevlarRecipe.produces || 1)
+                );
+
+                for (const material in kevlarRecipe.base) {
+
+                    resolveMaterialTree(
+                        material,
+                        kevlarRecipe.base[material] * craftsNeeded,
+                        accumulated
+                    );
+
+                }
+
+                return;
+            }
+
+            // cauta in croitorie
+            for (const key in recipesCroitor) {
+                if (
+                    getNormalizedKey(key) === getNormalizedKey(itemName) ||
+                    getNormalizedKey(recipesCroitor[key].name) === getNormalizedKey(itemName)
+                ) {
+                    recipe = recipesCroitor[key];
+                    break;
+                }
+            }
+
+
+            // cauta in masa crafting
+            if (!recipe) {
+                for (const key in recipesMasa) {
+                    if (
+                        getNormalizedKey(key) === getNormalizedKey(itemName) ||
+                        getNormalizedKey(recipesMasa[key].name) === getNormalizedKey(itemName)
+                    ) {
+                        recipe = recipesMasa[key];
+                        break;
+                    }
+                }
+            }
+
+            // cauta în Craft Mecanic
+            if (!recipe) {
+                for (const key in recipesMecanic) {
+                    if (
+                        getNormalizedKey(key) === getNormalizedKey(itemName) ||
+                        getNormalizedKey(recipesMecanic[key].name) === getNormalizedKey(itemName)
+                    ) {
+                        recipe = recipesMecanic[key];
+                        break;
+                    }
+                }
+            }
+
+            // cauta în referințele Topitorie / Calculator Ilegal
+            if (!recipe) {
+                for (const key in recipesTopitorie) {
+                    if (
+                        getNormalizedKey(key) === getNormalizedKey(itemName) ||
+                        getNormalizedKey(recipesTopitorie[key].name) === getNormalizedKey(itemName)
+                    ) {
+                        recipe = recipesTopitorie[key];
+                        break;
+                    }
+                }
+            }
+
+
+            // daca este material final
+            if (!recipe || recipe.incomplete || !recipe.base) {
+                addRawMaterial(itemName, qty, accumulated);
+                return;
+            }
+
+
+            const produces = recipe.produces || 1;
+            const craftsNeeded = Math.ceil(qty / produces);
+
+
+            for (const material in recipe.base) {
+
+                resolveMaterialTree(
+                    material,
+                    recipe.base[material] * craftsNeeded,
+                    accumulated
+                );
+
+            }
+        }
+
+        function resolveMasaChainRawMaterials(chain, startIndex, endIndex, qty, accumulated) {
+            const chainItemNames = new Set(
+                chain.map(item => getNormalizedKey(item.name))
+            );
+
+            for (let i = startIndex; i <= endIndex; i++) {
+                for (const material in chain[i].cost) {
+                    if (chainItemNames.has(getNormalizedKey(material))) {
+                        continue;
+                    }
+
+                    resolveMaterialTree(
+                        material,
+                        chain[i].cost[material] * qty,
+                        accumulated
+                    );
+                }
+            }
+        }
+
+        function calculateAll() {
+            const masaItemKey = document.getElementById('masaItemSelect').value;
+            const masaQtyVal = document.getElementById('masaQty').value;
+            const ownedVariant = document.getElementById('ownedVariantSelect').value;
+
+            const croitorItemKey = document.getElementById('croitorItemSelect').value;
+            const croitorQtyVal = document.getElementById('croitorQty').value;
+            const mecanicItemKey = document.getElementById('mecanicItemSelect')?.value;
+            const mecanicQtyVal = document.getElementById('mecanicQty')?.value || '';
+
+            let hasItem = false;
+            let activeQty = 0;
+            let directCost = {};
+            let incompleteRecipe = false;
+            
+            let accumulated = {};
+            materialKeys.forEach(m => accumulated[m] = 0);
+
+            if (masaItemKey && masaQtyVal !== '' && !isNaN(masaQtyVal) && parseFloat(masaQtyVal) > 0) {
+                hasItem = true;
+                activeQty = parseFloat(masaQtyVal);
+                let currentRecipe = recipesMasa[masaItemKey];
+
+                let chainType = null;
+
+                if (masaItemKey.startsWith("undita_")) {
+                    chainType = "undita";
+                }
+                else if (masaItemKey.startsWith("tarnacop_")) {
+                    chainType = "tarnacop";
+                }
+                else if (masaItemKey.startsWith("topor_")) {
+                    chainType = "topor";
+                }
+
+                if (chainType) {
+
+                    let chain = upgradeChains[chainType];
+                    const chainItemNames = new Set(
+                        chain.map(item => getNormalizedKey(item.name))
+                    );
+
+                    let endIndex = chain.findIndex(
+                        i => i.id === masaItemKey
+                    );
+
+
+                    const ownedIndex = ownedVariant && ownedVariant !== "none"
+                        ? chain.findIndex(i => i.id === ownedVariant)
+                        : -1;
+                    const startIndex = ownedIndex >= 0 ? ownedIndex + 1 : 0;
+                    const addDirectIngredient = (name, amount) => {
+                        directCost[name] =
+                            (directCost[name] || 0) + amount * activeQty;
+                    };
+
+                    // Ingredientele directe trebuie să arate obiectul de la care
+                    // pornește upgrade-ul și materialele pentru pașii următori.
+                    // Materialele brute sunt calculate separat mai jos.
+                    if (ownedIndex >= 0) {
+                        addDirectIngredient(chain[ownedIndex].name, 1);
+                    }
+
+                    // Fără o variantă deținută, pornim de la undița normală
+                    // cumpărată din magazin și afișăm necesarul întregului lanț.
+                    const directStartIndex = ownedIndex >= 0 ? ownedIndex + 1 : 0;
+                    for (let i = directStartIndex; i <= endIndex; i++) {
+                        for (const mat in chain[i].cost) {
+                            if (chainItemNames.has(getNormalizedKey(mat))) continue;
+                            addDirectIngredient(mat, chain[i].cost[mat]);
+                        }
+                    }
+
+                    resolveMasaChainRawMaterials(
+                        chain,
+                        startIndex,
+                        endIndex,
+                        activeQty,
+                        accumulated
+                    );
+
+                } else if (currentRecipe) {
+
+                    for (let mat in currentRecipe.base) {
+
+                        directCost[mat] =
+                            currentRecipe.base[mat];
+
+                    }
+
+                    for (let mat in directCost) {
+                        resolveMaterialTree(
+                            mat,
+                            directCost[mat] * activeQty,
+                            accumulated
+                        );
+                    }
+                }
+            }
+
+            if (croitorItemKey && croitorQtyVal !== '' && !isNaN(croitorQtyVal) && parseFloat(croitorQtyVal) > 0) {
+                hasItem = true;
+                activeQty = parseFloat(croitorQtyVal);
+                let currentRecipe = recipesCroitor[croitorItemKey];
+
+                if (currentRecipe) {
+                
+                    const produces = currentRecipe.produces || 1;
+                    const craftsNeeded = Math.ceil(activeQty / produces);
+                
+                    for (let mat in currentRecipe.base) {
+
+                        directCost[mat] =
+                            currentRecipe.base[mat] * craftsNeeded;
+
+                    }
+                
+                    for (let mat in currentRecipe.base) {
+
+                        let amount = currentRecipe.base[mat] * craftsNeeded;
+
+                        resolveMaterialTree(
+                            mat,
+                            amount,
+                            accumulated
+                        );
+
+                    }
+                }
+            }
+
+            if (mecanicItemKey && mecanicQtyVal !== '' && !isNaN(mecanicQtyVal) && parseFloat(mecanicQtyVal) > 0) {
+                hasItem = true;
+                activeQty = parseFloat(mecanicQtyVal);
+                const currentRecipe = recipesMecanic[mecanicItemKey];
+
+                if (currentRecipe?.incomplete || !currentRecipe?.base) {
+                    incompleteRecipe = true;
+                } else {
+                    for (const [material, amount] of Object.entries(currentRecipe.base)) {
+                        directCost[material] = amount * activeQty;
+                        resolveMaterialTree(material, amount * activeQty, accumulated);
+                    }
+                }
+            }
+            const boxDirect = document.getElementById('box_direct');
+            const boxRawMaterials = document.getElementById('box_raw_materials');
+            const directGrid = document.getElementById('directResultsGrid');
+            const hasMasaResults = masaQtyVal !== '' && !isNaN(masaQtyVal) && parseFloat(masaQtyVal) > 0;
+            const hasCroitorieResults = croitorQtyVal !== '' && !isNaN(croitorQtyVal) && parseFloat(croitorQtyVal) > 0;
+            const hasMecanicResults = mecanicQtyVal !== '' && !isNaN(mecanicQtyVal) && parseFloat(mecanicQtyVal) > 0;
+            updateCroitorieResultPreview(
+                masaItemKey,
+                recipesMasa[masaItemKey],
+                hasMasaResults,
+                croitorItemKey,
+                recipesCroitor[croitorItemKey],
+                hasCroitorieResults,
+                recipesMecanic[mecanicItemKey],
+                hasMecanicResults
+            );
+
+                materialKeys.forEach(materialName => {
+
+                    const element = document.getElementById(
+                        `res_${getNormalizedKey(materialName)}`
+                    );
+
+                    if (element) {
+                        element.textContent = "0";
+                        element.classList.remove('is-non-zero');
+                        element.style.color = 'var(--success)';
+                    }
+
+                });
+                
+            if (hasItem) {
+                boxDirect.classList.add('active');
+                boxRawMaterials.classList.add('active');
+
+                directGrid.innerHTML = '';
+                if (incompleteRecipe) {
+                    const message = document.createElement('div');
+                    message.className = 'text-amber-300 text-sm';
+                    message.textContent = `Rețeta pentru ${recipesMecanic[mecanicItemKey]?.name || 'acest obiect'} nu este completată încă.`;
+                    directGrid.appendChild(message);
+                } else {
+                    for (let mat in directCost) {
+                        let card = document.createElement('div');
+                        card.className = 'result-card';
+                        const title = document.createElement('div');
+                        title.className = 'item-title';
+                        title.textContent = getDirectIngredientDisplayName(mat);
+                        const value = document.createElement('div');
+                        value.className = 'item-value';
+                        const directAmount = Number(directCost[mat]);
+                        value.classList.toggle('is-non-zero', directAmount !== 0);
+                        value.style.color = directAmount !== 0 ? '#f87171' : 'var(--success)';
+                        value.textContent = String(directAmount);
+                        card.append(title, value);
+                        directGrid.appendChild(card);
+                    }
+                }
+
+                materialKeys.forEach(materialName => {
+                
+                    const normalizedName = getNormalizedKey(materialName);
+                
+                    const resultElement = document.getElementById(
+                        `res_${getNormalizedKey(materialName)}`
+                    );
+
+                    if (!resultElement) return;
+
+                    const accumulatedKey = Object.keys(accumulated).find(
+                        key => getNormalizedKey(key) === normalizedName
+                    );
+
+                    const rawAmount = accumulatedKey
+                        ? accumulated[accumulatedKey]
+                        : 0;
+                    resultElement.textContent = rawAmount;
+                    const hasRawAmount = Number(rawAmount) !== 0;
+                    resultElement.classList.toggle('is-non-zero', hasRawAmount);
+                    resultElement.style.color = hasRawAmount ? '#f87171' : 'var(--success)';
+                
+                });
+            } else {
+                boxDirect.classList.remove('active');
+                boxRawMaterials.classList.remove('active');
+            }
+        }
+
+        document.getElementById('masaQty').addEventListener('input', function() {
+            if (this.value > 0) document.getElementById('croitorQty').value = 0;
+            if (this.value > 0) document.getElementById('mecanicQty').value = 0;
+            calculateAll();
+        });
+
+        document.getElementById('croitorQty').addEventListener('input', function() {
+            if (this.value > 0) document.getElementById('masaQty').value = 0;
+            if (this.value > 0) document.getElementById('mecanicQty').value = 0;
+            calculateAll();
+        });
+
+        document.getElementById('mecanicQty').addEventListener('input', function() {
+            if (this.value > 0) {
+                document.getElementById('masaQty').value = 0;
+                document.getElementById('croitorQty').value = 0;
+            }
+            calculateAll();
+        });
+    </script>
+    <script src="js/global-footer.js"></script>
+</body>
+</html>

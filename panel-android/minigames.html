@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minigames Ilegale - Panel</title>
+    <link rel="stylesheet" href="css/tailwind.css">
+    <link rel="stylesheet" href="css/global-footer.css">
+    <link rel="stylesheet" href="css/illegal-minigames.css">
+    <link rel="stylesheet" href="minigames/style.css">
+    <link rel="icon" href="img/favicon.ico">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+    <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+    <script src="js/permissions.js?v=4.6.2"></script>
+    <script src="js/panel-layout.js?v=4.28.9"></script>
+</head>
+<body class="minigames-page bg-slate-950 text-slate-100 font-sans antialiased">
+    <main class="minigames-page-main">
+        <section class="mg-hero">
+            <div class="mg-hero-inner">
+                <p class="mg-eyebrow">Resurse ilegale · Skill checks</p>
+                <h1>Minigames</h1>
+                <p class="mg-hero-copy">Biblioteca de minigame-uri pentru activități ilegale, heist-uri, hack-uri și joburi specializate. Alege un joc, setează dificultatea și pornește direct din panel.</p>
+                <div class="mg-hero-actions">
+                    <a class="mg-hero-link primary" href="calculatorilegal.html">🧮 Calculator Ilegal</a>
+                    <a class="mg-hero-link" href="locatiiilegale.html">🗺️ Locații Ilegale</a>
+                    <a class="mg-hero-link" href="marketplace-ilegal.html">🚨 Black Market</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="mg-content">
+            <div class="mg-toolbar">
+                <div class="mg-search-wrap">
+                    <span class="mg-search-icon">⌕</span>
+                    <input id="minigames-search" type="search" placeholder="Caută după nume, mecanică sau categorie..." autocomplete="off">
+                </div>
+                <label class="mg-control"><span>Dificultate</span><input id="minigames-difficulty" type="range" min="1" max="5" value="2"><b id="minigames-difficulty-value">Nivel 2</b></label>
+                <button id="minigames-sound" class="mg-control mg-sound" type="button"><span>Sunet activ</span> 🔊</button>
+                <button id="minigames-clear" class="mg-clear" type="button">Resetează</button>
+            </div>
+
+            <div id="minigames-category-list" class="mg-category-list" aria-label="Filtre categorii"></div>
+            <div class="mg-section-meta"><h2>Biblioteca de jocuri</h2><span><b id="minigames-visible-count">70 afișate</b> · <span id="minigames-total-count">70 jocuri disponibile</span></span></div>
+            <div id="minigames-grid" class="mg-grid"></div>
+            <p id="minigames-current-game" class="mt-5 text-center text-[11px] text-slate-600">Alege un joc pentru a deschide provocarea.</p>
+        </section>
+    </main>
+
+    <div id="root" class="hidden">
+        <div id="stage">
+            <div id="hud">
+                <div id="hud-title"><span id="hud-tag"></span><span id="hud-name"></span></div>
+                <div id="hud-timer"><div id="timer-bar"><div id="timer-fill"></div></div><span id="timer-text">0.0</span></div>
+                <button id="mg-close" type="button" aria-label="Închide minijocul" title="Închide minijocul">×</button>
+            </div>
+            <div id="board"></div>
+            <div id="footer"><div id="dots"></div><div id="hint"></div></div>
+        </div>
+        <div id="flash" class="hidden"><span id="flash-text"></span></div>
+    </div>
+
+    <script src="minigames/sfx.js"></script>
+    <script src="minigames/engine.js"></script>
+    <script src="minigames/games/animus.js"></script>
+    <script src="minigames/games/archery.js"></script>
+    <script src="minigames/games/beltsort.js"></script>
+    <script src="minigames/games/bluff.js"></script>
+    <script src="minigames/games/bonepin.js"></script>
+    <script src="minigames/games/breachmatrix.js"></script>
+    <script src="minigames/games/breathalyzer.js"></script>
+    <script src="minigames/games/cascade.js"></script>
+    <script src="minigames/games/cashcount.js"></script>
+    <script src="minigames/games/chopshop.js"></script>
+    <script src="minigames/games/constellation.js"></script>
+    <script src="minigames/games/cooking.js"></script>
+    <script src="minigames/games/counterfeit.js"></script>
+    <script src="minigames/games/crafting.js"></script>
+    <script src="minigames/games/crane.js"></script>
+    <script src="minigames/games/cuttheright.js"></script>
+    <script src="minigames/games/daemonrun.js"></script>
+    <script src="minigames/games/dataheist.js"></script>
+    <script src="minigames/games/deadcalm.js"></script>
+    <script src="minigames/games/decrypt.js"></script>
+    <script src="minigames/games/diving.js"></script>
+    <script src="minigames/games/drilling.js"></script>
+    <script src="minigames/games/eaglevision.js"></script>
+    <script src="minigames/games/fingerprint.js"></script>
+    <script src="minigames/games/fishing.js"></script>
+    <script src="minigames/games/flatline.js"></script>
+    <script src="minigames/games/forge.js"></script>
+    <script src="minigames/games/gaslight.js"></script>
+    <script src="minigames/games/getaway.js"></script>
+    <script src="minigames/games/ghostsignal.js"></script>
+    <script src="minigames/games/harvest.js"></script>
+    <script src="minigames/games/hottrace.js"></script>
+    <script src="minigames/games/hotwire.js"></script>
+    <script src="minigames/games/intrusion.js"></script>
+    <script src="minigames/games/jammer.js"></script>
+    <script src="minigames/games/keypad.js"></script>
+    <script src="minigames/games/lasergrid.js"></script>
+    <script src="minigames/games/lightsout.js"></script>
+    <script src="minigames/games/livewire.js"></script>
+    <script src="minigames/games/lockpick.js"></script>
+    <script src="minigames/games/locksmith.js"></script>
+    <script src="minigames/games/lugnuts.js"></script>
+    <script src="minigames/games/mash.js"></script>
+    <script src="minigames/games/mining.js"></script>
+    <script src="minigames/games/overflow.js"></script>
+    <script src="minigames/games/override.js"></script>
+    <script src="minigames/games/packing.js"></script>
+    <script src="minigames/games/paintspray.js"></script>
+    <script src="minigames/games/parry.js"></script>
+    <script src="minigames/games/partsort.js"></script>
+    <script src="minigames/games/pickpocket.js"></script>
+    <script src="minigames/games/pillpress.js"></script>
+    <script src="minigames/games/pulse.js"></script>
+    <script src="minigames/games/quicktime.js"></script>
+    <script src="minigames/games/reaction.js"></script>
+    <script src="minigames/games/resonance.js"></script>
+    <script src="minigames/games/skillcheck.js"></script>
+    <script src="minigames/games/slidepuzzle.js"></script>
+    <script src="minigames/games/stacker.js"></script>
+    <script src="minigames/games/steadydose.js"></script>
+    <script src="minigames/games/suture.js"></script>
+    <script src="minigames/games/targets.js"></script>
+    <script src="minigames/games/thermite.js"></script>
+    <script src="minigames/games/titration.js"></script>
+    <script src="minigames/games/toolbox.js"></script>
+    <script src="minigames/games/tripwire.js"></script>
+    <script src="minigames/games/vaultdrill.js"></script>
+    <script src="minigames/games/vaultspin.js"></script>
+    <script src="minigames/games/vitals.js"></script>
+    <script src="minigames/games/welding.js"></script>
+    <script src="js/illegal-minigames.js"></script>
+    <script src="js/global-footer.js"></script>
+</body>
+</html>
+

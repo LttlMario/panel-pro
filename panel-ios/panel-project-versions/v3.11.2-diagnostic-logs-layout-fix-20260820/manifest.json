@@ -1,0 +1,37 @@
+{
+  "version": "3.11.2",
+  "releasedAt": "2026-08-20",
+  "title": "Reparare layout pentru verificare sistem și loguri",
+  "supabaseProjectRef": "vkvsabbbawyiurnaiugo",
+  "githubRepository": "LttlMario/panel-pro",
+  "parentCommit": "90c3b4c3706d74ee05606a10efdd79c62dc9f2bd",
+  "releaseCommit": "99a98d6",
+  "backupCommit": "see GitHub history for archive commit",
+  "supabaseMigrationApplied": false,
+  "supabaseFunctionsDeployed": [],
+  "pagesDeployment": "Pending validation and GitHub Pages deployment",
+  "backupFileCounts": {
+    "source": 225,
+    "functions": 33,
+    "sql": 37,
+    "supabase": 10,
+    "automation": 2,
+    "payloadTotal": 307,
+    "archiveMetadata": 2,
+    "archiveTotal": 309
+  },
+  "sourceFiles": [
+    "source/pages/ — toate paginile HTML la momentul release-ului",
+    "source/css/ — toate fișierele CSS",
+    "source/js/ — toate fișierele JavaScript",
+    "source/img/ și source/vendor/ — activele web",
+    "source/root/ — fișierele auxiliare din rădăcina proiectului"
+  ],
+  "sqlFiles": [
+    "sql/ — toate migrațiile Supabase disponibile",
+    "sql/manual/ — scripturile SQL manuale disponibile"
+  ],
+  "functionFiles": [
+    "functions/ — toate funcțiile Supabase și _shared"
+  ]
+}

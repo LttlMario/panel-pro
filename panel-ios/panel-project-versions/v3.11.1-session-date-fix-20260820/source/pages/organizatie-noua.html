@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Începe configurarea organizației · Panel</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/global-footer.css">
+  <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+  <link rel="icon" href="img/favicon.ico">
+  <style>
+    html, body { min-height: 100%; }
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    body > main { width: 100%; flex: 1 1 auto; }
+    .onboarding-footer-host { width: 100%; flex: 0 0 auto; }
+    .onboarding-card { animation: onboarding-in .55s ease-out both; }
+    @keyframes onboarding-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+  <main class="flex items-center justify-center p-6">
+    <section class="onboarding-card w-full max-w-2xl rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-2xl md:p-9">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-[0.25em] text-cyan-300">Primul pas</span>
+          <h1 class="mt-2 text-3xl font-black">Începe-ți organizația</h1>
+          <p id="identity" class="mt-2 text-sm text-slate-400"></p>
+        </div>
+        <div class="flex items-end gap-3">
+          <div class="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-right text-xs text-cyan-100">
+            <b class="block text-sm">Acces prin voucher</b>
+            <span>Configurare ghidată</span>
+          </div>
+          <button id="logout" type="button" class="rounded-xl border border-rose-500/30 px-4 py-3 text-xs font-bold text-rose-300 transition hover:bg-rose-500/10">Logout</button>
+        </div>
+      </div>
+
+      <div class="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-700 bg-slate-950/60 p-4">
+        <div class="flex min-w-0 items-center gap-3">
+          <img id="account-avatar" src="img/logo-192.png" alt="Avatar Discord" class="h-12 w-12 rounded-full border border-slate-700 object-cover">
+          <div class="min-w-0">
+            <strong id="account-name" class="block truncate text-sm">Cont Discord</strong>
+            <span id="account-username" class="block truncate text-xs text-slate-400">Cont autentificat</span>
+          </div>
+        </div>
+        <div class="text-left sm:text-right">
+          <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Acces panel</span>
+          <strong class="block text-sm text-amber-300">Fără rol momentan</strong>
+          <span class="block text-xs text-slate-500">Voucherul va porni configurarea</span>
+        </div>
+      </div>
+
+      <div class="mt-7 grid gap-3 md:grid-cols-3">
+        <div class="rounded-2xl border border-slate-700 bg-slate-950 p-4">
+          <span class="text-2xl">1</span>
+          <b class="mt-2 block">Verifici voucherul</b>
+          <p class="mt-1 text-xs leading-5 text-slate-400">Confirmăm că voucherul este valid și nefolosit.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-700 bg-slate-950 p-4">
+          <span class="text-2xl">2</span>
+          <b class="mt-2 block">Creezi Draft-ul</b>
+          <p class="mt-1 text-xs leading-5 text-slate-400">Introduci numele și datele de bază ale organizației.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-700 bg-slate-950 p-4">
+          <span class="text-2xl">3</span>
+          <b class="mt-2 block">Conectezi Discord</b>
+          <p class="mt-1 text-xs leading-5 text-slate-400">Adaugi Guild ID-ul, rolurile și setările organizației.</p>
+        </div>
+      </div>
+
+      <form id="voucher-form" class="mt-7 rounded-2xl border border-fuchsia-500/20 bg-fuchsia-500/5 p-5">
+        <label for="voucher" class="block text-sm font-bold">Cod voucher</label>
+        <p class="mt-1 text-xs leading-5 text-slate-400">Voucherul este necesar pentru a crea și activa o organizație nouă.</p>
+        <div class="mt-4 flex flex-col gap-3 sm:flex-row">
+          <input id="voucher" required maxlength="64" autocomplete="off" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono uppercase outline-none focus:border-fuchsia-400" placeholder="Exemplu: FULL-ABC123">
+          <button id="verify-voucher" type="submit" class="rounded-xl bg-fuchsia-700 px-5 py-3 font-bold transition hover:bg-fuchsia-600">Verifică voucherul</button>
+        </div>
+        <p id="status" class="mt-4 min-h-5 text-sm text-slate-300"></p>
+      </form>
+
+      <details class="mt-5 rounded-2xl border border-slate-700 bg-slate-950/60 p-4">
+        <summary class="cursor-pointer text-sm font-bold text-slate-200">Ce se întâmplă după verificare?</summary>
+        <div class="mt-3 space-y-2 text-xs leading-5 text-slate-400">
+          <p>Vei ajunge la pagina de creare a organizației și vei introduce numele acesteia.</p>
+          <p>După crearea Draft-ului, vei adăuga Guild ID-ul serverului Discord pe care vrei să lucrezi.</p>
+          <p>Apoi vei putea verifica rolurile, alege paginile permise și finaliza organizația.</p>
+        </div>
+      </details>
+    </section>
+  </main>
+  <div data-panel-footer-host class="onboarding-footer-host"></div>
+
+  <script>
+    (() => {
+      const token = window.getPanelDiscordAccessToken?.() || '';
+      const user = JSON.parse(localStorage.getItem('discord_user') || 'null');
+      const config = window.PANEL_SUPABASE_CONFIG;
+      const identity = document.getElementById('identity');
+      const form = document.getElementById('voucher-form');
+      const input = document.getElementById('voucher');
+      const button = document.getElementById('verify-voucher');
+      const status = document.getElementById('status');
+
+      if (!token || !config) {
+        location.replace('login.html');
+        return;
+      }
+
+      identity.textContent = 'Conectat ca ' + (user?.display_name || user?.username || 'utilizator Discord');
+      document.getElementById('account-name').textContent = user?.display_name || user?.username || 'Cont Discord';
+      document.getElementById('account-username').textContent = user?.username ? '@' + user.username : 'Cont autentificat';
+      document.getElementById('account-avatar').src = user?.avatar || user?.avatar_url || 'img/logo-192.png';
+      document.getElementById('logout').onclick = () => { localStorage.clear(); sessionStorage.clear(); location.replace('login.html'); };
+      const savedVoucher = sessionStorage.getItem('panel_onboarding_voucher') || '';
+      if (savedVoucher) input.value = savedVoucher;
+
+      form.onsubmit = async (event) => {
+        event.preventDefault();
+        const code = input.value.trim().toUpperCase();
+        if (!code) return;
+        button.disabled = true;
+        status.textContent = 'Se verifică voucherul...';
+        try {
+          const response = await fetch(config.url + '/functions/v1/sync-discord-role', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: config.publishableKey,
+              Authorization: 'Bearer ' + config.publishableKey
+            },
+            body: JSON.stringify({ access_token: token, voucher_code: code })
+          });
+          const result = await response.json();
+          if (!response.ok || result.voucher_valid !== true) {
+            throw new Error(result.error || 'Voucherul nu a putut fi verificat.');
+          }
+          sessionStorage.setItem('panel_onboarding_voucher', code);
+          sessionStorage.setItem('panel_onboarding_voucher_guild', result.voucher_guild_id || '');
+          status.textContent = 'Voucher valid. Se deschide configurarea organizației...';
+          location.href = 'creare-organizatie-voucher.html?onboarding=1';
+        } catch (error) {
+          status.textContent = error.message || 'Voucherul nu a putut fi verificat.';
+          button.disabled = false;
+        }
+      };
+    })();
+  </script>
+  <script src="js/global-footer.js"></script>
+</body>
+</html>

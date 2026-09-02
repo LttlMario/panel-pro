@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self';">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Creează organizația · Panel</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <script src="js/supabase-config.js?v=20260819-uuid-fix"></script>
+  <link rel="stylesheet" href="css/global-footer.css">
+  <style>
+    html, body { min-height: 100%; }
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    body > main { width: 100%; flex: 1 1 auto; display: flex; justify-content: center; padding: 24px; }
+    .create-page-shell { width: min(100%, 1100px); margin-inline: auto; }
+    .create-footer-host { width: 100%; flex: 0 0 auto; }
+    .field { display: block; width: 100%; margin-top: 6px; border: 1px solid #334155; border-radius: 10px; background: #0f172a; color: #e2e8f0; padding: 10px; box-sizing: border-box; }
+    label { font-size: 12px; color: #cbd5e1; }
+    .roles-table-row { display: grid !important; grid-template-columns: minmax(0, 2fr) 80px minmax(0, 1fr) 38px !important; gap: 8px; align-items: center; width: 100%; }
+    .roles-table-header { padding: 0 12px 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #64748b; }
+    .roles-table-item > * { min-width: 0; }
+    .roles-table-item select, .roles-table-item input { width: 100%; min-width: 0; }
+    @media (max-width: 700px) { .roles-table-header { display: none !important; } .roles-table-row { grid-template-columns: minmax(0, 1fr) 60px !important; } .roles-table-item > :nth-child(3) { grid-column: 1 / 2; } .roles-table-item > :nth-child(4) { grid-column: 2 / 3; } }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+  <main>
+    <section class="create-page-shell rounded-2xl border border-fuchsia-700/50 bg-slate-900 p-6">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-[0.25em] text-fuchsia-300">Configurare organizație</span>
+          <h1 class="mt-2 text-2xl font-black">Creează organizația prin voucher</h1>
+          <p class="mt-2 text-sm text-slate-400">Completează datele organizației și conectează serverul Discord.</p>
+          <a href="prelungire-voucher.html" class="mt-3 inline-block text-xs font-bold text-emerald-300 hover:text-emerald-200">Ai deja o organizație? Prelungește-o prin voucher →</a>
+        </div>
+        <button id="logout" type="button" class="rounded-xl border border-rose-500/30 px-4 py-2 text-sm font-bold text-rose-300 transition hover:bg-rose-500/10">Logout</button>
+      </div>
+
+      <div class="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-700 bg-slate-950/60 p-4">
+        <div class="flex min-w-0 items-center gap-3">
+          <img id="account-avatar" src="img/logo-192.png" alt="Avatar Discord" class="h-12 w-12 rounded-full border border-slate-700 object-cover">
+          <div class="min-w-0">
+            <strong id="account-name" class="block truncate text-sm">Cont Discord</strong>
+            <span id="account-username" class="block truncate text-xs text-slate-400">Cont autentificat</span>
+          </div>
+        </div>
+        <div class="text-left sm:text-right">
+          <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Acces panel</span>
+          <strong class="block text-sm text-amber-300">Fără rol momentan</strong>
+          <span class="block text-xs text-slate-500">Rolurile se configurează după guild</span>
+        </div>
+      </div>
+
+      <form id="create" class="mt-6 space-y-4">
+        <label class="block text-sm">Voucher<input id="voucher" required class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 p-3"></label>
+        <label class="block text-sm">Guild ID Discord<input id="guild" required inputmode="numeric" class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 p-3" placeholder="Exemplu: 123456789012345678"><span class="mt-1 block text-xs text-slate-500">ID-ul serverului Discord pe care vrei să îl conectezi.</span></label>
+        <label class="block text-sm">Numele organizației<input id="name" required class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 p-3"></label>
+        <label class="block text-sm">Adresa de lucru<input id="address" class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 p-3"></label>
+        <button class="w-full rounded-xl bg-fuchsia-700 px-5 py-3 font-bold">Creează organizația Draft</button>
+        <p id="status" class="text-sm text-slate-400"></p>
+        <p id="package-info" class="hidden rounded-xl border border-cyan-700/40 bg-cyan-950/20 p-3 text-xs leading-5 text-cyan-100"></p>
+      </form>
+    </section>
+  </main>
+  <div data-panel-footer-host class="create-footer-host"></div>
+  <script>
+    const currentDiscordUser = JSON.parse(localStorage.getItem('discord_user') || '{}');
+    document.getElementById('account-name').textContent = currentDiscordUser.display_name || currentDiscordUser.username || 'Cont Discord';
+    document.getElementById('account-username').textContent = currentDiscordUser.username ? '@' + currentDiscordUser.username : 'Cont autentificat';
+    document.getElementById('account-avatar').src = currentDiscordUser.avatar || currentDiscordUser.avatar_url || 'img/logo-192.png';
+    document.getElementById('logout').onclick = () => { localStorage.clear(); sessionStorage.clear(); location.replace('login.html'); };
+
+    document.getElementById('create').onsubmit = async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const status = document.getElementById('status');
+      const config = window.PANEL_SUPABASE_CONFIG;
+      const voucher = document.getElementById('voucher').value.trim().toUpperCase();
+      const guild = document.getElementById('guild').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const accessToken = window.getPanelDiscordAccessToken?.() || '';
+      const discordUser = JSON.parse(localStorage.getItem('discord_user') || '{}');
+      if (guild && !/^\d{15,22}$/.test(guild)) { status.textContent = 'Guild ID invalid.'; return; }
+      if (!accessToken || !discordUser.discord_id) { status.textContent = 'Sesiunea Discord lipsește. Revino la login și încearcă din nou.'; return; }
+      const button = form.querySelector('button');
+      const packageInfo = document.getElementById('package-info');
+      button.disabled = true;
+      status.textContent = 'Se creează organizația Draft...';
+      try {
+        const response = await fetch(`${config.url}/functions/v1/create-voucher-organization`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}` },
+          body: JSON.stringify({
+            access_token: accessToken,
+            voucher_code: voucher,
+            guild_id: guild,
+            name,
+            address: document.getElementById('address').value.trim(),
+            discord_id: discordUser.discord_id
+          })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Crearea a eșuat.');
+        window.draftPackageCode = result.package_code || 'standard';
+        window.draftOrganizationId = result.organization?.id || '';
+        packageInfo.hidden = false;
+        packageInfo.textContent = window.draftPackageCode === 'full'
+          ? 'Pachet Full activat: poți configura hook-urile și permisiunile pentru Organizație / Mafia și, opțional, un al doilea server Discord.'
+          : 'Pachet Standard activat: sunt disponibile hook-urile și permisiunile Standard pentru Birouri / Angajați și un singur server Discord. Opțiunile Organizație / Mafia rămân ascunse.';
+        const showDraftConfiguration = () => typeof window.setDraftOrganizationId === 'function'
+          ? window.setDraftOrganizationId(window.draftOrganizationId)
+          : setTimeout(showDraftConfiguration, 100);
+        showDraftConfiguration();
+        status.textContent = result.requires_guild_setup
+          ? 'Draft creat. Adaugă guildul din secțiunea de configurare de mai jos pentru a continua.'
+          : 'Draft creat. Continuă cu verificarea rolurilor și salvarea configurației de mai jos.';
+      } catch (error) {
+        status.textContent = error.message || 'Crearea a eșuat.';
+        button.disabled = false;
+      }
+    };
+  </script>
+  <script src="js/global-footer.js?v=20260818-voucher-flow"></script>
+  <script>
+    const onboardingParams = new URLSearchParams(location.search);
+    const verifiedVoucher = sessionStorage.getItem('panel_onboarding_voucher') || onboardingParams.get('voucher') || '';
+    const voucherInput = document.getElementById('voucher');
+    const guildInput = document.getElementById('guild');
+    if (verifiedVoucher) {
+      voucherInput.value = verifiedVoucher;
+      voucherInput.readOnly = true;
+      voucherInput.classList.add('border-emerald-500/60', 'text-emerald-300');
+    }
+    if (onboardingParams.get('guild')) guildInput.value = onboardingParams.get('guild');
+    else if (sessionStorage.getItem('panel_onboarding_voucher_guild')) guildInput.value = sessionStorage.getItem('panel_onboarding_voucher_guild');
+  </script>
+</body>
+</html>

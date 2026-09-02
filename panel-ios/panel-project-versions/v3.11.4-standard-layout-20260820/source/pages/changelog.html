@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noutăți și actualizări - Panel by Little Mario</title>
+  <link rel="stylesheet" href="css/global-footer.css">
+  <script src="js/text-normalizer.js?v=1.0.0"></script>
+  <script src="js/project-version.js?v=3.11.4"></script>
+  <style>
+    *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:#020617;color:#f8fafc;font-family:Inter,Segoe UI,Arial,sans-serif}
+    main{width:min(100% - 28px,1080px);margin:0 auto;padding:32px 0 48px;flex:1}
+    .hero,.release-card{border:1px solid #1e293b;background:rgba(15,23,42,.88);border-radius:24px;box-shadow:0 18px 48px rgba(0,0,0,.22)}
+    .hero{padding:30px} .eyebrow{margin:0;color:#34d399;font-size:11px;font-weight:900;letter-spacing:.2em;text-transform:uppercase}
+    h1{margin:8px 0 0;font-size:clamp(30px,5vw,48px);line-height:1.06} .intro{max-width:760px;margin:14px 0 0;color:#94a3b8;line-height:1.7;font-size:14px}
+    .hero-row{display:flex;gap:22px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+    .version-box{min-width:200px;padding:18px;border:1px solid rgba(52,211,153,.25);background:rgba(16,185,129,.08);border-radius:18px;text-align:center}
+    .version-box small{display:block;color:#6ee7b7;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.12em}
+    .version-box strong{display:block;margin-top:5px;color:#34d399;font-size:30px} .version-box time{display:block;margin-top:3px;color:#94a3b8;font-size:12px}
+    .hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px} .hero-actions a{padding:10px 14px;border-radius:12px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;text-decoration:none;font-size:12px;font-weight:800}
+    .timeline{display:grid;gap:18px;margin-top:24px} .release-card{padding:24px} .release-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+    .release-meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap} .version-badge{padding:6px 10px;border-radius:999px;background:#059669;color:white;font-size:12px;font-weight:900}
+    .current-badge{padding:5px 9px;border-radius:999px;border:1px solid rgba(52,211,153,.25);background:rgba(16,185,129,.08);color:#6ee7b7;font-size:10px;font-weight:900;text-transform:uppercase}
+    .release-meta time{color:#64748b;font-size:12px} .release-card h2{margin:14px 0 0;font-size:21px} .anchor-link{color:#475569;text-decoration:none;font-size:22px}
+    .release-groups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:20px} .change-group{padding:16px;border:1px solid #1e293b;background:rgba(2,6,23,.55);border-radius:16px}
+    .change-group h3{margin:0 0 11px} .change-tag{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:900;text-transform:uppercase}
+    .change-tag.new{background:rgba(16,185,129,.12);color:#6ee7b7} .change-tag.improved{background:rgba(59,130,246,.12);color:#93c5fd} .change-tag.fixed{background:rgba(244,63,94,.12);color:#fda4af}
+    ul{margin:0;padding-left:19px;color:#cbd5e1;font-size:13px;line-height:1.65} li+li{margin-top:6px}
+    @media(max-width:780px){.release-groups{grid-template-columns:1fr}.hero,.release-card{padding:20px}}
+  </style>
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div class="hero-row">
+        <div>
+          <p class="eyebrow">Noutăți și actualizări</p>
+          <h1>Istoricul Panelului</h1>
+          <p class="intro">Vezi funcțiile noi, îmbunătățirile și problemele rezolvate de la prima versiune a proiectului până în prezent. Această pagină este publică pentru toți utilizatorii panelului.</p>
+        </div>
+        <div class="version-box">
+          <small>Versiunea curentă</small>
+          <strong data-panel-version>v3.11.1</strong>
+          <time data-panel-release-date>20 august 2026</time>
+        </div>
+      </div>
+      <nav class="hero-actions">
+        <a href="index.html">← Înapoi la Dashboard</a>
+        <a href="#v-1-0-0">Vezi prima versiune</a>
+      </nav>
+    </header>
+    <section class="timeline">
+      <article class="release-card" id="v-3.11.4"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.11.4</span><span class="current-badge">Versiunea curentă</span><time>20 august 2026</time></div><h2>Layout standard pentru verificare sistem și loguri</h2></div><a class="anchor-link" href="#v-3.11.4" aria-label="Link către versiunea 3.11.4">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag fixed">Rezolvat</span></h3><ul><li>Verificarea sistemului nu mai ocupă toată lățimea ecranului.</li><li>Conținutul folosește acum același container standard ca restul paginilor panelului.</li></ul></section><section class="change-group"><h3><span class="change-tag improved">Izolat</span></h3><ul><li>Sidebarul și fișierul său de layout au rămas nemodificate.</li></ul></section></div></article>
+      <article class="release-card" id="v-3.11.3"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.11.3</span><time>20 august 2026</time></div><h2>Lățime corectă pentru conținutul paginilor administrative</h2></div><a class="anchor-link" href="#v-3.11.3" aria-label="Link către versiunea 3.11.3">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag fixed">Rezolvat</span></h3><ul><li>„Verificare sistem” și „Loguri” folosesc acum toată zona disponibilă pentru conținut.</li><li>Eliminată constrângerea care centra paginile într-o coloană îngustă.</li></ul></section><section class="change-group"><h3><span class="change-tag improved">Izolat</span></h3><ul><li>Modificarea este limitată la cele două pagini; sidebarul nu a fost schimbat.</li></ul></section></div></article>
+      <article class="release-card" id="v-3.11.2"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.11.2</span><time>20 august 2026</time></div><h2>Verificare sistem și loguri afișate corect</h2></div><a class="anchor-link" href="#v-3.11.2" aria-label="Link către versiunea 3.11.2">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag fixed">Rezolvat</span></h3><ul><li>Structura paginii „Verificare sistem” a fost aliniată cu layoutul comun al panelului.</li><li>Pagina „Loguri” își păstrează acum conținutul în zona principală, fără să fie împins în afara ecranului de sidebar.</li></ul></section><section class="change-group"><h3><span class="change-tag improved">Compatibilitate</span></h3><ul><li>Ambele pagini folosesc containere flexibile și funcționează corect pe desktop și pe ecrane înguste.</li></ul></section></div></article>
+      <article class="release-card" id="v-3.11.1"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.11.1</span><span class="current-badge">Versiunea curentă</span><time>20 august 2026</time></div><h2>Sesiune corectă și prelungire prin voucher</h2></div><a class="anchor-link" href="#v-3.11.1" aria-label="Link către versiunea 3.11.1">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag fixed">Rezolvat</span></h3><ul><li>Expirarea sesiunii este interpretată corect atât ca dată ISO, cât și ca timestamp numeric.</li><li>Indicatorul din meniul utilizatorului și verificarea sistemului afișează acum starea reală a sesiunii.</li></ul></section><section class="change-group"><h3><span class="change-tag new">Nou</span></h3><ul><li>Meniul utilizatorului include acces direct la „Prelungire organizație cu voucher”.</li><li>Arhiva versiunii conține sursa web, funcțiile Supabase, SQL-ul și configurația de deploy.</li></ul></section></div></article>
+      <article class="release-card" id="v-3.11.0"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.11.0</span><span class="current-badge">Versiunea curentă</span><time>20 august 2026</time></div><h2>Administrare platformă și arhive de rollback</h2></div><a class="anchor-link" href="#v-3.11.0" aria-label="Link către versiunea 3.11.0">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag new">Nou</span></h3><ul><li>Administratorii platformei pot fi adăugați și eliminați direct din panoul admin.</li><li>Panoul include ban/unban pentru conturi și secțiuni pliabile pentru navigare mai rapidă.</li></ul></section><section class="change-group"><h3><span class="change-tag improved">Securizat</span></h3><ul><li>Ban-ul revocă sesiunile active și blochează autentificarea până la unban.</li><li>Administratorii principali rămân protejați și nu pot fi eliminați sau blocați din interfață.</li></ul></section><section class="change-group"><h3><span class="change-tag fixed">Rollback</span></h3><ul><li>Fiecare actualizare este arhivată în <code>panel-project-versions/</code> împreună cu fișierele afectate, funcțiile și SQL-ul.</li></ul></section></div></article>
+      <article class="release-card" id="v-3.10.0"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.10.0</span><span class="current-badge">Versiunea curentă</span><time>18 august 2026</time></div><h2>Curățare și stabilitate în toate paginile</h2></div><a class="anchor-link" href="#v-3.10.0" aria-label="Link către versiunea 3.10.0">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag fixed">Rezolvat</span></h3><ul><li>Realtime Supabase este permis corect prin CSP, fără blocarea conexiunilor WebSocket.</li><li>Clientul Supabase este reutilizat pentru a elimina instanțele Auth duplicate.</li><li>Au fost reparate încărcarea profilului, variabilele administrației și elementele DOM lipsă.</li></ul></section><section class="change-group"><h3><span class="change-tag improved">Îmbunătățit</span></h3><ul><li>Logurile de depanare și datele organizației nu mai sunt afișate în consola utilizatorului.</li><li>Fișierele JavaScript fără referințe active au fost eliminate, fără ștergerea funcțiilor Supabase folosite de deploy sau cron.</li></ul></section></div></article>
+      <article class="release-card" id="v-3-8-1"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.8.1</span><span class="current-badge">Versiunea curentă</span><time>18 august 2026</time></div><h2>Vouchere mai sigure și Standard extins</h2></div><a class="anchor-link" href="#v-3-8-1" aria-label="Link către versiunea 3.8.1">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag new">Nou</span></h3><ul><li>Pachetul Standard permite maximum 10 roluri Discord în toate fluxurile de configurare.</li><li>Voucherele memorează modulele pachetului și au o perioadă explicită pentru activare.</li></ul></section><section class="change-group"><h3><span class="change-tag improved">Securizat</span></h3><ul><li>Crearea și reactivarea organizației prin voucher se execută tranzacțional în baza de date.</li><li>Revocarea păstrează voucherul și istoricul, fără ștergere definitivă.</li><li>Generarea, revocarea și folosirea voucherelor sunt urmărite în audit.</li></ul></section><section class="change-group"><h3><span class="change-tag control">Administrare</span></h3><ul><li>Lista voucherelor afișează expirarea și statusurile Activ, Folosit, Revocat și Expirat.</li><li>Limita actuală de generare a voucherelor a rămas neschimbată.</li></ul></section></div></article>
+      <article class="release-card" id="v-3-8-0"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.8.0</span><time>18 august 2026</time></div><h2>Pachete modulare pentru organizații</h2></div><a class="anchor-link" href="#v-3-8-0" aria-label="Link către versiunea 3.8.0">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag new">Nou</span></h3><ul><li>Pachetul Standard include modulele legale de bază fără a forța achiziția pachetului Full.</li><li>Modulele opționale pot fi activate individual din administrarea organizației.</li><li>Pachetul Full activează automat toate modulele disponibile.</li></ul></section><section class="change-group"><h3><span class="change-tag improved">Securizat</span></h3><ul><li>Accesul paginilor este filtrat server-side după pachet și apoi după rolul Discord.</li><li>Setările vechi Standard/Full rămân compatibile și primesc automat modulele corespunzătoare.</li></ul></section><section class="change-group"><h3><span class="change-tag control">Administrare</span></h3><ul><li>Catalogul modulelor este afișat în pagina de administrare a organizațiilor.</li><li>Prețurile și extraopțiunile comerciale pot fi adăugate ulterior în prezentarea publică.</li></ul></section></div></article>
+      <article class="release-card" id="v-3-7-0"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.7.0</span><span class="current-badge">Versiunea curentă</span><time>18 august 2026</time></div><h2>Administrare centralizată și control securizat al organizațiilor</h2></div><a class="anchor-link" href="#v-3-7-0" aria-label="Link către versiunea 3.7.0">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag new">Nou</span></h3><ul><li>Pagină dedicată pentru administrarea tuturor organizațiilor platformei.</li><li>Căutare, filtre, status, pachete, expirări, membri activi și sesiuni active într-o singură vedere.</li><li>Panou de detalii cu guilduri, roluri, webhook-uri, permisiuni și sănătatea configurației.</li></ul></section><section class="change-group"><h3><span class="change-tag improved">Securizat</span></h3><ul><li>Acțiunile administrative sunt validate server-side și sunt accesibile doar administratorului platformei.</li><li>Operațiunile sensibile folosesc rate-limit, confirmări explicite și audit automat.</li><li>URL-urile webhook nu sunt expuse în noul rezumat administrativ.</li></ul></section><section class="change-group"><h3><span class="change-tag fixed">Control</span></h3><ul><li>Verificare Discord pe organizație, revocare sesiuni și control al perioadei de valabilitate.</li><li>Export CSV administrativ cu informații operaționale, fără secrete.</li></ul></section></div></article>
+      <article class="release-card" id="v-3-6-0"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.6.0</span><span class="current-badge">Versiunea curentă</span><time>13 august 2026</time></div><h2>Sesiune centralizată și încărcare mai rapidă</h2></div><a class="anchor-link" href="#v-3-6-0" aria-label="Link către versiunea 3.6.0">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag improved">Îmbunătățit</span></h3><ul><li>Reînnoirea sesiunii panel este deduplicată când mai multe componente pornesc simultan.</li><li>Istoricul personal de pontaj este limitat la cele mai recente 100 de înregistrări.</li><li>Directorul de utilizatori din Rapoarte este reținut temporar pentru a evita cereri repetate.</li></ul></section><section class="change-group"><h3><span class="change-tag fixed">Rezolvat</span></h3><ul><li>Citirea redundantă a tabelului users la deschiderea pontajului nu mai blochează afișarea controalelor.</li><li>Manifestul funcțiilor Supabase include acum toate funcțiile folosite de configurarea organizațiilor și tutorial.</li></ul></section><section class="change-group"><h3><span class="change-tag new">Infrastructură</span></h3><ul><li>A fost adăugat indexul pentru filtrarea rapidă a istoricului pe organizație și Discord ID.</li></ul></section></div></article>
+
+      <article class="release-card" id="v-3-5-0"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.5.0</span><span class="current-badge">Versiunea curentă</span><time>5 august 2026</time></div><h2>Flux stabil pentru vouchere și organizații</h2></div><a class="anchor-link" href="#v-3-5-0" aria-label="Link către versiunea 3.5.0">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag new">Nou</span></h3><ul><li>Crearea unei organizații prin voucher poate continua și fără Guild ID introdus la login.</li><li>Draftul are pași separați pentru adăugarea guildului, citirea rolurilor și activare.</li></ul></section><section class="change-group"><h3><span class="change-tag improved">Îmbunătățit</span></h3><ul><li>Voucherul este verificat server-side prin sesiunea Discord, iar configurarea rămâne izolată pe organizație.</li><li>Apelurile pentru configurarea draftului folosesc autentificarea publică JWT necesară Edge Functions.</li></ul></section><section class="change-group"><h3><span class="change-tag fixed">Rezolvat</span></h3><ul><li>Nu mai apare eroarea de Guild ID obligatoriu când utilizatorul dorește să aleagă serverul în pasul următor.</li><li>Activarea draftului nu mai depinde exclusiv de existența unei sesiuni de panel deja create.</li></ul></section></div></article>
+      <article class="release-card" id="v-3-2-3"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.2.3</span><span class="current-badge">Versiunea curentă</span><time>3 august 2026</time></div><h2>Roluri sincronizate și încărcare mai rapidă</h2></div><a class="anchor-link" href="#v-3-2-3" aria-label="Link către versiunea 3.2.3">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag new">Nou</span></h3><ul><li>Verificare automată a rolului Discord la fiecare două minute, fără logout/login.</li><li>Accesul respectă paginile selectate pentru fiecare rol al organizației.</li></ul></section><section class="change-group"><h3><span class="change-tag improved">Îmbunătățit</span></h3><ul><li>Cache pentru rol și organizație, pentru navigare mai rapidă între pagini.</li><li>Administratorii cu nivel 99 au acces complet la module.</li><li>Versiunea web rămâne compatibilă cu instalarea Android și iOS.</li></ul></section><section class="change-group"><h3><span class="change-tag fixed">Rezolvat</span></h3><ul><li>Sesiunile vechi nu mai trimit automat utilizatorii cu pagini selectate în guest.</li></ul></section></div></article>
+      <article class="release-card" id="v-3-2-2"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.2.2</span><span class="current-badge">Versiunea curentă</span><time>1 august 2026</time></div><h2>Meniu lateral izolat și constant</h2></div><a class="anchor-link" href="#v-3-2-2" aria-label="Link către versiunea 3.2.2">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag fixed">Rezolvat</span></h3><ul><li>Stilurile proprii ale paginilor nu mai pot deforma sau ascunde meniul comun.</li><li>Toate paginile permise sunt reconstruite constant, cu edit.html exclus explicit.</li></ul></section></div></article>
+      <article class="release-card" id="v-3-2-1"><div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.2.1</span><time>1 august 2026</time></div><h2>Footer clar și instalare iOS inteligentă</h2></div><a class="anchor-link" href="#v-3-2-1" aria-label="Link către versiunea 3.2.1">#</a></div><div class="release-groups"><section class="change-group"><h3><span class="change-tag improved">Îmbunătățit</span></h3><ul><li>Semnătura proiectului este centrată, iar donația este în dreapta.</li><li>Asistentul se ridică automat deasupra footerului când acesta devine vizibil.</li><li>Instalarea iOS este ascunsă în aplicația deja adăugată pe Home Screen, dar rămâne vizibilă în Safari.</li></ul></section></div></article>
+      <article class="release-card" id="v-3-2-0">
+        <div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.2.0</span><time>1 august 2026</time></div><h2>Lansare mobilă oficială și identitate unitară</h2></div><a class="anchor-link" href="#v-3-2-0" aria-label="Link către versiunea 3.2.0">#</a></div>
+        <div class="release-groups"><section class="change-group"><h3><span class="change-tag new">Nou</span></h3><ul><li>Prima versiune Android stabilă, publicată ca v1.0.0.</li><li>Noul logo oficial este folosit unitar pe web, Android și iOS.</li></ul></section><section class="change-group"><h3><span class="change-tag improved">Îmbunătățit</span></h3><ul><li>Versiunile platformei și aplicațiilor sunt sincronizate.</li><li>Footerul păstrează semnătura proiectului la distanță sigură de asistent.</li><li>Linkurile de instalare Android indică versiunea stabilă curentă.</li></ul></section><section class="change-group"><h3><span class="change-tag fixed">Verificat</span></h3><ul><li>Navigarea, autentificarea Discord, permisiunile, resursele obligatorii și actualizările mobile au fost reverificate înainte de lansare.</li></ul></section></div>
+      </article>
+      <article class="release-card" id="v-3-1-0">
+        <div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.1.0</span><time>30 iulie 2026</time></div><h2>Experiență mobilă și asistent discret</h2></div><a class="anchor-link" href="#v-3-1-0" aria-label="Link către versiunea 3.1.0">#</a></div>
+        <div class="release-groups">
+          <section class="change-group"><h3><span class="change-tag new">Nou</span></h3><ul><li>Balonul robotului apare trei secunde, apoi rămâne doar avatarul circular.</li><li>Reguli responsive globale pregătite pentru viitoarea aplicație mobilă.</li></ul></section>
+          <section class="change-group"><h3><span class="change-tag improved">Îmbunătățit</span></h3><ul><li>Header mai înalt și titluri lizibile inclusiv pentru denumirile lungi.</li><li>Carduri și grile pe o singură coloană pe telefon.</li><li>Formulare și butoane optimizate pentru atingere, fără zoom nedorit.</li><li>Tabele derulabile, modale, footer, meniu și asistent adaptate ecranului și zonelor de siguranță.</li></ul></section>
+          <section class="change-group"><h3><span class="change-tag fixed">Rezolvat</span></h3><ul><li>Eliminarea depășirilor orizontale produse de componente cu lățime fixă.</li><li>Balonul asistentului nu mai rămâne permanent și nu reapare după minimizare.</li></ul></section>
+        </div>
+      </article>
+
+      <article class="release-card" id="v-3-0-0">
+        <div class="release-head"><div><div class="release-meta"><span class="version-badge">v3.0.0</span><time>30 iulie 2026</time></div><h2>Diagnosticare, configurare portabilă și pontaje fiabile</h2></div><a class="anchor-link" href="#v-3-0-0" aria-label="Link către versiunea 3.0.0">#</a></div>
+        <div class="release-groups">
+          <section class="change-group"><h3><span class="change-tag new">Nou</span></h3><ul><li>Pagină administrativă „Verificare sistem”, disponibilă exclusiv nivelului 7.</li><li>Diagnostic automat pentru schema Supabase, RLS, utilizatorul administrator, cele șapte roluri și configurarea Discord.</li><li>Verificarea individuală a webhook-urilor fără expunerea adreselor secrete.</li><li>Verificarea funcțiilor Edge, a paginii publice, a proiectului Supabase și a scripturilor obligatorii de pe GitHub Pages.</li><li>Configurator extins și pachet complet pentru mutarea panelului pe alt proiect Supabase și server Discord.</li></ul></section>
+          <section class="change-group"><h3><span class="change-tag improved">Îmbunătățit</span></h3><ul><li>Închiderea automată nu mai depinde exclusiv de browser.</li><li>Confirmările Discord sunt urmărite separat și retrimise până la livrare.</li><li>Erorile Discord sunt salvate pentru diagnosticare.</li><li>Porecla Discord este sincronizată în display_name și în istoricul pontajelor.</li><li>Navigarea, sidebarul, Logout, header-ul și footer-ul au fost uniformizate pe desktop și mobil.</li><li>Selectorul păstrează numai tema Panel și tema Dark.</li></ul></section>
+          <section class="change-group"><h3><span class="change-tag fixed">Rezolvat</span></h3><ul><li>Repararea turelor rămase active după ora de închidere.</li><li>Restabilirea butonului Start și a citirii istoricului după o publicare incompletă.</li><li>Confirmarea Discord pentru închiderea automată, inclusiv la rulări simultane.</li><li>Eliminarea temei luminoase cu contrast slab.</li><li>Corectarea configurației Supabase pe paginile esențiale și sincronizarea fișierelor locale, GitHub și Edge.</li></ul></section>
+        </div>
+      </article>
+
+
+      <article class="release-card" id="v-2-9-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v2.9.0</span><time>29 iulie 2026</time></div>
+            <h2>Anunțuri, sondaje și administrare extinsă</h2>
+          </div>
+          <a class="anchor-link" href="#v-2-9-0" aria-label="Link către versiunea 2.9.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Pagină comună de Anunțuri și Sondaje, vizibilă tuturor membrilor autentificați.</li><li>Managerii și gradele superioare pot publica anunțuri, întrebări și sondaje pentru Familie sau Mecanici.</li><li>Reacții, vot unic, procente actualizate în timp real și afișarea membrilor care au ales fiecare răspuns.</li><li>Publicare automată pe Discord prin webhook, cu mențiunea grupului, link direct și rezultate actualizate în același embed.</li><li>Configurator securizat în Panoul Admin pentru mutarea aplicației pe alt server Discord, inclusiv denumiri editabile pentru cele șapte roluri și toate webhook-urile.</li><li>Webhook-urile paginilor sunt trimise prin Edge Function și nu mai sunt publicate în codul HTML.</li><li>Selector global pentru tema Panel, tema întunecată sau tema luminoasă confortabilă.</li><li>Ștergerea propriilor anunțuri din Marketplace și Black Market, cu administrare completă pentru Coordonator.</li><li>Curățare automată zilnică a datelor operaționale mai vechi de 30 de zile, fără modificarea utilizatorilor și a configurărilor permanente.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag improved">Îmbunătățit</span></h3>
+            <ul><li>Sistemul de permisiuni folosește șapte niveluri, de la El Mecanico la Coordonator.</li><li>Autorul își poate edita sau șterge propria postare, iar Coordonatorul poate administra toate postările.</li><li>Conținutul unei postări este opțional; titlul rămâne obligatoriu, iar sondajele necesită cel puțin două variante.</li><li>Meniul lateral este uniform pe toate paginile: Anunțuri apare sub Dashboard, iar Rapoarte, Loguri și Panou Admin sunt la final.</li><li>Butonul Logout, panoul lateral și footer-ul au fost uniformizate pe întregul site.</li><li>Cele trei teme au fost refăcute global, inclusiv cardurile și butoanele meniului lateral.</li><li>Selectorul temei este afișat în dreapta antetului, iar căutarea este centrată pe toate paginile compatibile.</li><li>Pagina Locații Ilegale este adaptată pentru telefon: filtrele pornesc închise, iar alegerea hărții rămâne centrată deasupra hărții.</li><li>Calculatorul Ilegal permite ascunderea selecției și accesul direct la rezultate pe telefon.</li><li>Confirmarea donației Revolut rămâne în panou, iar pagina Revolut se deschide doar într-o filă separată.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag fixed">Rezolvat</span></h3>
+            <ul><li>Editarea și ștergerea postărilor folosesc corect sesiunea Discord și actualizează baza de date.</li><li>Anunțurile și sondajele sunt citite corect din Supabase și se actualizează fără reîncărcarea paginii.</li><li>Numele mecanicilor este afișat corect în Rapoarte, fără înlocuirea lui cu ID-ul Discord.</li><li>Numele afișat este resincronizat la autentificare, cu prioritate pentru porecla utilizatorului de pe serverul Discord.</li><li>Corectarea imaginilor mărite din Craft Mecanic și deschiderea lor direct prin apăsare.</li><li>Corectarea poziției footer-ului și a panoului lateral pe paginile cu conținut scurt sau foarte lung.</li><li>Eliminarea butoanelor Logout duplicate și uniformizarea denumirii acestora.</li></ul>
+          </section>
+        </div>
+      </article>
+
+      <article class="release-card" id="v-2-8-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v2.8.0</span><time>29 iulie 2026</time></div>
+            <h2>Footer global și versiuni</h2>
+          </div>
+          <a class="anchor-link" href="#v-2-8-0" aria-label="Link către versiunea 2.8.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Sistem centralizat pentru versiunea proiectului.</li><li>Pagină publică pentru noutăți și actualizări.</li><li>Pagină tehnică separată, accesibilă doar administratorilor.</li><li>Footer global cu versiune și donație Revolut.</li><li>Pagină de mulțumire după confirmarea manuală a donației.</li><li>Statistici personale extinse în Dashboard.</li><li>Timpul total de pauză afișat în statisticile utilizatorului.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag improved">Îmbunătățit</span></h3>
+            <ul><li>Footer-ul este poziționat la extremitatea de jos și nu mai apare ca un card în mijlocul paginii.</li><li>Butonul de donație este creat automat pe toate paginile care încarcă modulul global.</li><li>Starea pontajului indică activ, în pauză sau oprit.</li><li>Navigarea către pontaj este disponibilă direct din Dashboard.</li><li>Elementele de susținere nu mai blochează chatul asistentului.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag fixed">Rezolvat</span></h3>
+            <ul><li>Corectarea butonului Revolut care nu răspundea la apăsare.</li><li>Eliminarea instanțelor duplicate ale vechiului modul de donație.</li><li>Separarea instrucțiunilor tehnice de informațiile publice.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-2-7-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v2.7.0</span><time>28 iulie 2026</time></div>
+            <h2>Pontaj și pauze în timp real</h2>
+          </div>
+          <a class="anchor-link" href="#v-2-7-0" aria-label="Link către versiunea 2.7.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Înregistrarea turei în Supabase imediat după pornire.</li><li>Stări distincte pentru pontaj activ, pauză și tură finalizată.</li><li>Sincronizarea pauzei astfel încât managerii să o vadă fără reîncărcarea paginii.</li><li>Salvarea momentului intrării în pauză și a duratei totale a pauzelor.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag improved">Îmbunătățit</span></h3>
+            <ul><li>Finalizarea turei prin actualizarea aceleiași înregistrări.</li><li>Calculul duratei lucrate fără timpul petrecut în pauză.</li><li>Vizibilitatea pontajelor active în pagina de rapoarte.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag fixed">Rezolvat</span></h3>
+            <ul><li>Normalizarea valorilor vechi din câmpul status.</li><li>Corectarea restricției bazei de date pentru statusurile pontajului.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-2-6-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v2.6.0</span><time>28 iulie 2026</time></div>
+            <h2>Contracte cu număr unic</h2>
+          </div>
+          <a class="anchor-link" href="#v-2-6-0" aria-label="Link către versiunea 2.6.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Numărătoare zilnică a contractelor în Supabase.</li><li>Format unic de tip CN-AAAA-LL-ZZ-NNN.</li><li>Funcție SQL pentru rezervarea sigură a următorului număr.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag improved">Îmbunătățit</span></h3>
+            <ul><li>Contractul și mesajul Discord folosesc același număr.</li><li>Numărătoarea nu mai depinde de memoria browserului.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag fixed">Rezolvat</span></h3>
+            <ul><li>Eliminarea resetării numerelor după ștergerea cache-ului.</li><li>Eliminarea diferențelor dintre numărul afișat și cel trimis pe Discord.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-2-5-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v2.5.0</span><time>27 iulie 2026</time></div>
+            <h2>Permisiuni și navigare modulară</h2>
+          </div>
+          <a class="anchor-link" href="#v-2-5-0" aria-label="Link către versiunea 2.5.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Cinci niveluri de rol: Mecanic, Șef Mecanic, La Familia, Manager și Admin.</li><li>Permisiuni automate în funcție de pagina accesată.</li><li>Pagină 403 pentru acces neautorizat.</li><li>Meniu desktop și meniu mobil bazate pe rol.</li><li>Căutare globală în modulele disponibile utilizatorului.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag improved">Îmbunătățit</span></h3>
+            <ul><li>Structură comună pentru Dashboard, Pontaj, Cereri, Rapoarte, Contracte și Admin.</li><li>Acces controlat la Marketplace, Black Market, Craft Mecanic și locații.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-2-4-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v2.4.0</span><time>27 iulie 2026</time></div>
+            <h2>Dashboard personal</h2>
+          </div>
+          <a class="anchor-link" href="#v-2-4-0" aria-label="Link către versiunea 2.4.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Card pentru starea actuală a pontajului.</li><li>Card pentru următoarea învoire.</li><li>Total ture și total timp lucrat.</li><li>Statistici pentru săptămâna curentă.</li><li>Separarea turelor de zi de cele de noapte.</li><li>Media unei ture, cea mai lungă tură și ultimul pontaj.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag improved">Îmbunătățit</span></h3>
+            <ul><li>Interfață mai aerisită și adaptată pentru mobil.</li><li>Actualizarea automată a statisticilor utilizatorului.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-2-3-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v2.3.0</span><time>26 iulie 2026</time></div>
+            <h2>Pauze și controlul turei</h2>
+          </div>
+          <a class="anchor-link" href="#v-2-3-0" aria-label="Link către versiunea 2.3.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Buton pentru punerea turei în pauză.</li><li>Reluarea turei fără pierderea timpului acumulat.</li><li>Evidența pauzelor în rapoarte.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag fixed">Rezolvat</span></h3>
+            <ul><li>Timerul nu mai include pauza în durata lucrată.</li><li>Starea turei se păstrează după revenirea în pagina de pontaj.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-2-2-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v2.2.0</span><time>26 iulie 2026</time></div>
+            <h2>Pontaj de zi și de noapte</h2>
+          </div>
+          <a class="anchor-link" href="#v-2-2-0" aria-label="Link către versiunea 2.2.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Pontaj de noapte permis între 20:00 și 23:00.</li><li>Pontaj de zi permis între 23:01 și 19:59.</li><li>Mesaje explicative când este ales tipul greșit de pontaj.</li><li>Oprire automată la finalul intervalului permis.</li><li>Trimiterea finalului de tură către webhook-ul Discord.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag improved">Îmbunătățit</span></h3>
+            <ul><li>Separarea rapoartelor pentru ture de zi și ture de noapte.</li><li>Protecție împotriva pornirii simultane a mai multor ture.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-2-1-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v2.1.0</span><time>25 iulie 2026</time></div>
+            <h2>Rapoarte și clasamente</h2>
+          </div>
+          <a class="anchor-link" href="#v-2-1-0" aria-label="Link către versiunea 2.1.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Clasamente zilnice, săptămânale, lunare și totale.</li><li>Rapoarte de pontaj pentru manageri.</li><li>Export CSV și XLSX.</li><li>Rapoarte săptămânale pentru canalele Discord configurate.</li><li>Vizualizarea turelor active.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag improved">Îmbunătățit</span></h3>
+            <ul><li>Durata este păstrată și în milisecunde pentru calcule corecte.</li><li>Filtrarea rapoartelor după utilizator și perioadă.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-2-0-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v2.0.0</span><time>iulie 2026</time></div>
+            <h2>Migrare la Supabase și Discord OAuth</h2>
+          </div>
+          <a class="anchor-link" href="#v-2-0-0" aria-label="Link către versiunea 2.0.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Autentificare cu Discord.</li><li>Profil de utilizator sincronizat cu baza de date.</li><li>Rol implicit Mecanic pentru conturile noi.</li><li>Persistența pontajelor, utilizatorilor și cererilor în Supabase.</li><li>Interfață web unificată pentru principalele module.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag improved">Îmbunătățit</span></h3>
+            <ul><li>Înlocuirea stocării locale cu date centralizate.</li><li>Accesarea panelului de pe GitHub Pages.</li><li>Adaptarea autentificării pentru mediul public.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-1-9-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v1.9.0</span><time>iulie 2026</time></div>
+            <h2>Marketplace și instrumente interne</h2>
+          </div>
+          <a class="anchor-link" href="#v-1-9-0" aria-label="Link către versiunea 1.9.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Marketplace pentru produse și servicii.</li><li>Black Market disponibil numai rolurilor autorizate.</li><li>Calculator pentru activitățile interne.</li><li>Craft Mecanic cu materiale, piese și rețete.</li><li>Atlas cu locații importante din Los Santos și Cayo Perico.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag improved">Îmbunătățit</span></h3>
+            <ul><li>Căutare și filtrare în conținutul panelului.</li><li>Navigare rapidă între instrumente.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-1-8-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v1.8.0</span><time>iulie 2026</time></div>
+            <h2>Contracte și evidența personalului</h2>
+          </div>
+          <a class="anchor-link" href="#v-1-8-0" aria-label="Link către versiunea 1.8.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Generator de contracte în format HTML.</li><li>Număr automat pentru contract.</li><li>Completarea manuală a managerului.</li><li>Dată și oră generate automat.</li><li>Previzualizare, copiere și resetare.</li><li>Încărcarea imaginilor prin lipire și trimiterea lor către Discord.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag improved">Îmbunătățit</span></h3>
+            <ul><li>Funcții configurabile pentru Mecanic, Ajutor, Ucenic și Spălător auto.</li><li>Conținut contractual adaptat companiei Familia Es Todo.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-1-7-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v1.7.0</span><time>iulie 2026</time></div>
+            <h2>Cereri și învoiri</h2>
+          </div>
+          <a class="anchor-link" href="#v-1-7-0" aria-label="Link către versiunea 1.7.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Formular pentru învoiri și absențe.</li><li>Salvarea cererilor în baza de date.</li><li>Înregistrarea automată în canalul de loguri.</li><li>Posibilitatea anulării unei cereri.</li><li>Afișarea următoarei învoiri în Dashboard.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag improved">Îmbunătățit</span></h3>
+            <ul><li>Separarea cererilor utilizatorului de instrumentele managerilor.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-1-6-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v1.6.0</span><time>iulie 2026</time></div>
+            <h2>Administrare și roluri</h2>
+          </div>
+          <a class="anchor-link" href="#v-1-6-0" aria-label="Link către versiunea 1.6.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Panou de administrare a utilizatorilor.</li><li>Promovarea și retrogradarea rolurilor.</li><li>Modificarea sau oprirea forțată a pontajelor.</li><li>Ștergerea înregistrărilor greșite.</li><li>Configurarea webhook-urilor și a opțiunilor de pontaj.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag improved">Îmbunătățit</span></h3>
+            <ul><li>Separarea funcțiilor de utilizator, manager și administrator.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-1-5-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v1.5.0</span><time>iulie 2026</time></div>
+            <h2>Integrare Discord</h2>
+          </div>
+          <a class="anchor-link" href="#v-1-5-0" aria-label="Link către versiunea 1.5.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Webhook-uri pentru pornirea și oprirea pontajului.</li><li>Mesaje automate pentru finalul turei.</li><li>Canale separate pentru pontaj, învoiri, rapoarte și clasamente.</li><li>Notificări clare pentru acțiuni reușite sau blocate.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-1-4-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v1.4.0</span><time>iulie 2026</time></div>
+            <h2>Pontaj persistent</h2>
+          </div>
+          <a class="anchor-link" href="#v-1-4-0" aria-label="Link către versiunea 1.4.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Salvarea turelor în baza de date.</li><li>Restaurarea cronometrului după revenirea în pagină.</li><li>Durată calculată automat.</li><li>Istoric personal al pontajelor.</li></ul>
+          </section>
+          <section class="change-group">
+            <h3><span class="change-tag fixed">Rezolvat</span></h3>
+            <ul><li>Timerul nu se mai resetează la schimbarea paginii.</li><li>Reducerea riscului de pierdere a unei ture active.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-1-3-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v1.3.0</span><time>iulie 2026</time></div>
+            <h2>Interfață și navigare</h2>
+          </div>
+          <a class="anchor-link" href="#v-1-3-0" aria-label="Link către versiunea 1.3.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Temă închisă pentru întregul panel.</li><li>Meniu lateral pentru desktop.</li><li>Meniu adaptat dispozitivelor mobile.</li><li>Carduri și ferestre de notificare consistente.</li><li>Structură comună pentru paginile aplicației.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-1-2-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v1.2.0</span><time>iulie 2026</time></div>
+            <h2>Primul sistem de pontaj</h2>
+          </div>
+          <a class="anchor-link" href="#v-1-2-0" aria-label="Link către versiunea 1.2.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Pornirea și oprirea unei ture.</li><li>Cronometru vizibil în pagină.</li><li>Identificarea utilizatorului conectat.</li><li>Salvarea datei, orei de început și orei de final.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-1-1-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v1.1.0</span><time>iulie 2026</time></div>
+            <h2>Conturi și profil utilizator</h2>
+          </div>
+          <a class="anchor-link" href="#v-1-1-0" aria-label="Link către versiunea 1.1.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Ecran de autentificare.</li><li>Profil cu nume, avatar și rol.</li><li>Protejarea paginilor pentru utilizatorii neautentificați.</li><li>Buton de deconectare.</li></ul>
+          </section></div>
+      </article>
+      <article class="release-card" id="v-1-0-0">
+        <div class="release-head">
+          <div>
+            <div class="release-meta"><span class="version-badge">v1.0.0</span><time>iulie 2026</time></div>
+            <h2>Lansarea inițială</h2>
+          </div>
+          <a class="anchor-link" href="#v-1-0-0" aria-label="Link către versiunea 1.0.0">#</a>
+        </div>
+        <div class="release-groups">
+          <section class="change-group">
+            <h3><span class="change-tag new">Nou</span></h3>
+            <ul><li>Prima versiune funcțională a Panel by Little Mario.</li><li>Dashboard principal.</li><li>Structura de bază a meniului.</li><li>Design responsive în limba română.</li><li>Primele module pentru gestionarea activității personalului.</li></ul>
+          </section></div>
+      </article>
+    </section>
+  </main>
+  <script src="js/global-footer.js"></script>
+</body>
+</html>

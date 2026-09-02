@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "check:panel": "node scripts/panel-smoke-check.mjs"
+    "check:panel": "node scripts/panel-smoke-check.mjs",
+    "dev:supabase-proxy": "node scripts/dev-supabase-proxy.mjs"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",

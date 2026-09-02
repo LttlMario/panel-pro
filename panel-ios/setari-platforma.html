@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Setări platformă · Panel</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+  <script src="js/permissions.js?v=4.6.2"></script>
+  <script src="js/panel-layout.js?v=4.28.9"></script>
+  <link rel="stylesheet" href="css/global-footer.css">
+  <style>
+    .setting-card{border:1px solid #26364d;border-radius:18px;background:#0b1424;padding:18px}.setting-card h2{font-weight:900;color:#f8fafc}.setting-card p{color:#94a3b8;font-size:12px;line-height:1.5}.setting-input{width:100%;border:1px solid #334155;border-radius:12px;background:#020617;color:#e2e8f0;padding:11px 12px;font-size:12px;outline:none}.setting-input:focus{border-color:#38bdf8}.setting-button{border-radius:11px;padding:10px 13px;font-size:12px;font-weight:900;transition:background .2s}.setting-button.primary{background:#0369a1;color:#e0f2fe}.setting-button.primary:hover{background:#0284c7}.setting-button.secondary{background:#1e293b;color:#cbd5e1;border:1px solid #334155}.setting-button.secondary:hover{background:#334155}.setting-button:disabled{opacity:.5;cursor:wait}
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex text-sm">
+  <main class="max-w-6xl mx-auto w-full p-5 sm:p-8">
+    <section class="rounded-2xl border border-sky-400/25 bg-gradient-to-br from-sky-500/10 via-slate-900 to-slate-900 p-6 shadow-lg"><p class="text-[10px] font-black uppercase tracking-[.18em] text-sky-300">Administrator global</p><h1 class="mt-2 text-2xl font-black">Setări platformă</h1><p class="mt-2 max-w-3xl text-sm leading-6 text-slate-400">Aici modifici adresele publice și identificatorii publici ai platformei. Aceste valori sunt separate de secretele Vault și sunt folosite pentru mutarea între domeniul propriu și GitHub Pages.</p><div class="mt-4 flex flex-wrap items-center gap-3"><button id="refresh-settings" type="button" class="setting-button secondary">Reîmprospătează</button><a href="secrete-platforma.html" class="setting-button secondary">Mergi la Secrete</a><span id="settings-status-message" class="text-xs text-slate-400" role="status"></span></div></section>
+    <section class="mt-6 rounded-2xl border border-amber-400/20 bg-amber-950/10 p-5 text-xs leading-6 text-amber-100/80"><strong class="text-amber-200">Important:</strong> după schimbarea domeniului, actualizează și redirect-ul OAuth în Discord, URL-ul site-ului în Supabase și sursa GitHub Pages. Pagina păstrează valorile într-un singur loc și nu expune secretele serverului.</section>
+    <div id="settings-list" class="mt-6 grid gap-4 lg:grid-cols-2"><div class="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-slate-400">Se încarcă setările…</div></div>
+  </main>
+  <script src="js/platform-settings.js?v=20260901-platform-settings"></script><script src="js/global-footer.js"></script>
+</body>
+</html>

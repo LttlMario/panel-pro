@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cereri / Absențe - Panel</title>
+    <!-- Tailwind CSS CDN -->
+    <link rel="stylesheet" href="css/tailwind.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+    <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+    <script src="js/permissions.js?v=4.6.0"></script>
+    <script src="js/panel-layout.js?v=4.23.0"></script>
+    <link rel="stylesheet" href="css/global-footer.css">
+    <script src="js/project-version.js?v=3.11.2"></script>
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex text-sm">
+
+            <!-- Conținut Principal -->
+            <main class="flex-1 flex flex-col min-w-0">
+
+            <div class="p-8 space-y-6 max-w-5xl mx-auto w-full">
+
+                <!-- Formular Creare Înștiințare -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg">
+                    <h3 class="text-base font-bold text-slate-100 mb-1">Trimite o Înștiințare Nouă</h3>
+                    <p class="text-xs text-slate-400 mb-6">Înregistrează o înștiințare pentru Sediu. Aceasta este informativă și nu necesită aprobare.</p>
+
+                    <form id="absence-form" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Tip înștiințare</label>
+                                <select id="notice-type" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                                    <option value="" disabled selected>Alege tipul...</option>
+                                    <option value="Învoire">Învoire</option>
+                                    <option value="Concediu">Concediu</option>
+                                    <option value="Absență medicală">Absență medicală</option>
+                                    <option value="Schimb de tură">Schimb de tură</option>
+                                    <option value="Indisponibilitate">Indisponibilitate</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Data începerii</label>
+                                <input type="date" id="notice-start-at" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Data sfârșitului</label>
+                                <input type="date" id="notice-end-at" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Dovadă / document (opțional)</label>
+                                <input type="url" id="notice-proof-url" placeholder="https://..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Motiv / mențiuni</label>
+                            <textarea id="absence-reason" required rows="3" placeholder="Explică pe scurt situația..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"></textarea>
+                        </div>
+
+                        <div class="pt-2 flex justify-end">
+                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-6 py-2.5 rounded-xl transition shadow-md cursor-pointer flex items-center space-x-2">
+                                <span>📤</span>
+                                <span>Trimite Înștiințarea</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Lista Înștiințarilor Existente -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg">
+                    <h3 class="text-base font-bold text-slate-100 mb-1">Istoricul meu de înștiințări</h3>
+                    <p class="text-xs text-slate-400 mb-4">Vezi și gestionezi doar înștiințările tale trimise.</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px]">
+                                <tr>
+                                    <th class="p-3 rounded-l-xl">Membru Sediu</th>
+                                    <th class="p-3">Tip</th>
+                                    <th class="p-3">Interval</th>
+                                    <th class="p-3">Motiv</th>
+                                    <th class="p-3">Dovadă</th>
+                                    <th class="p-3">Trimisă la</th>
+                                    <th class="p-3 rounded-r-xl text-right">Acțiuni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="absences-table-body" class="divide-y divide-slate-800/50">
+                                <tr>
+                                    <td colspan="7" class="p-4 text-center text-slate-500">Se încarcă înștiințările...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+    <!-- Modal pentru Editare Înștiințare -->
+    <div id="edit-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-2xl max-w-lg w-full">
+            <h3 class="text-base font-bold text-slate-100 mb-1">Modifică Înștiințarea</h3>
+            <p class="text-xs text-slate-400 mb-4">Modifică detaliile înștiințării alese.</p>
+
+            <form id="edit-absence-form" class="space-y-4">
+                <input type="hidden" id="edit-id">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Tip înștiințare</label>
+                    <select id="edit-notice-type" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                        <option value="Învoire">Învoire</option>
+                        <option value="Concediu">Concediu</option>
+                        <option value="Absență medicală">Absență medicală</option>
+                        <option value="Schimb de tură">Schimb de tură</option>
+                        <option value="Indisponibilitate">Indisponibilitate</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Data începerii</label>
+                        <input type="date" id="edit-notice-start-at" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Data sfârșitului</label>
+                        <input type="date" id="edit-notice-end-at" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Motiv / mențiuni</label>
+                    <textarea id="edit-absence-reason" required rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Dovadă / document (opțional)</label>
+                    <input type="url" id="edit-notice-proof-url" placeholder="https://..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeEditModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-4 py-2 rounded-xl transition cursor-pointer">Anulează</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-5 py-2 rounded-xl transition cursor-pointer">Salvează Modificările</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script Sincronizat cu Structura DB și Navigare -->
+    <script>
+        const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
+        const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
+        const supabaseClient = window.createPanelSupabaseClient();
+
+        let currentUser = {
+            discord_id: '',
+            username: '',
+            display_name: '',
+            email: '',
+            avatar: '',
+            role: '',
+            allowed_pages: [],
+            discord_role_ids: [],
+            organization_id: ''
+        };
+
+        let activeOrganization = null;
+        let organizationActionPermissions = {};
+        let requestRoute = null;
+
+        function loadActiveOrganizationContext() {
+            try {
+                const storedOrganization =
+                    localStorage.getItem('panel_active_organization');
+
+                if (!storedOrganization) {
+                    throw new Error(
+                        'Nu există o organizație activă în sesiune.'
+                    );
+                }
+
+                activeOrganization =
+                    JSON.parse(storedOrganization);
+                const activeId = window.getActiveOrganizationId?.();
+                if (!activeId || activeId !== String(activeOrganization?.id || activeOrganization?.organization_id || '').trim()) {
+                    throw new Error('Organizația activă nu are un UUID valid.');
+                }
+                activeOrganization = { ...activeOrganization, id: activeId };
+                    console.log(
+                    'ACTIVE ORGANIZATION FULL:',
+                    activeOrganization
+                );
+
+                if (!activeOrganization?.id) {
+                    throw new Error(
+                        'Organizația activă nu are un ID valid.'
+                    );
+                }
+
+                /*
+                * Permisiunile pentru acțiuni sunt calculate
+                * server-side la autentificare/sincronizare și
+                * aparțin organizației active.
+                */
+                const cachedUser =
+                    JSON.parse(
+                        localStorage.getItem('discord_user') || '{}'
+                    );
+
+                // Configurația organizației active este sursa de adevăr.
+                // Nu folosim o copie veche rămasă în localStorage pentru rutare.
+                organizationActionPermissions =
+                    activeOrganization.platform_settings?.action_permissions ||
+                    activeOrganization.action_permissions ||
+                    (window.isPanelOrganizationId?.(cachedUser.organization_id) && cachedUser.organization_id === activeOrganization.id
+                        ? cachedUser.action_permissions
+                        : null) ||
+                    {};
+                    console.log(
+                        'ORG PLATFORM SETTINGS:',
+                        activeOrganization.platform_settings
+                    );
+
+                    console.log(
+                        'ACTION PERMISSIONS FINAL:',
+                        organizationActionPermissions
+                    );
+                    console.log(
+                        'ACTION PERMISSIONS JSON:',
+                        JSON.stringify(
+                            organizationActionPermissions,
+                            null,
+                            2
+                        )
+                    );
+                    console.log(
+                        'CACHED USER ORGANIZATION:',
+                        cachedUser.organization
+                    );
+
+                    console.log(
+                        'ACTION PERMISSIONS SOURCE:',
+                        organizationActionPermissions
+                    );
+
+                currentUser.organization_id =
+                    activeOrganization.id;
+
+                /*
+                * Ruta Discord folosită de pagina Cereri / Absențe.
+                * Nu conține webhook-ul propriu-zis.
+                * Webhook-ul este rezolvat server-side pentru organizația activă.
+                */
+let requestChannel = null;
+
+const cachedUserRoles =
+    (cachedUser.discord_role_ids || []).map(String);
+console.log(
+    'ROLURI DISCORD UTILIZATOR:',
+    cachedUser.discord_role_ids
+);
+
+const permissions =
+    organizationActionPermissions || {};
+
+const organizationRoles =
+    (permissions['cereri.organization'] || [])
+        .map(String);
+
+const departmentRoles =
+    (permissions['cereri.departments'] || [])
+        .map(String);
+
+
+const hasOrganizationRole =
+    cachedUserRoles.some(role =>
+        organizationRoles.includes(role)
+    );
+
+
+const hasDepartmentRole =
+    cachedUserRoles.some(role =>
+        departmentRoles.includes(role)
+    );
+
+
+console.log(
+    'HAS ORGANIZATION ROLE:',
+    hasOrganizationRole
+);
+console.log(
+    'ORG PLATFORM SETTINGS JSON:',
+    JSON.stringify(
+        activeOrganization.platform_settings,
+        null,
+        2
+    )
+);
+
+console.log(
+    'HAS DEPARTMENT ROLE:',
+    hasDepartmentRole
+);
+
+
+if (hasDepartmentRole) {
+
+    requestChannel = 'requests_departments';
+
+}
+else if (hasOrganizationRole) {
+
+    requestChannel = 'requests_organization';
+
+}
+else {
+
+    console.warn(
+        'Nu s-a găsit rol cereri. Folosesc requests compatibil.'
+    );
+
+    requestChannel = 'requests';
+
+}
+
+
+requestRoute = {
+    channel: requestChannel,
+    organization_id: activeOrganization.id
+};
+
+
+console.log(
+    'REQUEST ROUTE FINAL:',
+    requestRoute
+);
+
+console.log(
+    'ACTION PERMISSIONS:',
+    permissions
+);
+
+console.log(
+    'USER ROLES:',
+    cachedUserRoles
+);
+console.log(
+    'USER ROLES JSON:',
+    JSON.stringify(
+        cachedUserRoles,
+        null,
+        2
+    )
+);
+            return true;
+
+            } catch (err) {
+                console.error(
+                    'Eroare la încărcarea contextului organizației active:',
+                    err
+                );
+                return false;
+            }
+        }
+
+        function getCurrentLocalDate() {
+            const now = new Date();
+            return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        }
+
+        function toDateInput(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        }
+
+        function getNoticeDateTime(value, endOfDay = false) {
+            return new Date(`${value}T${endOfDay ? '23:59:59' : '00:00:00'}`);
+        }
+
+        function formatNoticeDate(value) {
+            if (!value) return '—';
+            return new Date(value).toLocaleDateString('ro-RO');
+        }
+
+        function getAbsenceEndAt(item) {
+            if (item?.end_at) return item.end_at;
+            const start = item?.start_at || item?.start_date;
+            const days = Math.max(1, Number(item?.days) || 1);
+            if (!start) return null;
+            const end = new Date(start);
+            end.setDate(end.getDate() + days - 1);
+            return end.toISOString();
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+
+
+            // 2. Verificare sesiune locală robustă
+            const cachedUser = localStorage.getItem('discord_user');
+            if (!cachedUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+            // 3. Reîmprospătăm sesiunea, ca să preluăm selecția actuală
+            // din organizații.html înainte de a calcula ruta cererii.
+            try {
+                await ensurePanelSession();
+            } catch (error) {
+                console.warn('Sesiunea nu a putut fi reîmprospătată:', error);
+            }
+
+            // 4. Încărcare context organizație activă
+            if (!loadActiveOrganizationContext()) {
+                console.error('Nu s-a putut determina organizația activă.');
+
+                window.location.href = 'guest.html';
+                return;
+            }
+
+            try {
+                const localData = JSON.parse(cachedUser);
+                if (!localData || !localData.discord_id) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // 3. Citire live din tabelul `users` din Supabase
+                let { data: dbUser, error } = await supabaseClient
+                    .from('users')
+                    .select('discord_id,username,display_name,avatar,role,default_role')
+                    .eq('discord_id', localData.discord_id)
+                    .maybeSingle();
+
+                let activeUser = dbUser ? { ...localData, ...dbUser } : localData;
+
+                currentUser = {
+                    ...currentUser,
+                    ...activeUser,
+
+                    discord_role_ids:
+                        activeUser.discord_role_ids ||
+                        JSON.parse(localStorage.getItem('discord_user') || '{}').discord_role_ids ||
+                        [],
+
+                    organization_id: activeOrganization.id
+                };
+// Recalculăm ruta Discord după userul real din Supabase
+const freshRoles =
+    (currentUser.discord_role_ids || []).map(String);
+
+const permissions =
+    organizationActionPermissions || {};
+
+const hasOrgRole =
+    (permissions['cereri.organization'] || [])
+        .map(String)
+        .some(role => freshRoles.includes(role));
+
+const hasDeptRole =
+    (permissions['cereri.departments'] || [])
+        .map(String)
+        .some(role => freshRoles.includes(role));
+
+
+requestRoute = {
+    channel: hasDeptRole
+        ? 'requests_departments'
+        : hasOrgRole
+            ? 'requests_organization'
+            : 'requests',
+
+    organization_id: activeOrganization.id
+};
+
+
+console.log(
+    'FINAL REQUEST ROUTE AFTER DB USER:',
+    requestRoute
+);
+
+                localStorage.setItem(
+                    'discord_user',
+                    JSON.stringify(currentUser)
+                );
+
+            } catch(e) {
+                console.error('Erore citire cache/bază user:', e);
+                window.location.href = 'login.html';
+                return;
+            }
+
+
+            const localDate = getCurrentLocalDate();
+            document.getElementById('notice-start-at').value = localDate;
+            document.getElementById('notice-end-at').value = localDate;
+
+            fetchAbsences();
+        });
+
+        document.getElementById('absence-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const permissions =
+                organizationActionPermissions || {};
+
+            const cachedDiscordUser =
+                JSON.parse(
+                    localStorage.getItem('discord_user') || '{}'
+                );
+
+            const roles = [
+                ...(cachedDiscordUser.discord_role_ids || []),
+                ...(currentUser.discord_role_ids || [])
+            ].map(String);
+
+            console.log(
+                'SUBMIT USER ROLES:',
+                roles
+            );
+
+            const canOrganization =
+                (permissions['cereri.organization'] || [])
+                    .map(String)
+                    .some(role => roles.includes(role));
+
+            const canDepartments =
+                (permissions['cereri.departments'] || [])
+                    .map(String)
+                    .some(role => roles.includes(role));
+
+
+            if (!canOrganization && !canDepartments) {
+                alert(
+                    'Nu ai permisiunea de a trimite înștiințări.'
+                );
+                return;
+            }
+
+            const noticeType = document.getElementById('notice-type').value;
+            const reason = document.getElementById('absence-reason').value;
+            const startAt = document.getElementById('notice-start-at').value;
+            const endAt = document.getElementById('notice-end-at').value;
+            const proofUrl = document.getElementById('notice-proof-url').value.trim() || null;
+
+            if (!startAt || !endAt || endAt < startAt) {
+                alert('Data sfârșitului trebuie să fie în aceeași zi sau după data începerii.');
+                return;
+            }
+
+            const startDate = startAt;
+            const days = Math.max(1, Math.floor((getNoticeDateTime(endAt) - getNoticeDateTime(startAt)) / 86400000) + 1);
+
+            const activeName = currentUser.display_name || currentUser.username || 'Utilizator Discord';
+            const activeRole = currentUser.role || currentUser.default_role || 'Rol Discord';
+
+            if (!activeOrganization?.id) {
+                alert('Nu există o organizație activă.');
+                return;
+            }
+
+            if (!currentUser.discord_id) {
+                alert('Nu s-a putut identifica utilizatorul autentificat.');
+                return;
+            }
+            const newAbsence = {
+                organization_id: activeOrganization.id,
+                discord_id: currentUser.discord_id,
+                colleague_name: `${activeName} [${activeRole}]`,
+                notice_type: noticeType,
+                reason: reason,
+                start_date: startDate,
+                days: days,
+                notes: reason,
+                start_at: getNoticeDateTime(startAt).toISOString(),
+                end_at: getNoticeDateTime(endAt, true).toISOString(),
+                proof_url: proofUrl,
+                created_at: new Date().toISOString()
+            };
+
+try {
+    const { error } = await supabaseClient
+        .from('absences')
+        .insert([newAbsence]);
+
+    if (error) throw error;
+
+} catch (err) {
+    console.error(
+        'Eroare la salvarea înștiințării în Supabase:',
+        err
+    );
+
+    alert(
+        'A apărut o eroare la salvarea înștiințării.'
+    );
+
+    return;
+}
+
+let discordSent = false;
+
+try {
+    await sendDiscordWebhook(
+        newAbsence,
+        activeRole,
+        'Înștiințare Nouă'
+    );
+
+    discordSent = true;
+
+} catch (err) {
+    console.error(
+        'Înștiințarea a fost salvată, dar notificarea Discord a eșuat:',
+        err
+    );
+}
+
+if (discordSent) {
+    alert(
+        'Înștiințarea a fost înregistrată și trimisă pe Discord cu succes!'
+    );
+} else {
+    alert(
+        'Înștiințarea a fost înregistrată, dar notificarea Discord nu a putut fi trimisă.'
+    );
+}
+
+document.getElementById('absence-form').reset();
+
+const currentLocalDate =
+    getCurrentLocalDate();
+
+document.getElementById('notice-start-at').value =
+    currentLocalDate;
+
+document.getElementById('notice-end-at').value =
+    currentLocalDate;
+
+fetchAbsences();
+        });
+
+        async function fetchAbsences() {
+            const tbody = document.getElementById('absences-table-body');
+                        if (!activeOrganization?.id || !currentUser.discord_id) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-4 text-center text-rose-400">
+                            Nu s-a putut determina organizația sau utilizatorul activ.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            try {
+            let { data: absences, error } = await supabaseClient
+                .from('absences')
+                .select('*')
+                .eq('organization_id', activeOrganization.id)
+                .eq('discord_id', currentUser.discord_id)
+                .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!absences || absences.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">Nicio înștiințare înregistrată.</td></tr>`;
+                    return;
+                }
+
+                let html = '';
+
+                absences.forEach(item => {
+                    const createdAtFormatted = new Date(item.created_at).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' });
+                    const startFormatted = formatNoticeDate(item.start_at || item.start_date);
+                    const endFormatted = formatNoticeDate(getAbsenceEndAt(item));
+                    const noticeType = item.notice_type || 'Înștiințare';
+                    const proofHtml = item.proof_url
+                        ? `<a href="${item.proof_url}" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 underline">Deschide</a>`
+                        : '<span class="text-slate-600">—</span>';
+                    const actionsHtml = `
+                        <div class="flex items-center justify-end space-x-2">
+                            <button onclick='openEditModal(${JSON.stringify(item)})' class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg transition text-[11px] font-medium cursor-pointer">Editează</button>
+                            <button onclick="deleteAbsence('${item.id}')" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg transition text-[11px] font-medium cursor-pointer">Șterge</button>
+                        </div>`;
+
+                    html += `
+                        <tr class="hover:bg-slate-900/50 transition">
+                            <td class="p-3 font-medium text-slate-200">${item.colleague_name}</td>
+                            <td class="p-3"><span class="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 font-semibold">${noticeType}</span></td>
+                            <td class="p-3 text-slate-300">${startFormatted}<br><span class="text-slate-500">până la ${endFormatted}</span></td>
+                            <td class="p-3 text-slate-400 max-w-xs">${item.reason}</td>
+                            <td class="p-3">${proofHtml}</td>
+                            <td class="p-3 text-slate-500">${createdAtFormatted}</td>
+                            <td class="p-3 text-right">${actionsHtml}</td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            } catch (err) {
+                console.error('Erore preluare absențe:', err);
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-rose-400">Erore la încărcarea datelor din tabelul absences.</td></tr>`;
+            }
+        }
+
+        async function deleteAbsence(id) {
+            if (!confirm('Ești sigur că vrei să ștergi această înștiințare?')) {
+                return;
+            }
+
+            if (!activeOrganization?.id || !currentUser.discord_id) {
+                alert('Nu s-a putut determina organizația sau utilizatorul activ.');
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('absences')
+                    .delete()
+                    .eq('id', id)
+                    .eq('organization_id', activeOrganization.id)
+                    .eq('discord_id', currentUser.discord_id);
+
+                if (error) throw error;
+
+                alert('Înștiințarea a fost ștearsă cu succes!');
+                fetchAbsences();
+
+            } catch (err) {
+                console.error('Eroare la ștergerea înștiințării:', err);
+                alert('A apărut o eroare la ștergerea înregistrării.');
+            }
+        }
+
+        function openEditModal(item) {
+            document.getElementById('edit-id').value = item.id;
+            document.getElementById('edit-notice-type').value = item.notice_type || 'Învoire';
+            document.getElementById('edit-absence-reason').value = item.reason || item.notes || '';
+            document.getElementById('edit-notice-start-at').value = toDateInput(item.start_at || `${item.start_date}T00:00:00`);
+            document.getElementById('edit-notice-end-at').value = toDateInput(item.end_at || `${item.start_date}T23:59:00`);
+            document.getElementById('edit-notice-proof-url').value = item.proof_url || '';
+
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        document.getElementById('edit-absence-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('edit-id').value;
+            const noticeType = document.getElementById('edit-notice-type').value;
+            const reason = document.getElementById('edit-absence-reason').value;
+            const startAt = document.getElementById('edit-notice-start-at').value;
+            const endAt = document.getElementById('edit-notice-end-at').value;
+            const proofUrl = document.getElementById('edit-notice-proof-url').value.trim() || null;
+
+            if (!startAt || !endAt || endAt < startAt) {
+                alert('Data sfârșitului trebuie să fie în aceeași zi sau după data începerii.');
+                return;
+            }
+
+            const startDate = startAt;
+            const days = Math.max(1, Math.floor((getNoticeDateTime(endAt) - getNoticeDateTime(startAt)) / 86400000) + 1);
+
+            const updatedData = {
+                notice_type: noticeType,
+                reason: reason,
+                start_date: startDate,
+                days: days,
+                notes: reason,
+                start_at: getNoticeDateTime(startAt).toISOString(),
+                end_at: getNoticeDateTime(endAt, true).toISOString(),
+                proof_url: proofUrl
+            };
+
+            if (!activeOrganization?.id || !currentUser.discord_id) {
+                alert('Nu s-a putut determina organizația sau utilizatorul activ.');
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('absences')
+                    .update(updatedData)
+                    .eq('id', id)
+                    .eq('organization_id', activeOrganization.id)
+                    .eq('discord_id', currentUser.discord_id);
+
+                if (error) throw error;
+
+                alert('Înștiințarea a fost actualizată cu succes!');
+
+                closeEditModal();
+                fetchAbsences();
+
+            } catch (err) {
+                console.error(
+                    'Eroare la actualizarea înștiințării:',
+                    err
+                );
+
+                alert(
+                    'A apărut o eroare la actualizarea înregistrării.'
+                );
+            }
+        });
+
+        async function sendDiscordWebhook(data, role, actionTitle = 'Înștiințare Nouă') {
+            const payload = {
+                request_type: requestRoute?.channel === 'requests_departments'
+                    ? 'department'
+                    : 'organization',
+
+                embeds: [{
+                    title: `📋 ${actionTitle} (Sediu)`,
+                    color: 16753920,
+                    fields: [
+                        { name: 'Începe', value: formatNoticeDate(data.start_at || data.start_date), inline: true },
+                        { name: 'Se termină', value: formatNoticeDate(getAbsenceEndAt(data)), inline: true },
+                        { name: "👤 Membru / Funcție", value: data.colleague_name, inline: true },
+                        { name: "🛠️ Rol în Bază", value: role, inline: true },
+                        { name: "📌 Tip", value: data.notice_type || 'Înștiințare', inline: true },
+                        { name: "🗓️ Interval", value: `${formatNoticeDate(data.start_at)} → ${formatNoticeDate(data.end_at)}`, inline: false },
+                        { name: "💬 Motiv", value: data.reason, inline: false },
+                        { name: "📎 Dovadă", value: data.proof_url || 'Nu a fost atașat un link.', inline: false }
+                    ],
+                    timestamp: new Date().toISOString()
+                }]
+            };
+
+            try {
+                if (!requestRoute?.organization_id) {
+                    throw new Error(
+                        'Nu există o organizație activă pentru trimiterea notificării Discord.'
+                    );
+                }
+
+                await sendPanelDiscord(
+                    requestRoute?.channel || 'requests',
+                    payload
+                );
+
+            } catch (err) {
+                console.error(
+                    'Eroare trimitere notificare Discord pentru organizația activă:',
+                    err
+                );
+
+                throw err;
+            }
+        }
+    </script>
+    <script src="js/discord-notifications.js"></script>
+    <script src="js/global-footer.js"></script>
+</body>
+</html>

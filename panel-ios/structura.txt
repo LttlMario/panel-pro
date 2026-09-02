@@ -1,0 +1,12 @@
+workforce-panel/
+├── index.html       # Pagina principală de Dashboard
+├── pontaj.html      # Pagina pentru pontaj (opțional o putem adăuga imediat)
+├── cereri.html      # Pagina pentru înștiințări / absențe
+├── rapoarte.html    # Pagina de rapoarte (pentru admin/manager)
+├── contracte.html   # Pagina de contracte
+├── admin.html       # Panoul de administrare
+└── assets/
+    ├── css/
+    │   └── style.css # Stilurile comune (Tailwind sau CSS personalizat)
+    └── js/
+        └── app.js    # Logica de conectare Supabase, Discord și autentificare

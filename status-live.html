@@ -24,24 +24,6 @@
         <!-- Conținut Principal -->
         <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
 
-            <div class="mt-3 flex items-center gap-3">
-
-                <input
-                    id="live-status-webhook"
-                    type="password"
-                    placeholder="Webhook Discord Status Live"
-                    class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs">
-
-                <button
-                    onclick="saveLiveWebhook()"
-                    class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-semibold">
-
-                    Salvează Webhook
-
-                </button>
-
-            </div>
-
             <div class="p-8 space-y-6 max-w-5xl mx-auto w-full">
                 <!-- Panou Vizualizare Live în Interfața Web -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg space-y-6">
@@ -101,7 +83,6 @@
         let activeShiftsData = [];
         let activeOrganization = null;
         let activeOrganizationId = null;
-        const statusLiveWebhookKey = () => `status_live_webhook:${activeOrganizationId || 'default'}`;
 
         document.addEventListener('DOMContentLoaded', async () => {
             // Autentificare reutilizată din rapoarte.html
@@ -180,17 +161,6 @@
                 }
 
 
-
-                const savedWebhook =
-                    localStorage.getItem(statusLiveWebhookKey());
-
-                if (savedWebhook) {
-
-                    document.getElementById(
-                        'live-status-webhook'
-                    ).value = savedWebhook;
-
-                }
 
                 await fetchUsersData();
                 await fetchAndRenderActiveShifts();
@@ -319,6 +289,8 @@
         function escapeHtml(str) {
             return String(str || '').replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
+        /* Configurarea și trimiterea directă prin webhook a fost eliminată.
+           Status Live este sincronizat exclusiv de js/status-live.js prin bot.
         function saveLiveWebhook() {
 
             const webhook =
@@ -439,6 +411,7 @@
         }
 
     }
+        */
     </script>
     <script src="js/discord-notifications.js"></script>
     <script src="js/status-live.js"></script>

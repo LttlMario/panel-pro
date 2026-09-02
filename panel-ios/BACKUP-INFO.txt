@@ -1,0 +1,8 @@
+Backup pre-upgrade Panel Pro
+Creat: 
+2026-08-29 20:48:51 +03:00
+Sursă: 
+C:\Users\1nebu\Desktop\panel-pro-console-cleanup
+Conținut: cod, Edge Functions, migrații și SQL, configurații locale, proiectele web/iOS/Android.
+Secretele reale din Supabase Vault nu sunt stocate local și nu au fost exportate într-un folder necriptat. Au fost copiate doar fișierele locale de configurare și exemplele de secrete.
+Au fost excluse doar cache-urile/build-urile și artefactele APK/AAB generate.

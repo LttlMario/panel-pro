@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Verificare sistem - Panel</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+    <script src="js/permissions.js?v=4.6.0"></script>
+    <script src="js/panel-layout.js?v=4.23.0"></script>
+  <script src="js/project-version.js?v=3.11.5"></script>
+  <link rel="stylesheet" href="css/global-footer.css">
+  <style>
+    *{box-sizing:border-box}.diagnostic-shell{width:100%;max-width:1280px;margin:0 auto;padding:32px}.diagnostic-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:22px;border:1px solid #26364d;border-radius:20px;background:linear-gradient(145deg,#111d30,#0b1424);box-shadow:0 16px 38px #02061755}.diagnostic-hero h1{font-size:22px;font-weight:900}.diagnostic-hero p{margin-top:5px;color:#94a3b8}.run-button{min-width:190px;border:1px solid #10b981;border-radius:12px;background:#047857;color:#ecfdf5;padding:12px 18px;font-weight:900;cursor:pointer}.run-button:disabled{opacity:.55;cursor:wait}.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:18px 0}.summary-card{padding:17px;border:1px solid #26364d;border-radius:16px;background:#0f192a}.summary-card span{display:block;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.08em}.summary-card strong{display:block;margin-top:7px;font-size:24px}.summary-card.ok strong{color:#34d399}.summary-card.warning strong{color:#fbbf24}.summary-card.error strong{color:#fb7185}.diagnostic-status{margin:16px 0;color:#94a3b8;font-size:12px}.diagnostic-groups{display:grid;gap:18px}.diagnostic-group{border:1px solid #26364d;border-radius:18px;background:#0b1424;overflow:hidden}.diagnostic-group h2{padding:15px 18px;border-bottom:1px solid #26364d;background:#111d30;font-size:15px;font-weight:900}.check-row{display:grid;grid-template-columns:34px minmax(180px,.8fr) minmax(260px,2fr) auto;gap:12px;align-items:center;padding:14px 18px;border-bottom:1px solid #1d2b40}.check-row:last-child{border-bottom:0}.check-icon{width:28px;height:28px;display:grid;place-items:center;border-radius:999px;font-weight:900}.check-icon.ok{background:#064e3b;color:#6ee7b7}.check-icon.warning{background:#713f12;color:#fde68a}.check-icon.error{background:#4c0519;color:#fda4af}.check-label{font-weight:800}.check-message{color:#aab8ca;font-size:12px;line-height:1.5}.check-duration{color:#64748b;font-size:10px}.empty-state{padding:42px 20px;text-align:center;border:1px dashed #334155;border-radius:18px;color:#94a3b8;background:#08101f}@media(max-width:760px){.diagnostic-shell{padding:14px}.diagnostic-hero{align-items:stretch;flex-direction:column}.run-button{width:100%}.summary{grid-template-columns:repeat(2,1fr)}.check-row{grid-template-columns:30px 1fr}.check-message,.check-duration{grid-column:2}.diagnostic-hero h1{font-size:19px}}
+  </style>
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="apple-touch-icon" href="img/logo-180.png">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen text-sm">
+    <main class="flex-1 flex flex-col min-w-0 overflow-visible">
+      <div class="diagnostic-shell">
+      <section class="diagnostic-hero"><div><h1>Starea panelului</h1><p>Verifică Supabase, Discord, webhook-urile, funcțiile Edge și fișierele publicate.</p></div><button id="run-diagnostics" class="run-button" type="button">Rulează verificarea</button></section>
+  
+      <section class="summary" aria-label="Rezumat"><div class="summary-card"><span>Total verificări</span><strong id="summary-total">—</strong></div><div class="summary-card ok"><span>Corecte</span><strong id="summary-ok">—</strong></div><div class="summary-card warning"><span>Avertismente</span><strong id="summary-warning">—</strong></div><div class="summary-card error"><span>Erori</span><strong id="summary-error">—</strong></div></section>
+      <p id="diagnostic-status" class="diagnostic-status">Apasă „Rulează verificarea” pentru a începe.</p>
+      <div id="diagnostic-results" class="diagnostic-groups"><div class="empty-state">Nicio verificare rulată în această sesiune.</div></div>
+      </div>
+  </main>
+  <script src="js/diagnostic.js?v=20260820-session-date-fix"></script>
+  <script src="js/global-footer.js"></script>
+</body>
+</html>
