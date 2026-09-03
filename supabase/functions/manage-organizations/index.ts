@@ -1072,7 +1072,7 @@ if (Array.isArray(body.roles)) {
       const {count,error:countError}=await db.from('organizations').select('id',{count:'exact',head:true});if(countError)throw countError;
       if((count||0)<=1)return reply({error:'Ultima organizație nu poate fi ștearsă. Creează întâi alta.'},409);
       await audit(db,session,'organization_deleted',organizationId,{name:organization.name});
-      const tenantTables=['panel_notification_reads','community_poll_votes','community_reactions','community_poll_options','community_posts','disciplinary_warnings','disciplinary_sanctions','panel_notifications','profiles','marketplace_ilegal','marketplace','app_settings','absences','shifts','panel_sessions','organization_members','organization_role_mappings','organization_guilds','organization_settings','admin_audit_log'];
+      const tenantTables=['panel_notification_reads','community_poll_votes','community_reactions','community_poll_options','community_posts','disciplinary_warnings','disciplinary_sanctions','panel_notifications','profiles','marketplace_ilegal','marketplace','app_settings','absences','shifts','panel_sessions','organization_members','organization_role_mappings','organization_guilds','organization_settings','discord_bot_installations','admin_audit_log'];
       for(const table of tenantTables){const {error}=await db.from(table).delete().eq('organization_id',organizationId);if(error)throw new Error(`Ștergerea datelor din ${table} a eșuat: ${error.message}`);}
       const {error:deleteError}=await db.from('organizations').delete().eq('id',organizationId);if(deleteError)throw deleteError;
       return reply({ok:true,deleted_organization_id:organizationId});
