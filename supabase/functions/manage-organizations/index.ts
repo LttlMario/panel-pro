@@ -37,6 +37,14 @@ const updateOrganizationAccess=async(db:any,session:any,organizationId:string,ex
   return {active:effectiveActive,expires_at:expiresAt};
 };
 const slugify=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60);
+const discordGuildName=async(guildId:string,botToken:string)=>{
+  try{
+    const response=await fetch(`https://discord.com/api/v10/guilds/${encodeURIComponent(guildId)}`,{headers:{Authorization:`Bot ${botToken}`}});
+    if(!response.ok)return '';
+    const data=await response.json();
+    return String(data?.name||'').trim().slice(0,120);
+  }catch(_){return '';}
+};
 const webhookChannels=new Set([
   'organization',
   'departments',
@@ -213,12 +221,20 @@ Deno.serve(async request=>{
       // migration is applied in projects that are still on the previous schema.
       const discordInstallations = installationsError?.code === '42P01' ? [] : (installationsError ? (() => { throw installationsError; })() : (installations || []));
       const now=Date.now();
+      const discordOnlyIds=new Set((organizations||[]).filter((item:any)=>item.access_mode==='discord_only').map((item:any)=>String(item.id)));
+      const discordBotToken=await getPlatformSecret(db,'discord_bot_token');
+      const liveGuildNames=new Map<string,string>();
+      if(discordBotToken){
+        const guildsToRefresh=(guildRows||[]).filter((guild:any)=>discordOnlyIds.has(String(guild.organization_id))&&guild.enabled!==false);
+        const refreshed=await Promise.all(guildsToRefresh.map(async(guild:any)=>[String(guild.guild_id),await discordGuildName(String(guild.guild_id),discordBotToken)] as const));
+        refreshed.forEach(([guildId,name])=>{if(name)liveGuildNames.set(guildId,name);});
+      }
       const organizationsWithDetails=[];
       for(const organization of organizations||[]){
         const organizationId=String(organization.id);
         const settings=(settingsRows||[]).find((item:any)=>item.organization_id===organizationId)||{};
         const app=(appRows||[]).filter((item:any)=>item.organization_id===organizationId).reduce((map:any,item:any)=>{map[item.key]=item.value;return map;},{});
-        const guilds=(guildRows||[]).filter((item:any)=>item.organization_id===organizationId);
+        const guilds=(guildRows||[]).filter((item:any)=>item.organization_id===organizationId).map((item:any)=>({...item,guild_name:liveGuildNames.get(String(item.guild_id))||item.guild_name}));
         const roles=(roleRows||[]).filter((item:any)=>item.organization_id===organizationId);
         const [members,activeSessions,activeShifts,activeAbsences,auditCount,lastAudit]=await Promise.all([
           countRows(db,'organization_members',organizationId,[query=>query.eq('active',true)]),
@@ -246,8 +262,19 @@ Deno.serve(async request=>{
           bot_channels:botChannelSummary
         };
         const issueCount=(health.guildsConfigured===0?1:0)+(health.rolesConfigured===0?1:0)+(health.hasClientId?0:1)+(health.hasPublicUrl?0:1)+botChannelSummary.missing+botChannelSummary.invalid;
+        const liveOrganizationName=organization.access_mode==='discord_only'
+          ? (guilds.find((guild:any)=>guild.kind==='primary')?.guild_name||guilds[0]?.guild_name||organization.name)
+          : organization.name;
+        if(organization.access_mode==='discord_only'&&liveOrganizationName&&liveOrganizationName!==organization.name){
+          await db.from('organizations').update({name:liveOrganizationName,updated_at:nowIso()}).eq('id',organizationId);
+          for(const guild of guilds){
+            const liveName=liveGuildNames.get(String(guild.guild_id));
+            if(liveName)await db.from('organization_guilds').update({guild_name:liveName}).eq('organization_id',organizationId).eq('guild_id',guild.guild_id);
+          }
+        }
         organizationsWithDetails.push({
           ...organization,
+          name:liveOrganizationName,
           access:{expires_at:expiresAt},
           package:{code:['standard','operations','full'].includes(String(packageValue.code))?String(packageValue.code):'standard',unlimited:packageValue.unlimited===true,expires_at:packageValue.expires_at||null,features:resolvePackageFeatures(packageValue)},
           theme:{enabled:themeValue.enabled===true,code:seasonalThemeCodes.has(String(themeValue.code||''))?String(themeValue.code):'none',intensity:['discreet','normal','intense'].includes(String(themeValue.intensity||''))?String(themeValue.intensity):'normal',updated_at:themeValue.updated_at||null},
