@@ -97,13 +97,14 @@
       const discovered = await syncDiscordNames();
       const liveGuilds = new Map((discovered?.guilds || []).map((guild) => [String(guild.id), guild]));
       const result = await api({ action: 'platform_overview' });
+      const installationNames = new Map((result.discord_installations || []).map((installation) => [String(installation.guild_id), String(installation.guild_name || '').trim()]));
       state.catalog = result.feature_catalog || state.catalog;
       state.organizations = (Array.isArray(result.organizations) ? result.organizations : []).map((organization) => {
         const discordOnly = organization.access_mode === 'discord_only' || String(organization.slug || '').startsWith('discord-');
         if (!discordOnly) return organization;
-        const guilds = (organization.guilds || []).map((guild) => ({ ...guild, guild_name: liveGuilds.get(String(guild.guild_id))?.name || guild.guild_name }));
+        const guilds = (organization.guilds || []).map((guild) => ({ ...guild, guild_name: liveGuilds.get(String(guild.guild_id))?.name || installationNames.get(String(guild.guild_id)) || guild.guild_name }));
         const primary = guilds.find((guild) => guild.enabled !== false) || guilds[0];
-        return { ...organization, name: liveGuilds.get(String(primary?.guild_id))?.name || organization.name, guilds };
+        return { ...organization, name: liveGuilds.get(String(primary?.guild_id))?.name || installationNames.get(String(primary?.guild_id)) || organization.name, guilds };
       });
       if (!keepSelection || !selected()) state.selectedId = state.organizations[0]?.id || '';
       renderKpis(); renderList(); renderDetail(); setStatus(`Actualizat la ${date(result.generated_at)} · ${state.organizations.length} organizații`, 'ok');
