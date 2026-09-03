@@ -40,7 +40,9 @@ const controlPayload = (routeKey: string) => {
     actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
   };
   const definition = definitions[routeKey] || { title: `⚙️ ${PANEL_ROUTE_LABELS[routeKey] || 'Panel Pro'}`, description: 'Embed de administrare Panel Pro.', color: 0x5865f2, buttons: [] };
-  return { allowed_mentions: { parse: [] }, embeds: [{ title: definition.title, description: definition.description, color: definition.color, footer: { text: 'Panel Pro · configurat din Discord' } }], components: definition.buttons.length ? [{ type: 1, components: definition.buttons.slice(0, 5).map((button: any) => ({ type: 2, style: button.style, label: button.label, custom_id: button.id })) }] : [] };
+  const components = definition.buttons.length ? [{ type: 1, components: definition.buttons.slice(0, 5).map((button: any) => ({ type: 2, style: button.style, label: button.label, custom_id: button.id })) }] : [];
+  components.push({ type: 1, components: [{ type: 2, style: 5, label: 'Donează pentru dezvoltare', url: 'https://revolut.me/mariomihail' }] });
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: definition.title, description: definition.description, color: definition.color, footer: { text: 'Panel Pro · configurat din Discord' } }], components };
 };
 const readableError = (error: unknown, fallback: string) => {
   if (error instanceof Error && error.message) return error.message;
