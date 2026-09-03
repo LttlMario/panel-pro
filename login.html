@@ -243,6 +243,16 @@
         <div class="mt-5 grid gap-3"><div class="rounded-2xl border border-slate-700 bg-slate-950/60 p-4"><strong class="text-white">Pontaj și ture</strong><p class="mt-1 text-xs leading-5 text-slate-400">Start, pauză, stop, ture de zi/noapte și statistici personale.</p></div><div class="rounded-2xl border border-slate-700 bg-slate-950/60 p-4"><strong class="text-white">Învoiri</strong><p class="mt-1 text-xs leading-5 text-slate-400">Membrii trimit învoiri, iar responsabilii le gestionează rapid.</p></div><div class="rounded-2xl border border-slate-700 bg-slate-950/60 p-4"><strong class="text-white">Anunțuri și sondaje</strong><p class="mt-1 text-xs leading-5 text-slate-400">Publică anunțuri, întrebări și sondaje interactive pentru organizație.</p></div><div class="rounded-2xl border border-slate-700 bg-slate-950/60 p-4"><strong class="text-white">Contracte</strong><p class="mt-1 text-xs leading-5 text-slate-400">Configurează șablonul și generează contracte direct în Discord.</p></div><div class="rounded-2xl border border-slate-700 bg-slate-950/60 p-4"><strong class="text-white">Acțiuni și disciplină</strong><p class="mt-1 text-xs leading-5 text-slate-400">Înregistrează acțiuni, avertismente și sancțiuni cu loguri.</p></div><div class="rounded-2xl border border-slate-700 bg-slate-950/60 p-4"><strong class="text-white">Stash</strong><p class="mt-1 text-xs leading-5 text-slate-400">Articole, cereri și donații cu aprobare administrativă și log separat.</p></div></div>
     </section>
     </div>
+    <div id="organization-picker" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+        <section class="w-full max-w-lg rounded-2xl border border-indigo-400/40 bg-slate-900 p-6 text-left shadow-2xl">
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-indigo-300">Mai multe organizații</p>
+            <h3 class="mt-1 text-xl font-black text-white">Alege organizația în care vrei să intri</h3>
+            <p class="mt-2 text-sm leading-6 text-slate-400">Contul tău are acces la mai multe organizații sau servere Discord. Selectează una pentru această sesiune.</p>
+            <label class="mt-5 block text-xs font-bold text-slate-400">Organizație<select id="organization-choice" class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-sm text-white outline-none focus:border-indigo-300"></select></label>
+            <p id="organization-picker-status" class="mt-3 min-h-[20px] text-xs leading-5 text-rose-300"></p>
+            <div class="mt-5 flex justify-end gap-3"><button id="organization-cancel" type="button" class="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-bold text-slate-300 hover:border-slate-500 hover:text-white">Anulează</button><button id="organization-confirm" type="button" class="rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-black text-white hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50" disabled>Intră în organizație</button></div>
+        </section>
+    </div>
     <div data-panel-footer-host class="relative z-10 w-full"></div>
     <!-- Script de Autentificare și Sincronizare Supabase -->
     <script>
@@ -313,6 +323,37 @@
             createOption.value = '__create_organization__';
             createOption.textContent = 'Nu am organizație — vreau să creez una cu voucher';
             select.appendChild(createOption);
+            select.value = '';
+            confirm.disabled = true;
+            status.textContent = '';
+            picker.classList.remove('hidden');
+            picker.classList.add('flex');
+            const finish = (value) => {
+                picker.classList.add('hidden');
+                picker.classList.remove('flex');
+                select.onchange = null;
+                confirm.onclick = null;
+                cancel.onclick = null;
+                resolve(value || '');
+            };
+            select.onchange = () => { confirm.disabled = !select.value; status.textContent = ''; };
+            confirm.onclick = () => finish(select.value);
+            cancel.onclick = () => finish('');
+        });
+
+        const chooseOrganization = (organizations) => new Promise((resolve) => {
+            const picker = document.getElementById('organization-picker');
+            const select = document.getElementById('organization-choice');
+            const confirm = document.getElementById('organization-confirm');
+            const cancel = document.getElementById('organization-cancel');
+            const status = document.getElementById('organization-picker-status');
+            if (!picker || !select || !confirm || !cancel) return resolve('');
+            select.replaceChildren(...organizations.map((organization) => {
+                const option = document.createElement('option');
+                option.value = String(organization.id || '');
+                option.textContent = `${organization.name || 'Organizație'}${organization.package_code ? ` · ${organization.package_code === 'full' ? 'Premium' : 'Standard'}` : ''}`;
+                return option;
+            }));
             select.value = '';
             confirm.disabled = true;
             status.textContent = '';
@@ -908,7 +949,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     },
                     body: JSON.stringify(emailLinkFlow ? { email_login: true, organization_id: emailOrganizationId } : { access_token: token })
                 });
-                const syncResult = await syncResponse.json();
+                let syncResult = await syncResponse.json();
                 if (!syncResponse.ok || !syncResult.user) {
                     const openDiscordBotAdmin = async () => {
                         if (emailLinkFlow || !token) return false;
@@ -949,6 +990,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                         throw new Error('Nu ai niciun rol Discord configurat pentru această organizație. Contactează administratorul organizației.');
                     }
                     throw new Error(syncResult.error || 'Rolul Discord nu a putut fi verificat.');
+                }
+
+                if (!emailLinkFlow && Array.isArray(syncResult.organizations) && syncResult.organizations.length > 1) {
+                    const selectedOrganizationId = await chooseOrganization(syncResult.organizations);
+                    if (!selectedOrganizationId) {
+                        setLoginStatus('Alegerea organizației a fost anulată.');
+                        return;
+                    }
+                    setLoginStatus('Se verifică organizația aleasă...');
+                    const selectedSyncResponse = await fetch(`${SUPABASE_URL}/functions/v1/sync-discord-role`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, authorization: `Bearer ${SUPABASE_KEY}` },
+                        body: JSON.stringify({ access_token: token, organization_id: selectedOrganizationId })
+                    });
+                    const selectedSyncResult = await selectedSyncResponse.json();
+                    if (!selectedSyncResponse.ok || !selectedSyncResult.user) throw new Error(selectedSyncResult.error || 'Organizația aleasă nu a putut fi verificată.');
+                    syncResult = selectedSyncResult;
                 }
 
                 const syncedUser = syncResult.user;
