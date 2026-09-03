@@ -14,6 +14,16 @@ const MODULES: Record<string, { label: string; premium: boolean; title: string; 
   stash: { label: 'Stash', premium: true, title: '📦 Stash · Administrare', description: 'Gestionează articolele, cererile și donațiile Stash.', color: 0x22c55e, buttons: [{ label: 'Adaugă în Stash', style: 3, id: 'panel:stash:create' }, { label: 'Cereri în așteptare', style: 1, id: 'panel:stash:pending_requests' }, { label: 'Donații în așteptare', style: 1, id: 'panel:stash:pending_donations' }] },
   status_live: { label: 'Status live', premium: true, title: '📡 Status live · Panel Pro', description: 'Statusul este actualizat automat cu pontajele și pauzele active.', color: 0x06b6d4, buttons: [] },
 };
+const LOG_ROUTES: Record<string, string> = {
+  organization: 'log_announcements_organization', departments: 'log_announcements_departments', pontaj: 'log_pontaj',
+  requests_organization: 'log_requests_organization', requests_departments: 'log_requests_departments', contracts: 'log_contracts',
+  actions_organization: 'log_actions_organization', stash: 'log_stash', stash_requests: 'log_stash_requests', stash_donations: 'log_stash_donations'
+};
+const LOG_LABELS: Record<string, string> = {
+  log_announcements_organization: 'Log anunțuri organizație', log_announcements_departments: 'Log anunțuri angajați', log_pontaj: 'Log pontaj',
+  log_requests_organization: 'Log învoiri organizație', log_requests_departments: 'Log învoiri angajați', log_contracts: 'Log contracte',
+  log_actions_organization: 'Log acțiuni organizație', log_stash: 'Log Stash', log_stash_requests: 'Log cereri Stash', log_stash_donations: 'Log donații Stash'
+};
 const headersFor = (request: Request) => {
   const origin = String(request.headers.get('origin') || '');
   const allowed = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || origin === 'https://panel-pro.ro' ? origin : 'https://panel-pro.ro';
@@ -112,7 +122,7 @@ Deno.serve(async (request) => {
     const applicationId = id(body.application_id) ? String(body.application_id) : '1531023771211792384';
     const action = clean(body.action, 30) || 'bootstrap';
     const guilds = await ownedGuilds(db, { ...discord, access_token: accessToken }, applicationId);
-    if (action === 'bootstrap') return reply(request, { ok: true, user: { id: String(discord.id), username: clean(discord.global_name || discord.username, 120) }, guilds, modules: Object.fromEntries(Object.entries(MODULES).map(([key, value]) => [key, { label: value.label, premium: value.premium }])) });
+    if (action === 'bootstrap') return reply(request, { ok: true, user: { id: String(discord.id), username: clean(discord.global_name || discord.username, 120) }, guilds, modules: Object.fromEntries(Object.entries(MODULES).map(([key, value]) => [key, { label: value.label, premium: value.premium, log_key: LOG_ROUTES[key] || '', log_label: LOG_LABELS[LOG_ROUTES[key] || ''] || '' }])) });
     const guildId = clean(body.guild_id, 30);
     const selectedGuild = guilds.find((guild: any) => guild.id === guildId);
     if (!selectedGuild) return reply(request, { error: 'Serverul nu este disponibil: trebuie să fii owner și botul trebuie să fie instalat.' }, 403);
@@ -127,10 +137,17 @@ Deno.serve(async (request) => {
       const nextRoutes: Record<string, any> = { ...(settings?.discord_channel_routes || {}) };
       for (const routeKey of routeKeys) {
         if (MODULES[routeKey].premium && !allowedPremium && requested[routeKey]) continue;
-        const channelId = clean(requested[routeKey], 30);
-        if (!channelId) { delete nextRoutes[routeKey]; continue; }
+        const selected = requested[routeKey] && typeof requested[routeKey] === 'object' ? requested[routeKey] : { embed: requested[routeKey] };
+        const channelId = clean(selected.embed, 30);
+        const logChannelId = clean(selected.log, 30);
+        if (!channelId) { delete nextRoutes[routeKey]; if (LOG_ROUTES[routeKey]) delete nextRoutes[LOG_ROUTES[routeKey]]; continue; }
         if (!validDiscordChannelId(channelId) || !available.has(channelId)) return reply(request, { error: `Canal invalid pentru modulul ${MODULES[routeKey].label}.` }, 400);
         nextRoutes[routeKey] = { ...(nextRoutes[routeKey] || {}), primary: { ...(nextRoutes[routeKey]?.primary || {}), channel_id: channelId, guild_id: guildId, enabled: true } };
+        if (LOG_ROUTES[routeKey]) {
+          if (logChannelId && (!validDiscordChannelId(logChannelId) || !available.has(logChannelId))) return reply(request, { error: `Canal de log invalid pentru modulul ${MODULES[routeKey].label}.` }, 400);
+          if (logChannelId) nextRoutes[LOG_ROUTES[routeKey]] = { ...(nextRoutes[LOG_ROUTES[routeKey]] || {}), primary: { ...(nextRoutes[LOG_ROUTES[routeKey]]?.primary || {}), channel_id: logChannelId, guild_id: guildId, enabled: true } };
+          else delete nextRoutes[LOG_ROUTES[routeKey]];
+        }
       }
       const { error } = await db.from('organization_settings').update({ discord_channel_routes: nextRoutes, updated_at: new Date().toISOString(), updated_by_discord_id: String(discord.id) }).eq('organization_id', selectedGuild.organization_id);
       if (error) throw error;
