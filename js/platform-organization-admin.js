@@ -18,6 +18,14 @@
     if (!localStorage.getItem('panel_session_token') && typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
     return window.panelRequestJson('manage-organizations', { method: 'POST', timeoutMs: 30000, body: JSON.stringify(body) });
   };
+  const syncDiscordNames = async () => {
+    const token = window.getPanelDiscordAccessToken?.() || '';
+    const config = window.PANEL_SUPABASE_CONFIG || {};
+    if (!token || !config.url || !config.publishableKey) return;
+    try {
+      await fetch(`${config.url}/functions/v1/manage-discord-bot`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': localStorage.getItem('panel_session_token') || '' }, body: JSON.stringify({ action: 'bootstrap', access_token: token, application_id: window.PANEL_DISCORD_CONFIG?.clientId || '1531023771211792384' }) });
+    } catch (_) {}
+  };
   const statusFor = (organization) => organization?.health?.status || 'inactive';
   const statusLabel = (value) => ({ active: 'Activă', draft: 'Draft', expired: 'Expirată', inactive: 'Inactivă' }[value] || value);
   const issueLabel = (organization) => Number(organization?.health?.issueCount || 0) ? `${organization.health.issueCount} problem${organization.health.issueCount === 1 ? 'ă' : 'e'}` : 'Configurație OK';
@@ -85,7 +93,7 @@
   };
   const load = async (keepSelection = true) => {
     if (state.busy) return; state.busy = true; setStatus('Se încarcă registrul securizat…');
-    try { const result = await api({ action: 'platform_overview' }); state.catalog = result.feature_catalog || state.catalog; state.organizations = Array.isArray(result.organizations) ? result.organizations : []; if (!keepSelection || !selected()) state.selectedId = state.organizations[0]?.id || ''; renderKpis(); renderList(); renderDetail(); setStatus(`Actualizat la ${date(result.generated_at)} · ${state.organizations.length} organizații`, 'ok'); }
+    try { await syncDiscordNames(); const result = await api({ action: 'platform_overview' }); state.catalog = result.feature_catalog || state.catalog; state.organizations = Array.isArray(result.organizations) ? result.organizations : []; if (!keepSelection || !selected()) state.selectedId = state.organizations[0]?.id || ''; renderKpis(); renderList(); renderDetail(); setStatus(`Actualizat la ${date(result.generated_at)} · ${state.organizations.length} organizații`, 'ok'); }
     catch (error) { setStatus(error.message || 'Registrul nu a putut fi încărcat.', 'error'); $('#organization-list').innerHTML = `<div class="empty-state">${esc(error.message || 'Eroare de încărcare.')}</div>`; }
     finally { state.busy = false; }
   };

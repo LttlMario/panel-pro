@@ -46,7 +46,21 @@ async function ensureDiscordOrganization(db: any, user: any, guild: any, applica
   const guildId = String(guild.id);
   const { data: linked, error: linkedError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
   if (linkedError) throw linkedError;
-  if (linked?.organization_id) return linked;
+  if (linked?.organization_id) {
+    const { data: linkedOrganization, error: linkedOrganizationError } = await db.from('organizations').select('access_mode,slug').eq('id', linked.organization_id).maybeSingle();
+    if (linkedOrganizationError) throw linkedOrganizationError;
+    if (linkedOrganization?.access_mode === 'discord_only' || String(linkedOrganization?.slug || '').startsWith('discord-')) {
+      const liveName = clean(guild.name || '', 120);
+      if (liveName) {
+        await Promise.all([
+          db.from('organizations').update({ name: liveName, updated_at: new Date().toISOString() }).eq('id', linked.organization_id),
+          db.from('organization_guilds').update({ guild_name: liveName }).eq('organization_id', linked.organization_id).eq('guild_id', guildId),
+          db.from('discord_bot_installations').update({ guild_name: liveName, last_event_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('guild_id', guildId),
+        ]);
+      }
+    }
+    return linked;
+  }
   const botToken = await getPlatformSecret(db, 'discord_bot_token');
   const botGuildResponse = await fetch(`${DISCORD_API}/guilds/${guildId}`, { headers: botHeaders(botToken) });
   if (!botGuildResponse.ok) return null;
