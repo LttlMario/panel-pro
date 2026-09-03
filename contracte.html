@@ -836,7 +836,10 @@ Semnătură:`;
 
                 formData.append('payload_json', JSON.stringify(payload));
 
-                let response = await sendPanelDiscord('contracts', formData);
+                let response = await sendPanelDiscord('contracts', formData, {
+                    postOnly: true,
+                    channelRoutes: window.getDiscordChannelRoutes?.() || {}
+                });
 
                 if (!response.ok && response.status !== 204) {
                     throw new Error('Eroare la trimiterea mesajului pe Discord.');

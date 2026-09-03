@@ -69,6 +69,7 @@ Deno.serve(async (request) => {
     let requestedOrganizationId = '';
     let requestedMessageKey = '';
     let requestedChannelRoutes: any = null;
+    let requestedPostOnly = false;
     let forwardBody: BodyInit;
     let forwardHeaders: Record<string, string> = {};
 
@@ -76,9 +77,20 @@ Deno.serve(async (request) => {
       const form = await request.formData();
       channel = String(form.get('_panel_channel') || '');
       requestedOrganizationId = String(form.get('_panel_organization_id') || '');
+      requestedMessageKey = String(form.get('_panel_message_key') || '').trim().slice(0, 120);
+      requestedPostOnly = String(form.get('_panel_post_only') || '') === '1';
+      try {
+        const rawRoutes = form.get('_panel_channel_routes');
+        requestedChannelRoutes = rawRoutes ? JSON.parse(String(rawRoutes)) : null;
+      } catch (_) {
+        requestedChannelRoutes = null;
+      }
       form.delete('_panel_channel');
       form.delete('_panel_access_token');
       form.delete('_panel_organization_id');
+      form.delete('_panel_message_key');
+      form.delete('_panel_post_only');
+      form.delete('_panel_channel_routes');
       forwardBody = form;
     } else {
       const body = await request.json();
@@ -270,7 +282,7 @@ Deno.serve(async (request) => {
       throw new Error(`Canalul Discord pentru ${finalChannel} nu este configurat pentru organizația activă.`);
     }
 
-    const editExistingControlMessage = ['pontaj', 'requests_organization', 'requests_departments', 'organization', 'departments', 'contracts', 'stash', 'stash_requests', 'stash_donations'].includes(finalChannel);
+    const editExistingControlMessage = !requestedPostOnly && ['pontaj', 'requests_organization', 'requests_departments', 'organization', 'departments', 'contracts', 'stash', 'stash_requests', 'stash_donations'].includes(finalChannel);
     const isPontajLog = finalChannel === 'log_pontaj';
     const isRequestsLog = ['log_requests_organization', 'log_requests_departments'].includes(finalChannel);
     const pontajMessageKey = requestedMessageKey || 'organization';
@@ -328,6 +340,7 @@ Deno.serve(async (request) => {
       headers: forwardHeaders,
       messageIds,
       fallbackRouteKey: effectiveFallbackRouteKey,
+      postOnly: requestedPostOnly,
     });
     const messages = (delivery.results || []).map((result) => ({
       channel_id: result.channel_id || null,

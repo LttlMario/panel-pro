@@ -55,6 +55,11 @@
             body.append('_panel_channel', resolvedChannel);
             if (accessToken) body.append('_panel_access_token', accessToken);
             body.append('_panel_organization_id', organizationId);
+            if (options?.postOnly) body.append('_panel_post_only', '1');
+            if (options?.messageKey) body.append('_panel_message_key', String(options.messageKey));
+            if (options?.channelRoutes && typeof options.channelRoutes === 'object') {
+                body.append('_panel_channel_routes', JSON.stringify(options.channelRoutes));
+            }
         } else {
             // Pentru notificările JSON normale.
             headers['Content-Type'] = 'application/json';
