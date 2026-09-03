@@ -190,6 +190,38 @@ Deno.serve(async (request) => {
     const guildId = clean(body.guild_id, 30);
     const selectedGuild = guilds.find((guild: any) => guild.id === guildId);
     if (!selectedGuild) return reply(request, { error: platformAdmin ? 'Serverul nu este disponibil sau botul nu este instalat.' : 'Serverul nu este disponibil: trebuie să fii owner și botul trebuie să fie instalat.' }, 403);
+    if (action === 'rename_guild') {
+      if (!platformAdmin) return reply(request, { error: 'Doar administratorul global poate redenumi un server din registrul Discovery.' }, 403);
+      const name = clean(body.name, 120);
+      if (name.length < 2) return reply(request, { error: 'Numele serverului trebuie să aibă cel puțin 2 caractere.' }, 400);
+      const now = new Date().toISOString();
+      const organizationId = String(selectedGuild.organization_id || '');
+      await Promise.all([
+        db.from('organizations').update({ name, updated_at: now }).eq('id', organizationId),
+        db.from('organization_guilds').update({ guild_name: name }).eq('organization_id', organizationId).eq('guild_id', guildId),
+        db.from('discord_bot_installations').update({ guild_name: name, updated_at: now, last_event_at: now }).eq('guild_id', guildId),
+      ]);
+      return reply(request, { ok: true, guild_id: guildId, name });
+    }
+    if (action === 'extend_trial') {
+      if (!platformAdmin) return reply(request, { error: 'Doar administratorul global poate prelungi Trial-ul.' }, 403);
+      const days = Number(body.days);
+      if (!Number.isInteger(days) || days < 1 || days > 3650) return reply(request, { error: 'Durata Trial trebuie să fie între 1 și 3650 zile.' }, 400);
+      const { data: setting, error: settingError } = await db.from('app_settings').select('value').eq('organization_id', selectedGuild.organization_id).eq('key', 'discord_trial').maybeSingle();
+      if (settingError) throw settingError;
+      const currentEnd = setting?.value?.ends_at && Date.parse(String(setting.value.ends_at)) > Date.now() ? Date.parse(String(setting.value.ends_at)) : Date.now();
+      const endsAt = new Date(currentEnd + days * 86400000).toISOString();
+      const { error } = await db.from('app_settings').upsert({ organization_id: selectedGuild.organization_id, key: 'discord_trial', value: { ...(setting?.value || {}), starts_at: setting?.value?.starts_at || new Date().toISOString(), ends_at: endsAt, duration_days: days }, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+      if (error) throw error;
+      return reply(request, { ok: true, guild_id: guildId, trial_ends_at: endsAt });
+    }
+    if (action === 'remove_installation') {
+      if (!platformAdmin) return reply(request, { error: 'Doar administratorul global poate elimina o instalare.' }, 403);
+      const now = new Date().toISOString();
+      const { error } = await db.from('discord_bot_installations').update({ status: 'removed', removed_at: now, last_event_at: now, updated_at: now }).eq('guild_id', guildId);
+      if (error) throw error;
+      return reply(request, { ok: true, guild_id: guildId, status: 'removed' });
+    }
     if (action === 'grant_premium') {
       if (!platformAdmin) return reply(request, { error: 'Doar administratorul global poate acorda Premium manual.' }, 403);
       const skuId = String(Deno.env.get('DISCORD_PREMIUM_GUILD_SKU_ID') || Deno.env.get('DISCORD_PREMIUM_GUILD_SKU_IDS') || '1545022271117066260').split(',').map((value) => value.trim()).find((value) => id(value)) || '';

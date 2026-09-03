@@ -16,20 +16,37 @@
     return result;
   };
   const guild = (organization) => (organization.guilds || []).find((item) => item.enabled !== false) || organization.guilds?.[0] || {};
+  const dedupeOrganizations = (organizations) => {
+    const byGuild = new Map();
+    (organizations || []).forEach((organization) => {
+      const server = guild(organization);
+      const key = String(server.guild_id || organization.id || '');
+      const existing = byGuild.get(key);
+      if (!existing || (server.guild_name && String(server.guild_name).length > String(guild(existing).guild_name || '').length)) byGuild.set(key, organization);
+    });
+    return [...byGuild.values()];
+  };
   const render = () => {
     const query = String($('search').value || '').trim().toLowerCase();
-    const rows = state.organizations.filter((organization) => {
+    const rows = dedupeOrganizations(state.organizations).filter((organization) => {
       const server = guild(organization);
       return [organization.name, organization.slug, server.guild_name, server.guild_id].join(' ').toLowerCase().includes(query);
     });
     $('list').innerHTML = rows.length ? rows.map((organization) => {
       const server = guild(organization);
       const statusLabel = organization.health?.status === 'active' ? 'Activ' : organization.health?.status === 'draft' ? 'Draft' : 'Inactiv';
-      return `<article class="bot-card"><p class="eyebrow">Bot Discord separat</p><h2>${esc(server.guild_name || organization.name || 'Server Discord')}</h2><p class="meta">${esc(organization.name)}<br>Guild ID: <code>${esc(server.guild_id || '—')}</code></p><div class="badges"><span class="badge live">${statusLabel}</span><span class="badge">Organizație: ${esc(organization.id)}</span><span class="badge">${organization.package?.code === 'full' ? 'Premium / Full' : 'Configurație Discord-only'}</span></div><div class="card-actions"><a class="button cyan" href="discord-bot.html${server.guild_id ? `?guild_id=${encodeURIComponent(server.guild_id)}` : ''}">🤖 Administrează botul</a><button class="button" type="button" data-enter="${esc(organization.id)}">🧪 Intră în organizație · mod test</button><button class="button" type="button" data-premium="${esc(server.guild_id || '')}">⭐ Acordă Premium</button><a class="button" href="administrare-organizatii-platforma.html?organization=${encodeURIComponent(organization.id)}">Detalii organizație</a></div></article>`;
+      return `<article class="bot-card"><p class="eyebrow">Bot Discord separat</p><h2>${esc(server.guild_name || organization.name || 'Server Discord')}</h2><p class="meta">${esc(organization.name)}<br>Guild ID: <code>${esc(server.guild_id || '—')}</code></p><div class="badges"><span class="badge live">${statusLabel}</span><span class="badge">Organizație: ${esc(organization.id)}</span><span class="badge">${organization.package?.code === 'full' ? 'Premium / Full' : 'Configurație Discord-only'}</span></div><div class="card-actions"><a class="button cyan" href="discord-bot.html${server.guild_id ? `?guild_id=${encodeURIComponent(server.guild_id)}` : ''}">🤖 Administrează botul</a><button class="button" type="button" data-enter="${esc(organization.id)}">🧪 Intră în organizație · mod test</button><button class="button" type="button" data-premium="${esc(server.guild_id || '')}">⭐ Acordă Premium</button><button class="button" type="button" data-trial="${esc(server.guild_id || '')}">⏱ +30 zile Trial</button><button class="button" type="button" data-rename="${esc(server.guild_id || '')}">✏️ Editează numele</button><button class="button" type="button" data-remove="${esc(server.guild_id || '')}">🗑️ Elimină din registru</button><a class="button" href="administrare-organizatii-platforma.html?organization=${encodeURIComponent(organization.id)}">Detalii organizație</a></div></article>`;
     }).join('') : '<div class="empty">Nu există servere Discord-only care să corespundă căutării.</div>';
     $('list').querySelectorAll('[data-enter]').forEach((button) => button.addEventListener('click', () => enter(button.dataset.enter)));
     $('list').querySelectorAll('[data-premium]').forEach((button) => button.addEventListener('click', () => grantPremium(button.dataset.premium)));
+    $('list').querySelectorAll('[data-trial]').forEach((button) => button.addEventListener('click', () => extendTrial(button.dataset.trial)));
+    $('list').querySelectorAll('[data-rename]').forEach((button) => button.addEventListener('click', () => renameGuild(button.dataset.rename)));
+    $('list').querySelectorAll('[data-remove]').forEach((button) => button.addEventListener('click', () => removeInstallation(button.dataset.remove)));
   };
+  const discoveryAction = async (guildId, action, extra = {}) => { const token = window.getPanelDiscordAccessToken?.() || ''; const config = window.PANEL_SUPABASE_CONFIG || {}; const response = await fetch(`${config.url}/functions/v1/manage-discord-bot`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': localStorage.getItem('panel_session_token') || '' }, body: JSON.stringify({ action, guild_id: guildId, access_token: token, application_id: window.PANEL_DISCORD_CONFIG?.clientId || '1531023771211792384', ...extra }) }); const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || 'Acțiunea nu a putut fi finalizată.'); return result; };
+  const extendTrial = async (guildId) => { if (!window.confirm('Prelungești Trial-ul cu 30 de zile pentru acest server?')) return; try { await discoveryAction(guildId, 'extend_trial', { days: 30 }); status('Trial-ul a fost prelungit cu 30 de zile.', 'ok'); } catch (error) { status(error.message, 'error'); } };
+  const renameGuild = async (guildId) => { const name = window.prompt('Numele nou al serverului/organizației:'); if (name === null || !name.trim()) return; try { await discoveryAction(guildId, 'rename_guild', { name: name.trim() }); status('Numele a fost actualizat.', 'ok'); await load(); } catch (error) { status(error.message, 'error'); } };
+  const removeInstallation = async (guildId) => { if (!window.confirm('Elimini această instalare din registrul botului Discovery? Datele organizației nu sunt șterse.')) return; try { await discoveryAction(guildId, 'remove_installation'); status('Instalarea a fost eliminată din registrul Discovery.', 'ok'); await load(); } catch (error) { status(error.message, 'error'); } };
   const grantPremium = async (guildId) => {
     const token = window.getPanelDiscordAccessToken?.() || '';
     if (!token || !guildId) { status('Sesiunea Discord lipsește. Reautentifică-te din login.', 'error'); return; }
