@@ -198,16 +198,20 @@ Deno.serve(async request=>{
       });
     }
     if(body.action==='platform_overview'){
-      const {data:organizations,error:organizationsError}=await db.from('organizations').select('id,name,illegal_name,slug,code,lifecycle_status,active,grace_until,deactivation_reason,deactivated_at,deactivated_by_discord_id,last_discord_check_at,last_discord_check_status,created_at,updated_at').order('name');
+      const {data:organizations,error:organizationsError}=await db.from('organizations').select('id,name,illegal_name,slug,code,access_mode,lifecycle_status,active,grace_until,deactivation_reason,deactivated_at,deactivated_by_discord_id,last_discord_check_at,last_discord_check_status,created_at,updated_at').order('name');
       if(organizationsError)throw organizationsError;
       const ids=(organizations||[]).map((organization:any)=>organization.id);
-      const [{data:guildRows,error:guildError},{data:roleRows,error:roleError},{data:settingsRows,error:settingsError},{data:appRows,error:appError}]=await Promise.all([
+      const [{data:guildRows,error:guildError},{data:roleRows,error:roleError},{data:settingsRows,error:settingsError},{data:appRows,error:appError},{data:installations,error:installationsError}]=await Promise.all([
         ids.length?db.from('organization_guilds').select('organization_id,guild_id,guild_name,kind,enabled').in('organization_id',ids):Promise.resolve({data:[],error:null}),
         ids.length?db.from('organization_role_mappings').select('organization_id,guild_id,discord_role_id,discord_role_name,panel_role,enabled').in('organization_id',ids):Promise.resolve({data:[],error:null}),
         ids.length?db.from('organization_settings').select('organization_id,discord_client_id,panel_public_url,discord_channel_routes,updated_at').in('organization_id',ids):Promise.resolve({data:[],error:null}),
-        ids.length?db.from('app_settings').select('organization_id,key,value,updated_at').in('organization_id',ids).in('key',['organization_access','organization_package','organization_theme','page_permissions','assistant_page_permissions','action_permissions','global_permissions','communication_permissions','discipline_permissions']):Promise.resolve({data:[],error:null})
+        ids.length?db.from('app_settings').select('organization_id,key,value,updated_at').in('organization_id',ids).in('key',['organization_access','organization_package','organization_theme','page_permissions','assistant_page_permissions','action_permissions','global_permissions','communication_permissions','discipline_permissions']):Promise.resolve({data:[],error:null}),
+        db.from('discord_bot_installations').select('guild_id,guild_name,authorized_by_discord_id,organization_id,integration_type,status,installed_at,removed_at,last_event_at').order('last_event_at',{ascending:false})
       ]);
       if(guildError||roleError||settingsError||appError)throw guildError||roleError||settingsError||appError;
+      // Keep the existing admin page usable until the installation registry
+      // migration is applied in projects that are still on the previous schema.
+      const discordInstallations = installationsError?.code === '42P01' ? [] : (installationsError ? (() => { throw installationsError; })() : (installations || []));
       const now=Date.now();
       const organizationsWithDetails=[];
       for(const organization of organizations||[]){
@@ -253,7 +257,7 @@ Deno.serve(async request=>{
           health:{...health,issueCount,status:isActive?'active':isDraft?'draft':isExpired?'expired':'inactive'}
         });
       }
-      return reply({ok:true,generated_at:nowIso(),feature_catalog:packageCatalogForClient(),organizations:organizationsWithDetails});
+      return reply({ok:true,generated_at:nowIso(),feature_catalog:packageCatalogForClient(),organizations:organizationsWithDetails,discord_installations:discordInstallations});
     }
     if(body.action==='health_check'){
       const organizationId=String(body.organization_id||'').trim();

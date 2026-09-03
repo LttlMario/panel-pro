@@ -43,8 +43,14 @@ window.getPanelDiscordAccessToken = function getPanelDiscordAccessToken() {
 };
 window.setPanelDiscordAccessToken = function setPanelDiscordAccessToken(token) {
     window.localStorage.removeItem('discord_access_token');
-    if (token) window.sessionStorage.setItem('discord_access_token', String(token));
-    else window.sessionStorage.removeItem('discord_access_token');
+    if (token) {
+        window.sessionStorage.setItem('discord_access_token', String(token));
+        // Pagina de administrare a botului folosește aceeași sesiune Discord.
+        window.sessionStorage.setItem('discord_bot_admin_token', String(token));
+    } else {
+        window.sessionStorage.removeItem('discord_access_token');
+        window.sessionStorage.removeItem('discord_bot_admin_token');
+    }
 };
 window.clearPanelDiscordAccessToken = function clearPanelDiscordAccessToken() {
     window.localStorage.removeItem('discord_access_token');

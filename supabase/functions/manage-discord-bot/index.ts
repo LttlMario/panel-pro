@@ -1,5 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
+import { isPlatformAdminAccount } from '../_shared/platform-admin.ts';
+import { requirePanelSession } from '../_shared/panel-session.ts';
 import { deliverDiscordRoute, routeCandidates, validDiscordChannelId } from '../_shared/discord-delivery.ts';
 
 const DISCORD_API = 'https://discord.com/api/v10';
@@ -68,28 +70,61 @@ async function ensureDiscordOrganization(db: any, user: any, guild: any, applica
   return { organization_id: organizationId, kind: 'primary' };
 }
 
-async function ownedGuilds(db: any, user: any, applicationId: string) {
+async function ownedGuilds(db: any, user: any, applicationId: string, platformAdmin = false, diagnostics: Record<string, any> = {}) {
   const token = String(user.access_token);
   const response = await fetch(`${DISCORD_API}/users/@me/guilds`, { headers: { Authorization: `Bearer ${token}` } });
   if (!response.ok) throw new Error('Serverele Discord nu pot fi încărcate. Verifică scope-ul guilds în OAuth.');
   const guilds = await response.json();
+  diagnostics.oauth_guild_count = Array.isArray(guilds) ? guilds.length : 0;
+  diagnostics.owner_guild_count = 0;
+  diagnostics.bot_check_count = 0;
+  diagnostics.bot_check_failures = [];
   const result = [];
   for (const guild of Array.isArray(guilds) ? guilds : []) {
-    if (!guild.owner || !id(guild.id)) continue;
+    if (guild.owner) diagnostics.owner_guild_count += 1;
+    if ((!platformAdmin && !guild.owner) || !id(guild.id)) continue;
+    diagnostics.bot_check_count += 1;
     const linked = await ensureDiscordOrganization(db, user, guild, applicationId);
-    if (!linked?.organization_id) continue;
+    if (!linked?.organization_id) {
+      diagnostics.bot_check_failures.push({ guild_id: String(guild.id), guild_name: clean(guild.name || guild.id, 120), reason: 'Botul nu a fost găsit în server sau DISCORD_BOT_TOKEN nu are acces.' });
+      continue;
+    }
     const { data: organization, error } = await db.from('organizations').select('id,name,access_mode,active').eq('id', linked.organization_id).maybeSingle();
     if (error) throw error;
-    if (organization?.access_mode !== 'discord_only') continue;
+    if (organization?.access_mode !== 'discord_only' && !platformAdmin) continue;
     const { data: packageSetting } = await db.from('app_settings').select('key,value').eq('organization_id', linked.organization_id).in('key', ['organization_package', 'discord_trial']);
     const packageValue = (packageSetting || []).find((item: any) => item.key === 'organization_package')?.value || {};
     const trialValue = (packageSetting || []).find((item: any) => item.key === 'discord_trial')?.value || {};
     const { data: entitlement } = await db.from('discord_guild_entitlements').select('sku_id,ends_at,active').eq('guild_id', String(guild.id)).eq('active', true).order('updated_at', { ascending: false }).limit(1).maybeSingle();
     const premium = Boolean(entitlement && (!entitlement.ends_at || Date.parse(String(entitlement.ends_at)) > Date.now()));
     const trial = !premium && Date.parse(String(trialValue.ends_at || '')) > Date.now();
-    result.push({ id: String(guild.id), name: clean(guild.name || guild.id, 120), organization_id: String(organization?.id || linked.organization_id), organization_name: clean(organization?.name || guild.name, 120), access_mode: organization?.access_mode || 'discord_only', plan: premium ? 'premium' : trial ? 'trial' : 'free', trial_ends_at: trialValue.ends_at || null, premium_ends_at: entitlement?.ends_at || null, sku_id: entitlement?.sku_id || null });
+    result.push({ id: String(guild.id), name: clean(guild.name || guild.id, 120), organization_id: String(organization?.id || linked.organization_id), organization_name: clean(organization?.name || guild.name, 120), access_mode: organization?.access_mode || 'discord_only', bot_installed: true, plan: premium ? 'premium' : trial ? 'trial' : 'free', trial_ends_at: trialValue.ends_at || null, premium_ends_at: entitlement?.ends_at || null, sku_id: entitlement?.sku_id || null });
   }
   return result;
+}
+
+async function reconcileInstallations(db: any) {
+  const { data: installations, error } = await db.from('discord_bot_installations').select('guild_id,status').eq('status', 'active');
+  if (error) {
+    if (error.code === '42P01') return { checked: 0, removed: 0 };
+    throw error;
+  }
+  const botToken = await getPlatformSecret(db, 'discord_bot_token');
+  if (!botToken) return { checked: 0, removed: 0, skipped: 'DISCORD_BOT_TOKEN lipsește.' };
+  let removed = 0;
+  for (const installation of installations || []) {
+    const guildId = String(installation.guild_id || '');
+    if (!id(guildId)) continue;
+    const response = await fetch(`${DISCORD_API}/guilds/${guildId}`, { headers: botHeaders(botToken) });
+    if (response.status === 404) {
+      await db.from('discord_bot_installations').update({ status: 'removed', removed_at: new Date().toISOString(), last_event_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('guild_id', guildId);
+      removed += 1;
+    } else if (response.ok) {
+      const guild = await response.json().catch(() => ({}));
+      await db.from('discord_bot_installations').update({ guild_name: clean(guild.name || '', 120) || undefined, last_event_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('guild_id', guildId);
+    }
+  }
+  return { checked: (installations || []).length, removed };
 }
 
 async function channels(db: any, guildId: string) {
@@ -119,16 +154,41 @@ Deno.serve(async (request) => {
     const accessToken = clean(body.access_token, 500);
     if (!accessToken) return reply(request, { error: 'Conectarea Discord este necesară.' }, 401);
     const discord = await discordUser(accessToken);
+    let platformAdmin = await isPlatformAdminAccount(db, discord.id);
+    const panelSessionToken = clean(request.headers.get('x-panel-session'), 500);
+    if (!platformAdmin && panelSessionToken) {
+      try {
+        const panelSession = await requirePanelSession(db, request, 0, true);
+        platformAdmin = await isPlatformAdminAccount(db, panelSession.discord_id);
+      } catch (_) {
+        // Sesiunea panel este opțională pentru utilizatorii Discord-only.
+      }
+    }
     const applicationId = id(body.application_id) ? String(body.application_id) : '1531023771211792384';
     const action = clean(body.action, 30) || 'bootstrap';
-    const guilds = await ownedGuilds(db, { ...discord, access_token: accessToken }, applicationId);
-    if (action === 'bootstrap') return reply(request, { ok: true, user: { id: String(discord.id), username: clean(discord.global_name || discord.username, 120) }, guilds, modules: Object.fromEntries(Object.entries(MODULES).map(([key, value]) => [key, { label: value.label, premium: value.premium, log_key: LOG_ROUTES[key] || '', log_label: LOG_LABELS[LOG_ROUTES[key] || ''] || '' }])) });
+    const diagnostics: Record<string, any> = {};
+    const reconciliation = action === 'bootstrap' ? await reconcileInstallations(db) : null;
+    const guilds = await ownedGuilds(db, { ...discord, access_token: accessToken }, applicationId, platformAdmin, diagnostics);
+    if (action === 'bootstrap') return reply(request, { ok: true, user: { id: String(discord.id), username: clean(discord.global_name || discord.username, 120), platform_admin: platformAdmin }, platform_admin: platformAdmin, guilds, diagnostics, reconciliation, modules: Object.fromEntries(Object.entries(MODULES).map(([key, value]) => [key, { label: value.label, premium: value.premium, log_key: LOG_ROUTES[key] || '', log_label: LOG_LABELS[LOG_ROUTES[key] || ''] || '' }])) });
     const guildId = clean(body.guild_id, 30);
     const selectedGuild = guilds.find((guild: any) => guild.id === guildId);
-    if (!selectedGuild) return reply(request, { error: 'Serverul nu este disponibil: trebuie să fii owner și botul trebuie să fie instalat.' }, 403);
-    if (action === 'channels') return reply(request, { ok: true, channels: await channels(db, guildId), routes: settings?.discord_channel_routes || {} });
+    if (!selectedGuild) return reply(request, { error: platformAdmin ? 'Serverul nu este disponibil sau botul nu este instalat.' : 'Serverul nu este disponibil: trebuie să fii owner și botul trebuie să fie instalat.' }, 403);
+    if (action === 'grant_premium') {
+      if (!platformAdmin) return reply(request, { error: 'Doar administratorul global poate acorda Premium manual.' }, 403);
+      const skuId = String(Deno.env.get('DISCORD_PREMIUM_GUILD_SKU_ID') || Deno.env.get('DISCORD_PREMIUM_GUILD_SKU_IDS') || '1545022271117066260').split(',').map((value) => value.trim()).find((value) => id(value)) || '';
+      if (!skuId) return reply(request, { error: 'SKU-ul Premium nu este configurat în secretele Supabase.' }, 500);
+      const days = Number(body.days);
+      if (!Number.isFinite(days) || (days !== 0 && (!Number.isInteger(days) || days < 1 || days > 3650))) return reply(request, { error: 'Durata Premium trebuie să fie între 1 și 3650 zile sau 0 pentru fără expirare.' }, 400);
+      await db.from('discord_guild_entitlements').update({ active: false, updated_at: new Date().toISOString() }).eq('guild_id', guildId).eq('active', true);
+      const now = new Date().toISOString();
+      const endsAt = days === 0 ? null : new Date(Date.now() + days * 86400000).toISOString();
+      const { data: entitlement, error } = await db.from('discord_guild_entitlements').insert({ guild_id: guildId, organization_id: selectedGuild.organization_id, sku_id: skuId, owner_type: 2, active: true, starts_at: now, ends_at: endsAt, purchaser_user_id: String(discord.id), raw_entitlement: { source: 'platform_admin_grant', granted_by: String(discord.id), days } }).select('id,guild_id,sku_id,starts_at,ends_at,active').single();
+      if (error) throw error;
+      return reply(request, { ok: true, entitlement });
+    }
     const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', selectedGuild.organization_id).maybeSingle();
     if (settingsError) throw settingsError;
+    if (action === 'channels') return reply(request, { ok: true, channels: await channels(db, guildId), routes: settings?.discord_channel_routes || {} });
     const allowedPremium = selectedGuild.plan !== 'free';
     if (action === 'save') {
       const requested = body.routes && typeof body.routes === 'object' ? body.routes : {};
