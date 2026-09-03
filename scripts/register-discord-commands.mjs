@@ -24,7 +24,7 @@ const commands = [{
         choices: [
           ['Anunțuri organizație', 'organization'], ['Anunțuri angajați', 'departments'], ['Pontaj', 'pontaj'],
           ['Învoiri organizație', 'requests_organization'], ['Învoiri angajați', 'requests_departments'], ['Contracte', 'contracts'],
-          ['Stash', 'stash'], ['Acțiuni organizație', 'actions_organization'],
+          ['Stash', 'stash'],
         ].map(([name, value]) => ({ name, value })),
       }],
     },
@@ -41,11 +41,12 @@ const commands = [{
           choices: [
             ['Anunțuri organizație', 'organization'], ['Anunțuri angajați', 'departments'], ['Pontaj', 'pontaj'], ['Log pontaj', 'log_pontaj'],
             ['Învoiri organizație', 'requests_organization'], ['Învoiri angajați', 'requests_departments'], ['Log învoiri organizație', 'log_requests_organization'], ['Log învoiri angajați', 'log_requests_departments'],
-            ['Contracte', 'contracts'], ['Log contracte', 'log_contracts'], ['Acțiuni organizație', 'actions_organization'], ['Log acțiuni', 'actions_organization_weekly'], ['Status live', 'status_live'],
+            ['Contracte', 'contracts'], ['Log contracte', 'log_contracts'], ['Log acțiuni organizație', 'log_actions_organization'], ['Log acțiuni săptămânal', 'actions_organization_weekly'], ['Status live', 'status_live'],
             ['Stash', 'stash'], ['Log Stash', 'log_stash'], ['Cereri Stash', 'stash_requests'], ['Log cereri Stash', 'log_stash_requests'], ['Donații Stash', 'stash_donations'], ['Log donații Stash', 'log_stash_donations'],
           ].map(([name, value]) => ({ name, value })),
         },
-        { type: 7, name: 'canal', description: 'Canalul Discord', required: true, channel_types: [0] },
+        { type: 7, name: 'canal', description: 'Canalul pentru embedul cu butoane', required: true, channel_types: [0] },
+        { type: 7, name: 'canal_log', description: 'Canalul pentru rezultatele și logurile modulului', required: false, channel_types: [0] },
       ],
     },
   ],

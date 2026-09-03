@@ -16,10 +16,15 @@ const commandOption = (interaction: any, name: string) => commandOptions(interac
 const PANEL_ROUTE_LABELS: Record<string, string> = {
   organization: 'Anunțuri organizație', departments: 'Anunțuri angajați', pontaj: 'Pontaj', log_pontaj: 'Log pontaj',
   requests_organization: 'Învoiri organizație', requests_departments: 'Învoiri angajați', log_requests_organization: 'Log învoiri organizație', log_requests_departments: 'Log învoiri angajați',
-  contracts: 'Contracte', log_contracts: 'Log contracte', actions_organization: 'Acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
+  contracts: 'Contracte', log_contracts: 'Log contracte', log_actions_organization: 'Log acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
   stash: 'Stash', log_stash: 'Log Stash', stash_requests: 'Cereri Stash', log_stash_requests: 'Log cereri Stash', stash_donations: 'Donații Stash', log_stash_donations: 'Log donații Stash',
 };
 const panelRouteKeys = Object.keys(PANEL_ROUTE_LABELS);
+const PANEL_LOG_ROUTES: Record<string, string> = {
+  organization: 'log_announcements_organization', departments: 'log_announcements_departments', pontaj: 'log_pontaj',
+  requests_organization: 'log_requests_organization', requests_departments: 'log_requests_departments', contracts: 'log_contracts',
+  actions_organization: 'log_actions_organization', stash: 'log_stash', stash_requests: 'log_stash_requests', stash_donations: 'log_stash_donations',
+};
 const isDiscordManager = (interaction: any) => {
   try { return (BigInt(String(interaction?.member?.permissions || '0')) & 40n) !== 0n; } catch { return false; }
 };
@@ -873,9 +878,9 @@ async function handleDisciplineSubmit(db: any, context: any, interaction: any, k
 async function publishActionRecord(db: any, context: any, record: any) {
   // Panoul de control rămâne în canalul de anunțuri, dar rezultatul acțiunii
   // se publică separat pe ruta configurată pentru „Acțiuni organizație”.
-  const routeKey = 'actions_organization';
+  const routeKey = 'log_actions_organization';
   const destinations = routeCandidates(context.settings, routeKey);
-  if (!destinations.some((item: any) => item.candidates.length)) return interactionMessage('Acțiunea a fost salvată în Supabase, dar canalul „Log anunțuri · Organizație” nu este configurat.');
+  if (!destinations.some((item: any) => item.candidates.length)) return interactionMessage('Acțiunea a fost salvată în Supabase, dar canalul „Log acțiuni organizație” nu este configurat.');
   const delivery = await deliverDiscordRoute(db, context.settings, routeKey, JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [actionEmbed(record, context)], components: actionComponents(String(record.id)) }));
   const messageId = delivery.results?.[0]?.id || null;
   if (messageId) await db.from('organization_actions').update({ discord_message_id: messageId }).eq('organization_id', context.organization.id).eq('id', record.id);
@@ -1463,6 +1468,7 @@ Deno.serve(async (request) => {
       if (subcommand === 'config') {
         const routeKey = String(commandOption(interaction, 'modul') || '').trim();
         const channelId = String(commandOption(interaction, 'canal') || '').trim();
+        const logChannelId = String(commandOption(interaction, 'canal_log') || '').trim();
         if (!isDiscordManager(interaction)) return reply(interactionMessage('Doar ownerul serverului sau un administrator cu permisiunea Manage Server poate modifica setările.'));
         if (!panelRouteKeys.includes(routeKey) || !/^\d{15,22}$/.test(channelId)) return reply(interactionMessage('Modulul sau canalul selectat nu este valid.'));
         const key = serviceKey();
@@ -1476,9 +1482,11 @@ Deno.serve(async (request) => {
         const routes = structuredClone(settings?.discord_channel_routes || {});
         const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
         routes[routeKey] = { ...(routes[routeKey] || {}), [target]: { ...(routes[routeKey]?.[target] || {}), channel_id: channelId, guild_id: guildId, enabled: true } };
+        const logRouteKey = PANEL_LOG_ROUTES[routeKey];
+        if (logChannelId && logRouteKey) routes[logRouteKey] = { ...(routes[logRouteKey] || {}), [target]: { ...(routes[logRouteKey]?.[target] || {}), channel_id: logChannelId, guild_id: guildId, enabled: true } };
         const { error: updateError } = await db.from('organization_settings').update({ discord_channel_routes: routes, updated_at: new Date().toISOString(), updated_by_discord_id: String(interaction?.member?.user?.id || interaction?.user?.id || '') }).eq('organization_id', guild.organization_id);
         if (updateError) throw updateError;
-        return reply(interactionMessage(`Canalul ${channelId} a fost salvat pentru **${PANEL_ROUTE_LABELS[routeKey]}** (${target === 'primary' ? 'principal' : 'secundar'}).`));
+        return reply(interactionMessage(`Canalul ${channelId} a fost salvat pentru **${PANEL_ROUTE_LABELS[routeKey]}**${logChannelId && logRouteKey ? `, iar canalul de log ${logChannelId} pentru **${PANEL_ROUTE_LABELS[logRouteKey]}**` : ''} (${target === 'primary' ? 'principal' : 'secundar'}).`));
       }
       if (subcommand === 'status') {
         const key = serviceKey();

@@ -288,7 +288,7 @@ const loadDisciplineTargets = async (scope:string) => {
 };
 const notifyActionDiscord = async (record:any) => {
     const { data: settings } = await db.from('organization_settings').select('webhook_routes,discord_channel_routes,panel_public_url').eq('organization_id', organizationId).maybeSingle();
-    const routeKey = 'log_announcements_organization';
+    const routeKey = 'log_actions_organization';
     if (!routeCandidates(settings, routeKey).some((item) => item.candidates.length)) return null;
     const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
     const participants = Array.isArray(record.participants) ? record.participants : [];
