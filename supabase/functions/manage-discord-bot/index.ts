@@ -167,7 +167,10 @@ Deno.serve(async (request) => {
     const applicationId = id(body.application_id) ? String(body.application_id) : '1531023771211792384';
     const action = clean(body.action, 30) || 'bootstrap';
     const diagnostics: Record<string, any> = {};
-    const reconciliation = action === 'bootstrap' ? await reconcileInstallations(db) : null;
+    // Reconcilierea verifică fiecare instalare Discord și poate dura mult.
+    // Este necesară doar în consola administratorului global; utilizatorii
+    // obișnuiți trebuie să primească imediat serverele eligibile.
+    const reconciliation = action === 'bootstrap' && platformAdmin ? await reconcileInstallations(db) : null;
     const guilds = await ownedGuilds(db, { ...discord, access_token: accessToken }, applicationId, platformAdmin, diagnostics);
     if (action === 'bootstrap') return reply(request, { ok: true, user: { id: String(discord.id), username: clean(discord.global_name || discord.username, 120), platform_admin: platformAdmin }, platform_admin: platformAdmin, guilds, diagnostics, reconciliation, modules: Object.fromEntries(Object.entries(MODULES).map(([key, value]) => [key, { label: value.label, premium: value.premium, log_key: LOG_ROUTES[key] || '', log_label: LOG_LABELS[LOG_ROUTES[key] || ''] || '' }])) });
     const guildId = clean(body.guild_id, 30);
