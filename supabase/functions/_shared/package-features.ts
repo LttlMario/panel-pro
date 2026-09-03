@@ -36,6 +36,7 @@ export const OPERATIONS_PACKAGE_FEATURES = Object.freeze([
 ]);
 
 export function resolvePackageFeatures(packageValue: any = {}) {
+  if (packageValue?.code === 'discord') return [];
   if (packageValue?.code === 'full') return [...FULL_PACKAGE_FEATURES];
   if (packageValue?.code === 'operations') return [...OPERATIONS_PACKAGE_FEATURES];
   // Standard is intentionally closed: a stored JSON value must never be able
@@ -48,6 +49,7 @@ export function packageLabel(packageValue: any = {}) {
 }
 
 export function packageAllowsPage(page: string, packageValue: any = {}) {
+  if (packageValue?.code === 'discord') return false;
   if (page === 'index.html' || page === 'pontaj.html') return true;
   const enabledFeatures = resolvePackageFeatures(packageValue);
   const pageFeatures = Object.entries(PACKAGE_FEATURES)

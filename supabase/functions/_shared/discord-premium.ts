@@ -1,0 +1,38 @@
+const DISCORD_PREMIUM_SKU_IDS = () => new Set(
+  String(Deno.env.get('DISCORD_PREMIUM_GUILD_SKU_IDS') || Deno.env.get('DISCORD_PREMIUM_GUILD_SKU_ID') || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter((value) => /^\d{15,22}$/.test(value)),
+);
+
+export function discordPremiumConfigured() {
+  return DISCORD_PREMIUM_SKU_IDS().size > 0;
+}
+
+export function interactionHasDiscordGuildEntitlement(interaction: any, guildId: string) {
+  const skuIds = DISCORD_PREMIUM_SKU_IDS();
+  if (!skuIds.size) return false;
+  const entitlements = Array.isArray(interaction?.entitlements) ? interaction.entitlements : [];
+  return entitlements.some((entitlement: any) => {
+    if (!skuIds.has(String(entitlement?.sku_id || '').trim())) return false;
+    const entitlementGuildId = String(entitlement?.guild_id || '').trim();
+    if (entitlementGuildId && entitlementGuildId !== String(guildId || '').trim()) return false;
+    const endsAt = entitlement?.ends_at ? Date.parse(String(entitlement.ends_at)) : NaN;
+    return !Number.isFinite(endsAt) || endsAt > Date.now();
+  });
+}
+
+export function discordPremiumButton(skuId = [...DISCORD_PREMIUM_SKU_IDS()][0] || '') {
+  return skuId ? [{ type: 1, components: [{ type: 2, style: 6, label: 'Activează Panel Pro Premium', sku_id: skuId }] }] : [];
+}
+
+export function discordPremiumMessage(skuId = [...DISCORD_PREMIUM_SKU_IDS()][0] || '') {
+  return {
+    type: 4,
+    data: {
+      content: 'Acest server nu are un abonament Panel Pro Premium activ. Activează abonamentul pentru a folosi funcțiile botului Discord.',
+      flags: 64,
+      components: discordPremiumButton(skuId),
+    },
+  };
+}

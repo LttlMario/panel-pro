@@ -3,12 +3,40 @@ import { isPlatformAdminAccount } from '../_shared/platform-admin.ts';
 import { resolvePackageFeatures } from '../_shared/package-features.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 import { deliverDiscordRoute, requestDiscordTarget, routeCandidates } from '../_shared/discord-delivery.ts';
+import { discordPremiumConfigured, discordPremiumMessage, interactionHasDiscordGuildEntitlement } from '../_shared/discord-premium.ts';
 
 const DISCORD_PUBLIC_KEY = () => String(Deno.env.get('DISCORD_PUBLIC_KEY') || Deno.env.get('DISCORD_APPLICATION_PUBLIC_KEY') || '').trim();
 const DISCORD_API = 'https://discord.com/api/v10';
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 const interactionMessage = (content: string, extra: Record<string, unknown> = {}) => ({ type: 4, data: { content, flags: 64, ...extra } });
+const commandSubcommand = (interaction: any) => Array.isArray(interaction?.data?.options) ? interaction.data.options.find((option: any) => option?.type === 1) : null;
+const commandOptions = (interaction: any) => Array.isArray(commandSubcommand(interaction)?.options) ? commandSubcommand(interaction).options : (Array.isArray(interaction?.data?.options) ? interaction.data.options : []);
+const commandOption = (interaction: any, name: string) => commandOptions(interaction).find((option: any) => option?.name === name)?.value;
+const PANEL_ROUTE_LABELS: Record<string, string> = {
+  organization: 'Anunțuri organizație', departments: 'Anunțuri angajați', pontaj: 'Pontaj', log_pontaj: 'Log pontaj',
+  requests_organization: 'Învoiri organizație', requests_departments: 'Învoiri angajați', log_requests_organization: 'Log învoiri organizație', log_requests_departments: 'Log învoiri angajați',
+  contracts: 'Contracte', log_contracts: 'Log contracte', actions_organization: 'Acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
+  stash: 'Stash', log_stash: 'Log Stash', stash_requests: 'Cereri Stash', log_stash_requests: 'Log cereri Stash', stash_donations: 'Donații Stash', log_stash_donations: 'Log donații Stash',
+};
+const panelRouteKeys = Object.keys(PANEL_ROUTE_LABELS);
+const isDiscordManager = (interaction: any) => {
+  try { return (BigInt(String(interaction?.member?.permissions || '0')) & 40n) !== 0n; } catch { return false; }
+};
+const controlPayload = (routeKey: string) => {
+  const definitions: Record<string, { title: string; description: string; color: number; buttons: any[] }> = {
+    organization: { title: '📢 Anunțuri · Organizație', description: 'Publică anunțuri, întrebări și sondaje pentru organizație.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:organization:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:organization:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:organization:create:poll' }] },
+    departments: { title: '📢 Anunțuri · Angajați', description: 'Publică anunțuri, întrebări și sondaje pentru angajați.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:departments:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:departments:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:departments:create:poll' }] },
+    pontaj: { title: '🕒 Pontaj · Panel Pro', description: 'Alege tura și folosește butoanele pentru Start, Pauză și Stop.', color: 0x22c55e, buttons: [{ label: 'Tura de zi', style: 1, id: 'panel:pontaj:shift_day' }, { label: 'Tura de noapte', style: 1, id: 'panel:pontaj:shift_night' }, { label: 'Start', style: 3, id: 'panel:pontaj:start' }, { label: 'Pauză', style: 2, id: 'panel:pontaj:pause' }, { label: 'Stop', style: 4, id: 'panel:pontaj:stop' }, { label: 'Pontajul meu', style: 1, id: 'panel:pontaj:my_stats' }] },
+    requests_organization: { title: '📝 Învoiri · Organizație', description: 'Trimite și consultă învoirile organizației.', color: 0xf59e0b, buttons: [{ label: 'Trimite învoire', style: 1, id: 'panel:requests:organization:new' }, { label: 'Învoirile mele', style: 2, id: 'panel:requests:organization:mine' }] },
+    requests_departments: { title: '📝 Învoiri · Angajați', description: 'Trimite și consultă învoirile angajaților.', color: 0xf59e0b, buttons: [{ label: 'Trimite învoire', style: 1, id: 'panel:requests:departments:new' }, { label: 'Învoirile mele', style: 2, id: 'panel:requests:departments:mine' }] },
+    contracts: { title: '📄 Contracte · Panel Pro', description: 'Generează și trimite contracte folosind șablonul organizației.', color: 0x14b8a6, buttons: [{ label: 'Creează contract', style: 1, id: 'panel:contracts:create' }] },
+    stash: { title: '📦 Stash · Administrare', description: 'Gestionează articolele, cererile și donațiile Stash.', color: 0x22c55e, buttons: [{ label: 'Adaugă în Stash', style: 3, id: 'panel:stash:create' }, { label: 'Cereri în așteptare', style: 1, id: 'panel:stash:pending_requests' }, { label: 'Donații în așteptare', style: 1, id: 'panel:stash:pending_donations' }] },
+    actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
+  };
+  const definition = definitions[routeKey] || { title: `⚙️ ${PANEL_ROUTE_LABELS[routeKey] || 'Panel Pro'}`, description: 'Embed de administrare Panel Pro.', color: 0x5865f2, buttons: [] };
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: definition.title, description: definition.description, color: definition.color, footer: { text: 'Panel Pro · configurat din Discord' } }], components: definition.buttons.length ? [{ type: 1, components: definition.buttons.slice(0, 5).map((button: any) => ({ type: 2, style: button.style, label: button.label, custom_id: button.id })) }] : [] };
+};
 const readableError = (error: unknown, fallback: string) => {
   if (error instanceof Error && error.message) return error.message;
   if (error && typeof error === 'object') {
@@ -1408,6 +1436,79 @@ Deno.serve(async (request) => {
   let interaction: any;
   try { interaction = JSON.parse(rawBody); } catch { return reply({ error: 'Payload Discord invalid.' }, 400); }
   if (Number(interaction?.type) === 1) return reply({ type: 1 });
+  const isApplicationCommand = Number(interaction?.type) === 2;
+  if (isApplicationCommand) {
+    const commandName = String(interaction?.data?.name || '').trim().toLowerCase();
+    if (commandName === 'panel') {
+      const subcommand = String(commandSubcommand(interaction)?.name || '').trim().toLowerCase();
+      const guildId = String(interaction?.guild_id || '').trim();
+      if (subcommand === 'publica') {
+        const routeKey = String(commandOption(interaction, 'modul') || '').trim();
+        if (!isDiscordManager(interaction)) return reply(interactionMessage('Doar ownerul serverului sau un administrator cu permisiunea Manage Server poate publica embeduri.'));
+        if (!panelRouteKeys.includes(routeKey)) return reply(interactionMessage('Modulul selectat nu este valid.'));
+        const key = serviceKey();
+        if (!key) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+        const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+        const { data: guild, error: guildError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
+        if (guildError) throw guildError;
+        if (!guild?.organization_id) return reply(interactionMessage('Serverul Discord nu este asociat unei organizații Panel Pro.'));
+        const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', guild.organization_id).maybeSingle();
+        if (settingsError) throw settingsError;
+        const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
+        const route = settings?.discord_channel_routes?.[routeKey]?.[target];
+        if (!route?.channel_id) return reply(interactionMessage(`Canalul pentru **${PANEL_ROUTE_LABELS[routeKey]}** nu este configurat pe serverul acesta. Folosește mai întâi comanda /panel config.`));
+        const delivery = await deliverDiscordRoute(db, { discord_channel_routes: settings.discord_channel_routes }, routeKey, JSON.stringify(controlPayload(routeKey)), { postOnly: true });
+        return reply(interactionMessage(`Embedul **${PANEL_ROUTE_LABELS[routeKey]}** a fost publicat în <#${route.channel_id}>.`));
+      }
+      if (subcommand === 'config') {
+        const routeKey = String(commandOption(interaction, 'modul') || '').trim();
+        const channelId = String(commandOption(interaction, 'canal') || '').trim();
+        if (!isDiscordManager(interaction)) return reply(interactionMessage('Doar ownerul serverului sau un administrator cu permisiunea Manage Server poate modifica setările.'));
+        if (!panelRouteKeys.includes(routeKey) || !/^\d{15,22}$/.test(channelId)) return reply(interactionMessage('Modulul sau canalul selectat nu este valid.'));
+        const key = serviceKey();
+        if (!key) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+        const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+        const { data: guild, error: guildError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
+        if (guildError) throw guildError;
+        if (!guild?.organization_id) return reply(interactionMessage('Serverul Discord nu este asociat unei organizații Panel Pro.'));
+        const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', guild.organization_id).maybeSingle();
+        if (settingsError) throw settingsError;
+        const routes = structuredClone(settings?.discord_channel_routes || {});
+        const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
+        routes[routeKey] = { ...(routes[routeKey] || {}), [target]: { ...(routes[routeKey]?.[target] || {}), channel_id: channelId, guild_id: guildId, enabled: true } };
+        const { error: updateError } = await db.from('organization_settings').update({ discord_channel_routes: routes, updated_at: new Date().toISOString(), updated_by_discord_id: String(interaction?.member?.user?.id || interaction?.user?.id || '') }).eq('organization_id', guild.organization_id);
+        if (updateError) throw updateError;
+        return reply(interactionMessage(`Canalul ${channelId} a fost salvat pentru **${PANEL_ROUTE_LABELS[routeKey]}** (${target === 'primary' ? 'principal' : 'secundar'}).`));
+      }
+      if (subcommand === 'status') {
+        const key = serviceKey();
+        if (!key) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+        const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+        const { data: guild, error: guildError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
+        if (guildError) throw guildError;
+        if (!guild?.organization_id) return reply(interactionMessage('Serverul Discord nu este asociat unei organizații Panel Pro.'));
+        const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', guild.organization_id).maybeSingle();
+        if (settingsError) throw settingsError;
+        const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
+        const routes = settings?.discord_channel_routes || {};
+        const lines = panelRouteKeys.map((routeKey) => `${routes?.[routeKey]?.[target]?.channel_id ? '✅' : '⬜'} ${PANEL_ROUTE_LABELS[routeKey]}${routes?.[routeKey]?.[target]?.channel_id ? ` · <#${routes[routeKey][target].channel_id}>` : ''}`);
+        return reply(interactionMessage('', { embeds: [{ title: '⚙️ Panel Pro · Configurare Discord', description: lines.join('\n'), color: 0x5865f2, footer: { text: `Server ${guildId} · ${target}` } }] }));
+      }
+      return reply(interactionMessage('', {
+        embeds: [{
+          title: '🧭 Panel Pro · Meniu Discord',
+          description: 'Panel Pro gestionează pontaje, învoiri, anunțuri, sondaje, acțiuni, contracte și Stash direct prin embedurile configurate pe server.',
+          color: 0x5865f2,
+          fields: [
+            { name: 'Cum folosești aplicația', value: 'Apasă butoanele din embedurile Panel Pro publicate în canalele configurate. Fiecare acțiune respectă rolurile și permisiunile organizației.', inline: false },
+            { name: 'Date și organizații', value: 'Datele sunt salvate în Supabase și rămân separate pentru organizația serverului Discord.', inline: false },
+          ],
+          footer: { text: 'Panel Pro · Discord' },
+        }],
+      }));
+    }
+    return reply(interactionMessage('Comanda Panel Pro nu este disponibilă.'));
+  }
   const customId = String(interaction?.data?.custom_id || '');
   const isComponent = Number(interaction?.type) === 3;
   const isButton = isComponent && Number(interaction?.data?.component_type || 2) === 2;
@@ -1426,6 +1527,18 @@ Deno.serve(async (request) => {
     const key = serviceKey();
     if (!key) throw new Error('Cheia secretă Supabase lipsește.');
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    if (discordPremiumConfigured()) {
+      const guildId = String(interaction.guild_id || '').trim();
+      if (/^\d{15,22}$/.test(guildId)) {
+        const { data: guildAccess, error: guildAccessError } = await db.from('organization_guilds').select('organization_id').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
+        if (guildAccessError) throw guildAccessError;
+        if (guildAccess?.organization_id) {
+          const { data: premiumOrganization, error: premiumOrganizationError } = await db.from('organizations').select('access_mode').eq('id', guildAccess.organization_id).maybeSingle();
+          if (premiumOrganizationError) throw premiumOrganizationError;
+          if (premiumOrganization?.access_mode === 'discord_only' && !interactionHasDiscordGuildEntitlement(interaction, guildId)) return reply(discordPremiumMessage());
+        }
+      }
+    }
     if (isStash && isButton) {
       const parts = customId.split(':');
       if (parts[2] === 'pending_requests' || parts[2] === 'pending_donations') {
