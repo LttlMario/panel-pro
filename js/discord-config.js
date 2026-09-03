@@ -12,6 +12,7 @@ window.PANEL_DISCORD_CONFIG = Object.freeze({
 
     scopes: Object.freeze([
         "identify",
+        "guilds",
         "guilds.members.read"
     ])
 });
