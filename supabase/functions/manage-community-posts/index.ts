@@ -743,6 +743,7 @@ const own = async (id:string) => {
     try {
         stage='notify_discord_bot';
         discordMessageId = await notifyDiscord(post, body.options || [], post.audience);
+        await notifyCommunityLog(post, 'Postare nouă');
     } catch (error) {
         discordDeliveryWarning = error instanceof Error ? error.message : 'Canalul Discord al botului nu a putut fi contactat.';
         console.error('Postarea a fost salvată, dar livrarea Discord a eșuat:', discordDeliveryWarning);
@@ -792,7 +793,7 @@ const own = async (id:string) => {
                 ? 'departments'
                 : 'organization';
 
-        const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
+        const routeKey = audience === 'departments' ? 'departments' : 'organization';
         const targets = routeCandidates(cfg, routeKey).flatMap((item) => item.candidates);
         for (const target of targets) {
             await requestDiscordTarget(db, target, null, { method: 'DELETE', messageId: String(post.discord_message_id) }).catch(() => null);
@@ -882,7 +883,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
         .maybeSingle();
 
 
-    const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
+    const routeKey = audience === 'departments' ? 'departments' : 'organization';
     if (!routeCandidates(discordConfig, routeKey).some((item) => item.candidates.length)) return null;
 
     const site = (
@@ -995,7 +996,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
             ? 'departments'
             : 'organization';
 
-    const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
+    const routeKey = audience === 'departments' ? 'departments' : 'organization';
     if (!routeCandidates(discordConfig, routeKey).some((item) => item.candidates.length)) return;
 
 
