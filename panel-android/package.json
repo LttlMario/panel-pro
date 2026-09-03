@@ -2,6 +2,7 @@
   "devDependencies": {
     "@capacitor/cli": "^7.6.8",
     "@tailwindcss/cli": "^4.3.3",
+    "@xmldom/xmldom": "^0.9.12",
     "tailwindcss": "^4.3.3"
   },
   "dependencies": {
