@@ -55,6 +55,10 @@
         #bot-info-right{grid-column:3;grid-row:1;}
     }
 
+    /* Pagina de login păstrează doar autentificarea centrală. Informațiile botului sunt pe pagina Discord dedicată. */
+    #bot-login-layout{display:flex!important;align-items:center;justify-content:center;}
+    #bot-info-left,#bot-info-right{display:none!important;}
+
     </style>
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
