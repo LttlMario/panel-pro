@@ -186,6 +186,24 @@ Deno.serve(async request=>{
 
       if(settingsError) throw settingsError;
 
+      const listBotToken=await getPlatformSecret(db,'discord_bot_token');
+      if(listBotToken){
+        await Promise.all((data||[]).filter((item:any)=>item.access_mode==='discord_only').map(async(item:any)=>{
+          const guilds=Array.isArray(item.organization_guilds)?item.organization_guilds:[];
+          const primary=guilds.find((guild:any)=>guild.kind==='primary'&&guild.enabled!==false)||guilds.find((guild:any)=>guild.enabled!==false);
+          if(!primary?.guild_id)return;
+          const liveName=await discordGuildName(String(primary.guild_id),listBotToken);
+          if(!liveName||liveName===item.name)return;
+          item.name=liveName;
+          const guild=item.organization_guilds.find((row:any)=>String(row.guild_id)===String(primary.guild_id));
+          if(guild)guild.guild_name=liveName;
+          await Promise.all([
+            db.from('organizations').update({name:liveName,updated_at:nowIso()}).eq('id',item.id),
+            db.from('organization_guilds').update({guild_name:liveName}).eq('organization_id',item.id).eq('guild_id',primary.guild_id),
+          ]);
+        }));
+      }
+
       return reply({
         organizations: (data || []).map((item:any) => ({
           ...item,
@@ -222,6 +240,11 @@ Deno.serve(async request=>{
       const discordInstallations = installationsError?.code === '42P01' ? [] : (installationsError ? (() => { throw installationsError; })() : (installations || []));
       const now=Date.now();
       const discordOnlyIds=new Set((organizations||[]).filter((item:any)=>item.access_mode==='discord_only').map((item:any)=>String(item.id)));
+      const installationNames=new Map<string,string>();
+      for(const installation of installations||[]){
+        const name=String(installation.guild_name||'').trim().slice(0,120);
+        if(name&&!/^Server Discord\s+\d+$/i.test(name))installationNames.set(String(installation.guild_id),name);
+      }
       const discordBotToken=await getPlatformSecret(db,'discord_bot_token');
       const liveGuildNames=new Map<string,string>();
       if(discordBotToken){
@@ -234,7 +257,7 @@ Deno.serve(async request=>{
         const organizationId=String(organization.id);
         const settings=(settingsRows||[]).find((item:any)=>item.organization_id===organizationId)||{};
         const app=(appRows||[]).filter((item:any)=>item.organization_id===organizationId).reduce((map:any,item:any)=>{map[item.key]=item.value;return map;},{});
-        const guilds=(guildRows||[]).filter((item:any)=>item.organization_id===organizationId).map((item:any)=>({...item,guild_name:liveGuildNames.get(String(item.guild_id))||item.guild_name}));
+        const guilds=(guildRows||[]).filter((item:any)=>item.organization_id===organizationId).map((item:any)=>({...item,guild_name:liveGuildNames.get(String(item.guild_id))||installationNames.get(String(item.guild_id))||item.guild_name}));
         const roles=(roleRows||[]).filter((item:any)=>item.organization_id===organizationId);
         const [members,activeSessions,activeShifts,activeAbsences,auditCount,lastAudit]=await Promise.all([
           countRows(db,'organization_members',organizationId,[query=>query.eq('active',true)]),
