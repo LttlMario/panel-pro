@@ -186,13 +186,14 @@ Deno.serve(async request=>{
 
       if(settingsError) throw settingsError;
 
+      const {data:listInstallations}=await db.from('discord_bot_installations').select('guild_id,guild_name,status').eq('status','active');
+      const listInstallationNames=new Map<string,string>((listInstallations||[]).map((item:any)=>[String(item.guild_id),String(item.guild_name||'').trim()]));
       const listBotToken=await getPlatformSecret(db,'discord_bot_token');
-      if(listBotToken){
-        await Promise.all((data||[]).filter((item:any)=>item.access_mode==='discord_only').map(async(item:any)=>{
+      await Promise.all((data||[]).filter((item:any)=>item.access_mode==='discord_only'||String(item.slug||'').startsWith('discord-')).map(async(item:any)=>{
           const guilds=Array.isArray(item.organization_guilds)?item.organization_guilds:[];
           const primary=guilds.find((guild:any)=>guild.kind==='primary'&&guild.enabled!==false)||guilds.find((guild:any)=>guild.enabled!==false);
           if(!primary?.guild_id)return;
-          const liveName=await discordGuildName(String(primary.guild_id),listBotToken);
+          const liveName=(listBotToken?await discordGuildName(String(primary.guild_id),listBotToken):'')||listInstallationNames.get(String(primary.guild_id))||'';
           if(!liveName||liveName===item.name)return;
           item.name=liveName;
           const guild=item.organization_guilds.find((row:any)=>String(row.guild_id)===String(primary.guild_id));
@@ -202,7 +203,6 @@ Deno.serve(async request=>{
             db.from('organization_guilds').update({guild_name:liveName}).eq('organization_id',item.id).eq('guild_id',primary.guild_id),
           ]);
         }));
-      }
 
       return reply({
         organizations: (data || []).map((item:any) => ({
@@ -239,7 +239,7 @@ Deno.serve(async request=>{
       // migration is applied in projects that are still on the previous schema.
       const discordInstallations = installationsError?.code === '42P01' ? [] : (installationsError ? (() => { throw installationsError; })() : (installations || []));
       const now=Date.now();
-      const discordOnlyIds=new Set((organizations||[]).filter((item:any)=>item.access_mode==='discord_only').map((item:any)=>String(item.id)));
+      const discordOnlyIds=new Set((organizations||[]).filter((item:any)=>item.access_mode==='discord_only'||String(item.slug||'').startsWith('discord-')).map((item:any)=>String(item.id)));
       const installationNames=new Map<string,string>();
       for(const installation of installations||[]){
         const name=String(installation.guild_name||'').trim().slice(0,120);
