@@ -29,7 +29,7 @@ const LOG_LABELS: Record<string, string> = {
 const headersFor = (request: Request) => {
   const origin = String(request.headers.get('origin') || '');
   const allowed = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || origin === 'https://panel-pro.ro' ? origin : 'https://panel-pro.ro';
-  return { 'Access-Control-Allow-Origin': allowed, 'Access-Control-Allow-Headers': 'authorization,apikey,content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Max-Age': '86400', Vary: 'Origin', 'Content-Type': 'application/json' };
+  return { 'Access-Control-Allow-Origin': allowed, 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Max-Age': '86400', Vary: 'Origin', 'Content-Type': 'application/json' };
 };
 const reply = (request: Request, data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: headersFor(request) });
 const id = (value: unknown) => /^\d{15,22}$/.test(String(value || '').trim());
