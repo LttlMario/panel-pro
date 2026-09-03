@@ -526,6 +526,9 @@ if (!existing) {
     } else {
       active = available.find((item) => item.organization_id === requestedId) || available[0];
     }
+    if (String(active?.package_code || '').toLowerCase() === 'discord' && !isPlatformAdmin) {
+      return reply({ error: 'Acest server folosește modul Discord-only. Funcțiile sunt disponibile doar în Discord, nu în panelul web.', code: 'DISCORD_ONLY_WEB' }, 403);
+    }
     const { data: linkedAccount, error: linkedAccountError } = await db
       .from('user_accounts')
       .select('username,auth_user_id,avatar_url')

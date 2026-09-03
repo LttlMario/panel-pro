@@ -147,6 +147,16 @@ Deno.serve(async (request) => {
       .maybeSingle();
     if (packageError) throw packageError;
     const packageFeatures = resolvePackageFeatures(packageSetting?.value || {});
+    // Organizațiile cu abonament web Premium nu afișează butonul de donație.
+    // Eliminăm componenta și pe server, inclusiv pentru pagini/cache-uri mai vechi
+    // care încă o injectează în payload înainte de trimitere.
+    if (packageSetting?.value?.code === 'full' && payload && typeof payload === 'object' && Array.isArray(payload.components)) {
+      payload = {
+        ...payload,
+        components: payload.components.filter((row: any) => !row?.components?.some((component: any) => component?.type === 2 && component?.style === 5 && component?.url === 'https://revolut.me/mariomihail')),
+      };
+      forwardBody = JSON.stringify(payload);
+    }
     const requiredFeature = finalChannel === 'organization'
       ? 'announcements_organization'
       : finalChannel === 'departments'

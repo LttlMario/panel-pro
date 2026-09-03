@@ -3,7 +3,7 @@ import { isPlatformAdminAccount } from '../_shared/platform-admin.ts';
 import { resolvePackageFeatures } from '../_shared/package-features.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 import { deliverDiscordRoute, requestDiscordTarget, routeCandidates } from '../_shared/discord-delivery.ts';
-import { discordPremiumConfigured, discordPremiumMessage, interactionHasDiscordGuildEntitlement } from '../_shared/discord-premium.ts';
+import { discordPremiumAccess, discordPremiumButton, discordPremiumConfigured, discordPremiumMessage, discordPremiumModule } from '../_shared/discord-premium.ts';
 
 const DISCORD_PUBLIC_KEY = () => String(Deno.env.get('DISCORD_PUBLIC_KEY') || Deno.env.get('DISCORD_APPLICATION_PUBLIC_KEY') || '').trim();
 const DISCORD_API = 'https://discord.com/api/v10';
@@ -28,21 +28,80 @@ const PANEL_LOG_ROUTES: Record<string, string> = {
 const isDiscordManager = (interaction: any) => {
   try { return (BigInt(String(interaction?.member?.permissions || '0')) & 40n) !== 0n; } catch { return false; }
 };
-const controlPayload = (routeKey: string) => {
+
+async function ensureDiscordOnlyOrganization(db: any, interaction: any) {
+  const guildId = String(interaction?.guild_id || '').trim();
+  const discordId = String(interaction?.member?.user?.id || interaction?.user?.id || '').trim();
+  if (!/^\d{15,22}$/.test(guildId) || !/^\d{15,22}$/.test(discordId)) throw new Error('Serverul Discord nu a putut fi identificat.');
+  const { data: existing, error: existingError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
+  if (existingError) throw existingError;
+  if (existing?.organization_id) {
+    const { data: existingSettings, error: packageError } = await db.from('app_settings').select('key,value').eq('organization_id', existing.organization_id).in('key', ['organization_package', 'discord_trial']);
+    if (packageError) throw packageError;
+    const packageSetting = (existingSettings || []).find((item: any) => item.key === 'organization_package');
+    if (packageSetting?.value?.code === 'discord') {
+      if (!(existingSettings || []).some((item: any) => item.key === 'discord_trial')) {
+        const startsAt = new Date().toISOString();
+        const { error: trialError } = await db.from('app_settings').insert({ organization_id: existing.organization_id, key: 'discord_trial', value: { starts_at: startsAt, ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), duration_days: 30 }, updated_at: startsAt });
+        if (trialError) throw trialError;
+      }
+      const manager = isDiscordManager(interaction);
+      const { error: memberError } = await db.from('organization_members').upsert({ organization_id: existing.organization_id, discord_id: discordId, panel_role: manager ? 'Administrator' : 'Membru', permission_level: manager ? 99 : 1, active: true, last_verified_at: new Date().toISOString() }, { onConflict: 'organization_id,discord_id' });
+      if (memberError) throw memberError;
+    }
+    return existing;
+  }
+  if (!isDiscordManager(interaction)) throw new Error('Serverul nu este configurat pentru Panel Pro. Ownerul serverului sau un administrator cu Manage Server trebuie să ruleze mai întâi /panel config.');
+
+  const applicationId = String(interaction?.application_id || '').trim();
+  const guildName = String(interaction?.guild?.name || interaction?.guild_name || `Server Discord ${guildId}`).trim().slice(0, 120);
+  const slug = `discord-${guildId}`;
+  const now = new Date().toISOString();
+  const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: organization, error: organizationError } = await db.from('organizations').insert({
+    slug, name: guildName, access_mode: 'discord_only', lifecycle_status: 'active', active: true, updated_at: now,
+  }).select('id,name,address,active').single();
+  if (organizationError) {
+    if (organizationError.code === '23505') {
+      const { data: retry, error: retryError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
+      if (retryError) throw retryError;
+      if (retry?.organization_id) return retry;
+    }
+    throw organizationError;
+  }
+  const organizationId = String(organization.id);
+  const [guildResult, settingsResult, packageResult, memberResult, trialResult] = await Promise.all([
+    db.from('organization_guilds').insert({ organization_id: organizationId, guild_id: guildId, guild_name: guildName, kind: 'primary', enabled: true }),
+    db.from('organization_settings').insert({ organization_id: organizationId, discord_client_id: applicationId || '0', panel_public_url: '', discord_channel_routes: {}, updated_at: now, updated_by_discord_id: discordId }),
+    db.from('app_settings').insert({ organization_id: organizationId, key: 'organization_package', value: { code: 'discord', unlimited: true, expires_at: null }, updated_at: now }),
+    db.from('organization_members').insert({ organization_id: organizationId, discord_id: discordId, panel_role: 'Administrator', permission_level: 99, active: true, last_verified_at: now }),
+    db.from('app_settings').insert({ organization_id: organizationId, key: 'discord_trial', value: { starts_at: now, ends_at: trialEndsAt, duration_days: 30 }, updated_at: now }),
+  ]);
+  const failed = [guildResult, settingsResult, packageResult, memberResult, trialResult].find((result: any) => result?.error);
+  if (failed?.error) throw failed.error;
+  await db.from('organization_lifecycle_events').insert({ organization_id: organizationId, event_type: 'discord_only_initialized', actor_discord_id: discordId, details: { guild_id: guildId } });
+  return { organization_id: organizationId, kind: 'primary' };
+}
+const controlPayload = (routeKey: string, trialText = '', includeDonation = true) => {
   const definitions: Record<string, { title: string; description: string; color: number; buttons: any[] }> = {
     organization: { title: '📢 Anunțuri · Organizație', description: 'Publică anunțuri, întrebări și sondaje pentru organizație.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:organization:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:organization:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:organization:create:poll' }] },
     departments: { title: '📢 Anunțuri · Angajați', description: 'Publică anunțuri, întrebări și sondaje pentru angajați.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:departments:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:departments:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:departments:create:poll' }] },
     pontaj: { title: '🕒 Pontaj · Panel Pro', description: 'Alege tura și folosește butoanele pentru Start, Pauză și Stop.', color: 0x22c55e, buttons: [{ label: 'Tura de zi', style: 1, id: 'panel:pontaj:shift_day' }, { label: 'Tura de noapte', style: 1, id: 'panel:pontaj:shift_night' }, { label: 'Start', style: 3, id: 'panel:pontaj:start' }, { label: 'Pauză', style: 2, id: 'panel:pontaj:pause' }, { label: 'Stop', style: 4, id: 'panel:pontaj:stop' }, { label: 'Pontajul meu', style: 1, id: 'panel:pontaj:my_stats' }] },
     requests_organization: { title: '📝 Învoiri · Organizație', description: 'Trimite și consultă învoirile organizației.', color: 0xf59e0b, buttons: [{ label: 'Trimite învoire', style: 1, id: 'panel:requests:organization:new' }, { label: 'Învoirile mele', style: 2, id: 'panel:requests:organization:mine' }] },
     requests_departments: { title: '📝 Învoiri · Angajați', description: 'Trimite și consultă învoirile angajaților.', color: 0xf59e0b, buttons: [{ label: 'Trimite învoire', style: 1, id: 'panel:requests:departments:new' }, { label: 'Învoirile mele', style: 2, id: 'panel:requests:departments:mine' }] },
-    contracts: { title: '📄 Contracte · Panel Pro', description: 'Generează și trimite contracte folosind șablonul organizației.', color: 0x14b8a6, buttons: [{ label: 'Creează contract', style: 1, id: 'panel:contracts:create' }] },
+      contracts: { title: '📄 Contracte · Panel Pro', description: 'Generează și trimite contracte folosind șablonul organizației.', color: 0x14b8a6, buttons: [{ label: 'Creează contract', style: 1, id: 'panel:contracts:create' }, { label: 'Setează contractul', style: 2, id: 'panel:contracts:settings' }, { label: 'Info contract', style: 1, id: 'panel:contracts:info' }] },
+      status_live: { title: '📡 Status live · Panel Pro', description: 'Acest embed este actualizat automat la fiecare minut cu pontajele și pauzele active. Configurează canalul Status live, apoi pornește sincronizarea din pagina Status live.', color: 0x06b6d4, buttons: [] },
     stash: { title: '📦 Stash · Administrare', description: 'Gestionează articolele, cererile și donațiile Stash.', color: 0x22c55e, buttons: [{ label: 'Adaugă în Stash', style: 3, id: 'panel:stash:create' }, { label: 'Cereri în așteptare', style: 1, id: 'panel:stash:pending_requests' }, { label: 'Donații în așteptare', style: 1, id: 'panel:stash:pending_donations' }] },
     actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
   };
   const definition = definitions[routeKey] || { title: `⚙️ ${PANEL_ROUTE_LABELS[routeKey] || 'Panel Pro'}`, description: 'Embed de administrare Panel Pro.', color: 0x5865f2, buttons: [] };
-  const components = definition.buttons.length ? [{ type: 1, components: definition.buttons.slice(0, 5).map((button: any) => ({ type: 2, style: button.style, label: button.label, custom_id: button.id })) }] : [];
-  components.push({ type: 1, components: [{ type: 2, style: 5, label: 'Donează pentru dezvoltare', url: 'https://revolut.me/mariomihail' }] });
-  return { allowed_mentions: { parse: [] }, embeds: [{ title: definition.title, description: definition.description, color: definition.color, footer: { text: 'Panel Pro · configurat din Discord' } }], components };
+    const components: any[] = [];
+    for (let index = 0; index < definition.buttons.length && components.length < 4; index += 5) {
+      components.push({ type: 1, components: definition.buttons.slice(index, index + 5).map((button: any) => ({ type: 2, style: button.style, label: button.label, custom_id: button.id })) });
+    }
+  if (includeDonation) components.push({ type: 1, components: [{ type: 2, style: 5, label: 'Donează pentru dezvoltare', url: 'https://revolut.me/mariomihail' }] });
+  if (discordPremiumConfigured()) components.push(...discordPremiumButton());
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: definition.title, description: [definition.description, trialText].filter(Boolean).join('\n\n'), color: definition.color, footer: { text: 'Panel Pro · configurat din Discord' } }], components };
 };
 const readableError = (error: unknown, fallback: string) => {
   if (error instanceof Error && error.message) return error.message;
@@ -53,6 +112,19 @@ const readableError = (error: unknown, fallback: string) => {
   }
   return fallback;
 };
+
+async function discordTrialNotice(db: any, organizationId: string) {
+  const { data, error } = await db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'discord_trial').maybeSingle();
+  if (error) throw error;
+  const startsAt = Date.parse(String(data?.value?.starts_at || ''));
+  const endsAt = Date.parse(String(data?.value?.ends_at || ''));
+  if (!Number.isFinite(endsAt)) return '';
+  if (endsAt <= Date.now()) return '⚪ Perioada de probă Premium a expirat. Pontajul și Învoirile rămân gratuite.';
+  const days = Math.max(1, Math.ceil((endsAt - Date.now()) / (24 * 60 * 60 * 1000)));
+  const startText = Number.isFinite(startsAt) ? new Date(startsAt).toLocaleDateString('ro-RO') : '—';
+  const endText = new Date(endsAt).toLocaleDateString('ro-RO');
+  return `🟢 Trial Premium activ: **${days} zile rămase** (${startText} – ${endText}). Poți activa abonamentul Premium oricând folosind butonul de mai jos.`;
+}
 
 async function deferInteraction(interaction: any, updateOnly = false) {
   const interactionId = String(interaction?.id || '').trim();
@@ -86,6 +158,14 @@ async function deleteFollowup(applicationId: string, interactionToken: string, m
   if (!messageId) return;
   const response = await fetch(`${DISCORD_API}/webhooks/${applicationId}/${encodeURIComponent(interactionToken)}/messages/${encodeURIComponent(messageId)}`, { method: 'DELETE' });
   if (!response.ok && response.status !== 404) console.error('[discord-interactions] follow-up delete failed', response.status, await response.text().catch(() => ''));
+}
+
+async function runDeferredCommand(interaction: any, work: () => Promise<any>, fallback: string) {
+  const deferred = await deferInteraction(interaction, false);
+  let result;
+  try { result = await work(); } catch (error) { console.error('[discord-interactions] command failed', error); result = interactionMessage(readableError(error, fallback)); }
+  await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+  return new Response(null, { status: 204 });
 }
 
 const hexBytes = (value: string, length: number) => {
@@ -228,11 +308,13 @@ async function resolveRequestContext(db: any, interaction: any, audience: 'organ
   const { data: organizationMember, error: memberError } = await db.from('organization_members').select('panel_role,permission_level,active').eq('organization_id', guild.organization_id).eq('discord_id', discordId).eq('active', true).maybeSingle();
   if (memberError) throw memberError;
   const platformAdmin = await isPlatformAdminAccount(db, discordId);
-  const { data: actionSetting, error: actionError } = await db.from('app_settings').select('value').eq('organization_id', guild.organization_id).eq('key', 'action_permissions').maybeSingle();
+  const { data: actionSettings, error: actionError } = await db.from('app_settings').select('key,value').eq('organization_id', guild.organization_id).in('key', ['action_permissions', 'organization_package']);
   if (actionError) throw actionError;
+  const actionSetting = (actionSettings || []).find((item: any) => item.key === 'action_permissions');
+  const discordOnly = (actionSettings || []).find((item: any) => item.key === 'organization_package')?.value?.code === 'discord';
   const permissionKey = audience === 'organization' ? 'cereri.organization' : 'cereri.departments';
   const allowedRoles = Array.isArray(actionSetting?.value?.[permissionKey]) ? actionSetting.value[permissionKey].map(String) : [];
-  if (!platformAdmin && !memberRolesHasAny(memberRoles, allowedRoles)) throw new Error(`Nu ai permisiunea configurată pentru Învoiri · ${audience === 'organization' ? 'Organizație' : 'Angajați'}.`);
+  if (!platformAdmin && !discordOnly && !memberRolesHasAny(memberRoles, allowedRoles)) throw new Error(`Nu ai permisiunea configurată pentru Învoiri · ${audience === 'organization' ? 'Organizație' : 'Angajați'}.`);
   if (!platformAdmin && !matchedMapping && !organizationMember) throw new Error('Contul tău nu este membru activ al acestei organizații.');
   const displayName = String(interaction.member?.nick || user.global_name || user.username || discordId).trim().slice(0, 120) || discordId;
   return { guildId, channelId, target, discordId, displayName, organization, settings, platformAdmin, audience, routeKey, logRouteKey, role: matchedMapping?.panel_role || organizationMember?.panel_role || 'Membru' };
@@ -280,6 +362,7 @@ async function resolveAnnouncementContext(db: any, interaction: any, audience: '
   const pagePermissions = byKey.get('page_permissions') && typeof byKey.get('page_permissions') === 'object' ? byKey.get('page_permissions') : {};
   const actionPermissions = byKey.get('action_permissions') && typeof byKey.get('action_permissions') === 'object' ? byKey.get('action_permissions') : {};
   const packageFeatures = resolvePackageFeatures(byKey.get('organization_package') || {});
+  const discordOnly = byKey.get('organization_package')?.code === 'discord';
   const feature = audience === 'organization' ? 'announcements_organization' : 'announcements_departments';
 
   const memberRoles = new Set((interaction.member?.roles || []).map((role: unknown) => String(role)));
@@ -297,7 +380,7 @@ async function resolveAnnouncementContext(db: any, interaction: any, audience: '
   const configuredRoles = communicationConfigured
     ? (Array.isArray(communication?.[audience]?.[permission]) ? communication[audience][permission].map(String) : [])
     : (permission === 'read' ? (Array.isArray(pagePermissions['anunturi.html']) ? pagePermissions['anunturi.html'].map(String) : []) : (Array.isArray(actionPermissions['anunturi.publish']) ? actionPermissions['anunturi.publish'].map(String) : []));
-  const hasAccess = platformAdmin || (packageFeatures.includes(feature) && [...effectiveRoleIds].some((roleId) => configuredRoles.includes(roleId)));
+  const hasAccess = platformAdmin || discordOnly || (packageFeatures.includes(feature) && [...effectiveRoleIds].some((roleId) => configuredRoles.includes(roleId)));
   if (!hasAccess) throw new Error(`Nu ai permisiunea de ${permission === 'read' ? 'citire' : 'scriere'} pentru ${audience === 'organization' ? 'Anunțuri · Organizație' : 'Anunțuri · Angajați'}.`);
   if (!platformAdmin && !matchedMapping && !organizationMember) throw new Error('Contul tău nu este membru activ al acestei organizații.');
   const displayName = String(interaction.member?.nick || user.global_name || user.username || discordId).trim().slice(0, 120) || discordId;
@@ -326,6 +409,7 @@ async function resolveManagementContext(db: any, interaction: any, audience: 'or
   const byKey = new Map((permissionSettings || []).map((item: any) => [String(item.key), item.value]));
   const permissionConfig = byKey.get(permissionSettingKey);
   const packageFeatures = resolvePackageFeatures(byKey.get('organization_package') || {});
+  const discordOnly = byKey.get('organization_package')?.code === 'discord';
   const memberRoles = new Set((interaction.member?.roles || []).map((role: unknown) => String(role)));
   const { data: mappings, error: mappingsError } = await db.from('organization_role_mappings').select('discord_role_id,panel_role,priority,permission_level').eq('organization_id', guild.organization_id).eq('guild_id', guildId).eq('enabled', true);
   if (mappingsError) throw mappingsError;
@@ -338,7 +422,7 @@ async function resolveManagementContext(db: any, interaction: any, audience: 'or
     ? permissionConfig[audience][permission].map(String)
     : Array.isArray(permissionConfig?.[permissionKey]) ? permissionConfig[permissionKey].map(String) : [];
   const platformAdmin = await isPlatformAdminAccount(db, discordId);
-  if (!platformAdmin && (!packageFeatures.includes(feature) || ![...effectiveRoleIds].some((roleId) => configuredRoles.includes(roleId)))) throw new Error(`Nu ai permisiunea necesară pentru ${audience === 'organization' ? 'Organizație' : 'Angajați'}.`);
+  if (!platformAdmin && !discordOnly && (!packageFeatures.includes(feature) || ![...effectiveRoleIds].some((roleId) => configuredRoles.includes(roleId)))) throw new Error(`Nu ai permisiunea necesară pentru ${audience === 'organization' ? 'Organizație' : 'Angajați'}.`);
   const displayName = String(interaction.member?.nick || user.global_name || user.username || discordId).trim().slice(0, 120) || discordId;
   return { guildId, channelId, target, discordId, displayName, organization, settings, platformAdmin, audience, logRouteKey: routes.log, role: mappings?.find((mapping: any) => effectiveRoleIds.has(String(mapping.discord_role_id)))?.panel_role || organizationMember?.panel_role || 'Membru' };
 }
@@ -366,6 +450,7 @@ async function resolveContractContext(db: any, interaction: any, routeKey = 'con
   if (packageError) throw packageError;
   if (permissionError) throw permissionError;
   const packageFeatures = resolvePackageFeatures(packageSetting?.value || {});
+  const discordOnly = packageSetting?.value?.code === 'discord';
   if (!packageFeatures.includes('contracts')) throw new Error('Contractele nu sunt incluse în pachetul organizației.');
   const memberRoles = new Set((interaction.member?.roles || []).map((role: unknown) => String(role)));
   const { data: mappings, error: mappingsError } = await db.from('organization_role_mappings').select('discord_role_id,panel_role,permission_level,priority').eq('organization_id', guild.organization_id).eq('guild_id', guildId).eq('enabled', true);
@@ -378,7 +463,7 @@ async function resolveContractContext(db: any, interaction: any, routeKey = 'con
   const effectiveRoleIds = new Set<string>([...memberRoles]);
   const activePanelRole = String(organizationMember?.panel_role || '').trim().toLowerCase();
   for (const mapping of mappings || []) if (activePanelRole && String(mapping.panel_role || '').trim().toLowerCase() === activePanelRole) effectiveRoleIds.add(String(mapping.discord_role_id));
-  if (!platformAdmin && allowedRoles.length && ![...effectiveRoleIds].some((roleId) => allowedRoles.includes(roleId))) throw new Error('Nu ai permisiunea configurată pentru pagina Contracte.');
+  if (!platformAdmin && !discordOnly && allowedRoles.length && ![...effectiveRoleIds].some((roleId) => allowedRoles.includes(roleId))) throw new Error('Nu ai permisiunea configurată pentru pagina Contracte.');
   if (!platformAdmin && !matchedMapping && !organizationMember) throw new Error('Contul tău nu este membru activ al acestei organizații.');
   const displayName = String(interaction.member?.nick || user.global_name || user.username || discordId).trim().slice(0, 120) || discordId;
   return { guildId, channelId, target, discordId, displayName, organization: resolvedOrganization, settings: resolvedSettings, platformAdmin, role: matchedMapping?.panel_role || organizationMember?.panel_role || 'Membru', logRouteKey: 'log_contracts' };
@@ -546,6 +631,45 @@ function contractModal() {
     { type: 1, components: [input('cnp', 'CNP angajat', 'Introdu CNP-ul angajatului', 120)] },
     { type: 1, components: [input('phone', 'Număr de telefon', '07xx xxx xxx', 80)] },
   ] } };
+}
+
+function contractSettingsModal() {
+  const input = (custom_id: string, label: string, style: number, required: boolean, placeholder: string, max_length: number) => ({ type: 4, custom_id, label, style, required, placeholder, max_length });
+  return { type: 9, data: { custom_id: 'panel:contracts:settings_submit', title: 'Setează contractul', components: [
+    { type: 1, components: [input('title', 'Numele contractului', 1, true, 'Ex: Contract de colaborare', 100)] },
+    { type: 1, components: [input('position', 'Funcție implicită', 1, false, 'Ex: Angajat', 100)] },
+    { type: 1, components: [input('salary', 'Salariu implicit', 1, false, 'Ex: 100 lei/lună', 120)] },
+    { type: 1, components: [input('schedule', 'Program implicit', 1, false, 'Ex: 20:00-23:00', 120)] },
+    { type: 1, components: [input('template', 'Șablonul contractului', 2, true, 'Lipește textul contractului și folosește variabilele de mai jos', 4000)] },
+  ] } };
+}
+
+function contractInfoMessage() {
+  return interactionMessage('', { embeds: [{ title: 'ℹ️ Cum configurezi contractul', description: 'În șablon, folosește exact variabilele de mai jos între acolade duble. La generare, botul le înlocuiește automat cu datele organizației și ale angajatului.', color: 0x14b8a6, fields: [
+    { name: 'Date completate automat', value: '`{{COMPANY}}` companie\n`{{ADDRESS}}` adresă\n`{{MANAGER}}` manager\n`{{POSITION}}` funcție\n`{{SALARY}}` salariu\n`{{PROGRAM}}` program\n`{{START_DATE}}` data începerii\n`{{CONTRACT_NUMBER}}` număr contract', inline: true },
+    { name: 'Date cerute la generare', value: '`{{EMPLOYEE_NAME}}` nume și prenume\n`{{CNP}}` CNP\n`{{PHONE}}` număr de telefon', inline: true },
+    { name: 'Exemplu', value: 'Angajat: `{{EMPLOYEE_NAME}}`\nCNP: `{{CNP}}`\nTelefon: `{{PHONE}}`\nSalariu: `{{SALARY}}`', inline: false },
+  ], footer: { text: 'Panel Pro · Contracte Discord' } }] });
+}
+
+function contractTemplateVariables() {
+  return new Set(['{{COMPANY}}', '{{ADDRESS}}', '{{MANAGER}}', '{{EMPLOYEE_NAME}}', '{{CNP}}', '{{PHONE}}', '{{POSITION}}', '{{SALARY}}', '{{PROGRAM}}', '{{START_DATE}}', '{{CONTRACT_NUMBER}}']);
+}
+
+async function handleContractSettingsSubmit(db: any, context: any, interaction: any, values: Record<string, any>) {
+  if (!isDiscordManager(interaction) && !context.platformAdmin) throw new Error('Doar ownerul serverului sau un administrator cu Manage Server poate seta contractul.');
+  const title = contractValue(values.title, '');
+  const template = String(values.template ?? '').trim().slice(0, 50000);
+  const position = contractValue(values.position, 'Angajat');
+  const salary = contractValue(values.salary, '');
+  const schedule = contractValue(values.schedule, '20:00-23:00');
+  if (title.length < 2) return interactionMessage('Numele contractului este obligatoriu.');
+  if (template.length < 20) return interactionMessage('Șablonul contractului este prea scurt.');
+  const unknown = [...template.matchAll(/{{[A-Z0-9_]+}}/g)].map((match) => match[0]).filter((value) => !contractTemplateVariables().has(value));
+  if (unknown.length) return interactionMessage(`Variabile necunoscute în șablon: ${[...new Set(unknown)].join(', ')}`);
+  const { error } = await db.from('app_settings').upsert({ organization_id: context.organization.id, key: 'contract_template', value: { title, template, defaults: { position, salary: salary || null, schedule } }, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+  if (error) throw error;
+  return interactionMessage(`Șablonul **${title}** a fost salvat. La generare se completează automat organizația, managerul, funcția, salariul, programul, data și numărul contractului; angajatul completează numele, CNP-ul și telefonul.`);
 }
 
 function disciplineModal(audience: 'organization' | 'departments', kind: 'warning' | 'sanction', targetId = '') {
@@ -942,6 +1066,7 @@ async function resolveStashContext(db: any, interaction: any, routeKey: 'stash' 
   ]);
   if (organizationError || settingsError || packageError || permissionError) throw organizationError || settingsError || packageError || permissionError;
   if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  const discordOnly = packageSetting?.value?.code === 'discord';
   if (!resolvePackageFeatures(packageSetting?.value || {}).includes('stash')) throw new Error('Stash nu este inclus în pachetul organizației.');
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
   if (!channelMatches(settings, routeKey, target, channelId)) throw new Error(`Acest canal nu este configurat pentru panoul ${routeKey === 'stash' ? 'Stash' : routeKey === 'log_stash' ? 'Log stash' : routeKey === 'stash_requests' ? 'Cereri stash' : 'Donații stash'}.`);
@@ -953,7 +1078,7 @@ async function resolveStashContext(db: any, interaction: any, routeKey: 'stash' 
   const roleIds = new Set(member?.panel_role ? [...memberRoles, ...(mappings || []).filter((row: any) => String(row.panel_role || '').toLowerCase() === String(member.panel_role).toLowerCase()).map((row: any) => String(row.discord_role_id))] : [...memberRoles]);
   const platformAdmin = await isPlatformAdminAccount(db, discordId);
   const configured = Array.isArray(permissionSetting?.value?.[`stash.${permission}`]) ? permissionSetting.value[`stash.${permission}`].map(String) : [];
-  if (!platformAdmin && !configured.some((id: string) => roleIds.has(id))) throw new Error('Nu ai permisiunea configurată pentru această funcție Stash.');
+  if (!platformAdmin && !discordOnly && !configured.some((id: string) => roleIds.has(id))) throw new Error('Nu ai permisiunea configurată pentru această funcție Stash.');
   const displayName = String(interaction.member?.nick || user.global_name || user.username || discordId).trim().slice(0, 120) || discordId;
   return { guildId, channelId, target, discordId, displayName, organization, settings, logRouteKey: permission === 'request' || permission === 'manage_requests' ? 'log_stash_requests' : permission === 'donate' || permission === 'approve_donation' ? 'log_stash_donations' : 'log_stash' };
 }
@@ -980,6 +1105,41 @@ function stashDecisionView(kind: 'request' | 'donation', id: string, row: any) {
   return interactionMessage(`Ai selectat **${String(title).slice(0, 120)}** · ${row.quantity} iteme.`, { components: [{ type: 1, components: [{ type: 2, style: 3, label: 'Aprobă', custom_id: `panel:stash:decision_${kind}:approved:${id}` }, { type: 2, style: 4, label: 'Respinge', custom_id: `panel:stash:decision_${kind}:rejected:${id}` }] }] });
 }
 
+function stashApprovalEmbed(kind: 'request' | 'donation', row: any) {
+  const request = kind === 'request';
+  return {
+    allowed_mentions: { parse: [] },
+    embeds: [{
+      title: request ? '📨 Cerere Stash · În așteptare' : '🎁 Donație Stash · În așteptare',
+      description: request ? 'Această cerere așteaptă aprobarea unui administrator.' : 'Această donație așteaptă aprobarea unui administrator.',
+      color: request ? 0xf59e0b : 0xa78bfa,
+      fields: request ? [
+        { name: 'Articol', value: String(row.item_title || '—'), inline: true },
+        { name: 'Cantitate', value: `${row.quantity} iteme`, inline: true },
+        { name: 'Solicitat de', value: String(row.requested_by_name || '—'), inline: true },
+        { name: 'Detalii', value: String(row.note || 'Fără detalii.'), inline: false },
+      ] : [
+        { name: 'Articol', value: String(row.title || '—'), inline: true },
+        { name: 'Categorie', value: String(row.category || 'General'), inline: true },
+        { name: 'Cantitate', value: `${row.quantity} iteme`, inline: true },
+        { name: 'Donat de', value: String(row.donated_by_name || '—'), inline: true },
+        { name: 'Detalii', value: String(row.note || 'Fără detalii.'), inline: false },
+      ],
+      footer: { text: 'Panel Pro · necesită aprobare' },
+      timestamp: new Date().toISOString(),
+    }],
+    components: [{ type: 1, components: [
+      { type: 2, style: 3, label: 'Aprobă', custom_id: `panel:stash:decision_${kind}:approved:${row.id}` },
+      { type: 2, style: 4, label: 'Respinge', custom_id: `panel:stash:decision_${kind}:rejected:${row.id}` },
+    ] }],
+  };
+}
+
+async function publishStashApproval(db: any, context: any, kind: 'request' | 'donation', row: any) {
+  const delivery = await deliverDiscordRoute(db, context.settings, 'stash', JSON.stringify(stashApprovalEmbed(kind, row)), { postOnly: true });
+  return delivery.results?.length || 0;
+}
+
 async function loadStashDecisionRow(db: any, context: any, kind: 'request' | 'donation', id: string) {
   const table = kind === 'request' ? 'organization_stash_requests' : 'organization_stash_donations';
   const { data, error } = await db.from(table).select('*').eq('organization_id', context.organization.id).eq('id', id).maybeSingle();
@@ -994,7 +1154,7 @@ async function handleStashDecision(db: any, context: any, kind: 'request' | 'don
   if (kind === 'request') {
     const { data, error } = await db.from('organization_stash_requests').update({ status: decision, handled_by_discord_id: context.discordId, handled_by_name: context.displayName, handled_at: now, updated_at: now }).eq('organization_id', context.organization.id).eq('id', id).eq('status', 'pending').select('*').single();
     if (error) throw error;
-    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash_requests', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: decision === 'approved' ? '✅ Cerere Stash aprobată' : '❌ Cerere Stash respinsă', fields: [{ name: 'Articol', value: String(data.item_title), inline: true }, { name: 'Număr iteme', value: String(data.quantity), inline: true }, { name: 'Solicitat de', value: String(data.requested_by_name), inline: true }, { name: 'Status', value: decision === 'approved' ? 'Aprobată' : 'Respinsă', inline: true }], color: decision === 'approved' ? 0x22c55e : 0xef4444, timestamp: now }] }), { messageIds: row.discord_message_ids || {} });
+    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash_requests', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: decision === 'approved' ? '✅ Cerere Stash aprobată' : '❌ Cerere Stash respinsă', fields: [{ name: 'Articol', value: String(data.item_title), inline: true }, { name: 'Număr iteme', value: String(data.quantity), inline: true }, { name: 'Solicitat de', value: String(data.requested_by_name), inline: true }, { name: 'Status', value: decision === 'approved' ? 'Aprobată' : 'Respinsă', inline: true }], color: decision === 'approved' ? 0x22c55e : 0xef4444, timestamp: now }] }), { postOnly: true });
     const messageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
     if (Object.keys(messageIds).length) await db.from('organization_stash_requests').update({ discord_message_ids: messageIds }).eq('organization_id', context.organization.id).eq('id', id);
     return interactionMessage(`Cererea a fost ${decision === 'approved' ? 'aprobată' : 'respinsă'} și logul a fost actualizat.`);
@@ -1007,13 +1167,13 @@ async function handleStashDecision(db: any, context: any, kind: 'request' | 'don
     const itemDelivery = await deliverDiscordRoute(db, context.settings, 'log_stash', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '✅ Donație aprobată și adăugată în Stash', fields: [{ name: 'Articol', value: String(item.title), inline: true }, { name: 'Categorie', value: String(item.category), inline: true }, { name: 'Număr iteme', value: String(item.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Disponibil', inline: true }], color: 0x22c55e, timestamp: now }], components: [{ type: 1, components: [{ type: 2, style: 4, label: 'Șterge articolul', custom_id: `panel:stash:delete_item:${item.id}` }] }] }), { postOnly: true });
     const itemMessageIds = Object.fromEntries((itemDelivery.results || []).filter((entry: any) => entry.id).map((entry: any) => [entry.target, String(entry.id)]));
     if (Object.keys(itemMessageIds).length) await db.from('organization_stash_items').update({ discord_message_ids: itemMessageIds }).eq('organization_id', context.organization.id).eq('id', item.id);
-    const donationDelivery = await deliverDiscordRoute(db, context.settings, 'log_stash_donations', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '✅ Donație Stash aprobată', fields: [{ name: 'Articol', value: String(donation.title), inline: true }, { name: 'Număr iteme', value: String(donation.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Aprobată', inline: true }], color: 0x22c55e, timestamp: now }] }), { messageIds: row.discord_message_ids || {} });
+    const donationDelivery = await deliverDiscordRoute(db, context.settings, 'log_stash_donations', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '✅ Donație Stash aprobată', fields: [{ name: 'Articol', value: String(donation.title), inline: true }, { name: 'Număr iteme', value: String(donation.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Aprobată', inline: true }], color: 0x22c55e, timestamp: now }] }), { postOnly: true });
     const donationMessageIds = Object.fromEntries((donationDelivery.results || []).filter((entry: any) => entry.id).map((entry: any) => [entry.target, String(entry.id)]));
     if (Object.keys(donationMessageIds).length) await db.from('organization_stash_donations').update({ discord_message_ids: donationMessageIds }).eq('organization_id', context.organization.id).eq('id', id);
   } else {
     const { data: donation, error } = await db.from('organization_stash_donations').update({ status: 'rejected', reviewed_by_discord_id: context.discordId, reviewed_by_name: context.displayName, reviewed_at: now, updated_at: now }).eq('organization_id', context.organization.id).eq('id', id).eq('status', 'pending').select('*').single();
     if (error) throw error;
-    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash_donations', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '❌ Donație Stash respinsă', fields: [{ name: 'Articol', value: String(donation.title), inline: true }, { name: 'Număr iteme', value: String(donation.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Respinsă', inline: true }], color: 0xef4444, timestamp: now }] }), { messageIds: row.discord_message_ids || {} });
+    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash_donations', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '❌ Donație Stash respinsă', fields: [{ name: 'Articol', value: String(donation.title), inline: true }, { name: 'Număr iteme', value: String(donation.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Respinsă', inline: true }], color: 0xef4444, timestamp: now }] }), { postOnly: true });
     const messageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
     if (Object.keys(messageIds).length) await db.from('organization_stash_donations').update({ discord_message_ids: messageIds }).eq('organization_id', context.organization.id).eq('id', id);
   }
@@ -1039,19 +1199,25 @@ async function handleStashSubmit(db: any, context: any, kind: 'item' | 'request'
     if (title.length < 2) return interactionMessage('Articolul solicitat este obligatoriu.');
     const { data, error } = await db.from('organization_stash_requests').insert({ organization_id: context.organization.id, item_title: title, quantity, note: String(values.note || '').trim(), status: 'pending', requested_by_discord_id: context.discordId, requested_by_name: context.displayName, created_at: now, updated_at: now }).select('*').single();
     if (error) throw error;
-    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash_requests', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '📨 Cerere nouă Stash', description: `**${title}** · ${quantity} iteme\nSolicitată de ${context.displayName}`, color: 0xf59e0b, timestamp: now }] }), { postOnly: true });
-    const messageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
-    if (Object.keys(messageIds).length) await db.from('organization_stash_requests').update({ discord_message_ids: messageIds }).eq('organization_id', context.organization.id).eq('id', data.id);
-    return interactionMessage('Cererea Stash a fost înregistrată.');
+    try {
+      await publishStashApproval(db, context, 'request', data);
+      return interactionMessage('Cererea Stash a fost înregistrată și trimisă pentru aprobare.');
+    } catch (approvalError) {
+      console.error('[discord-interactions] stash request approval delivery failed', approvalError);
+      return interactionMessage('Cererea Stash a fost salvată ca **în așteptare**, dar nu am putut publica solicitarea în embedul administrativ Stash. Verifică ruta Stash.');
+    }
   }
   const title = String(values.title || '').trim();
   if (title.length < 2) return interactionMessage('Numele articolului donat este obligatoriu.');
   const { data, error } = await db.from('organization_stash_donations').insert({ organization_id: context.organization.id, title, category: String(values.category || 'General').trim(), quantity, unit: 'buc.', note: String(values.note || '').trim(), status: 'pending', donated_by_discord_id: context.discordId, donated_by_name: context.displayName, created_at: now, updated_at: now }).select('*').single();
   if (error) throw error;
-  const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash_donations', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '🎁 Donație nouă Stash', description: `**${title}** · ${quantity} iteme\nDonată de ${context.displayName}`, color: 0xa78bfa, timestamp: now }] }), { postOnly: true });
-  const messageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
-  if (Object.keys(messageIds).length) await db.from('organization_stash_donations').update({ discord_message_ids: messageIds }).eq('organization_id', context.organization.id).eq('id', data.id);
-  return interactionMessage('Donația Stash a fost înregistrată pentru aprobare.');
+  try {
+    await publishStashApproval(db, context, 'donation', data);
+    return interactionMessage('Donația Stash a fost înregistrată și trimisă pentru aprobare.');
+  } catch (approvalError) {
+    console.error('[discord-interactions] stash donation approval delivery failed', approvalError);
+    return interactionMessage('Donația Stash a fost salvată ca **în așteptare**, dar nu am putut publica solicitarea în embedul administrativ Stash. Verifică ruta Stash.');
+  }
 }
 
 function requestDateTime(value: string, endOfDay = false) {
@@ -1455,17 +1621,39 @@ Deno.serve(async (request) => {
         if (!panelRouteKeys.includes(routeKey)) return reply(interactionMessage('Modulul selectat nu este valid.'));
         const key = serviceKey();
         if (!key) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
-        const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
-        const { data: guild, error: guildError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
-        if (guildError) throw guildError;
-        if (!guild?.organization_id) return reply(interactionMessage('Serverul Discord nu este asociat unei organizații Panel Pro.'));
-        const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', guild.organization_id).maybeSingle();
-        if (settingsError) throw settingsError;
-        const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
-        const route = settings?.discord_channel_routes?.[routeKey]?.[target];
-        if (!route?.channel_id) return reply(interactionMessage(`Canalul pentru **${PANEL_ROUTE_LABELS[routeKey]}** nu este configurat pe serverul acesta. Folosește mai întâi comanda /panel config.`));
-        const delivery = await deliverDiscordRoute(db, { discord_channel_routes: settings.discord_channel_routes }, routeKey, JSON.stringify(controlPayload(routeKey)), { postOnly: true });
-        return reply(interactionMessage(`Embedul **${PANEL_ROUTE_LABELS[routeKey]}** a fost publicat în <#${route.channel_id}>.`));
+        return runDeferredCommand(interaction, async () => {
+          const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+          await ensureDiscordOnlyOrganization(db, interaction);
+          const { data: guild, error: guildError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
+          if (guildError) throw guildError;
+          if (!guild?.organization_id) throw new Error('Serverul Discord nu este asociat unei organizații Panel Pro.');
+          const { data: publishOrganization, error: publishOrganizationError } = await db.from('organizations').select('access_mode').eq('id', guild.organization_id).maybeSingle();
+          if (publishOrganizationError) throw publishOrganizationError;
+          if (publishOrganization?.access_mode === 'discord_only' && discordPremiumModule(routeKey) && discordPremiumConfigured() && !(await discordPremiumAccess(db, String(guild.organization_id), interaction, guildId))) return discordPremiumMessage();
+          const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', guild.organization_id).maybeSingle();
+          if (settingsError) throw settingsError;
+          const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
+          const route = settings?.discord_channel_routes?.[routeKey]?.[target];
+          if (!route?.channel_id) throw new Error(`Canalul pentru **${PANEL_ROUTE_LABELS[routeKey]}** nu este configurat pe serverul acesta. Folosește mai întâi comanda /panel config.`);
+          const trialText = publishOrganization?.access_mode === 'discord_only' ? await discordTrialNotice(db, String(guild.organization_id)) : '';
+          const premiumActive = publishOrganization?.access_mode === 'discord_only' && discordPremiumConfigured()
+            ? await discordPremiumAccess(db, String(guild.organization_id), interaction, guildId)
+            : false;
+          if (routeKey === 'status_live') {
+            const cronSecret = await getPlatformSecret(db, 'status_live_cron_secret');
+            if (!cronSecret) throw new Error('Secretul pentru sincronizarea Status live nu este configurat.');
+            const syncResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/status-live-sync`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-cron-secret': cronSecret },
+              body: JSON.stringify({ organization_id: guild.organization_id, force: true }),
+            });
+            const syncData = await syncResponse.json().catch(() => ({}));
+            if (!syncResponse.ok) throw new Error(String(syncData?.error || 'Statusul live nu a putut fi publicat.'));
+            return interactionMessage(`Statusul live a fost publicat și va fi actualizat automat. În pontaj: **${Number(syncData.active || 0)}**, în pauză: **${Number(syncData.paused || 0)}**.`);
+          }
+          await deliverDiscordRoute(db, { discord_channel_routes: settings.discord_channel_routes }, routeKey, JSON.stringify(controlPayload(routeKey, trialText, !premiumActive)), { postOnly: true });
+          return interactionMessage(`Embedul **${PANEL_ROUTE_LABELS[routeKey]}** a fost publicat în <#${route.channel_id}>.`);
+        }, 'Embedul nu a putut fi publicat.');
       }
       if (subcommand === 'config') {
         const routeKey = String(commandOption(interaction, 'modul') || '').trim();
@@ -1476,6 +1664,7 @@ Deno.serve(async (request) => {
         const key = serviceKey();
         if (!key) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
         const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+        await ensureDiscordOnlyOrganization(db, interaction);
         const { data: guild, error: guildError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
         if (guildError) throw guildError;
         if (!guild?.organization_id) return reply(interactionMessage('Serverul Discord nu este asociat unei organizații Panel Pro.'));
@@ -1494,6 +1683,7 @@ Deno.serve(async (request) => {
         const key = serviceKey();
         if (!key) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
         const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+        await ensureDiscordOnlyOrganization(db, interaction);
         const { data: guild, error: guildError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
         if (guildError) throw guildError;
         if (!guild?.organization_id) return reply(interactionMessage('Serverul Discord nu este asociat unei organizații Panel Pro.'));
@@ -1502,7 +1692,10 @@ Deno.serve(async (request) => {
         const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
         const routes = settings?.discord_channel_routes || {};
         const lines = panelRouteKeys.map((routeKey) => `${routes?.[routeKey]?.[target]?.channel_id ? '✅' : '⬜'} ${PANEL_ROUTE_LABELS[routeKey]}${routes?.[routeKey]?.[target]?.channel_id ? ` · <#${routes[routeKey][target].channel_id}>` : ''}`);
-        return reply(interactionMessage('', { embeds: [{ title: '⚙️ Panel Pro · Configurare Discord', description: lines.join('\n'), color: 0x5865f2, footer: { text: `Server ${guildId} · ${target}` } }] }));
+        const statusOrganization = await db.from('organizations').select('access_mode').eq('id', guild.organization_id).maybeSingle();
+        if (statusOrganization.error) throw statusOrganization.error;
+        const trialText = statusOrganization.data?.access_mode === 'discord_only' ? await discordTrialNotice(db, String(guild.organization_id)) : '';
+        return reply(interactionMessage('', { embeds: [{ title: '⚙️ Panel Pro · Configurare Discord', description: [trialText, lines.join('\n')].filter(Boolean).join('\n\n'), color: 0x5865f2, footer: { text: `Server ${guildId} · ${target}` } }], components: discordPremiumConfigured() ? discordPremiumButton() : [] }));
       }
       return reply(interactionMessage('', {
         embeds: [{
@@ -1537,6 +1730,7 @@ Deno.serve(async (request) => {
     const key = serviceKey();
     if (!key) throw new Error('Cheia secretă Supabase lipsește.');
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    await ensureDiscordOnlyOrganization(db, interaction);
     if (discordPremiumConfigured()) {
       const guildId = String(interaction.guild_id || '').trim();
       if (/^\d{15,22}$/.test(guildId)) {
@@ -1545,7 +1739,7 @@ Deno.serve(async (request) => {
         if (guildAccess?.organization_id) {
           const { data: premiumOrganization, error: premiumOrganizationError } = await db.from('organizations').select('access_mode').eq('id', guildAccess.organization_id).maybeSingle();
           if (premiumOrganizationError) throw premiumOrganizationError;
-          if (premiumOrganization?.access_mode === 'discord_only' && !interactionHasDiscordGuildEntitlement(interaction, guildId)) return reply(discordPremiumMessage());
+          if (premiumOrganization?.access_mode === 'discord_only' && discordPremiumModule(customId) && !(await discordPremiumAccess(db, String(guildAccess.organization_id), interaction, guildId))) return reply(discordPremiumMessage());
         }
       }
     }
@@ -1568,12 +1762,14 @@ Deno.serve(async (request) => {
       if (parts[2] === 'decision_request' || parts[2] === 'decision_donation') {
         const kind = parts[2] === 'decision_request' ? 'request' : 'donation';
         const permission = kind === 'request' ? 'manage_requests' : 'approve_donation';
-        const context = await resolveStashContext(db, interaction, 'stash', permission);
         const decision = parts[3] === 'approved' ? 'approved' : parts[3] === 'rejected' ? 'rejected' : null;
         if (!decision) return reply(interactionMessage('Decizia Stash nu este validă.'));
         const deferred = await deferInteraction(interaction, false);
         let result;
-        try { result = await handleStashDecision(db, context, kind, String(parts[4] || ''), decision); }
+        try {
+          const context = await resolveStashContext(db, interaction, 'stash', permission);
+          result = await handleStashDecision(db, context, kind, String(parts[4] || ''), decision);
+        }
         catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(readableError(error, 'Decizia Stash nu a putut fi salvată.')); }
         const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
         if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
@@ -1582,14 +1778,21 @@ Deno.serve(async (request) => {
       if (parts[2] === 'delete_item') {
         const itemId = String(parts[3] || '').trim();
         if (!/^[0-9a-f-]{36}$/i.test(itemId)) return reply(interactionMessage('Articolul Stash selectat nu este valid.'));
-        const context = await resolveStashContext(db, interaction, 'log_stash', 'write');
-        const { data: item, error: itemError } = await db.from('organization_stash_items').select('id,title').eq('organization_id', context.organization.id).eq('id', itemId).maybeSingle();
-        if (itemError) throw itemError;
-        if (!item) return reply(interactionMessage('Articolul nu mai există în Stash.'));
-        const { error: deleteError } = await db.from('organization_stash_items').delete().eq('organization_id', context.organization.id).eq('id', itemId);
-        if (deleteError) throw deleteError;
-        await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: context.channelId }, null, { method: 'DELETE', messageId: String(interaction.message?.id || '') });
-        return reply(interactionMessage(`Articolul **${item.title}** a fost șters din Stash și din log.`));
+        const deferred = await deferInteraction(interaction, false);
+        let result;
+        try {
+          const context = await resolveStashContext(db, interaction, 'log_stash', 'write');
+          const { data: item, error: itemError } = await db.from('organization_stash_items').select('id,title').eq('organization_id', context.organization.id).eq('id', itemId).maybeSingle();
+          if (itemError) throw itemError;
+          if (!item) throw new Error('Articolul nu mai există în Stash.');
+          const { error: deleteError } = await db.from('organization_stash_items').delete().eq('organization_id', context.organization.id).eq('id', itemId);
+          if (deleteError) throw deleteError;
+          await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: context.channelId }, null, { method: 'DELETE', messageId: String(interaction.message?.id || '') });
+          result = interactionMessage(`Articolul **${item.title}** a fost șters din Stash și din log.`);
+        } catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(readableError(error, 'Articolul nu a putut fi șters din Stash.')); }
+        const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+        if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+        return new Response(null, { status: 204 });
       }
       const kind = parts[2] === 'request' ? 'request' : parts[2] === 'donate' ? 'donation' : parts[2] === 'create' ? 'item' : null;
       if (!kind) return reply(interactionMessage('Acțiunea Stash nu este disponibilă.'));
@@ -1631,6 +1834,11 @@ Deno.serve(async (request) => {
     }
     if (isContracts && isButton) {
       const parts = customId.split(':');
+      if (parts[2] === 'info') return reply(contractInfoMessage());
+      if (parts[2] === 'settings') {
+        if (!isDiscordManager(interaction)) return reply(interactionMessage('Doar ownerul serverului sau un administrator cu Manage Server poate seta contractul.'));
+        return reply(contractSettingsModal());
+      }
       if (parts[2] === 'copy') {
         const contractId = String(parts[3] || '').trim();
         if (!/^[0-9a-f-]{36}$/i.test(contractId)) return reply(interactionMessage('Contractul selectat nu este valid.'));
@@ -1659,6 +1867,17 @@ Deno.serve(async (request) => {
     }
     if (isContracts && isModalSubmit) {
       const parts = customId.split(':');
+      if (parts[2] === 'settings_submit') {
+        const deferred = await deferInteraction(interaction, false);
+        let result;
+        try {
+          const context = await resolveContractContext(db, interaction);
+          result = await handleContractSettingsSubmit(db, context, interaction, modalValues(interaction));
+        } catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(readableError(error, 'Șablonul contractului nu a putut fi salvat.')); }
+        const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+        if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+        return new Response(null, { status: 204 });
+      }
       if (parts[2] === 'copy' && parts[3] === 'modal') return reply(interactionMessage('Contractul este afișat mai sus. Selectează textul cu Ctrl+A și copiază-l cu Ctrl+C.'));
       if (parts[2] !== 'submit') return reply(interactionMessage('Formularul Contracte nu este valid.'));
       const deferred = await deferInteraction(interaction, false);
@@ -1686,11 +1905,13 @@ Deno.serve(async (request) => {
         if (data.post.audience !== audience) return reply(interactionMessage('Postarea nu aparține acestei categorii.'));
         return reply(announcementModal(audience, data.post.post_type === 'poll' ? 'poll' : data.post.post_type === 'question' ? 'question' : 'announcement', data.post, data.options));
       }
-      const permission = action === 'delete' ? 'write' : 'read';
-      const context = await resolveAnnouncementContext(db, interaction, audience, permission);
       const deferred = await deferInteraction(interaction, false);
       let result;
-      try { result = await handleAnnouncementButton(db, interaction, context, parts); }
+      try {
+        const permission = action === 'delete' ? 'write' : 'read';
+        const context = await resolveAnnouncementContext(db, interaction, audience, permission);
+        result = await handleAnnouncementButton(db, interaction, context, parts);
+      }
       catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(error instanceof Error ? error.message : 'Acțiunea Anunțuri nu a putut fi executată.'); }
       const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
       if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }

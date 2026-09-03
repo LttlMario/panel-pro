@@ -22,6 +22,9 @@ verify_jwt = false
 [functions.manage-stash]
 verify_jwt = false
 
+[functions.manage-discord-bot]
+verify_jwt = false
+
 [functions.send-discord-notification]
 verify_jwt = false
 

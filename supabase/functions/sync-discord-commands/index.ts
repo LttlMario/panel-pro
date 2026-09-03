@@ -14,7 +14,7 @@ const routeChoices = [
 const commands = [{
   name: 'panel', description: 'Afișează meniul și administrează Panel Pro', options: [
     { type: 1, name: 'status', description: 'Verifică toate canalele configurate' },
-    { type: 1, name: 'publica', description: 'Publică un embed cu butoane', options: [{ type: 3, name: 'modul', description: 'Embedul de publicat', required: true, choices: [['Anunțuri organizație', 'organization'], ['Anunțuri angajați', 'departments'], ['Pontaj', 'pontaj'], ['Învoiri organizație', 'requests_organization'], ['Învoiri angajați', 'requests_departments'], ['Contracte', 'contracts'], ['Stash', 'stash']].map(([name, value]) => ({ name, value })) }] },
+    { type: 1, name: 'publica', description: 'Publică un embed cu butoane', options: [{ type: 3, name: 'modul', description: 'Embedul de publicat', required: true, choices: [['Anunțuri organizație', 'organization'], ['Anunțuri angajați', 'departments'], ['Pontaj', 'pontaj'], ['Învoiri organizație', 'requests_organization'], ['Învoiri angajați', 'requests_departments'], ['Contracte', 'contracts'], ['Status live', 'status_live'], ['Stash', 'stash']].map(([name, value]) => ({ name, value })) }] },
     { type: 1, name: 'config', description: 'Configurează embedul și canalul de log', options: [{ type: 3, name: 'modul', description: 'Modulul pentru canal', required: true, choices: routeChoices }, { type: 7, name: 'canal', description: 'Canalul pentru embedul cu butoane', required: true, channel_types: [0] }, { type: 7, name: 'canal_log', description: 'Canalul pentru rezultate și loguri', required: false, channel_types: [0] }] },
   ],
 }];
@@ -43,11 +43,27 @@ Deno.serve(async (request) => {
     const { data: guilds, error: guildsError } = await db.from('organization_guilds').select('guild_id').eq('enabled', true);
     if (guildsError) throw guildsError;
     const guildResults = [];
+    const syncedGuildIds = new Set<string>();
     for (const guild of guilds || []) {
       const guildId = String(guild.guild_id || '').trim();
       if (!/^\d{15,22}$/.test(guildId)) continue;
       const response = await fetch(`https://discord.com/api/v10/applications/${applicationId}/guilds/${guildId}/commands`, requestInit);
       guildResults.push({ guild_id: guildId, ok: response.ok, status: response.status });
+      syncedGuildIds.add(guildId);
+    }
+    // Actualizează și serverele în care botul este instalat, chiar dacă încă
+    // nu au fost asociate unei organizații în Supabase. Astfel o comandă de
+    // server veche nu mai suprascrie lista globală actualizată.
+    const botGuildsResponse = await fetch('https://discord.com/api/v10/users/@me/guilds', { headers: { Authorization: `Bot ${botToken}` } });
+    if (botGuildsResponse.ok) {
+      const botGuilds = await botGuildsResponse.json().catch(() => []);
+      for (const guild of Array.isArray(botGuilds) ? botGuilds : []) {
+        const guildId = String(guild?.id || '').trim();
+        if (!/^\d{15,22}$/.test(guildId) || syncedGuildIds.has(guildId)) continue;
+        const response = await fetch(`https://discord.com/api/v10/applications/${applicationId}/guilds/${guildId}/commands`, requestInit);
+        guildResults.push({ guild_id: guildId, ok: response.ok, status: response.status });
+        syncedGuildIds.add(guildId);
+      }
     }
     await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: 'discord_commands_synced', target_type: 'discord_application', target_id: applicationId, details: { command_count: commands.length, scope: 'global_and_configured_guilds', guild_count: guildResults.length } });
     const failedGuilds = guildResults.filter((item) => !item.ok).length;

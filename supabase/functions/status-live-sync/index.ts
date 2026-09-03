@@ -158,7 +158,7 @@ Deno.serve(async (request) => {
       .select('id')
       .maybeSingle();
     if (lockError) throw lockError;
-    if (!lockRow) {
+    if (!lockRow && body?.force !== true) {
       return reply({
         ok: true,
         skipped: true,
