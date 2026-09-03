@@ -93,7 +93,21 @@
   };
   const load = async (keepSelection = true) => {
     if (state.busy) return; state.busy = true; setStatus('Se încarcă registrul securizat…');
-    try { await syncDiscordNames(); const result = await api({ action: 'platform_overview' }); state.catalog = result.feature_catalog || state.catalog; state.organizations = Array.isArray(result.organizations) ? result.organizations : []; if (!keepSelection || !selected()) state.selectedId = state.organizations[0]?.id || ''; renderKpis(); renderList(); renderDetail(); setStatus(`Actualizat la ${date(result.generated_at)} · ${state.organizations.length} organizații`, 'ok'); }
+    try {
+      const discovered = await syncDiscordNames();
+      const liveGuilds = new Map((discovered?.guilds || []).map((guild) => [String(guild.id), guild]));
+      const result = await api({ action: 'platform_overview' });
+      state.catalog = result.feature_catalog || state.catalog;
+      state.organizations = (Array.isArray(result.organizations) ? result.organizations : []).map((organization) => {
+        const discordOnly = organization.access_mode === 'discord_only' || String(organization.slug || '').startsWith('discord-');
+        if (!discordOnly) return organization;
+        const guilds = (organization.guilds || []).map((guild) => ({ ...guild, guild_name: liveGuilds.get(String(guild.guild_id))?.name || guild.guild_name }));
+        const primary = guilds.find((guild) => guild.enabled !== false) || guilds[0];
+        return { ...organization, name: liveGuilds.get(String(primary?.guild_id))?.name || organization.name, guilds };
+      });
+      if (!keepSelection || !selected()) state.selectedId = state.organizations[0]?.id || '';
+      renderKpis(); renderList(); renderDetail(); setStatus(`Actualizat la ${date(result.generated_at)} · ${state.organizations.length} organizații`, 'ok');
+    }
     catch (error) { setStatus(error.message || 'Registrul nu a putut fi încărcat.', 'error'); $('#organization-list').innerHTML = `<div class="empty-state">${esc(error.message || 'Eroare de încărcare.')}</div>`; }
     finally { state.busy = false; }
   };
