@@ -37,9 +37,20 @@ Deno.serve(async (request) => {
       applicationId = String(setting?.discord_client_id || '').trim();
     }
     if (!/^\d{15,22}$/.test(applicationId)) return reply({ error: 'Discord Application ID nu este configurat.' }, 409);
-    const response = await fetch(`https://discord.com/api/v10/applications/${applicationId}/commands`, { method: 'PUT', headers: { Authorization: `Bot ${botToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify(commands) });
-    if (!response.ok) return reply({ error: `Discord a respins comenzile (HTTP ${response.status}).`, details: await response.text() }, 400);
-    await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: 'discord_commands_synced', target_type: 'discord_application', target_id: applicationId, details: { command_count: commands.length, scope: 'global' } });
-    return reply({ ok: true, application_id: applicationId, command_count: commands.length, scope: 'global', message: 'Comenzile globale au fost sincronizate. Discord poate avea nevoie de până la o oră pentru propagare.' });
+    const requestInit = { method: 'PUT', headers: { Authorization: `Bot ${botToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify(commands) };
+    const globalResponse = await fetch(`https://discord.com/api/v10/applications/${applicationId}/commands`, requestInit);
+    if (!globalResponse.ok) return reply({ error: `Discord a respins comenzile globale (HTTP ${globalResponse.status}).`, details: await globalResponse.text() }, 400);
+    const { data: guilds, error: guildsError } = await db.from('organization_guilds').select('guild_id').eq('enabled', true);
+    if (guildsError) throw guildsError;
+    const guildResults = [];
+    for (const guild of guilds || []) {
+      const guildId = String(guild.guild_id || '').trim();
+      if (!/^\d{15,22}$/.test(guildId)) continue;
+      const response = await fetch(`https://discord.com/api/v10/applications/${applicationId}/guilds/${guildId}/commands`, requestInit);
+      guildResults.push({ guild_id: guildId, ok: response.ok, status: response.status });
+    }
+    await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: 'discord_commands_synced', target_type: 'discord_application', target_id: applicationId, details: { command_count: commands.length, scope: 'global_and_configured_guilds', guild_count: guildResults.length } });
+    const failedGuilds = guildResults.filter((item) => !item.ok).length;
+    return reply({ ok: true, application_id: applicationId, command_count: commands.length, guild_count: guildResults.length, failed_guilds: failedGuilds, scope: 'global_and_configured_guilds', message: `Comenzile au fost sincronizate global și pe ${guildResults.length} server${guildResults.length === 1 ? '' : 'e'} configurat${guildResults.length === 1 ? '' : 'e'}. Pe serverele configurate ar trebui să apară imediat.` });
   } catch (error) { return reply({ error: error instanceof Error ? error.message : 'Eroare internă.' }, 400); }
 });
