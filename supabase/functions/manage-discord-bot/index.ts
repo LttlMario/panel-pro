@@ -1,0 +1,157 @@
+import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
+import { getPlatformSecret } from '../_shared/platform-secrets.ts';
+import { deliverDiscordRoute, routeCandidates, validDiscordChannelId } from '../_shared/discord-delivery.ts';
+
+const DISCORD_API = 'https://discord.com/api/v10';
+const MODULES: Record<string, { label: string; premium: boolean; title: string; description: string; color: number; buttons: any[] }> = {
+  pontaj: { label: 'Pontaj și ture', premium: false, title: '🕒 Pontaj · Panel Pro', description: 'Alege tura și folosește butoanele pentru Start, Pauză și Stop.', color: 0x22c55e, buttons: [{ label: 'Tura de zi', style: 1, id: 'panel:pontaj:shift_day' }, { label: 'Tura de noapte', style: 1, id: 'panel:pontaj:shift_night' }, { label: 'Start', style: 3, id: 'panel:pontaj:start' }, { label: 'Pauză', style: 2, id: 'panel:pontaj:pause' }, { label: 'Stop', style: 4, id: 'panel:pontaj:stop' }, { label: 'Pontajul meu', style: 1, id: 'panel:pontaj:my_stats' }] },
+  requests_organization: { label: 'Învoiri organizație', premium: false, title: '📝 Învoiri · Organizație', description: 'Trimite și consultă învoirile organizației.', color: 0xf59e0b, buttons: [{ label: 'Trimite învoire', style: 1, id: 'panel:requests:organization:new' }, { label: 'Învoirile mele', style: 2, id: 'panel:requests:organization:mine' }] },
+  requests_departments: { label: 'Învoiri angajați', premium: false, title: '📝 Învoiri · Angajați', description: 'Trimite și consultă învoirile angajaților.', color: 0xf59e0b, buttons: [{ label: 'Trimite învoire', style: 1, id: 'panel:requests:departments:new' }, { label: 'Învoirile mele', style: 2, id: 'panel:requests:departments:mine' }] },
+  organization: { label: 'Anunțuri organizație', premium: true, title: '📢 Anunțuri · Organizație', description: 'Publică anunțuri, întrebări și sondaje pentru organizație.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:organization:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:organization:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:organization:create:poll' }] },
+  departments: { label: 'Anunțuri angajați', premium: true, title: '📢 Anunțuri · Angajați', description: 'Publică anunțuri, întrebări și sondaje pentru angajați.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:departments:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:departments:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:departments:create:poll' }] },
+  contracts: { label: 'Contracte', premium: true, title: '📄 Contracte · Panel Pro', description: 'Generează și trimite contracte folosind șablonul organizației.', color: 0x14b8a6, buttons: [{ label: 'Creează contract', style: 1, id: 'panel:contracts:create' }, { label: 'Setează contractul', style: 2, id: 'panel:contracts:settings' }, { label: 'Info contract', style: 1, id: 'panel:contracts:info' }] },
+  actions_organization: { label: 'Acțiuni organizație', premium: true, title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
+  stash: { label: 'Stash', premium: true, title: '📦 Stash · Administrare', description: 'Gestionează articolele, cererile și donațiile Stash.', color: 0x22c55e, buttons: [{ label: 'Adaugă în Stash', style: 3, id: 'panel:stash:create' }, { label: 'Cereri în așteptare', style: 1, id: 'panel:stash:pending_requests' }, { label: 'Donații în așteptare', style: 1, id: 'panel:stash:pending_donations' }] },
+  status_live: { label: 'Status live', premium: true, title: '📡 Status live · Panel Pro', description: 'Statusul este actualizat automat cu pontajele și pauzele active.', color: 0x06b6d4, buttons: [] },
+};
+const headersFor = (request: Request) => {
+  const origin = String(request.headers.get('origin') || '');
+  const allowed = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || origin === 'https://panel-pro.ro' ? origin : 'https://panel-pro.ro';
+  return { 'Access-Control-Allow-Origin': allowed, 'Access-Control-Allow-Headers': 'authorization,apikey,content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Max-Age': '86400', Vary: 'Origin', 'Content-Type': 'application/json' };
+};
+const reply = (request: Request, data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: headersFor(request) });
+const id = (value: unknown) => /^\d{15,22}$/.test(String(value || '').trim());
+const clean = (value: unknown, max = 200) => String(value ?? '').trim().slice(0, max);
+const botHeaders = (token: string) => ({ Authorization: `Bot ${token}`, 'User-Agent': 'Panel Pro Discord Bot (+https://panel-pro.ro)' });
+
+async function discordUser(token: string) {
+  const response = await fetch(`${DISCORD_API}/users/@me`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!response.ok) throw new Error('Sesiunea Discord a expirat. Conectează-te din nou.');
+  return response.json();
+}
+
+async function ensureDiscordOrganization(db: any, user: any, guild: any, applicationId: string) {
+  const guildId = String(guild.id);
+  const { data: linked, error: linkedError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
+  if (linkedError) throw linkedError;
+  if (linked?.organization_id) return linked;
+  const botToken = await getPlatformSecret(db, 'discord_bot_token');
+  const botGuildResponse = await fetch(`${DISCORD_API}/guilds/${guildId}`, { headers: botHeaders(botToken) });
+  if (!botGuildResponse.ok) return null;
+  const now = new Date().toISOString();
+  const trialEnds = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: organization, error: organizationError } = await db.from('organizations').insert({ slug: `discord-${guildId}`, name: clean(guild.name || `Server Discord ${guildId}`, 120), access_mode: 'discord_only', lifecycle_status: 'active', active: true, updated_at: now }).select('id,name,access_mode,active').single();
+  if (organizationError) {
+    if (organizationError.code === '23505') return (await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle()).data;
+    throw organizationError;
+  }
+  const organizationId = String(organization.id);
+  const results = await Promise.all([
+    db.from('organization_guilds').insert({ organization_id: organizationId, guild_id: guildId, guild_name: clean(guild.name || guildId, 120), kind: 'primary', enabled: true }),
+    db.from('organization_settings').insert({ organization_id: organizationId, discord_client_id: applicationId || '1531023771211792384', panel_public_url: '', discord_channel_routes: {}, updated_at: now, updated_by_discord_id: String(user.id) }),
+    db.from('app_settings').insert({ organization_id: organizationId, key: 'organization_package', value: { code: 'discord', unlimited: true, expires_at: null }, updated_at: now }),
+    db.from('app_settings').insert({ organization_id: organizationId, key: 'discord_trial', value: { starts_at: now, ends_at: trialEnds, duration_days: 30 }, updated_at: now }),
+    db.from('organization_members').insert({ organization_id: organizationId, discord_id: String(user.id), panel_role: 'Administrator', permission_level: 99, active: true, last_verified_at: now }),
+  ]);
+  const failed = results.find((result: any) => result?.error);
+  if (failed?.error) throw failed.error;
+  return { organization_id: organizationId, kind: 'primary' };
+}
+
+async function ownedGuilds(db: any, user: any, applicationId: string) {
+  const token = String(user.access_token);
+  const response = await fetch(`${DISCORD_API}/users/@me/guilds`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!response.ok) throw new Error('Serverele Discord nu pot fi încărcate. Verifică scope-ul guilds în OAuth.');
+  const guilds = await response.json();
+  const result = [];
+  for (const guild of Array.isArray(guilds) ? guilds : []) {
+    if (!guild.owner || !id(guild.id)) continue;
+    const linked = await ensureDiscordOrganization(db, user, guild, applicationId);
+    if (!linked?.organization_id) continue;
+    const { data: organization, error } = await db.from('organizations').select('id,name,access_mode,active').eq('id', linked.organization_id).maybeSingle();
+    if (error) throw error;
+    if (organization?.access_mode !== 'discord_only') continue;
+    const { data: packageSetting } = await db.from('app_settings').select('key,value').eq('organization_id', linked.organization_id).in('key', ['organization_package', 'discord_trial']);
+    const packageValue = (packageSetting || []).find((item: any) => item.key === 'organization_package')?.value || {};
+    const trialValue = (packageSetting || []).find((item: any) => item.key === 'discord_trial')?.value || {};
+    const { data: entitlement } = await db.from('discord_guild_entitlements').select('sku_id,ends_at,active').eq('guild_id', String(guild.id)).eq('active', true).order('updated_at', { ascending: false }).limit(1).maybeSingle();
+    const premium = Boolean(entitlement && (!entitlement.ends_at || Date.parse(String(entitlement.ends_at)) > Date.now()));
+    const trial = !premium && Date.parse(String(trialValue.ends_at || '')) > Date.now();
+    result.push({ id: String(guild.id), name: clean(guild.name || guild.id, 120), organization_id: String(organization?.id || linked.organization_id), organization_name: clean(organization?.name || guild.name, 120), access_mode: organization?.access_mode || 'discord_only', plan: premium ? 'premium' : trial ? 'trial' : 'free', trial_ends_at: trialValue.ends_at || null, premium_ends_at: entitlement?.ends_at || null, sku_id: entitlement?.sku_id || null });
+  }
+  return result;
+}
+
+async function channels(db: any, guildId: string) {
+  const botToken = await getPlatformSecret(db, 'discord_bot_token');
+  const response = await fetch(`${DISCORD_API}/guilds/${guildId}/channels`, { headers: botHeaders(botToken) });
+  if (!response.ok) throw new Error(`Canalele Discord nu pot fi citite (HTTP ${response.status}). Verifică accesul botului.`);
+  const raw = await response.json();
+  const categories = new Map((Array.isArray(raw) ? raw : []).filter((item: any) => Number(item.type) === 4).map((item: any) => [String(item.id), item.name]));
+  return (Array.isArray(raw) ? raw : []).filter((item: any) => [0, 5].includes(Number(item.type)) && id(item.id)).map((item: any) => ({ id: String(item.id), name: clean(item.name || item.id, 100), category_name: categories.get(String(item.parent_id || '')) || '', type: Number(item.type) })).sort((a: any, b: any) => `${a.category_name}/${a.name}`.localeCompare(`${b.category_name}/${b.name}`, 'ro'));
+}
+
+function payload(moduleKey: string, donation: boolean) {
+  const definition = MODULES[moduleKey];
+  const rows: any[] = [];
+  for (let index = 0; index < definition.buttons.length; index += 5) rows.push({ type: 1, components: definition.buttons.slice(index, index + 5).map((button: any) => ({ type: 2, style: button.style, label: button.label, custom_id: button.id })) });
+  if (donation) rows.push({ type: 1, components: [{ type: 2, style: 5, label: 'Donează pentru dezvoltare', url: 'https://revolut.me/mariomihail' }] });
+  return { username: 'Panel Pro', allowed_mentions: { parse: [] }, embeds: [{ title: definition.title, description: definition.description, color: definition.color, footer: { text: 'Panel Pro · configurat din pagina botului' } }], components: rows };
+}
+
+Deno.serve(async (request) => {
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: headersFor(request) });
+  try {
+    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
+    if (!key) throw new Error('Cheia Supabase lipsește.');
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    const body = await request.json().catch(() => ({}));
+    const accessToken = clean(body.access_token, 500);
+    if (!accessToken) return reply(request, { error: 'Conectarea Discord este necesară.' }, 401);
+    const discord = await discordUser(accessToken);
+    const applicationId = id(body.application_id) ? String(body.application_id) : '1531023771211792384';
+    const action = clean(body.action, 30) || 'bootstrap';
+    const guilds = await ownedGuilds(db, { ...discord, access_token: accessToken }, applicationId);
+    if (action === 'bootstrap') return reply(request, { ok: true, user: { id: String(discord.id), username: clean(discord.global_name || discord.username, 120) }, guilds, modules: Object.fromEntries(Object.entries(MODULES).map(([key, value]) => [key, { label: value.label, premium: value.premium }])) });
+    const guildId = clean(body.guild_id, 30);
+    const selectedGuild = guilds.find((guild: any) => guild.id === guildId);
+    if (!selectedGuild) return reply(request, { error: 'Serverul nu este disponibil: trebuie să fii owner și botul trebuie să fie instalat.' }, 403);
+    if (action === 'channels') return reply(request, { ok: true, channels: await channels(db, guildId), routes: settings?.discord_channel_routes || {} });
+    const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', selectedGuild.organization_id).maybeSingle();
+    if (settingsError) throw settingsError;
+    const allowedPremium = selectedGuild.plan !== 'free';
+    if (action === 'save') {
+      const requested = body.routes && typeof body.routes === 'object' ? body.routes : {};
+      const available = new Set((await channels(db, guildId)).map((channel: any) => channel.id));
+      const routeKeys = Object.keys(MODULES);
+      const nextRoutes: Record<string, any> = { ...(settings?.discord_channel_routes || {}) };
+      for (const routeKey of routeKeys) {
+        if (MODULES[routeKey].premium && !allowedPremium && requested[routeKey]) continue;
+        const channelId = clean(requested[routeKey], 30);
+        if (!channelId) { delete nextRoutes[routeKey]; continue; }
+        if (!validDiscordChannelId(channelId) || !available.has(channelId)) return reply(request, { error: `Canal invalid pentru modulul ${MODULES[routeKey].label}.` }, 400);
+        nextRoutes[routeKey] = { ...(nextRoutes[routeKey] || {}), primary: { ...(nextRoutes[routeKey]?.primary || {}), channel_id: channelId, guild_id: guildId, enabled: true } };
+      }
+      const { error } = await db.from('organization_settings').update({ discord_channel_routes: nextRoutes, updated_at: new Date().toISOString(), updated_by_discord_id: String(discord.id) }).eq('organization_id', selectedGuild.organization_id);
+      if (error) throw error;
+      return reply(request, { ok: true, routes: nextRoutes });
+    }
+    if (action === 'publish') {
+      const moduleKey = clean(body.module, 50);
+      const definition = MODULES[moduleKey];
+      if (!definition) return reply(request, { error: 'Modul invalid.' }, 400);
+      if (definition.premium && !allowedPremium) return reply(request, { error: 'Acest modul este disponibil după activarea Premium sau pe durata trialului.' }, 403);
+      const configured = settings?.discord_channel_routes?.[moduleKey]?.primary;
+      if (!configured?.channel_id) return reply(request, { error: `Alege mai întâi canalul pentru ${definition.label}.` }, 400);
+      const delivery = await deliverDiscordRoute(db, { ...settings, discord_channel_routes: { [moduleKey]: { primary: configured } } }, moduleKey, JSON.stringify(payload(moduleKey, !allowedPremium)), { postOnly: false });
+      const result = delivery.results?.[0];
+      if (result?.id) {
+        const nextRoutes = { ...(settings?.discord_channel_routes || {}) };
+        nextRoutes[moduleKey] = { ...(nextRoutes[moduleKey] || {}), primary: { ...configured, message_id: String(result.id) } };
+        await db.from('organization_settings').update({ discord_channel_routes: nextRoutes, updated_at: new Date().toISOString(), updated_by_discord_id: String(discord.id) }).eq('organization_id', selectedGuild.organization_id);
+      }
+      return reply(request, { ok: true, result, failures: delivery.failures || [] });
+    }
+    return reply(request, { error: 'Acțiune necunoscută.' }, 400);
+  } catch (error) { return reply(request, { error: error instanceof Error ? error.message : 'Eroare internă.' }, 400); }
+});

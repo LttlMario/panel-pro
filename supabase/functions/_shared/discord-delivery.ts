@@ -95,9 +95,10 @@ export async function deliverDiscordRoute(
         if (!response.ok) {
           const details = await response.clone().json().catch(() => ({}));
           const discordMessage = String(details?.message || '').trim();
+          const discordErrors = details?.errors ? ` ${JSON.stringify(details.errors).slice(0, 1500)}` : '';
           lastError = response.status === 403
             ? `Botul Discord nu are permisiuni în canalul ${candidate.channel_id}. Verifică View Channel, Send Messages și Embed Links pentru bot.`
-            : `Discord ${candidate.transport} HTTP ${response.status}${discordMessage ? `: ${discordMessage}` : ''}`;
+            : `Discord ${candidate.transport} HTTP ${response.status}${discordMessage ? `: ${discordMessage}` : ''}${discordErrors}`;
           continue;
         }
         const data = await response.clone().json().catch(() => ({}));

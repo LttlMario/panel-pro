@@ -26,6 +26,7 @@ $functions = @(
     'manage-community-posts',
     'manage-public-feedback',
     'manage-stash',
+    'manage-discord-bot',
     'send-discord-notification',
     'discord-interactions',
     'sync-discord-commands',

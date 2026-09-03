@@ -883,6 +883,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 const syncResult = await syncResponse.json();
                 if (!syncResponse.ok || !syncResult.user) {
+                    const openDiscordBotAdmin = async () => {
+                        if (emailLinkFlow || !token) return false;
+                        try {
+                            const botAdminResponse = await fetch(`${SUPABASE_URL}/functions/v1/manage-discord-bot`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+                                body: JSON.stringify({ action: 'bootstrap', access_token: token })
+                            });
+                            const botAdminResult = await botAdminResponse.json().catch(() => ({}));
+                            if (!botAdminResponse.ok || !Array.isArray(botAdminResult.guilds) || !botAdminResult.guilds.length) return false;
+                            localStorage.setItem('discord_user', JSON.stringify({ discord_id: discordData.id, username: discordData.username || 'utilizator', display_name: discordData.global_name || discordData.username || 'utilizator', avatar: discordData.avatar ? `https://cdn.discordapp.com/avatars/${discordData.id}/${discordData.avatar}.png` : 'img/logo-192.png', role: 'Administrator Discord' }));
+                            window.setPanelDiscordAccessToken(token);
+                            setLoginStatus('Acces Discord-only confirmat.');
+                            setTimeout(() => { window.location.href = 'discord-bot.html'; }, 250);
+                            return true;
+                        } catch (_) { return false; }
+                    };
                     const savedReturn = sessionStorage.getItem('panel_return_after_login') || '';
                     let voucherExtensionReturn = false;
                     try { voucherExtensionReturn = new URL(savedReturn, window.location.href).pathname.endsWith('/prelungire-voucher.html') || new URL(savedReturn, window.location.href).pathname.endsWith('prelungire-voucher.html'); } catch (_) {}
@@ -900,6 +917,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         setTimeout(() => { window.location.href = getSafeReturnDestination(publicUser); }, 250);
                         return;
                     }
+                    if (['DISCORD_ONLY_WEB', 'NO_ORGANIZATION', 'ROLE_NOT_CONFIGURED'].includes(String(syncResult.code || '')) && await openDiscordBotAdmin()) return;
                     if (['NO_ORGANIZATION', 'ROLE_NOT_CONFIGURED'].includes(String(syncResult.code || ''))) {
                         throw new Error('Nu ai niciun rol Discord configurat pentru această organizație. Contactează administratorul organizației.');
                     }

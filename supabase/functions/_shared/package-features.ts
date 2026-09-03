@@ -36,7 +36,10 @@ export const OPERATIONS_PACKAGE_FEATURES = Object.freeze([
 ]);
 
 export function resolvePackageFeatures(packageValue: any = {}) {
-  if (packageValue?.code === 'discord') return [];
+  // Discord-only tenants are intentionally blocked from the web by
+  // packageAllowsPage(), but the Discord interaction runtime still needs a
+  // feature catalog so its buttons can operate without a web subscription.
+  if (packageValue?.code === 'discord') return [...FULL_PACKAGE_FEATURES];
   if (packageValue?.code === 'full') return [...FULL_PACKAGE_FEATURES];
   if (packageValue?.code === 'operations') return [...OPERATIONS_PACKAGE_FEATURES];
   // Standard is intentionally closed: a stored JSON value must never be able

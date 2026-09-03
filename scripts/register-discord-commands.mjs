@@ -23,7 +23,7 @@ const commands = [{
         required: true,
         choices: [
           ['Anunțuri organizație', 'organization'], ['Anunțuri angajați', 'departments'], ['Pontaj', 'pontaj'],
-          ['Învoiri organizație', 'requests_organization'], ['Învoiri angajați', 'requests_departments'], ['Contracte', 'contracts'],
+          ['Învoiri organizație', 'requests_organization'], ['Învoiri angajați', 'requests_departments'], ['Contracte', 'contracts'], ['Status live', 'status_live'],
           ['Stash', 'stash'],
         ].map(([name, value]) => ({ name, value })),
       }],
