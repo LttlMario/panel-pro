@@ -23,8 +23,11 @@
     const config = window.PANEL_SUPABASE_CONFIG || {};
     if (!token || !config.url || !config.publishableKey) return;
     try {
-      await fetch(`${config.url}/functions/v1/manage-discord-bot`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': localStorage.getItem('panel_session_token') || '' }, body: JSON.stringify({ action: 'bootstrap', access_token: token, application_id: window.PANEL_DISCORD_CONFIG?.clientId || '1531023771211792384' }) });
-    } catch (_) {}
+      const response = await fetch(`${config.url}/functions/v1/manage-discord-bot`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': localStorage.getItem('panel_session_token') || '' }, body: JSON.stringify({ action: 'bootstrap', access_token: token, application_id: window.PANEL_DISCORD_CONFIG?.clientId || '1531023771211792384' }) });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) return null;
+      return result;
+    } catch (_) { return null; }
   };
   const statusFor = (organization) => organization?.health?.status || 'inactive';
   const statusLabel = (value) => ({ active: 'Activă', draft: 'Draft', expired: 'Expirată', inactive: 'Inactivă' }[value] || value);
