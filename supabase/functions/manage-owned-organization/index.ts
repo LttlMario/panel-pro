@@ -18,7 +18,7 @@ const webhookChannels = new Set([
   'organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization',
   'requests_departments', 'contracts', 'contract_identity_weekly', 'marketplace', 'illegal_marketplace',
   'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments',
-  'sanctions_organization', 'sanctions_departments', 'actions_organization', 'actions_organization_weekly', 'event_reminders', 'status_live', 'organization_expiration', 'stash', 'stash_requests', 'stash_donations', 'log_pontaj', 'log_requests_organization', 'log_requests_departments', 'log_announcements_organization', 'log_announcements_departments', 'log_contracts', 'contract_uploads'
+  'sanctions_organization', 'sanctions_departments', 'actions_organization', 'actions_organization_weekly', 'event_reminders', 'status_live', 'organization_expiration', 'stash', 'log_stash', 'stash_requests', 'log_stash_requests', 'stash_donations', 'log_stash_donations', 'log_pontaj', 'log_requests_organization', 'log_requests_departments', 'log_announcements_organization', 'log_announcements_departments', 'log_contracts', 'contract_uploads'
 ]);
 const allowedContractPlaceholders = new Set([
   '{{COMPANY}}', '{{ADDRESS}}', '{{MANAGER}}', '{{EMPLOYEE_NAME}}', '{{CNP}}',

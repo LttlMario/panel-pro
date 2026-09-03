@@ -528,13 +528,21 @@ function disciplineModal(audience: 'organization' | 'departments', kind: 'warnin
 
 function actionModal() {
   const input = (custom_id: string, label: string, style: number, required: boolean, placeholder: string, max_length: number) => ({ type: 4, custom_id, label, style, required, placeholder, max_length });
-  return { type: 9, data: { custom_id: 'panel:actions:organization:submit', title: 'Acțiune · Organizație', components: [
+  return { type: 9, data: { custom_id: 'panel:actions:organization:details', title: 'Acțiune · Organizație', components: [
     { type: 1, components: [input('action_type', 'Tip acțiune', 1, true, 'Minat, Farmat, Patrulă...', 40)] },
     { type: 1, components: [input('action_label', 'Denumire', 1, true, 'Exemplu: Car meet', 120)] },
     { type: 1, components: [input('description', 'Descriere', 2, false, 'Ce s-a făcut...', 4000)] },
     { type: 1, components: [input('notes', 'Note (opțional)', 2, false, 'Detalii suplimentare...', 4000)] },
-    { type: 1, components: [input('participants', 'Participanți (mențiuni Discord)', 2, false, 'Câte o mențiune pe rând: @membru', 2000)] },
   ] } };
+}
+
+function actionParticipantPicker(draftId: string) {
+  return interactionMessage('Alege participanții direct din lista serverului. Poți selecta până la 25 de persoane.', {
+    components: [
+      { type: 1, components: [{ type: 5, custom_id: `panel:actions:organization:participants:${draftId}`, placeholder: 'Caută și selectează participanții', min_values: 1, max_values: 25 }] },
+      { type: 1, components: [{ type: 2, style: 2, label: 'Salvează fără participanți', custom_id: `panel:actions:organization:participants_skip:${draftId}` }] },
+    ],
+  });
 }
 
 function disciplineComponents(audience: 'organization' | 'departments', kind: 'warning' | 'sanction', id: string) {
@@ -834,27 +842,41 @@ async function handleDisciplineSubmit(db: any, context: any, interaction: any, k
   return interactionMessage('Sancțiunea a fost salvată și trimisă în canalul Discord configurat.');
 }
 
-function participantIdsFromText(value: string) {
-  return [...new Set([...String(value || '').matchAll(/(?:<@!?)?(\d{15,22})>?/g)].map((match) => String(match[1])))].slice(0, 100);
-}
-
-async function handleActionSubmit(db: any, context: any, values: Record<string, string>) {
-  const type = String(values.action_type || '').trim().slice(0, 40);
-  const label = String(values.action_label || '').trim().slice(0, 120);
-  if (type.length < 2 || label.length < 2) return interactionMessage('Completează tipul și denumirea acțiunii.');
-  const ids = participantIdsFromText(values.participants);
-  const participants = [];
-  for (const id of ids) participants.push(await loadDiscordMember(id, context.guildId, db));
-  const now = new Date().toISOString();
-  const { data: record, error } = await db.from('organization_actions').insert({ organization_id: context.organization.id, action_type: type, action_label: label, description: String(values.description || '').trim().slice(0, 4000), notes: String(values.notes || '').trim().slice(0, 4000), guild_id: context.guildId, guild_name: '', participants, created_by_discord_id: context.discordId, created_by_name: context.displayName, created_at: now, updated_at: now }).select('*').single();
-  if (error) throw error;
-  const routeKey = context.logRouteKey || announcementRoutes('organization').log;
+async function publishActionRecord(db: any, context: any, record: any) {
+  // Panoul de control rămâne în canalul de anunțuri, dar rezultatul acțiunii
+  // se publică separat pe ruta configurată pentru „Acțiuni organizație”.
+  const routeKey = 'actions_organization';
   const destinations = routeCandidates(context.settings, routeKey);
   if (!destinations.some((item: any) => item.candidates.length)) return interactionMessage('Acțiunea a fost salvată în Supabase, dar canalul „Log anunțuri · Organizație” nu este configurat.');
   const delivery = await deliverDiscordRoute(db, context.settings, routeKey, JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [actionEmbed(record, context)], components: actionComponents(String(record.id)) }));
   const messageId = delivery.results?.[0]?.id || null;
   if (messageId) await db.from('organization_actions').update({ discord_message_id: messageId }).eq('organization_id', context.organization.id).eq('id', record.id);
   return interactionMessage(`Acțiunea a fost salvată și publicată în ${delivery.results.length || 0} canal Discord.`);
+}
+
+async function createActionDraft(db: any, context: any, values: Record<string, string>) {
+  const type = String(values.action_type || '').trim().slice(0, 40);
+  const label = String(values.action_label || '').trim().slice(0, 120);
+  if (type.length < 2 || label.length < 2) return interactionMessage('Completează tipul și denumirea acțiunii.');
+  const now = new Date().toISOString();
+  await db.from('discord_action_drafts').delete().lt('expires_at', now);
+  const { data: draft, error } = await db.from('discord_action_drafts').insert({ organization_id: context.organization.id, guild_id: context.guildId, created_by_discord_id: context.discordId, created_by_name: context.displayName, action_type: type, action_label: label, description: String(values.description || '').trim().slice(0, 4000), notes: String(values.notes || '').trim().slice(0, 4000), expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString() }).select('id').single();
+  if (error) throw error;
+  return actionParticipantPicker(String(draft.id));
+}
+
+async function finalizeActionDraft(db: any, context: any, draftId: string, participantIds: string[]) {
+  const { data: draft, error: draftError } = await db.from('discord_action_drafts').select('*').eq('id', draftId).eq('organization_id', context.organization.id).eq('guild_id', context.guildId).eq('created_by_discord_id', context.discordId).gt('expires_at', new Date().toISOString()).maybeSingle();
+  if (draftError) throw draftError;
+  if (!draft) return interactionMessage('Selecția participanților a expirat. Apasă din nou pe butonul Acțiune.');
+  const ids = [...new Set(participantIds.map(String).filter((id) => /^\d{15,22}$/.test(id)))].slice(0, 25);
+  const participants = [];
+  for (const id of ids) participants.push(await loadDiscordMember(id, context.guildId, db));
+  const now = new Date().toISOString();
+  const { data: record, error } = await db.from('organization_actions').insert({ organization_id: context.organization.id, action_type: draft.action_type, action_label: draft.action_label, description: draft.description || '', notes: draft.notes || '', guild_id: context.guildId, guild_name: '', participants, created_by_discord_id: context.discordId, created_by_name: context.displayName, created_at: now, updated_at: now }).select('*').single();
+  await db.from('discord_action_drafts').delete().eq('id', draft.id);
+  if (error) throw error;
+  return publishActionRecord(db, context, record);
 }
 
 function requestModal(audience: 'organization' | 'departments') {
@@ -866,6 +888,135 @@ function requestModal(audience: 'organization' | 'departments') {
     { type: 1, components: [input('reason', 'Motiv / mențiuni', 2, true, 'Explică pe scurt situația...', 1000)] },
     { type: 1, components: [input('proof_url', 'Dovadă / document (opțional)', 1, false, 'https://...', 500)] },
   ] } };
+}
+
+async function resolveStashContext(db: any, interaction: any, routeKey: 'stash' | 'log_stash' | 'stash_requests' | 'stash_donations', permission: 'write' | 'request' | 'manage_requests' | 'donate' | 'approve_donation') {
+  const guildId = String(interaction.guild_id || '').trim();
+  const channelId = String(interaction.channel_id || '').trim();
+  const user = interaction.member?.user || interaction.user || {};
+  const discordId = String(user.id || '').trim();
+  if (!/^\d{15,22}$/.test(guildId) || !/^\d{15,22}$/.test(channelId) || !/^\d{15,22}$/.test(discordId)) throw new Error('Interacțiunea Discord nu conține date valide.');
+  const { data: guild, error: guildError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
+  if (guildError) throw guildError;
+  if (!guild) throw new Error('Serverul Discord nu este asociat unei organizații Panel Pro.');
+  const [{ data: organization, error: organizationError }, { data: settings, error: settingsError }, { data: packageSetting, error: packageError }, { data: permissionSetting, error: permissionError }] = await Promise.all([
+    db.from('organizations').select('id,name,active').eq('id', guild.organization_id).maybeSingle(),
+    db.from('organization_settings').select('discord_channel_routes,panel_public_url').eq('organization_id', guild.organization_id).maybeSingle(),
+    db.from('app_settings').select('value').eq('organization_id', guild.organization_id).eq('key', 'organization_package').maybeSingle(),
+    db.from('app_settings').select('value').eq('organization_id', guild.organization_id).eq('key', 'action_permissions').maybeSingle(),
+  ]);
+  if (organizationError || settingsError || packageError || permissionError) throw organizationError || settingsError || packageError || permissionError;
+  if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  if (!resolvePackageFeatures(packageSetting?.value || {}).includes('stash')) throw new Error('Stash nu este inclus în pachetul organizației.');
+  const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
+  if (!channelMatches(settings, routeKey, target, channelId)) throw new Error(`Acest canal nu este configurat pentru panoul ${routeKey === 'stash' ? 'Stash' : routeKey === 'log_stash' ? 'Log stash' : routeKey === 'stash_requests' ? 'Cereri stash' : 'Donații stash'}.`);
+  const memberRoles = new Set((interaction.member?.roles || []).map((role: unknown) => String(role)));
+  const { data: mappings, error: mappingsError } = await db.from('organization_role_mappings').select('discord_role_id,panel_role,priority').eq('organization_id', guild.organization_id).eq('guild_id', guildId).eq('enabled', true);
+  if (mappingsError) throw mappingsError;
+  const { data: member, error: memberError } = await db.from('organization_members').select('panel_role').eq('organization_id', guild.organization_id).eq('discord_id', discordId).eq('active', true).maybeSingle();
+  if (memberError) throw memberError;
+  const roleIds = new Set(member?.panel_role ? [...memberRoles, ...(mappings || []).filter((row: any) => String(row.panel_role || '').toLowerCase() === String(member.panel_role).toLowerCase()).map((row: any) => String(row.discord_role_id))] : [...memberRoles]);
+  const platformAdmin = await isPlatformAdminAccount(db, discordId);
+  const configured = Array.isArray(permissionSetting?.value?.[`stash.${permission}`]) ? permissionSetting.value[`stash.${permission}`].map(String) : [];
+  if (!platformAdmin && !configured.some((id: string) => roleIds.has(id))) throw new Error('Nu ai permisiunea configurată pentru această funcție Stash.');
+  const displayName = String(interaction.member?.nick || user.global_name || user.username || discordId).trim().slice(0, 120) || discordId;
+  return { guildId, channelId, target, discordId, displayName, organization, settings, logRouteKey: permission === 'request' || permission === 'manage_requests' ? 'log_stash_requests' : permission === 'donate' || permission === 'approve_donation' ? 'log_stash_donations' : 'log_stash' };
+}
+
+function stashModal(kind: 'item' | 'request' | 'donation') {
+  const input = (custom_id: string, label: string, style: number, required: boolean, placeholder: string, max_length: number) => ({ type: 4, custom_id, label, style, required, placeholder, max_length });
+  const rows = kind === 'item'
+    ? [input('title', 'Articol', 1, true, 'Numele articolului', 140), input('category', 'Categorie', 1, true, 'Categoria', 60), input('quantity', 'Număr iteme', 1, true, '0', 20), input('description', 'Detalii', 2, false, 'Detalii despre articol', 1000)]
+    : kind === 'request'
+      ? [input('item_title', 'Articol solicitat', 1, true, 'Numele articolului', 140), input('quantity', 'Cantitate', 1, true, '0', 20), input('note', 'Notă', 2, false, 'Detalii cerere', 1000)]
+      : [input('title', 'Articol donat', 1, true, 'Numele articolului', 140), input('category', 'Categorie', 1, true, 'Categoria', 60), input('quantity', 'Număr iteme', 1, true, '0', 20), input('note', 'Notă', 2, false, 'Detalii donație', 1000)];
+  return { type: 9, data: { custom_id: `panel:stash:${kind}:submit`, title: kind === 'item' ? 'Adaugă în Stash' : kind === 'request' ? 'Cerere Stash' : 'Donație Stash', components: rows.map((row) => ({ type: 1, components: [row] })) } };
+}
+
+function stashPendingView(kind: 'request' | 'donation', rows: any[]) {
+  const label = kind === 'request' ? 'cererile' : 'donațiile';
+  if (!rows.length) return interactionMessage(`Nu există ${label} în așteptare.`);
+  const options = rows.slice(0, 25).map((row: any) => ({ label: String(kind === 'request' ? row.item_title : row.title).slice(0, 100), value: String(row.id), description: `${row.quantity} iteme · ${String(kind === 'request' ? row.requested_by_name : row.donated_by_name).slice(0, 70)}`.slice(0, 100) }));
+  return interactionMessage(`Selectează ${kind === 'request' ? 'cererea' : 'donația'} pe care vrei să o gestionezi.`, { components: [{ type: 1, components: [{ type: 3, custom_id: `panel:stash:select_${kind}`, placeholder: `Alege ${kind === 'request' ? 'o cerere' : 'o donație'}`, min_values: 1, max_values: 1, options }] }] });
+}
+
+function stashDecisionView(kind: 'request' | 'donation', id: string, row: any) {
+  const title = kind === 'request' ? row.item_title : row.title;
+  return interactionMessage(`Ai selectat **${String(title).slice(0, 120)}** · ${row.quantity} iteme.`, { components: [{ type: 1, components: [{ type: 2, style: 3, label: 'Aprobă', custom_id: `panel:stash:decision_${kind}:approved:${id}` }, { type: 2, style: 4, label: 'Respinge', custom_id: `panel:stash:decision_${kind}:rejected:${id}` }] }] });
+}
+
+async function loadStashDecisionRow(db: any, context: any, kind: 'request' | 'donation', id: string) {
+  const table = kind === 'request' ? 'organization_stash_requests' : 'organization_stash_donations';
+  const { data, error } = await db.from(table).select('*').eq('organization_id', context.organization.id).eq('id', id).maybeSingle();
+  if (error) throw error;
+  if (!data || data.status !== 'pending') throw new Error('Elementul selectat nu mai este în așteptare.');
+  return data;
+}
+
+async function handleStashDecision(db: any, context: any, kind: 'request' | 'donation', id: string, decision: 'approved' | 'rejected') {
+  const row = await loadStashDecisionRow(db, context, kind, id);
+  const now = new Date().toISOString();
+  if (kind === 'request') {
+    const { data, error } = await db.from('organization_stash_requests').update({ status: decision, handled_by_discord_id: context.discordId, handled_by_name: context.displayName, handled_at: now, updated_at: now }).eq('organization_id', context.organization.id).eq('id', id).eq('status', 'pending').select('*').single();
+    if (error) throw error;
+    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash_requests', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: decision === 'approved' ? '✅ Cerere Stash aprobată' : '❌ Cerere Stash respinsă', fields: [{ name: 'Articol', value: String(data.item_title), inline: true }, { name: 'Număr iteme', value: String(data.quantity), inline: true }, { name: 'Solicitat de', value: String(data.requested_by_name), inline: true }, { name: 'Status', value: decision === 'approved' ? 'Aprobată' : 'Respinsă', inline: true }], color: decision === 'approved' ? 0x22c55e : 0xef4444, timestamp: now }] }), { messageIds: row.discord_message_ids || {} });
+    const messageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
+    if (Object.keys(messageIds).length) await db.from('organization_stash_requests').update({ discord_message_ids: messageIds }).eq('organization_id', context.organization.id).eq('id', id);
+    return interactionMessage(`Cererea a fost ${decision === 'approved' ? 'aprobată' : 'respinsă'} și logul a fost actualizat.`);
+  }
+  if (decision === 'approved') {
+    const { data: item, error: itemError } = await db.from('organization_stash_items').insert({ organization_id: context.organization.id, title: row.title, category: row.category || 'General', quantity: row.quantity, unit: 'buc.', description: row.note || '', status: 'available', source_type: 'donation', created_by_discord_id: row.donated_by_discord_id, created_by_name: row.donated_by_name, updated_by_discord_id: context.discordId, created_at: now, updated_at: now }).select('*').single();
+    if (itemError) throw itemError;
+    const { data: donation, error } = await db.from('organization_stash_donations').update({ status: 'approved', reviewed_by_discord_id: context.discordId, reviewed_by_name: context.displayName, reviewed_at: now, stash_item_id: item.id, updated_at: now }).eq('organization_id', context.organization.id).eq('id', id).eq('status', 'pending').select('*').single();
+    if (error) throw error;
+    const itemDelivery = await deliverDiscordRoute(db, context.settings, 'log_stash', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '✅ Donație aprobată și adăugată în Stash', fields: [{ name: 'Articol', value: String(item.title), inline: true }, { name: 'Categorie', value: String(item.category), inline: true }, { name: 'Număr iteme', value: String(item.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Disponibil', inline: true }], color: 0x22c55e, timestamp: now }], components: [{ type: 1, components: [{ type: 2, style: 4, label: 'Șterge articolul', custom_id: `panel:stash:delete_item:${item.id}` }] }] }), { postOnly: true });
+    const itemMessageIds = Object.fromEntries((itemDelivery.results || []).filter((entry: any) => entry.id).map((entry: any) => [entry.target, String(entry.id)]));
+    if (Object.keys(itemMessageIds).length) await db.from('organization_stash_items').update({ discord_message_ids: itemMessageIds }).eq('organization_id', context.organization.id).eq('id', item.id);
+    const donationDelivery = await deliverDiscordRoute(db, context.settings, 'log_stash_donations', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '✅ Donație Stash aprobată', fields: [{ name: 'Articol', value: String(donation.title), inline: true }, { name: 'Număr iteme', value: String(donation.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Aprobată', inline: true }], color: 0x22c55e, timestamp: now }] }), { messageIds: row.discord_message_ids || {} });
+    const donationMessageIds = Object.fromEntries((donationDelivery.results || []).filter((entry: any) => entry.id).map((entry: any) => [entry.target, String(entry.id)]));
+    if (Object.keys(donationMessageIds).length) await db.from('organization_stash_donations').update({ discord_message_ids: donationMessageIds }).eq('organization_id', context.organization.id).eq('id', id);
+  } else {
+    const { data: donation, error } = await db.from('organization_stash_donations').update({ status: 'rejected', reviewed_by_discord_id: context.discordId, reviewed_by_name: context.displayName, reviewed_at: now, updated_at: now }).eq('organization_id', context.organization.id).eq('id', id).eq('status', 'pending').select('*').single();
+    if (error) throw error;
+    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash_donations', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '❌ Donație Stash respinsă', fields: [{ name: 'Articol', value: String(donation.title), inline: true }, { name: 'Număr iteme', value: String(donation.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Respinsă', inline: true }], color: 0xef4444, timestamp: now }] }), { messageIds: row.discord_message_ids || {} });
+    const messageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
+    if (Object.keys(messageIds).length) await db.from('organization_stash_donations').update({ discord_message_ids: messageIds }).eq('organization_id', context.organization.id).eq('id', id);
+  }
+  return interactionMessage(`Donația a fost ${decision === 'approved' ? 'aprobată și adăugată în Stash' : 'respinsă'}.`);
+}
+
+async function handleStashSubmit(db: any, context: any, kind: 'item' | 'request' | 'donation', values: Record<string, string>) {
+  const quantity = Number(values.quantity);
+  if (!Number.isFinite(quantity) || quantity <= 0) return interactionMessage('Introdu o cantitate validă.');
+  const now = new Date().toISOString();
+  if (kind === 'item') {
+    const title = String(values.title || '').trim();
+    if (title.length < 2) return interactionMessage('Numele articolului este obligatoriu.');
+    const { data, error } = await db.from('organization_stash_items').insert({ organization_id: context.organization.id, title, category: String(values.category || 'General').trim(), quantity, unit: 'buc.', description: String(values.description || '').trim(), status: 'available', source_type: 'manual', created_by_discord_id: context.discordId, created_by_name: context.displayName, updated_by_discord_id: context.discordId, created_at: now, updated_at: now }).select('*').single();
+    if (error) throw error;
+    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '📦 Articol nou în Stash', color: 0x22c55e, fields: [{ name: 'Articol', value: title, inline: true }, { name: 'Categorie', value: String(values.category || 'General').trim(), inline: true }, { name: 'Număr iteme', value: String(quantity), inline: true }, { name: 'Status', value: 'Disponibil', inline: true }, { name: 'Detalii', value: String(values.description || '').trim() || 'Fără detalii.', inline: false }, { name: 'Retrageri recente', value: 'Nu au fost înregistrate retrageri.', inline: false }], footer: { text: `Postat de ${context.displayName}` }, timestamp: now }], components: [{ type: 1, components: [{ type: 2, style: 4, label: 'Șterge articolul', custom_id: `panel:stash:delete_item:${data.id}` }] }] }), { postOnly: true });
+    const itemMessageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
+    if (Object.keys(itemMessageIds).length) await db.from('organization_stash_items').update({ discord_message_ids: itemMessageIds }).eq('organization_id', context.organization.id).eq('id', data.id);
+    return interactionMessage(`Articolul **${data.title}** a fost adăugat în Stash.${delivery.results.length ? '' : `\n⚠️ Logul nu a fost trimis: ${delivery.failures.join(' | ')}`}`);
+  }
+  if (kind === 'request') {
+    const title = String(values.item_title || '').trim();
+    if (title.length < 2) return interactionMessage('Articolul solicitat este obligatoriu.');
+    const { data, error } = await db.from('organization_stash_requests').insert({ organization_id: context.organization.id, item_title: title, quantity, note: String(values.note || '').trim(), status: 'pending', requested_by_discord_id: context.discordId, requested_by_name: context.displayName, created_at: now, updated_at: now }).select('*').single();
+    if (error) throw error;
+    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash_requests', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '📨 Cerere nouă Stash', description: `**${title}** · ${quantity} iteme\nSolicitată de ${context.displayName}`, color: 0xf59e0b, timestamp: now }] }), { postOnly: true });
+    const messageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
+    if (Object.keys(messageIds).length) await db.from('organization_stash_requests').update({ discord_message_ids: messageIds }).eq('organization_id', context.organization.id).eq('id', data.id);
+    return interactionMessage('Cererea Stash a fost înregistrată.');
+  }
+  const title = String(values.title || '').trim();
+  if (title.length < 2) return interactionMessage('Numele articolului donat este obligatoriu.');
+  const { data, error } = await db.from('organization_stash_donations').insert({ organization_id: context.organization.id, title, category: String(values.category || 'General').trim(), quantity, unit: 'buc.', note: String(values.note || '').trim(), status: 'pending', donated_by_discord_id: context.discordId, donated_by_name: context.displayName, created_at: now, updated_at: now }).select('*').single();
+  if (error) throw error;
+  const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash_donations', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '🎁 Donație nouă Stash', description: `**${title}** · ${quantity} iteme\nDonată de ${context.displayName}`, color: 0xa78bfa, timestamp: now }] }), { postOnly: true });
+  const messageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
+  if (Object.keys(messageIds).length) await db.from('organization_stash_donations').update({ discord_message_ids: messageIds }).eq('organization_id', context.organization.id).eq('id', data.id);
+  return interactionMessage('Donația Stash a fost înregistrată pentru aprobare.');
 }
 
 function requestDateTime(value: string, endOfDay = false) {
@@ -1260,7 +1411,7 @@ Deno.serve(async (request) => {
   const customId = String(interaction?.data?.custom_id || '');
   const isComponent = Number(interaction?.type) === 3;
   const isButton = isComponent && Number(interaction?.data?.component_type || 2) === 2;
-  const isSelect = isComponent && Number(interaction?.data?.component_type || 0) === 5;
+  const isSelect = isComponent && [3, 5].includes(Number(interaction?.data?.component_type || 0));
   const isModalSubmit = Number(interaction?.type) === 5;
   const isPontaj = customId.startsWith('panel:pontaj:');
   const isRequests = customId.startsWith('panel:requests:');
@@ -1268,12 +1419,93 @@ Deno.serve(async (request) => {
   const isAnnouncements = customId.startsWith('panel:announcements:');
   const isDiscipline = customId.startsWith('panel:discipline:');
   const isActions = customId.startsWith('panel:actions:');
+  const isStash = customId.startsWith('panel:stash:');
   if (!isComponent && !isModalSubmit) return reply(interactionMessage('Acest tip de interacțiune nu este disponibil.'));
-  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
   try {
     const key = serviceKey();
     if (!key) throw new Error('Cheia secretă Supabase lipsește.');
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    if (isStash && isButton) {
+      const parts = customId.split(':');
+      if (parts[2] === 'pending_requests' || parts[2] === 'pending_donations') {
+        const kind = parts[2] === 'pending_requests' ? 'request' : 'donation';
+        const permission = kind === 'request' ? 'manage_requests' : 'approve_donation';
+        const deferred = await deferInteraction(interaction, false);
+        let result;
+        try {
+          const context = await resolveStashContext(db, interaction, 'stash', permission);
+          const { data, error } = await db.from(kind === 'request' ? 'organization_stash_requests' : 'organization_stash_donations').select('*').eq('organization_id', context.organization.id).eq('status', 'pending').order('created_at', { ascending: false }).limit(25);
+          if (error) throw error;
+          result = stashPendingView(kind, data || []);
+        } catch (error) { result = interactionMessage(readableError(error, 'Lista Stash nu a putut fi încărcată.')); }
+        await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+        return new Response(null, { status: 204 });
+      }
+      if (parts[2] === 'decision_request' || parts[2] === 'decision_donation') {
+        const kind = parts[2] === 'decision_request' ? 'request' : 'donation';
+        const permission = kind === 'request' ? 'manage_requests' : 'approve_donation';
+        const context = await resolveStashContext(db, interaction, 'stash', permission);
+        const decision = parts[3] === 'approved' ? 'approved' : parts[3] === 'rejected' ? 'rejected' : null;
+        if (!decision) return reply(interactionMessage('Decizia Stash nu este validă.'));
+        const deferred = await deferInteraction(interaction, false);
+        let result;
+        try { result = await handleStashDecision(db, context, kind, String(parts[4] || ''), decision); }
+        catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(readableError(error, 'Decizia Stash nu a putut fi salvată.')); }
+        const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+        if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+        return new Response(null, { status: 204 });
+      }
+      if (parts[2] === 'delete_item') {
+        const itemId = String(parts[3] || '').trim();
+        if (!/^[0-9a-f-]{36}$/i.test(itemId)) return reply(interactionMessage('Articolul Stash selectat nu este valid.'));
+        const context = await resolveStashContext(db, interaction, 'log_stash', 'write');
+        const { data: item, error: itemError } = await db.from('organization_stash_items').select('id,title').eq('organization_id', context.organization.id).eq('id', itemId).maybeSingle();
+        if (itemError) throw itemError;
+        if (!item) return reply(interactionMessage('Articolul nu mai există în Stash.'));
+        const { error: deleteError } = await db.from('organization_stash_items').delete().eq('organization_id', context.organization.id).eq('id', itemId);
+        if (deleteError) throw deleteError;
+        await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: context.channelId }, null, { method: 'DELETE', messageId: String(interaction.message?.id || '') });
+        return reply(interactionMessage(`Articolul **${item.title}** a fost șters din Stash și din log.`));
+      }
+      const kind = parts[2] === 'request' ? 'request' : parts[2] === 'donate' ? 'donation' : parts[2] === 'create' ? 'item' : null;
+      if (!kind) return reply(interactionMessage('Acțiunea Stash nu este disponibilă.'));
+      const routeKey = kind === 'request' ? 'stash_requests' : kind === 'donation' ? 'stash_donations' : 'stash';
+      const permission = kind === 'request' ? 'request' : kind === 'donation' ? 'donate' : 'write';
+      await resolveStashContext(db, interaction, routeKey, permission);
+      return reply(stashModal(kind));
+    }
+    if (isStash && isSelect) {
+      const parts = customId.split(':');
+      const kind = parts[2] === 'select_request' ? 'request' : parts[2] === 'select_donation' ? 'donation' : null;
+      if (!kind) return reply(interactionMessage('Selecția Stash nu este validă.'));
+      const permission = kind === 'request' ? 'manage_requests' : 'approve_donation';
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try {
+        const context = await resolveStashContext(db, interaction, 'stash', permission);
+        const id = String(interaction.data?.values?.[0] || '').trim();
+        if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error('Elementul Stash selectat nu este valid.');
+        const row = await loadStashDecisionRow(db, context, kind, id);
+        result = stashDecisionView(kind, id, row);
+      } catch (error) { result = interactionMessage(readableError(error, 'Elementul Stash nu a putut fi încărcat.')); }
+      await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      return new Response(null, { status: 204 });
+    }
+    if (isStash && isModalSubmit) {
+      const parts = customId.split(':');
+      const kind = parts[2] === 'request' ? 'request' : parts[2] === 'donation' ? 'donation' : parts[2] === 'item' ? 'item' : null;
+      if (!kind || parts[3] !== 'submit') return reply(interactionMessage('Formularul Stash nu este valid.'));
+      const routeKey = kind === 'request' ? 'stash_requests' : kind === 'donation' ? 'stash_donations' : 'stash';
+      const permission = kind === 'request' ? 'request' : kind === 'donation' ? 'donate' : 'write';
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try { result = await handleStashSubmit(db, await resolveStashContext(db, interaction, routeKey, permission), kind, modalValues(interaction)); }
+      catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(readableError(error, 'Acțiunea Stash nu a putut fi executată.')); }
+      const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+      return new Response(null, { status: 204 });
+    }
     if (isContracts && isButton) {
       const parts = customId.split(':');
       if (parts[2] === 'copy') {
@@ -1423,6 +1655,16 @@ Deno.serve(async (request) => {
         if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
         return new Response(null, { status: 204 });
       }
+      if (action === 'participants_skip') {
+        const draftId = String(parts[4] || '').trim();
+        const context = await resolveManagementContext(db, interaction, 'organization', 'write', 'organization', 'actions_organization', 'action_permissions', 'actions.organization.write');
+        const deferred = await deferInteraction(interaction, false);
+        let result;
+        try { result = await finalizeActionDraft(db, context, draftId, []); } catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(error instanceof Error ? error.message : 'Acțiunea nu a putut fi salvată.'); }
+        const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+        if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+        return new Response(null, { status: 204 });
+      }
       const context = await resolveManagementContext(db, interaction, 'organization', 'write', 'organization', 'actions_organization', 'action_permissions', 'actions.organization.write');
       const deferred = await deferInteraction(interaction, false);
       let result;
@@ -1431,16 +1673,28 @@ Deno.serve(async (request) => {
       if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
       return new Response(null, { status: 204 });
     }
+    if (isActions && isSelect) {
+      const parts = customId.split(':');
+      if (parts[3] !== 'participants') return reply(interactionMessage('Selectorul participanților nu este valid.'));
+      const draftId = String(parts[4] || '').trim();
+      const context = await resolveManagementContext(db, interaction, 'organization', 'write', 'organization', 'actions_organization', 'action_permissions', 'actions.organization.write');
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try { result = await finalizeActionDraft(db, context, draftId, Array.isArray(interaction.data?.values) ? interaction.data.values : []); } catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(error instanceof Error ? error.message : 'Acțiunea nu a putut fi salvată.'); }
+      const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+      return new Response(null, { status: 204 });
+    }
     if (isActions && isModalSubmit) {
-      if (customId !== 'panel:actions:organization:submit') return reply(interactionMessage('Formularul Acțiuni nu este valid.'));
+      if (customId !== 'panel:actions:organization:details') return reply(interactionMessage('Formularul Acțiuni nu este valid.'));
       const deferred = await deferInteraction(interaction, false);
       let result;
       try {
         const context = await resolveManagementContext(db, interaction, 'organization', 'write', 'organization', 'actions_organization', 'action_permissions', 'actions.organization.write');
-        result = await handleActionSubmit(db, context, modalValues(interaction));
+        result = await createActionDraft(db, context, modalValues(interaction));
       } catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(error instanceof Error ? error.message : 'Acțiunea nu a putut fi salvată.'); }
       const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
-      if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+      if (followupId && !result?.data?.components?.length) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
       return new Response(null, { status: 204 });
     }
     if (isRequests && isButton) {

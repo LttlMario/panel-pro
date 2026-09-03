@@ -68,8 +68,11 @@ const webhookChannels=new Set([
   'status_live',
   'organization_expiration',
   'stash',
+  'log_stash',
   'stash_requests',
-  'stash_donations'
+  'log_stash_requests',
+  'stash_donations',
+  'log_stash_donations'
 ]);
 const discordBotHeaders=(bot:string)=>({Authorization:`Bot ${bot}`,'User-Agent':'PanelManagement/1.0 (+https://panel-management.netlify.app)'});
 const organizationIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

@@ -38,6 +38,12 @@ const levels: Record<string, number> = {
   marketplace: 1,
   illegal_marketplace: 1,
   live_status: 1,
+  stash: 1,
+  log_stash: 1,
+  stash_requests: 1,
+  log_stash_requests: 1,
+  stash_donations: 1,
+  log_stash_donations: 1,
 };
 const channels = new Set(Object.keys(levels));
 const MESSAGE_REFS_KEY = 'discord_message_refs';
@@ -204,8 +210,14 @@ Deno.serve(async (request) => {
       ? 'log_announcements_organization'
       : finalChannel === 'departments'
         ? 'log_announcements_departments'
-        : finalChannel === 'contracts'
+      : finalChannel === 'contracts'
           ? 'log_contracts'
+        : finalChannel === 'stash'
+          ? 'log_stash'
+        : finalChannel === 'stash_requests'
+          ? 'log_stash_requests'
+        : finalChannel === 'stash_donations'
+          ? 'log_stash_donations'
         : '';
     const selectedLogRoute = linkedLogRouteKey ? requestedChannelRoutes?.[linkedLogRouteKey] : null;
     if (selectedRoute && typeof selectedRoute === 'object') {
@@ -220,14 +232,9 @@ Deno.serve(async (request) => {
       // Persistăm ruta aleasă aici, astfel încât verificarea făcută ulterior
       // de discord-interactions să vadă exact canalul în care a fost publicat
       // embedul, chiar dacă utilizatorul nu a apăsat încă salvarea generală.
-      const { error: routeSaveError } = await db.from('organization_settings').upsert({
-        organization_id: sessionOrganizationId,
-        discord_client_id: String(settings.discord_client_id || ''),
-        panel_public_url: String(settings.panel_public_url || ''),
-        webhook_routes: settings.webhook_routes && typeof settings.webhook_routes === 'object' ? settings.webhook_routes : {},
-        discord_channel_routes: settings.discord_channel_routes,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'organization_id' });
+      const { error: routeSaveError } = await db.from('organization_settings')
+        .update({ discord_channel_routes: settings.discord_channel_routes, updated_at: new Date().toISOString() })
+        .eq('organization_id', sessionOrganizationId);
       if (routeSaveError) throw routeSaveError;
     }
 
@@ -253,7 +260,7 @@ Deno.serve(async (request) => {
       throw new Error(`Canalul Discord pentru ${finalChannel} nu este configurat pentru organizația activă.`);
     }
 
-    const editExistingControlMessage = ['pontaj', 'requests_organization', 'requests_departments', 'organization', 'departments', 'contracts'].includes(finalChannel);
+    const editExistingControlMessage = ['pontaj', 'requests_organization', 'requests_departments', 'organization', 'departments', 'contracts', 'stash', 'stash_requests', 'stash_donations'].includes(finalChannel);
     const isPontajLog = finalChannel === 'log_pontaj';
     const isRequestsLog = ['log_requests_organization', 'log_requests_departments'].includes(finalChannel);
     const pontajMessageKey = requestedMessageKey || 'organization';
