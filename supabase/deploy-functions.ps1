@@ -29,6 +29,7 @@ $functions = @(
     'manage-discord-bot',
     'send-discord-notification',
     'discord-interactions',
+    'discord-app-events',
     'sync-discord-commands',
     'close-expired-shifts',
     'send-weekly-shift-report',
