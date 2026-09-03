@@ -6,7 +6,7 @@ const root = process.cwd();
 
 function walk(dir, predicate, result = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === '.git' || entry.name === 'node_modules') continue;
+    if (['.git', 'node_modules', 'build', 'dist', '.gradle', 'panel-project-versions'].includes(entry.name)) continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(full, predicate, result);
     else if (predicate(full)) result.push(full);

@@ -28,6 +28,7 @@ $functions = @(
     'manage-stash',
     'send-discord-notification',
     'discord-interactions',
+    'sync-discord-commands',
     'close-expired-shifts',
     'send-weekly-shift-report',
     'send-weekly-contract-export',

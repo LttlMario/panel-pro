@@ -28,6 +28,9 @@ verify_jwt = false
 [functions.discord-interactions]
 verify_jwt = false
 
+[functions.sync-discord-commands]
+verify_jwt = false
+
 [functions.close-expired-shifts]
 verify_jwt = false
 
