@@ -436,29 +436,31 @@ async function resolveContractContext(db: any, interaction: any, routeKey = 'con
   const { data: guild, error: guildError } = await db.from('organization_guilds').select('organization_id,guild_id,kind,enabled').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
   if (guildError) throw guildError;
   if (!guild) throw new Error('Serverul Discord nu este asociat unei organizații Panel Pro.');
-  const { data: resolvedOrganization, error: resolvedOrganizationError } = await db.from('organizations').select('id,name,address,active').eq('id', guild.organization_id).maybeSingle();
+  const [{ data: resolvedOrganization, error: resolvedOrganizationError }, { data: resolvedSettings, error: resolvedSettingsError }] = await Promise.all([
+    db.from('organizations').select('id,name,address,active').eq('id', guild.organization_id).maybeSingle(),
+    db.from('organization_settings').select('discord_channel_routes,panel_public_url').eq('organization_id', guild.organization_id).maybeSingle(),
+  ]);
   if (resolvedOrganizationError) throw resolvedOrganizationError;
   if (!resolvedOrganization?.active) throw new Error('Organizația este dezactivată.');
-  const { data: resolvedSettings, error: resolvedSettingsError } = await db.from('organization_settings').select('discord_channel_routes,panel_public_url').eq('organization_id', guild.organization_id).maybeSingle();
   if (resolvedSettingsError) throw resolvedSettingsError;
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
   if (!channelMatches(resolvedSettings, routeKey, target, channelId)) throw new Error(`Acest canal nu este configurat pentru panoul ${routeKey === 'log_contracts' ? 'Log contracte' : 'Contracte'}.`);
-  const [{ data: packageSetting, error: packageError }, { data: permissionSetting, error: permissionError }] = await Promise.all([
+  const [{ data: packageSetting, error: packageError }, { data: permissionSetting, error: permissionError }, { data: mappings, error: mappingsError }, { data: organizationMember, error: memberError }, platformAdmin] = await Promise.all([
     db.from('app_settings').select('value').eq('organization_id', guild.organization_id).eq('key', 'organization_package').maybeSingle(),
     db.from('app_settings').select('value').eq('organization_id', guild.organization_id).eq('key', 'page_permissions').maybeSingle(),
+    db.from('organization_role_mappings').select('discord_role_id,panel_role,permission_level,priority').eq('organization_id', guild.organization_id).eq('guild_id', guildId).eq('enabled', true),
+    db.from('organization_members').select('panel_role,active').eq('organization_id', guild.organization_id).eq('discord_id', discordId).eq('active', true).maybeSingle(),
+    isPlatformAdminAccount(db, discordId),
   ]);
   if (packageError) throw packageError;
   if (permissionError) throw permissionError;
+  if (mappingsError) throw mappingsError;
+  if (memberError) throw memberError;
   const packageFeatures = resolvePackageFeatures(packageSetting?.value || {});
   const discordOnly = packageSetting?.value?.code === 'discord';
   if (!packageFeatures.includes('contracts')) throw new Error('Contractele nu sunt incluse în pachetul organizației.');
   const memberRoles = new Set((interaction.member?.roles || []).map((role: unknown) => String(role)));
-  const { data: mappings, error: mappingsError } = await db.from('organization_role_mappings').select('discord_role_id,panel_role,permission_level,priority').eq('organization_id', guild.organization_id).eq('guild_id', guildId).eq('enabled', true);
-  if (mappingsError) throw mappingsError;
   const matchedMapping = (mappings || []).filter((mapping: any) => memberRoles.has(String(mapping.discord_role_id))).sort((left: any, right: any) => Number(right.priority || right.permission_level || 0) - Number(left.priority || left.permission_level || 0))[0] || null;
-  const { data: organizationMember, error: memberError } = await db.from('organization_members').select('panel_role,active').eq('organization_id', guild.organization_id).eq('discord_id', discordId).eq('active', true).maybeSingle();
-  if (memberError) throw memberError;
-  const platformAdmin = await isPlatformAdminAccount(db, discordId);
   const allowedRoles = Array.isArray(permissionSetting?.value?.['contracte.html']) ? permissionSetting.value['contracte.html'].map(String) : [];
   const effectiveRoleIds = new Set<string>([...memberRoles]);
   const activePanelRole = String(organizationMember?.panel_role || '').trim().toLowerCase();
