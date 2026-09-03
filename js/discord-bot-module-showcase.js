@@ -33,7 +33,7 @@
     if (!image) return;
     const modal = document.createElement('div');
     modal.id = 'module-image-modal';
-    modal.className = 'fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-slate-950/90 p-4 backdrop-blur-sm';
+    modal.className = 'fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-slate-950/72 p-4 backdrop-blur-[2px]';
     modal.innerHTML = `<button type="button" aria-label="Închide imaginea" class="absolute right-5 top-5 rounded-full bg-white/10 px-4 py-2 text-2xl text-white hover:bg-white/20">×</button><img src="${image.src}" alt="${image.alt}" class="max-h-[92vh] max-w-[96vw] rounded-xl object-contain shadow-2xl">`;
     modal.addEventListener('click', (modalEvent) => { if (modalEvent.target === modal || modalEvent.target.tagName === 'BUTTON') close(); });
     document.body.appendChild(modal);
