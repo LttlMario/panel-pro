@@ -190,6 +190,26 @@ Deno.serve(async (request) => {
     if (settingsError) throw settingsError;
     if (action === 'channels') return reply(request, { ok: true, channels: await channels(db, guildId), routes: settings?.discord_channel_routes || {} });
     const allowedPremium = selectedGuild.plan !== 'free';
+    if (action === 'contract_template' || action === 'save_contract_template') {
+      if (!allowedPremium) return reply(request, { error: 'Editorul de contracte este disponibil în Trial sau Premium.' }, 403);
+      if (action === 'contract_template') {
+        const { data: templateSetting, error } = await db.from('app_settings').select('value').eq('organization_id', selectedGuild.organization_id).eq('key', 'contract_template').maybeSingle();
+        if (error) throw error;
+        return reply(request, { ok: true, contract_template: templateSetting?.value || null });
+      }
+      const title = clean(body.title, 160);
+      const template = clean(body.template, 50000);
+      const position = clean(body.position, 120);
+      const salary = clean(body.salary, 120);
+      const schedule = clean(body.schedule, 120);
+      if (template.length < 20) return reply(request, { error: 'Șablonul contractului este prea scurt.' }, 400);
+      const allowedVariables = new Set(['COMPANY','ADDRESS','MANAGER','EMPLOYEE_NAME','CNP','PHONE','POSITION','START_DATE','PROGRAM','SALARY']);
+      const unknownVariables = [...template.matchAll(/{{([A-Z0-9_]+)}}/g)].map((match) => match[1]).filter((value, index, values) => !allowedVariables.has(value) && values.indexOf(value) === index);
+      if (unknownVariables.length) return reply(request, { error: `Variabile necunoscute: ${unknownVariables.map((value) => `{{${value}}}`).join(', ')}.` }, 400);
+      const { data: saved, error } = await db.from('app_settings').upsert({ organization_id: selectedGuild.organization_id, key: 'contract_template', value: { title: title || 'Contract de muncă', template, defaults: { position, salary, schedule } }, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' }).select('value').single();
+      if (error) throw error;
+      return reply(request, { ok: true, contract_template: saved?.value || null });
+    }
     if (action === 'save') {
       const requested = body.routes && typeof body.routes === 'object' ? body.routes : {};
       const available = new Set((await channels(db, guildId)).map((channel: any) => channel.id));
