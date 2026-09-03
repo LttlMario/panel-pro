@@ -292,6 +292,46 @@ async function manualDiscordExport(db: any, session: any, body: any) {
   return { batch_id: batch.id, row_count: exportItems.length, sent_messages: successfulPosts, partial: failures.length > 0 };
 }
 
+async function resendRecentContracts(db: any, session: any) {
+  const organizationId = session.organization_id;
+  const [{ data: contracts, error: contractsError }, { data: settings, error: settingsError }, { data: organization, error: organizationError }] = await Promise.all([
+    db.from('organization_contracts').select('id,contract_number,contract_text,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(2),
+    db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle(),
+    db.from('organizations').select('name').eq('id', organizationId).maybeSingle(),
+  ]);
+  if (contractsError) throw contractsError;
+  if (settingsError) throw settingsError;
+  if (organizationError) throw organizationError;
+  if (!contracts?.length) throw new Error('Nu există contracte salvate pentru retrimitere.');
+  if (!routeCandidates(settings, 'contracts').some((item) => item.candidates.length)) throw new Error('Canalul Discord „Contracte” nu este configurat sau nu este accesibil botului.');
+
+  const results: any[] = [];
+  const failures: string[] = [];
+  for (const contract of contracts) {
+    const text = clean(contract.contract_text, 50000);
+    const chunks = contractExportChunks(text.split('\n'), 3800);
+    let sent = 0;
+    for (let index = 0; index < chunks.length; index += 1) {
+      const delivery = await deliverDiscordRoute(db, settings, 'contracts', JSON.stringify({
+        allowed_mentions: { parse: [] },
+        content: index === 0 ? `📄 **Contract ${contract.contract_number || ''}** retrimis din Panel Pro.` : undefined,
+        embeds: [{
+          title: index === 0 ? `📄 Contract ${contract.contract_number || ''}` : `📄 Contract ${contract.contract_number || ''} · continuare`,
+          description: chunks[index],
+          color: 0x14b8a6,
+          footer: { text: `${organization?.name || 'Panel Pro'} · Contract ${index + 1}/${chunks.length}` },
+          timestamp: index === 0 ? new Date(contract.created_at || Date.now()).toISOString() : undefined,
+        }],
+      }), { postOnly: true });
+      sent += delivery.results.length;
+      failures.push(...(delivery.failures || []).map((failure) => `${contract.contract_number}: ${failure}`));
+    }
+    if (sent) results.push({ id: contract.id, contract_number: contract.contract_number, messages: sent });
+  }
+  if (!results.length) throw new Error(failures.join(' | ') || 'Contractele nu au putut fi trimise pe Discord.');
+  return { contracts: results, partial: failures.length > 0, failures };
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
@@ -305,6 +345,7 @@ Deno.serve(async (request) => {
     if (action === 'create_contract') return reply({ ok: true, ...(await createContract(db, session, body)) });
     if (action === 'manual_export') return reply({ ok: true, ...(await manualExport(db, session, body)) });
     if (action === 'manual_discord_export') return reply({ ok: true, ...(await manualDiscordExport(db, session, body)) });
+    if (action === 'resend_recent_contracts') return reply({ ok: true, ...(await resendRecentContracts(db, session)) });
     if (action === 'delete_employee') return reply({ ok: true, ...(await deleteEmployee(db, session, body)) });
     if (action === 'list') return reply({ ok: true, ...(await listContracts(db, session.organization_id)) });
     return reply({ error: 'Acțiune necunoscută.' }, 400);
