@@ -480,10 +480,16 @@ if (!existing) {
     const packageFeatures = resolvePackageFeatures(packageValue);
     const actionPermissions = { ...(actionSettings.get(organization_id) || {}) };
     if (!isPlatformAdmin && !packageFeatures.includes('requests_organization')) delete actionPermissions['cereri.organization'];
+    const primaryGuild = configuredGuildsForOrganization.find((guild:any) => String(guild.kind || '') === 'primary') || configuredGuildsForOrganization[0];
+    const discordOnly = value.organization?.access_mode === 'discord_only' || String(value.organization?.slug || '').startsWith('discord-');
+    const displayOrganization = discordOnly && String(primaryGuild?.guild_name || '').trim()
+      ? { ...value.organization, name: String(primaryGuild.guild_name).trim() }
+      : value.organization;
 
     return {
       organization_id,
       ...value,
+      organization: displayOrganization,
       action_permissions: actionPermissions,
       package_code: String(packageValue.code || 'standard'),
       package_features: resolvePackageFeatures(packageValue),
