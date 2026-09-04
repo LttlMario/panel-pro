@@ -2,14 +2,13 @@
 // Consola rămâne disponibilă pentru diagnosticarea erorilor de autentificare.
 // Nu logăm tokenuri sau date private în acest fișier.
 
-const panelRemoteSupabaseUrl = 'https://vkvsabbbawyiurnaiugo.supabase.co';
-// Folosim proiectul remote și când pagina este deschisă prin Live Server.
-// Mediul local nu trebuie să schimbe automat backend-ul: serviciul local
-// rulează doar dacă este cerut explicit prin window.PANEL_USE_LOCAL_SUPABASE.
+const panelRemoteSupabaseUrl = 'https://zrjxlbkctlapgupktxw.supabase.co';
+// Nu comutăm automat pe un backend local când pagina este deschisă prin
+// Live Server; Discovery folosește proiectul remote separat.
 const panelUseLocalSupabase = window.PANEL_USE_LOCAL_SUPABASE === true;
 window.PANEL_SUPABASE_CONFIG = Object.freeze({
     url: panelUseLocalSupabase ? 'http://127.0.0.1:8787' : panelRemoteSupabaseUrl,
-    publishableKey: 'sb_publishable_gRM7uXmfknjfFiOg7jjqDA_y-VGPMVD'
+    publishableKey: 'sb_publishable_LfngX7pwFruPw35_ZUdO4Q_MGAHoeW0'
 });
 
 // Logurile de depanare nu sunt afișate în producție. Pentru diagnostic local,
@@ -300,3 +299,4 @@ window.fetch = function panelAuthenticatedFetch(input, init = {}) {
     headers.set('X-Panel-Session', sessionToken);
     return panelNativeFetch(input, { ...init, headers });
 };
+

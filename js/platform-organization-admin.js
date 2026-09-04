@@ -18,17 +18,6 @@
     if (!localStorage.getItem('panel_session_token') && typeof window.ensurePanelSession === 'function') await window.ensurePanelSession();
     return window.panelRequestJson('manage-organizations', { method: 'POST', timeoutMs: 30000, body: JSON.stringify(body) });
   };
-  const syncDiscordNames = async () => {
-    const token = window.getPanelDiscordAccessToken?.() || '';
-    const config = window.PANEL_SUPABASE_CONFIG || {};
-    if (!token || !config.url || !config.publishableKey) return;
-    try {
-      const response = await fetch(`${config.url}/functions/v1/manage-discord-bot`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': localStorage.getItem('panel_session_token') || '' }, body: JSON.stringify({ action: 'bootstrap', access_token: token, application_id: window.PANEL_DISCORD_CONFIG?.clientId || '1531023771211792384' }) });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) return null;
-      return result;
-    } catch (_) { return null; }
-  };
   const statusFor = (organization) => organization?.health?.status || 'inactive';
   const statusLabel = (value) => ({ active: 'Activă', draft: 'Draft', expired: 'Expirată', inactive: 'Inactivă' }[value] || value);
   const issueLabel = (organization) => Number(organization?.health?.issueCount || 0) ? `${organization.health.issueCount} problem${organization.health.issueCount === 1 ? 'ă' : 'e'}` : 'Configurație OK';
@@ -97,17 +86,15 @@
   const load = async (keepSelection = true) => {
     if (state.busy) return; state.busy = true; setStatus('Se încarcă registrul securizat…');
     try {
-      const discovered = await syncDiscordNames();
-      const liveGuilds = new Map((discovered?.guilds || []).map((guild) => [String(guild.id), guild]));
-      const result = await api({ action: 'platform_overview' });
+        const result = await api({ action: 'platform_overview' });
       const installationNames = new Map((result.discord_installations || []).map((installation) => [String(installation.guild_id), String(installation.guild_name || '').trim()]));
       state.catalog = result.feature_catalog || state.catalog;
       state.organizations = (Array.isArray(result.organizations) ? result.organizations : []).map((organization) => {
         const discordOnly = organization.access_mode === 'discord_only' || String(organization.slug || '').startsWith('discord-');
         if (!discordOnly) return organization;
-        const guilds = (organization.guilds || []).map((guild) => ({ ...guild, guild_name: liveGuilds.get(String(guild.guild_id))?.name || installationNames.get(String(guild.guild_id)) || guild.guild_name }));
+          const guilds = (organization.guilds || []).map((guild) => ({ ...guild, guild_name: installationNames.get(String(guild.guild_id)) || guild.guild_name }));
         const primary = guilds.find((guild) => guild.enabled !== false) || guilds[0];
-        return { ...organization, name: liveGuilds.get(String(primary?.guild_id))?.name || installationNames.get(String(primary?.guild_id)) || organization.name, guilds };
+        return { ...organization, name: installationNames.get(String(primary?.guild_id)) || organization.name, guilds };
       });
       if (!keepSelection || !selected()) state.selectedId = state.organizations[0]?.id || '';
       renderKpis(); renderList(); renderDetail(); setStatus(`Actualizat la ${date(result.generated_at)} · ${state.organizations.length} organizații`, 'ok');
@@ -165,7 +152,6 @@
   ['organization-search', 'organization-status-filter', 'organization-package-filter', 'organization-sort', 'organization-issues-only'].forEach((id) => $((`#${id}`))?.addEventListener('input', () => { renderList(); }));
   $('#organization-reset-filters')?.addEventListener('click', () => { $('#organization-search').value = ''; $('#organization-status-filter').value = 'all'; $('#organization-package-filter').value = 'all'; $('#organization-sort').value = 'name'; $('#organization-issues-only').checked = false; renderList(); });
   $('#refresh-organizations')?.addEventListener('click', () => load(true));
-  $('#sync-discord-commands')?.addEventListener('click', async (event) => { const button = event.currentTarget; button.disabled = true; setStatus('Se sincronizează comenzile globale Discord…'); try { const result = await window.panelRequestJson('sync-discord-commands', { method: 'POST', timeoutMs: 30000, body: '{}' }); setStatus(result.message || 'Comenzile Discord au fost sincronizate.', 'ok'); toast('Comenzile globale Discord au fost sincronizate.'); } catch (error) { setStatus(error.message || 'Comenzile Discord nu au putut fi sincronizate.', 'error'); toast(error.message || 'Sincronizarea comenzilor a eșuat.', true); } finally { button.disabled = false; } });
   $('#export-organizations')?.addEventListener('click', exportOrganizations);
   document.addEventListener('click', (event) => { const button = event.target.closest('[data-action="save-theme"]'); if (button) themeAction().catch((error) => toast(error.message || 'Tema nu a putut fi salvată.', true)); });
   document.addEventListener('change', (event) => { if (event.target.matches('#seasonal-theme-enabled, #seasonal-theme-code, #seasonal-theme-intensity')) previewTheme(); });
