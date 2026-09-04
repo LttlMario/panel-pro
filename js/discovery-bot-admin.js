@@ -35,7 +35,11 @@
       const detail = state.guilds.length ? botIdentity : ` Discord vede ${diagnostics.oauth_guild_count || 0} servere, dintre care ${diagnostics.owner_guild_count || 0} sunt cu owner. Botul a verificat ${diagnostics.bot_check_count || 0};${failures.length ? ` nu este instalat sau nu are acces în: ${failures.map((item) => item.guild_name || item.guild_id).join(', ')}.` : ' nu a găsit niciun server eligibil.'}${botIdentity}`;
       status(`Au fost găsite ${state.guilds.length} servere eligibile pentru botul Discovery.${detail}`, state.guilds.length ? 'ok' : 'error');
     }
-    catch (error) { $('list').innerHTML = `<div class="empty">${esc(error.message)}</div>`; status(error.message, 'error'); }
+    catch (error) {
+      const loginLink = !token() ? ' <a class="button cyan" href="login.html?redirect=administrare-boturi-discord.html">Conectează-te cu Discord</a>' : '';
+      $('list').innerHTML = `<div class="empty">${esc(error.message)}${loginLink}</div>`;
+      status(error.message, 'error');
+    }
     finally { state.busy = false; }
   };
   $('search').addEventListener('input', render); $('refresh').addEventListener('click', load); load();

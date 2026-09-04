@@ -652,6 +652,10 @@
         const CLIENT_ID = String(discordConfig.clientId || '');
         const DISCORD_SCOPES = Array.isArray(discordConfig.scopes) ? discordConfig.scopes.join(' ') : 'identify guilds.members.read';
         const REDIRECT_URI = window.location.origin === 'null' ? '' : window.location.origin + window.location.pathname;
+        const requestedReturn = new URLSearchParams(window.location.search).get('redirect') || '';
+        if (requestedReturn && /^(administrare-boturi-discord|discord-bot-discovery)\.html$/.test(requestedReturn)) {
+            sessionStorage.setItem('panel_return_after_login', `${window.location.origin}/${requestedReturn}`);
+        }
         function getLoginDestination(user) {
             if (user?.organization_access_expired === true) {
                 return 'administrare-organizatie.html';
@@ -689,6 +693,7 @@
                 const page = destination.pathname.split('/').pop() || 'index.html';
                 const selectedPages = Array.isArray(user?.allowed_pages) && user.allowed_pages.includes(page);
                 const platformAdmin = user?.platform_admin === true || user?.is_platform_admin === true;
+                if (['administrare-boturi-discord.html', 'discord-bot-discovery.html'].includes(page)) return `${page}${destination.search}${destination.hash}`;
                 if (!platformAdmin && !selectedPages) return fallback;
                 return `${page}${destination.search}${destination.hash}`;
             } catch (_) {
