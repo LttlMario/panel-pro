@@ -6,7 +6,7 @@
   const state = { guilds: [], busy: false };
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-  const token = () => sessionStorage.getItem('discord_bot_admin_token') || sessionStorage.getItem('discord_access_token') || '';
+  const token = () => sessionStorage.getItem('discovery_access_token') || sessionStorage.getItem('discord_bot_admin_token') || '';
   const status = (message, kind = '') => { $('status').textContent = message; $('status').className = `status ${kind}`; };
   const call = async (body) => {
     const accessToken = token();
@@ -36,7 +36,7 @@
       status(`Au fost găsite ${state.guilds.length} servere eligibile pentru botul Discovery.${detail}`, state.guilds.length ? 'ok' : 'error');
     }
     catch (error) {
-      const loginLink = !token() ? ' <a class="button cyan" href="login.html?redirect=administrare-boturi-discord.html">Conectează-te cu Discord</a>' : '';
+      const loginLink = !token() ? ' <a class="button cyan" href="discovery-login.html">Conectează-te cu Discord</a>' : '';
       $('list').innerHTML = `<div class="empty">${esc(error.message)}${loginLink}</div>`;
       status(error.message, 'error');
     }
