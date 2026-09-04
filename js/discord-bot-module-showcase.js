@@ -18,14 +18,6 @@
   gate.appendChild(section);
   section.querySelectorAll('img').forEach((image) => {
     image.classList.add('cursor-zoom-in');
-    const frame = image.parentElement;
-    if (!frame) return;
-    frame.classList.add('relative');
-    const zoom = document.createElement('span');
-    zoom.className = 'pointer-events-none absolute bottom-2 right-2 rounded-full border border-white/30 bg-slate-950/80 px-2 py-1 text-sm text-white shadow-lg';
-    zoom.textContent = '🔍';
-    zoom.setAttribute('aria-label', 'Apasă pentru mărire');
-    frame.appendChild(zoom);
   });
   const close = () => document.getElementById('module-image-modal')?.remove();
   section.addEventListener('click', (event) => {
