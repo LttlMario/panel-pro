@@ -22,19 +22,7 @@ verify_jwt = false
 [functions.manage-stash]
 verify_jwt = false
 
-[functions.manage-discord-bot]
-verify_jwt = false
-
-[functions.discord-app-events]
-verify_jwt = false
-
 [functions.send-discord-notification]
-verify_jwt = false
-
-[functions.discord-interactions]
-verify_jwt = false
-
-[functions.sync-discord-commands]
 verify_jwt = false
 
 [functions.close-expired-shifts]
