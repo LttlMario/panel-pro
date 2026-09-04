@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Administrare bot Discovery · Panel Pro</title>
+  <title>Administrare Panel Pro Bot · Discord</title>
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/global-footer.css">
   <style>
@@ -12,13 +12,11 @@
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100">
   <main class="bot-admin-shell">
-    <section class="bot-admin-hero"><div><p class="eyebrow">Discovery · bază de date separată</p><h1>Administrare bot Discovery</h1><p>Gestionează serverele care folosesc botul Discovery și deschide configurarea canalelor, rolurilor și modulelor. Această pagină folosește proiectul Supabase dedicat Discovery, separat de panelul web.</p></div><div class="actions"><a class="button" href="administrare-organizatii-platforma.html">Administrare organizații panel</a><a class="button cyan" href="discord-bot-discovery.html">Configurare bot Discovery</a></div></section>
+    <section class="bot-admin-hero"><div><p class="eyebrow">Panel Pro Bot · Discord-only</p><h1>Administrare Panel Pro Bot</h1><p>Gestionează serverele care folosesc Panel Pro Bot și deschide configurarea canalelor, rolurilor și modulelor. Această pagină este separată de panelul web.</p></div><div class="actions"><a class="button" href="administrare-organizatii-platforma.html">Administrare organizații panel</a><a class="button cyan" href="discord-bot-discovery.html">Configurare Panel Pro Bot</a></div></section>
     <p id="status" class="status" role="status">Se încarcă serverele Discord…</p>
     <div class="toolbar"><input id="search" type="search" placeholder="Caută după server, Guild ID sau organizație…" autocomplete="off"><button id="refresh" class="button primary" type="button">↻ Actualizează</button></div>
     <section id="list" class="bot-grid"><div class="empty">Se încarcă registrul boturilor…</div></section>
   </main>
-  <div data-panel-footer-host></div>
   <script src="js/discovery-bot-admin.js?v=20260904-separated-db"></script>
-  <script src="js/global-footer.js"></script>
 </body>
 </html>
