@@ -53,6 +53,21 @@ const jsonHeaders = (body: BodyInit | null, headers: Record<string, string> = {}
   return result;
 };
 
+async function discordBotIdentity(db: any) {
+  try {
+    const botToken = await getPlatformSecret(db, 'discord_bot_token');
+    if (!botToken) return '';
+    const response = await fetch(`${DISCORD_API}/users/@me`, { headers: { Authorization: `Bot ${botToken}` } });
+    if (!response.ok) return '';
+    const user = await response.json().catch(() => ({}));
+    const name = String(user?.global_name || user?.username || '').trim();
+    const id = String(user?.id || '').trim();
+    return name && id ? `${name} (${id})` : id || name;
+  } catch (_) {
+    return '';
+  }
+}
+
 export async function requestDiscordTarget(
   db: any,
   target: DiscordDeliveryTarget,
@@ -97,7 +112,7 @@ export async function deliverDiscordRoute(
           const discordMessage = String(details?.message || '').trim();
           const discordErrors = details?.errors ? ` ${JSON.stringify(details.errors).slice(0, 1500)}` : '';
           lastError = response.status === 403
-            ? `Botul Discord nu are permisiuni în canalul ${candidate.channel_id}. Verifică View Channel, Send Messages și Embed Links pentru bot.`
+            ? `Botul Discord nu are acces la canalul ${candidate.channel_id}. Verifică faptul că tokenul din Supabase aparține botului instalat pe acest server și că botul are View Channel, Send Messages și Embed Links.${candidate.guild_id ? ` Guild: ${candidate.guild_id}.` : ''} Bot identificat de Supabase: ${await discordBotIdentity(db) || 'necunoscut'}.`
             : `Discord ${candidate.transport} HTTP ${response.status}${discordMessage ? `: ${discordMessage}` : ''}${discordErrors}`;
           continue;
         }
