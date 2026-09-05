@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' http://127.0.0.1:8787 http://localhost:8787 ws://127.0.0.1:8787 ws://localhost:8787 https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autentificare - Panel</title>
+    <title>Panel Pro · Prezentare și autentificare</title>
     <!-- Tailwind CSS CDN -->
     <link rel="stylesheet" href="css/tailwind.css">
     <style>
@@ -59,10 +59,36 @@
     #bot-login-layout{display:flex!important;align-items:center;justify-content:center;}
     #bot-info-left,#bot-info-right{display:none!important;}
 
+    .login-presentation-shell{width:100%;margin:0;padding:22px 32px 0;position:relative;z-index:1}.login-presentation-header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:0 8px 18px;border-bottom:1px solid rgba(51,65,85,.6)}.login-presentation-brand{display:inline-flex;align-items:center;gap:10px;color:#f8fafc;text-decoration:none;font-size:18px;font-weight:900}.login-presentation-brand img{width:34px;height:34px;border-radius:11px}.login-presentation-brand b{color:#67e8f9}.login-presentation-nav{display:flex;gap:20px;align-items:center}.login-presentation-nav a{color:#94a3b8;font-size:12px;font-weight:800;text-decoration:none}.login-presentation-nav a:hover{color:#fff}.login-presentation-hero{max-width:1380px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);align-items:center;gap:50px;padding:58px 0 18px}.login-presentation-hero h1{margin:14px 0 18px;color:#f8fafc;font-size:clamp(38px,5vw,68px);line-height:1.03;letter-spacing:-.05em}.login-presentation-hero h1 em{font-style:normal;color:#67e8f9}.login-presentation-copy{max-width:680px;color:#94a3b8;font-size:16px;line-height:1.7}.login-presentation-points{display:flex;flex-wrap:wrap;gap:12px 20px;margin-top:22px;color:#a7f3d0;font-size:11px;font-weight:800}.login-presentation-login-hint{border:1px solid rgba(103,232,249,.28);background:linear-gradient(145deg,rgba(15,23,42,.92),rgba(8,47,73,.66));border-radius:23px;padding:24px;box-shadow:0 20px 70px rgba(8,145,178,.12)}.login-presentation-login-hint h2{margin:8px 0;color:#f8fafc;font-size:24px}.login-presentation-login-hint p:not(.eyebrow){color:#94a3b8;font-size:13px;line-height:1.6}.login-presentation-features{width:min(1380px,calc(100% - 32px));margin:0 auto;padding:18px 0 34px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;position:relative;z-index:1}.login-presentation-feature{border:1px solid rgba(51,65,85,.75);background:rgba(15,23,42,.72);border-radius:17px;padding:16px}.login-presentation-feature strong{display:block;color:#f8fafc;font-size:13px}.login-presentation-feature span{display:block;margin-top:6px;color:#94a3b8;font-size:11px;line-height:1.5}@media(max-width:760px){.login-presentation-shell{padding-left:12px;padding-right:12px}.login-presentation-nav a{display:none}.login-presentation-hero{grid-template-columns:1fr;gap:22px;padding-top:38px}.login-presentation-features{grid-template-columns:repeat(2,1fr)}}@media(max-width:460px){.login-presentation-features{grid-template-columns:1fr}.login-presentation-shell,.login-presentation-features{width:100%}}
+
+    /* Bara de prezentare este full-width; conținutul rămâne aerisit în interior. */
+    .login-presentation-shell{width:100%;padding-left:0;padding-right:0}
+    .login-presentation-header{padding-left:32px;padding-right:32px}
+    .login-presentation-hero{padding-top:34px;padding-bottom:8px}
+    #bot-login-layout{justify-content:flex-start!important;padding-top:1rem!important}
+    #bot-login-layout{justify-content:flex-start!important;min-height:0!important;flex:1 0 auto!important;padding-top:1rem!important;padding-bottom:0!important}
+    #login-features{margin-top:0!important;margin-bottom:0!important;padding-top:10px!important;padding-bottom:8px!important}
+    body:has(#bot-login-layout)>[data-panel-footer-host]{margin-top:0!important}
+    body:has(#bot-login-layout) #panel-global-footer{margin-top:0!important}
+    @media(min-width:1200px){
+        .login-presentation-hero{position:absolute;top:118px;left:50%;transform:translateX(-50%);width:min(1660px,calc(100% - 64px));max-width:none;grid-template-columns:minmax(260px,380px) minmax(430px,500px) minmax(260px,380px);align-items:start;gap:42px;padding:0;z-index:2;pointer-events:none}
+        .login-presentation-hero>div:first-child{grid-column:1;pointer-events:auto}
+        .login-presentation-hero>div:last-child{grid-column:3;pointer-events:auto;position:relative;z-index:4;transform:translateX(clamp(120px,8vw,180px))}
+        .login-presentation-hero h1{font-size:clamp(30px,3vw,42px)}
+        .login-presentation-hero .login-presentation-copy{font-size:14px}
+        #bot-login-card>div:first-child h1{font-size:2rem!important;line-height:1.08!important;overflow-wrap:anywhere}
+        #bot-login-layout{position:relative;z-index:1}
+    }
+    @media(max-width:760px){.login-presentation-header{padding-left:12px;padding-right:12px}}
+    .login-presentation-login-hint{border:0;background:transparent;border-radius:0;padding:0;box-shadow:none}
+    .login-presentation-login-hint h2{margin:14px 0 18px;color:#f8fafc;font-size:clamp(30px,3vw,42px);line-height:1.03;letter-spacing:-.05em;font-weight:900}
+    .login-presentation-login-hint h2 em{font-style:normal;color:#67e8f9}
+    .login-presentation-login-hint p:not(.eyebrow){max-width:380px;color:#94a3b8;font-size:14px;line-height:1.7}
     </style>
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="css/global-footer.css">
+    <link rel="stylesheet" href="css/panel-prezentare.css">
     <script src="js/project-version.js?v=3.13.0"></script>
     <script src="js/discord-config.js"></script>
     <script src="js/supabase-config.js?v=20260904-remote-supabase"></script>
@@ -71,6 +97,10 @@
     <link rel="apple-touch-icon" href="img/logo-180.png">
 </head>
 <body class="min-h-screen overflow-x-hidden bg-slate-950 text-slate-100 font-sans antialiased relative flex flex-col">
+    <div class="login-presentation-shell">
+        <header class="login-presentation-header"><a class="login-presentation-brand" href="#login-top"><img src="img/logo-32.png" alt=""><span>Panel <b>Pro</b></span></a><nav class="login-presentation-nav" aria-label="Navigație prezentare"><a href="demo.html">Vezi demo</a></nav></header>
+        <section id="login-top" class="login-presentation-hero"><div><p class="eyebrow"><span class="eyebrow-dot"></span> Platformă conectată la Discord</p><h1>Toată organizația ta,<br><em>într-un singur loc.</em></h1><p class="login-presentation-copy">Panel Pro centralizează pontajul, cererile, contractele, resursele, rapoartele și comunicarea organizației într-un spațiu clar, cu permisiuni controlate prin roluri Discord.</p><div class="login-presentation-points"><span>✓ Module configurabile</span><span>✓ Bot Discord pe canalele alese</span><span>✓ Date separate per organizație</span></div></div><div class="login-presentation-login-hint"><p class="eyebrow"><span class="eyebrow-dot"></span> Platformă pentru organizații</p><h2>Panel Pro,<br><em>control centralizat.</em></h2><p>Gestionează activitatea, modulele și accesul organizației tale dintr-un singur loc, conectat la Discord.</p></div></section>
+    </div>
     <!-- Fundal -->
     <div class="absolute inset-0 overflow-hidden -z-10">
 
@@ -104,7 +134,7 @@
 
     </div>
 
-        <h1 class="text-3xl sm:text-4xl font-black tracking-tight bg-gradient-to-r from-white via-indigo-200 to-cyan-300 bg-clip-text text-transparent">Platforma organizațiilor</h1>
+        <h1 class="text-xl sm:text-2xl break-words font-black tracking-tight bg-gradient-to-r from-white via-indigo-200 to-cyan-300 bg-clip-text text-transparent">Platforma organizațiilor</h1>
 
         <p class="text-sm uppercase tracking-[0.35em] text-slate-500">Autentificare multi-organizație</p>
 
@@ -198,7 +228,7 @@
             </div>
         </section>
 
-    <div class="space-y-3 sm:space-y-4">
+    <div class="-mt-2 space-y-2 sm:space-y-3">
 
         <div class="rounded-2xl border border-slate-700/40 bg-slate-800/40 p-3 sm:p-4">
 
@@ -235,6 +265,7 @@
     </div>
     </div>
 </div>
+    <section id="login-features" class="login-presentation-features" aria-label="Funcții Panel Pro"><div class="login-presentation-feature"><strong>⏱️ Pontaj și activitate</strong><span>Ture, pauze și rapoarte pentru echipă.</span></div><div class="login-presentation-feature"><strong>📋 Cereri și contracte</strong><span>Fluxuri clare pentru aprobări și documente.</span></div><div class="login-presentation-feature"><strong>📣 Discord și notificări</strong><span>Embeduri, butoane și rezultate în canalele configurate.</span></div><div class="login-presentation-feature"><strong>🛡️ Roluri și audit</strong><span>Acces controlat și istoric pe organizație.</span></div></section>
     <div id="organization-picker" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
         <section class="w-full max-w-lg rounded-2xl border border-indigo-400/40 bg-slate-900 p-6 text-left shadow-2xl">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-indigo-300">Mai multe organizații</p>
