@@ -247,7 +247,7 @@ async function manualDiscordExport(db: any, session: any, body: any) {
   if (organizationError) throw organizationError;
   if ((employees || []).length !== ids.length) throw new Error('Unul dintre angajații selectați nu aparține organizației active.');
 
-  if (!routeCandidates(settings, 'contract_identity_weekly').some((item) => item.candidates.length)) throw new Error('Canalul Discord al botului pentru exportul nume + CNP nu este configurat sau nu este activ.');
+  if (!routeCandidates(settings, 'log_contract_identity_weekly').some((item) => item.candidates.length)) throw new Error('Canalul de log Discord pentru exportul nume + CNP nu este configurat sau nu este activ.');
 
   const now = new Date();
   const { data: batch, error: batchError } = await db.from('contract_export_batches').insert({
@@ -269,7 +269,7 @@ async function manualDiscordExport(db: any, session: any, body: any) {
   const failures: string[] = [];
   let successfulPosts = 0;
   for (const content of chunks) {
-    const delivery = await deliverDiscordRoute(db, settings, 'contract_identity_weekly', JSON.stringify({
+    const delivery = await deliverDiscordRoute(db, settings, 'log_contract_identity_weekly', JSON.stringify({
       allowed_mentions: { parse: [] },
       embeds: [{
         title: '📋 Export manual angajați',

@@ -9,7 +9,7 @@
   const detectedRouteKeys = [...root.querySelectorAll(isOwner ? '[data-owner-webhook]' : isDraft ? '[data-draft-webhook]' : '[id^="wh_primary_url_"]')]
     .map((input) => isOwner ? input.dataset.ownerWebhook : isDraft ? input.dataset.draftWebhook : input.id.replace(/^wh_primary_url_/, ''))
     .filter((key, index, list) => key && list.indexOf(key) === index);
-  const consolidatedContentRoutes = new Set(['fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'sanctions_organization', 'sanctions_departments', 'actions_organization']);
+  const consolidatedContentRoutes = new Set(['fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'sanctions_organization', 'sanctions_departments']);
   const routeKeys = [...detectedRouteKeys].filter((key, index, list) => list.indexOf(key) === index && !consolidatedContentRoutes.has(key));
   const pontajIndex = routeKeys.indexOf('pontaj');
   routeKeys.splice(pontajIndex >= 0 ? pontajIndex + 1 : routeKeys.length, 0, 'log_pontaj');
@@ -25,11 +25,14 @@
   insertSyntheticAfter('contracts', 'log_contracts');
   insertSyntheticAfter('marketplace', 'log_marketplace');
   insertSyntheticAfter('illegal_marketplace', 'log_illegal_marketplace');
+  insertSyntheticAfter('event_reminders', 'log_event_reminders');
+  insertSyntheticAfter('contract_identity_weekly', 'log_contract_identity_weekly');
+  insertSyntheticAfter('actions_organization', 'log_actions_organization');
   insertSyntheticAfter('log_announcements_organization', 'log_actions_organization');
   insertSyntheticAfter('stash', 'log_stash');
   insertSyntheticAfter('stash_requests', 'log_stash_requests');
   insertSyntheticAfter('stash_donations', 'log_stash_donations');
-  const preferredRouteOrder = ['organization', 'log_announcements_organization', 'log_actions_organization', 'departments', 'log_announcements_departments', 'pontaj', 'log_pontaj', 'requests_organization', 'log_requests_organization', 'requests_departments', 'log_requests_departments', 'contracts', 'log_contracts', 'status_live', 'stash', 'log_stash', 'stash_requests', 'log_stash_requests', 'stash_donations', 'log_stash_donations'];
+  const preferredRouteOrder = ['organization', 'log_announcements_organization', 'departments', 'log_announcements_departments', 'pontaj', 'log_pontaj', 'requests_organization', 'log_requests_organization', 'requests_departments', 'log_requests_departments', 'contracts', 'log_contracts', 'marketplace', 'log_marketplace', 'illegal_marketplace', 'log_illegal_marketplace', 'event_reminders', 'log_event_reminders', 'contract_identity_weekly', 'log_contract_identity_weekly', 'actions_organization', 'log_actions_organization', 'status_live', 'stash', 'log_stash', 'stash_requests', 'log_stash_requests', 'stash_donations', 'log_stash_donations'];
   const preferredRoutes = preferredRouteOrder.filter((key) => routeKeys.includes(key));
   const remainingRoutes = routeKeys.filter((key) => !preferredRoutes.includes(key));
   routeKeys.splice(0, routeKeys.length, ...preferredRoutes, ...remainingRoutes);
@@ -44,6 +47,8 @@
       log_contracts: 'Log contracte',
       log_marketplace: 'Log Marketplace legal',
       log_illegal_marketplace: 'Log Marketplace ilegal',
+      log_event_reminders: 'Log evenimente și remindere',
+      log_contract_identity_weekly: 'Log raport săptămânal contracte',
       actions_organization: 'Acțiuni organizație',
       log_actions_organization: 'Log acțiuni organizație',
       stash: 'Stash · Embed cu butoane',
@@ -348,6 +353,19 @@
     } catch (error) { statusNode.textContent = error.message || 'Embedul nu a putut fi publicat.'; }
     finally { delete statusNode.dataset.busy; syncRequestPublishState(key, false); }
   };
+  const buildAdditionalPanelPayload = (key) => {
+    const definitions = {
+      marketplace: { title: '🛒 Marketplace · Legal', description: 'Publică și consultă anunțuri pentru vehicule, bunuri și servicii.', color: 0x2563eb, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:marketplace:legal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:legal:mine' }] },
+      illegal_marketplace: { title: '🚨 Marketplace · Ilegal', description: 'Publică și consultă anunțuri Black Market, cu acces controlat.', color: 0xef4444, buttons: [{ label: 'Publică anunț', style: 4, id: 'panel:marketplace:illegal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:illegal:mine' }] },
+      event_reminders: { title: '🗓️ Evenimente și remindere', description: 'Înregistrează evenimente și trimite remindere automate pe durata aleasă.', color: 0xf59e0b, buttons: [{ label: 'Adaugă eveniment', style: 1, id: 'panel:discovery:reminder_create' }, { label: 'Info remindere', style: 2, id: 'panel:discovery:reminder_info' }] },
+      contract_identity_weekly: { title: '📋 Raport săptămânal contracte', description: 'Generează exportul săptămânal cu numele și CNP-ul angajaților.', color: 0x14b8a6, buttons: [{ label: 'Generează raport', style: 1, id: 'panel:discovery:weekly_report' }, { label: 'Info raport', style: 2, id: 'panel:discovery:report_info' }] },
+      actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
+      status_live: { title: '📡 Status live · Panel Pro', description: 'Statusul este actualizat automat cu pontajele și pauzele active.', color: 0x06b6d4, buttons: [] },
+    };
+    const definition = definitions[key];
+    if (!definition) return null;
+    return { allowed_mentions: { parse: [] }, embeds: [{ title: definition.title, description: definition.description, color: definition.color, footer: { text: `Panel Pro · ${definition.title.replace(/^\S+\s*/, '')}` } }], components: definition.buttons.length ? [{ type: 1, components: definition.buttons.map((button) => ({ type: 2, style: button.style, label: button.label, custom_id: button.id })) }] : [] };
+  };
   const bulkPublishDefinitions = () => [
     { key: 'organization', label: announcementPanelDefinition('organization').label, messageKey: 'announcements-control', payload: () => buildAnnouncementsPanelPayload('organization') },
     { key: 'departments', label: announcementPanelDefinition('departments').label, messageKey: 'announcements-control', payload: () => buildAnnouncementsPanelPayload('departments') },
@@ -358,6 +376,7 @@
     { key: 'stash', label: 'Stash', messageKey: 'stash-control', payload: buildStashPanelPayload },
     { key: 'stash_requests', label: 'Cereri stash', messageKey: 'stash_requests-control', payload: () => ({ allowed_mentions: { parse: [] }, embeds: [{ title: '📦 Cereri stash · Panel Pro', description: 'Folosește butonul pentru a trimite o cerere către stash. Datele sunt salvate în Supabase și respectă permisiunile organizației.', color: 0xf59e0b, footer: { text: 'Panel Pro · Cereri stash' } }], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Trimite cerere', custom_id: 'panel:stash:request' }] }] }) },
     { key: 'stash_donations', label: 'Donații stash', messageKey: 'stash_donations-control', payload: () => ({ allowed_mentions: { parse: [] }, embeds: [{ title: '📦 Donații stash · Panel Pro', description: 'Folosește butonul pentru a înregistra o donație către stash. Datele sunt salvate în Supabase și respectă permisiunile organizației.', color: 0xa78bfa, footer: { text: 'Panel Pro · Donații stash' } }], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Donează către stash', custom_id: 'panel:stash:donate' }] }] }) },
+    ...['marketplace', 'illegal_marketplace', 'event_reminders', 'contract_identity_weekly', 'actions_organization', 'status_live'].map((key) => ({ key, label: labels[key] || key, messageKey: `${key}-control`, payload: () => buildAdditionalPanelPayload(key) })).filter((definition) => definition.payload()),
   ].filter((definition) => routeKeys.includes(definition.key));
   const selectedBulkDefinitions = () => bulkPublishDefinitions().filter((definition) => selectedRouteTargets(definition.key).length);
   const syncBulkPublishState = () => {

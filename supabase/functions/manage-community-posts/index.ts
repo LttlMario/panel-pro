@@ -793,7 +793,7 @@ const own = async (id:string) => {
                 ? 'departments'
                 : 'organization';
 
-        const routeKey = audience === 'departments' ? 'departments' : 'organization';
+        const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
         const targets = routeCandidates(cfg, routeKey).flatMap((item) => item.candidates);
         for (const target of targets) {
             await requestDiscordTarget(db, target, null, { method: 'DELETE', messageId: String(post.discord_message_id) }).catch(() => null);
@@ -883,7 +883,9 @@ async function notifyDiscord(post:any, options:string[], audience:string){
         .maybeSingle();
 
 
-    const routeKey = audience === 'departments' ? 'departments' : 'organization';
+    // Panoul cu butoane rămâne pe ruta principală; postarea creată prin
+    // buton se publică în ruta de log configurată pentru rezultate.
+    const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
     if (!routeCandidates(discordConfig, routeKey).some((item) => item.candidates.length)) return null;
 
     const site = (
@@ -996,7 +998,9 @@ async function notifyDiscord(post:any, options:string[], audience:string){
             ? 'departments'
             : 'organization';
 
-    const routeKey = audience === 'departments' ? 'departments' : 'organization';
+    // Actualizăm mesajul interactiv din canalul de log, unde a fost creat prin
+    // acțiunea butonului, nu panoul inițial din canalul Embed.
+    const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
     if (!routeCandidates(discordConfig, routeKey).some((item) => item.candidates.length)) return;
 
 

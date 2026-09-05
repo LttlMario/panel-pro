@@ -29,12 +29,13 @@ const PANEL_ROUTE_LABELS: Record<string, string> = {
   requests_organization: 'Învoiri organizație', requests_departments: 'Învoiri angajați', log_requests_organization: 'Log învoiri organizație', log_requests_departments: 'Log învoiri angajați',
   contracts: 'Contracte', log_contracts: 'Log contracte', log_actions_organization: 'Log acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
   stash: 'Stash', log_stash: 'Log Stash', stash_requests: 'Cereri Stash', log_stash_requests: 'Log cereri Stash', stash_donations: 'Donații Stash', log_stash_donations: 'Log donații Stash',
+  marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
 };
 const panelRouteKeys = Object.keys(PANEL_ROUTE_LABELS);
 const PANEL_LOG_ROUTES: Record<string, string> = {
   organization: 'log_announcements_organization', departments: 'log_announcements_departments', pontaj: 'log_pontaj',
   requests_organization: 'log_requests_organization', requests_departments: 'log_requests_departments', contracts: 'log_contracts',
-  actions_organization: 'log_actions_organization', stash: 'log_stash', stash_requests: 'log_stash_requests', stash_donations: 'log_stash_donations',
+  actions_organization: 'log_actions_organization', marketplace: 'log_marketplace', illegal_marketplace: 'log_illegal_marketplace', event_reminders: 'log_event_reminders', contract_identity_weekly: 'log_contract_identity_weekly', stash: 'log_stash', stash_requests: 'log_stash_requests', stash_donations: 'log_stash_donations',
 };
 const isDiscordManager = (interaction: any) => {
   try { return (BigInt(String(interaction?.member?.permissions || '0')) & 40n) !== 0n; } catch { return false; }
@@ -102,6 +103,13 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
     requests_departments: { title: '📝 Învoiri · Angajați', description: 'Trimite și consultă învoirile angajaților.', color: 0xf59e0b, buttons: [{ label: 'Trimite învoire', style: 1, id: 'panel:requests:departments:new' }, { label: 'Învoirile mele', style: 2, id: 'panel:requests:departments:mine' }] },
       contracts: { title: '📄 Contracte · Panel Pro', description: 'Generează și trimite contracte folosind șablonul organizației.', color: 0x14b8a6, buttons: [{ label: 'Creează contract', style: 1, id: 'panel:contracts:create' }, { label: 'Setează contractul', style: 2, id: 'panel:contracts:settings' }, { label: 'Info contract', style: 1, id: 'panel:contracts:info' }] },
       status_live: { title: '📡 Status live · Panel Pro', description: 'Acest embed este actualizat automat la fiecare minut cu pontajele și pauzele active. Configurează canalul Status live, apoi pornește sincronizarea din pagina Status live.', color: 0x06b6d4, buttons: [] },
+      marketplace: { title: '🛒 Marketplace · Legal', description: 'Publică și consultă anunțuri pentru vehicule, bunuri și servicii.', color: 0x2563eb, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:marketplace:legal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:legal:mine' }] },
+      illegal_marketplace: { title: '🚨 Marketplace · Ilegal', description: 'Publică și consultă anunțuri Black Market, cu acces controlat.', color: 0xef4444, buttons: [{ label: 'Publică anunț', style: 4, id: 'panel:marketplace:illegal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:illegal:mine' }] },
+      event_reminders: { title: '🗓️ Evenimente și remindere', description: 'Înregistrează evenimente și trimite remindere automate pe durata aleasă.', color: 0xf59e0b, buttons: [{ label: 'Adaugă eveniment', style: 1, id: 'panel:discovery:reminder_create' }, { label: 'Info remindere', style: 2, id: 'panel:discovery:reminder_info' }] },
+      contract_identity_weekly: { title: '📋 Raport săptămânal contracte', description: 'Generează exportul săptămânal cu numele și CNP-ul angajaților.', color: 0x14b8a6, buttons: [{ label: 'Generează raport', style: 1, id: 'panel:discovery:weekly_report' }, { label: 'Info raport', style: 2, id: 'panel:discovery:report_info' }] },
+      actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
+      stash_requests: { title: '📨 Cereri Stash', description: 'Solicită articole și urmărește cererile trimise pentru aprobare.', color: 0x3b82f6, buttons: [{ label: 'Solicită articol', style: 1, id: 'panel:stash:request' }, { label: 'Cereri în așteptare', style: 2, id: 'panel:stash:pending_requests' }] },
+      stash_donations: { title: '🎁 Donații Stash', description: 'Înregistrează donații și trimite-le spre aprobare administrativă.', color: 0x22c55e, buttons: [{ label: 'Donează articol', style: 3, id: 'panel:stash:donate' }, { label: 'Donații în așteptare', style: 2, id: 'panel:stash:pending_donations' }] },
     stash: { title: '📦 Stash · Administrare', description: 'Gestionează articolele, cererile și donațiile Stash.', color: 0x22c55e, buttons: [{ label: 'Adaugă în Stash', style: 3, id: 'panel:stash:create' }, { label: 'Cereri în așteptare', style: 1, id: 'panel:stash:pending_requests' }, { label: 'Donații în așteptare', style: 1, id: 'panel:stash:pending_donations' }] },
     actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
   };
@@ -500,6 +508,111 @@ function modalValues(interaction: any) {
     }
   }
   return values;
+}
+
+function universalTextInput(custom_id: string, label: string, style = 1, required = false, placeholder = '', max_length = 1000) {
+  return { type: 4, custom_id, label, style, required, placeholder, max_length };
+}
+
+function marketplaceModal(kind: 'legal' | 'illegal') {
+  const illegal = kind === 'illegal';
+  return { type: 9, data: { custom_id: `panel:marketplace:${kind}:submit`, title: illegal ? 'Anunț Marketplace ilegal' : 'Anunț Marketplace legal', components: [
+    { type: 1, components: [universalTextInput('name', 'Nume afișat', 1, true, 'Numele anunțului', 120)] },
+    { type: 1, components: [universalTextInput('phone', 'Telefon', 1, true, 'Număr de contact', 40)] },
+    { type: 1, components: [universalTextInput('action', 'Tip acțiune', 1, true, 'Vânzare / Cumpărare / Servicii', 40)] },
+    { type: 1, components: [universalTextInput('products', 'Descriere', 2, true, 'Produse sau servicii oferite', 1400)] },
+    { type: 1, components: [universalTextInput('price', 'Preț', 1, false, 'Negociabil / sumă', 80)] },
+  ] } };
+}
+
+function discoveryReminderModal() {
+  return { type: 9, data: { custom_id: 'panel:discovery:reminder_submit', title: 'Adaugă eveniment / reminder', components: [
+    { type: 1, components: [universalTextInput('title', 'Titlu', 1, true, 'Ex: Ședință organizație', 160)] },
+    { type: 1, components: [universalTextInput('event_type', 'Tip eveniment', 1, true, 'Ex: ședință, activitate, termen', 40)] },
+    { type: 1, components: [universalTextInput('event_date', 'Data', 1, true, 'AAAA-LL-ZZ', 10)] },
+    { type: 1, components: [universalTextInput('details', 'Detalii', 2, false, 'Detalii și instrucțiuni', 1200)] },
+    { type: 1, components: [universalTextInput('evidence_url', 'Link dovadă', 1, false, 'https://...', 500)] },
+  ] } };
+}
+
+async function resolveUniversalModuleContext(db: any, interaction: any, routeKey: string, feature: string) {
+  const guildId = String(interaction.guild_id || '').trim();
+  const channelId = String(interaction.channel_id || '').trim();
+  const discordId = String(interaction.member?.user?.id || interaction.user?.id || '').trim();
+  if (!/^\d{15,22}$/.test(guildId) || !/^\d{15,22}$/.test(channelId) || !/^\d{15,22}$/.test(discordId)) throw new Error('Interacțiunea Discord nu conține date valide.');
+  const { data: guild, error: guildError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
+  if (guildError) throw guildError;
+  if (!guild?.organization_id) throw new Error('Serverul Discord nu este asociat unei organizații Panel Pro.');
+  const [{ data: organization, error: organizationError }, { data: settings, error: settingsError }, { data: packageSetting, error: packageError }, { data: member, error: memberError }] = await Promise.all([
+    db.from('organizations').select('id,name,active').eq('id', guild.organization_id).maybeSingle(),
+    db.from('organization_settings').select('discord_channel_routes,panel_public_url').eq('organization_id', guild.organization_id).maybeSingle(),
+    db.from('app_settings').select('value').eq('organization_id', guild.organization_id).eq('key', 'organization_package').maybeSingle(),
+    db.from('organization_members').select('active,panel_role,permission_level').eq('organization_id', guild.organization_id).eq('discord_id', discordId).eq('active', true).maybeSingle(),
+  ]);
+  if (organizationError || settingsError || packageError || memberError) throw organizationError || settingsError || packageError || memberError;
+  if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  if (!resolvePackageFeatures(packageSetting?.value || {}).includes(feature) && !(await isPlatformAdminAccount(db, discordId)) && packageSetting?.value?.code !== 'discord') throw new Error('Acest modul nu este inclus în pachetul organizației.');
+  const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
+  const configured = settings?.discord_channel_routes?.[routeKey]?.[target];
+  const logRouteKey = PANEL_LOG_ROUTES[routeKey] || routeKey;
+  if (configured?.enabled === false || String(configured?.channel_id || '') !== channelId) throw new Error('Acest canal nu este configurat pentru modulul selectat.');
+  if (!member && !isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, discordId))) throw new Error('Nu ai acces la acest modul în organizația Discord.');
+  const displayName = String(interaction.member?.nick || interaction.member?.user?.global_name || interaction.member?.user?.username || discordId).slice(0, 120);
+  return { guildId, channelId, target, discordId, displayName, organization, settings, logRouteKey };
+}
+
+function marketplaceEmbed(kind: 'legal' | 'illegal', values: Record<string, any>, context: any, id: string) {
+  const illegal = kind === 'illegal';
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: illegal ? '🚨 Anunț nou · Marketplace ilegal' : '🛒 Anunț nou · Marketplace legal', description: `Publicat de **${context.displayName}**.`, color: illegal ? 0xef4444 : 0x2563eb, fields: [
+    { name: 'Nume', value: String(values.name || '—').slice(0, 1024), inline: true },
+    { name: 'Telefon', value: String(values.phone || '—').slice(0, 1024), inline: true },
+    { name: 'Tip acțiune', value: String(values.action || '—').slice(0, 1024), inline: true },
+    { name: 'Descriere', value: String(values.products || '—').slice(0, 1024), inline: false },
+    { name: 'Preț', value: String(values.price || 'Negociabil').slice(0, 1024), inline: true },
+  ], footer: { text: 'Panel Pro · rezultat în canalul de log' }, timestamp: new Date().toISOString() }], components: [{ type: 1, components: [{ type: 2, style: 5, label: 'Deschide în panel', url: `https://panel-pro.ro/${illegal ? 'marketplace-ilegal.html' : 'marketplace.html'}?anunt=${encodeURIComponent(id)}` }] }] };
+}
+
+async function handleMarketplaceSubmit(db: any, context: any, kind: 'legal' | 'illegal', values: Record<string, any>) {
+  const table = kind === 'illegal' ? 'marketplace_ilegal' : 'marketplace';
+  const name = String(values.name || '').trim();
+  const products = String(values.products || '').trim();
+  if (name.length < 2 || products.length < 2) throw new Error('Completează numele și descrierea anunțului.');
+  const row: any = { nume: name.slice(0, 120), display_name: context.displayName, telefon: String(values.phone || '').trim().slice(0, 40), tip_actiune: String(values.action || '').trim().slice(0, 40), categorie: 'General', produse: products.slice(0, 4000), pret: String(values.price || 'Negociabil').trim().slice(0, 80) || 'Negociabil', imagini_json: '[]', imagine_url: null, created_by_discord_id: context.discordId, organization_id: kind === 'illegal' ? null : context.organization.id };
+  const { data, error } = await db.from(table).insert(row).select('id').single();
+  if (error) throw error;
+  const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify(marketplaceEmbed(kind, values, context, String(data.id))), { postOnly: true });
+  if (!delivery.results?.length) throw new Error(delivery.failures?.join(' | ') || 'Anunțul a fost salvat, dar logul Discord nu a putut fi trimis.');
+  return interactionMessage('Anunțul a fost salvat și publicat în canalul de log configurat.');
+}
+
+async function handleReminderSubmit(db: any, context: any, values: Record<string, any>) {
+  const title = String(values.title || '').trim();
+  const eventDate = String(values.event_date || '').trim();
+  if (title.length < 2 || !/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) throw new Error('Completează titlul și data în formatul AAAA-LL-ZZ.');
+  const { data, error } = await db.from('organization_events').insert({ organization_id: context.organization.id, title: title.slice(0, 160), event_type: String(values.event_type || 'other').slice(0, 40), event_date: eventDate, details: String(values.details || '').slice(0, 5000), evidence_url: String(values.evidence_url || '').trim() || null, status: 'active', created_by_discord_id: context.discordId }).select('id,title,event_date').single();
+  if (error) throw error;
+  const payload = { allowed_mentions: { parse: [] }, embeds: [{ title: `🗓️ Eveniment nou · ${data.title}`, description: String(values.details || 'Fără detalii.').slice(0, 4096), color: 0xf59e0b, fields: [{ name: 'Data', value: String(data.event_date), inline: true }, { name: 'Tip', value: String(values.event_type || 'other'), inline: true }], timestamp: new Date().toISOString() }] };
+  const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify(payload), { postOnly: true });
+  if (!delivery.results?.length) throw new Error('Evenimentul a fost salvat, dar logul Discord nu a putut fi trimis.');
+  return interactionMessage('Evenimentul a fost salvat și trimis în canalul de log.');
+}
+
+async function handleWeeklyReport(db: any, context: any) {
+  const end = new Date();
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate() - 6);
+  const startIso = start.toISOString();
+  const { data: contracts, error: contractsError } = await db.from('organization_contracts').select('employee_id,created_at').eq('organization_id', context.organization.id).gte('created_at', startIso).lte('created_at', end.toISOString()).order('created_at', { ascending: false }).limit(500);
+  if (contractsError) throw contractsError;
+  const ids = [...new Set((contracts || []).map((item: any) => String(item.employee_id)).filter(Boolean))];
+  const { data: employees, error: employeesError } = ids.length ? await db.from('organization_employees').select('id,full_name,cnp,status').in('id', ids) : { data: [], error: null };
+  if (employeesError) throw employeesError;
+  const employeeMap = new Map((employees || []).map((employee: any) => [String(employee.id), employee]));
+  const lines = ids.map((id) => employeeMap.get(id)).filter(Boolean).map((employee: any) => `${employee.status === 'inactive' ? '🔴' : '🟢'} ${String(employee.full_name || 'Angajat').slice(0, 100)} · CNP ${String(employee.cnp || '—')}`);
+  const payload = { allowed_mentions: { parse: [] }, embeds: [{ title: '📋 Raport săptămânal · Contracte', description: lines.join('\n').slice(0, 4000) || 'Nu există contracte în ultimele 7 zile.', color: 0x14b8a6, fields: [{ name: 'Perioadă', value: `${start.toISOString().slice(0, 10)} – ${end.toISOString().slice(0, 10)}`, inline: true }, { name: 'Înregistrări', value: String(lines.length), inline: true }], footer: { text: 'Panel Pro · raport generat din baza web' }, timestamp: end.toISOString() }] };
+  const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify(payload), { postOnly: true });
+  if (!delivery.results?.length) throw new Error(delivery.failures?.join(' | ') || 'Raportul nu a putut fi trimis în canalul de log.');
+  return interactionMessage('Raportul săptămânal a fost generat și trimis în canalul de log.');
 }
 
 const communityReactionChoices = ['✅', '❌', '👍', '❤️', '🤔'];
@@ -1538,20 +1651,53 @@ async function selectedShift(db: any, context: any) {
 
 async function myStats(db: any, context: any) {
   const now = new Date();
-  const end = romanianDate(now);
-  const startDate = new Date(`${end}T12:00:00Z`);
-  startDate.setUTCDate(startDate.getUTCDate() - 6);
-  const start = startDate.toISOString().slice(0, 10);
-  const { data: shifts, error } = await db.from('shifts').select('date,shift_type,status,duration,duration_ms,started_at,ended_at,paused_at,paused_seconds').eq('organization_id', context.organization.id).eq('discord_id', context.discordId).gte('date', start).lte('date', end).order('date', { ascending: false }).order('created_at', { ascending: false }).limit(100);
+  const parts = romanianParts(now);
+  const today = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+  const weekday = today.getUTCDay();
+  const monday = new Date(today);
+  monday.setUTCDate(monday.getUTCDate() - (weekday === 0 ? 6 : weekday - 1));
+  const sunday = new Date(monday);
+  sunday.setUTCDate(sunday.getUTCDate() + 6);
+  const start = monday.toISOString().slice(0, 10);
+  const end = sunday.toISOString().slice(0, 10);
+  const { data: shifts, error } = await db.from('shifts').select('date,shift_type,status,duration,duration_ms,started_at,ended_at,paused_at,paused_seconds').eq('organization_id', context.organization.id).eq('discord_id', context.discordId).gte('date', start).lte('date', end).order('date', { ascending: true }).order('created_at', { ascending: true }).limit(100);
   if (error) throw error;
   const rows = shifts || [];
-  const total = rows.reduce((sum: number, shift: any) => sum + (['active', 'paused'].includes(String(shift.status)) ? workedSeconds(shift, now) : Number(shift.duration_ms) >= 0 ? Math.floor(Number(shift.duration_ms) / 1000) : 0), 0);
-  const day = rows.filter((shift: any) => String(shift.shift_type) === 'zi').reduce((sum: number, shift: any) => sum + (['active', 'paused'].includes(String(shift.status)) ? workedSeconds(shift, now) : Math.floor(Number(shift.duration_ms || 0) / 1000)), 0);
-  const night = rows.filter((shift: any) => String(shift.shift_type) === 'noapte').reduce((sum: number, shift: any) => sum + (['active', 'paused'].includes(String(shift.status)) ? workedSeconds(shift, now) : Math.floor(Number(shift.duration_ms || 0) / 1000)), 0);
+  const secondsForShift = (shift: any) => {
+    if (['active', 'paused'].includes(String(shift.status))) return workedSeconds(shift, now);
+    const durationMs = Number(shift.duration_ms);
+    if (Number.isFinite(durationMs) && durationMs >= 0) return Math.floor(durationMs / 1000);
+    const match = /^(\d+):(\d{2}):(\d{2})$/.exec(String(shift.duration || ''));
+    return match ? Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]) : 0;
+  };
+  const secondsByDate = new Map<string, { total: number; day: number; night: number; shifts: number }>();
+  for (const shift of rows) {
+    const date = String(shift.date || '');
+    const value = secondsByDate.get(date) || { total: 0, day: 0, night: 0, shifts: 0 };
+    const seconds = secondsForShift(shift);
+    value.total += seconds;
+    value.shifts += 1;
+    if (String(shift.shift_type) === 'zi') value.day += seconds;
+    if (String(shift.shift_type) === 'noapte') value.night += seconds;
+    secondsByDate.set(date, value);
+  }
+  const total = [...secondsByDate.values()].reduce((sum, value) => sum + value.total, 0);
+  const day = [...secondsByDate.values()].reduce((sum, value) => sum + value.day, 0);
+  const night = [...secondsByDate.values()].reduce((sum, value) => sum + value.night, 0);
   const active = rows.find((shift: any) => ['active', 'paused'].includes(String(shift.status)));
   const activeLabel = active ? `${active.status === 'paused' ? 'În pauză' : 'În tură'} · ${String(active.shift_type || '').toUpperCase()} · ${formatDuration(workedSeconds(active, now))}` : 'Nicio tură activă';
+  const dayNames = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
+  const dailyFields = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(monday);
+    date.setUTCDate(date.getUTCDate() + index);
+    const key = date.toISOString().slice(0, 10);
+    const value = secondsByDate.get(key) || { total: 0, day: 0, night: 0, shifts: 0 };
+    const label = `${dayNames[date.getUTCDay()]} · ${String(date.getUTCDate()).padStart(2, '0')}.${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+    return { name: label, value: value.shifts ? `Total: **${formatDuration(value.total)}** · Zi: ${formatDuration(value.day)} · Noapte: ${formatDuration(value.night)} · ${value.shifts} tur${value.shifts === 1 ? 'ă' : 'e'}` : 'Fără ture înregistrate.', inline: false };
+  });
   return interactionMessage('', { embeds: [{ title: `📊 Pontajul meu · ${context.organization.name}`, color: 3447003, fields: [
-    { name: 'Perioadă', value: `${start} – ${end}`, inline: false },
+    { name: 'Săptămâna', value: `${start} – ${end}`, inline: false },
+    ...dailyFields,
     { name: 'Total lucrat', value: `**${formatDuration(total)}**`, inline: true },
     { name: 'Ture de zi', value: formatDuration(day), inline: true },
     { name: 'Ture de noapte', value: formatDuration(night), inline: true },
@@ -1743,8 +1889,10 @@ Deno.serve(async (request) => {
   const isDiscipline = customId.startsWith('panel:discipline:');
   const isActions = customId.startsWith('panel:actions:');
   const isStash = customId.startsWith('panel:stash:');
+  const isMarketplace = customId.startsWith('panel:marketplace:');
+  const isDiscovery = customId.startsWith('panel:discovery:');
   if (!isComponent && !isModalSubmit) return reply(interactionMessage('Acest tip de interacțiune nu este disponibil.'));
-  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
 
   // Formularele Discord trebuie afișate imediat. Validarea organizației,
   // rolurilor și canalului se face la trimiterea formularului, nu înainte de
@@ -1776,6 +1924,52 @@ Deno.serve(async (request) => {
   if (isButton && isStash && ['create', 'request', 'donate'].includes(customId.split(':')[2] || '')) {
     const kind = customId.split(':')[2] === 'request' ? 'request' : customId.split(':')[2] === 'donate' ? 'donation' : 'item';
     return reply(stashModal(kind));
+  }
+  if (isButton && isMarketplace) {
+    const parts = customId.split(':');
+    const kind = parts[2] === 'illegal' ? 'illegal' : parts[2] === 'legal' ? 'legal' : null;
+    if (!kind) return reply(interactionMessage('Tipul Marketplace nu este valid.'));
+    if (parts[3] === 'create') {
+      const key = serviceKey();
+      if (!key) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+      const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+      await resolveUniversalModuleContext(db, interaction, kind === 'illegal' ? 'illegal_marketplace' : 'marketplace', kind === 'illegal' ? 'illegal_marketplace' : 'legal_marketplace');
+      return reply(marketplaceModal(kind));
+    }
+    if (parts[3] === 'mine') {
+      const key = serviceKey();
+      if (!key) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+      const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+      const context = await resolveUniversalModuleContext(db, interaction, kind === 'illegal' ? 'illegal_marketplace' : 'marketplace', kind === 'illegal' ? 'illegal_marketplace' : 'legal_marketplace');
+      const table = kind === 'illegal' ? 'marketplace_ilegal' : 'marketplace';
+      let query = db.from(table).select('id,nume,tip_actiune,pret,created_at').eq('created_by_discord_id', context.discordId).order('created_at', { ascending: false }).limit(10);
+      if (kind === 'illegal') query = query.is('organization_id', null);
+      else query = query.eq('organization_id', context.organization.id);
+      const { data, error } = await query;
+      if (error) throw error;
+      const lines = (data || []).map((row: any) => `• **${String(row.nume || 'Anunț').slice(0, 80)}** · ${String(row.tip_actiune || '—')} · ${String(row.pret || 'Negociabil')}`);
+      return reply(interactionMessage(lines.length ? `Anunțurile tale:\n${lines.join('\n')}` : 'Nu ai încă anunțuri în acest marketplace.'));
+    }
+  }
+  if (isDiscovery && isButton) {
+    const key = serviceKey();
+    if (!key) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    if (customId === 'panel:discovery:reminder_create') {
+      await resolveUniversalModuleContext(db, interaction, 'event_reminders', 'event_reminders');
+      return reply(discoveryReminderModal());
+    }
+    if (customId === 'panel:discovery:reminder_info') return reply(interactionMessage('Evenimentele se salvează în istoricul organizației. Reminder-ele automate sunt trimise în canalul modulului, iar rezultatele și erorile în canalul de log configurat.'));
+    if (customId === 'panel:discovery:report_info') return reply(interactionMessage('Raportul săptămânal centralizează contractele și identificatorii angajaților din perioada curentă. Publicarea se face în canalul de log al raportului.'));
+    if (customId === 'panel:discovery:weekly_report') {
+      const context = await resolveUniversalModuleContext(db, interaction, 'contract_identity_weekly', 'reports');
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try { result = await handleWeeklyReport(db, context); } catch (error) { result = interactionMessage(readableError(error, 'Raportul nu a putut fi generat.')); }
+      const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+      return new Response(null, { status: 204 });
+    }
   }
   try {
     const key = serviceKey();
@@ -1866,6 +2060,29 @@ Deno.serve(async (request) => {
       let result;
       try { result = await handleStashSubmit(db, await resolveStashContext(db, interaction, routeKey, permission), kind, modalValues(interaction)); }
       catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(readableError(error, 'Acțiunea Stash nu a putut fi executată.')); }
+      const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+      return new Response(null, { status: 204 });
+    }
+    if (isMarketplace && isModalSubmit) {
+      const parts = customId.split(':');
+      const kind = parts[2] === 'illegal' ? 'illegal' : parts[2] === 'legal' ? 'legal' : null;
+      if (!kind || parts[3] !== 'submit') return reply(interactionMessage('Formularul Marketplace nu este valid.'));
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try {
+        const context = await resolveUniversalModuleContext(db, interaction, kind === 'illegal' ? 'illegal_marketplace' : 'marketplace', kind === 'illegal' ? 'illegal_marketplace' : 'legal_marketplace');
+        result = await handleMarketplaceSubmit(db, context, kind, modalValues(interaction));
+      } catch (error) { result = interactionMessage(readableError(error, 'Anunțul nu a putut fi salvat.')); }
+      const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+      return new Response(null, { status: 204 });
+    }
+    if (isDiscovery && isModalSubmit && customId === 'panel:discovery:reminder_submit') {
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try { const context = await resolveUniversalModuleContext(db, interaction, 'event_reminders', 'event_reminders'); result = await handleReminderSubmit(db, context, modalValues(interaction)); }
+      catch (error) { result = interactionMessage(readableError(error, 'Evenimentul nu a putut fi salvat.')); }
       const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
       if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
       return new Response(null, { status: 204 });
@@ -2120,7 +2337,7 @@ Deno.serve(async (request) => {
       result = interactionMessage(error instanceof Error ? error.message : 'Acțiunea Pontaj nu a putut fi executată.');
     }
     const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
-    if (followupId) {
+    if (followupId && action !== 'my_stats') {
       await new Promise((resolve) => setTimeout(resolve, 5000));
       await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId);
     }

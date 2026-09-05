@@ -25,8 +25,12 @@ function getPeriod(now = new Date()) {
   next.setUTCDate(next.getUTCDate() + 1);
   return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10), startIso: start.toISOString(), nextIso: next.toISOString() };
 }
+function displayDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || '').trim());
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : String(value || '—');
+}
 
-async function claimRun(db: any, organizationId: string, period: any) {
+async function claimRun(db: any, organizationId: string, period: any, allowRepeat = false) {
   const base = { report_key: 'weekly_contract_identity', organization_id: organizationId, period_start: period.start, period_end: period.end };
   const { data: existing, error: readError } = await db.from('scheduled_report_runs').select('id,status,updated_at').match(base).maybeSingle();
   if (readError) throw readError;
@@ -36,7 +40,12 @@ async function claimRun(db: any, organizationId: string, period: any) {
     if (error.code !== '23505') throw error;
     return null;
   }
-  if (['sent', 'skipped'].includes(existing.status)) return null;
+  if (['sent', 'skipped'].includes(existing.status) && !allowRepeat) return null;
+  if (['sent', 'skipped'].includes(existing.status) && allowRepeat) {
+    const { data: repeated, error: repeatError } = await db.from('scheduled_report_runs').update({ status: 'processing', error: null, updated_at: new Date().toISOString() }).eq('id', existing.id).select('id').maybeSingle();
+    if (repeatError) throw repeatError;
+    return repeated?.id || null;
+  }
   const updated = Date.parse(String(existing.updated_at || ''));
   if (Number.isFinite(updated) && Date.now() - updated < 10 * 60 * 1000) return null;
   const { data: reclaimed, error } = await db.from('scheduled_report_runs').update({ status: 'processing', error: null, updated_at: new Date().toISOString() }).eq('id', existing.id).select('id').maybeSingle();
@@ -117,16 +126,20 @@ Deno.serve(async (request) => {
     if (!cronSecret || request.headers.get('x-cron-secret') !== cronSecret) return reply({ error: 'Unauthorized' }, 401);
     const now = new Date();
     const period = getPeriod(now);
-    const forced = (await request.json().catch(() => ({})))?.force === true;
+    const requestBody = await request.json().catch(() => ({}));
+    const forced = requestBody?.force === true;
+    const requestedOrganizationId = String(requestBody?.organization_id || '').trim();
     const parts = localParts(now);
     if (!forced && (parts.weekday !== 'Sun' || parts.hour !== 19)) return reply({ ok: true, skipped: 'outside_weekly_schedule' });
 
     const botToken = await getPlatformSecret(db, 'discord_bot_token');
-    const { data: organizations, error: organizationsError } = await db.from('organizations').select('id,name').eq('active', true).order('name');
+    let organizationsQuery = db.from('organizations').select('id,name').eq('active', true).order('name');
+    if (requestedOrganizationId) organizationsQuery = organizationsQuery.eq('id', requestedOrganizationId);
+    const { data: organizations, error: organizationsError } = await organizationsQuery;
     if (organizationsError) throw organizationsError;
     const results = [];
     for (const organization of organizations || []) {
-      const runId = await claimRun(db, organization.id, period);
+      const runId = await claimRun(db, organization.id, period, forced);
       if (!runId) { results.push({ organization_id: organization.id, status: 'already_processed' }); continue; }
       try {
         if (botToken) await refreshDiscordEmployees(db, organization, botToken);
@@ -136,7 +149,7 @@ Deno.serve(async (request) => {
         ]);
         if (settingsError) throw settingsError;
         if (contractsError) throw contractsError;
-        if (!routeCandidates(settings, 'contract_identity_weekly').some((item) => item.candidates.length)) throw new Error('Canalul Discord săptămânal pentru nume și CNP nu este configurat.');
+        if (!routeCandidates(settings, 'log_contract_identity_weekly').some((item) => item.candidates.length)) throw new Error('Canalul de log Discord pentru raportul săptămânal nu este configurat. Folosește /panel config cu canal_log.');
         const employeeIds = [...new Set((contracts || []).map((contract: any) => String(contract.employee_id)))];
         const { data: employees, error: employeesError } = employeeIds.length
           ? await db.from('organization_employees').select('id,full_name,cnp,status').in('id', employeeIds)
@@ -182,10 +195,10 @@ Deno.serve(async (request) => {
           contractEmbedBlock('🔴 Plecați / demisionați', inactive, 3300),
         ].filter(Boolean).join('\n\n');
         const embeds = [
-          { title: `📋 Export săptămânal · Angajați activi · ${period.start} – ${period.end}`, description: activeDescription, color: 5763719, timestamp: now.toISOString() },
-          { title: `📋 Export săptămânal · Plecați / demisionați · ${period.start} – ${period.end}`, description: inactiveDescription, color: 15548997, timestamp: now.toISOString() },
+          { title: `📋 Export săptămânal · Angajați activi · ${displayDate(period.start)} – ${displayDate(period.end)}`, description: activeDescription, color: 5763719, timestamp: now.toISOString() },
+          { title: `📋 Export săptămânal · Plecați / demisionați · ${displayDate(period.start)} – ${displayDate(period.end)}`, description: inactiveDescription, color: 15548997, timestamp: now.toISOString() },
         ];
-        const delivery = await deliverDiscordRoute(db, settings, 'contract_identity_weekly', JSON.stringify({ allowed_mentions: { parse: [] }, embeds }));
+        const delivery = await deliverDiscordRoute(db, settings, 'log_contract_identity_weekly', JSON.stringify({ allowed_mentions: { parse: [] }, embeds }));
         const failures: string[] = delivery.failures || [];
         if (!delivery.results.length) throw new Error(failures.join(' | ') || 'Discord nu a acceptat exportul.');
         await db.from('contract_export_batches').update({ status: 'completed', row_count: exportItems.length, completed_at: new Date().toISOString(), error: failures.length ? failures.join(' | ') : null }).eq('id', batch.id);

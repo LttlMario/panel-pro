@@ -24,8 +24,15 @@ export function interactionHasDiscordGuildEntitlement(interaction: any, guildId:
 
 export async function discordPremiumAccess(db: any, organizationId: string, interaction: any, guildId: string) {
   if (interactionHasDiscordGuildEntitlement(interaction, guildId)) return true;
-  const { data, error } = await db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'discord_trial').maybeSingle();
+  // Discord interaction payloads do not include entitlements granted manually
+  // by the platform administrator. Always check our persisted entitlement too.
+  const [{ data: storedEntitlement, error: entitlementError }, { data, error }] = await Promise.all([
+    db.from('discord_guild_entitlements').select('ends_at').eq('guild_id', String(guildId || '').trim()).eq('organization_id', organizationId).eq('active', true).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+    db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'discord_trial').maybeSingle(),
+  ]);
+  if (entitlementError) throw entitlementError;
   if (error) throw error;
+  if (storedEntitlement && (!storedEntitlement.ends_at || Date.parse(String(storedEntitlement.ends_at)) > Date.now())) return true;
   const endsAt = Date.parse(String(data?.value?.ends_at || ''));
   return Number.isFinite(endsAt) && endsAt > Date.now();
 }
@@ -33,7 +40,9 @@ export async function discordPremiumAccess(db: any, organizationId: string, inte
 export function discordPremiumModule(customIdOrRoute: string) {
   const value = String(customIdOrRoute || '').trim();
   // Core Discord modules remain free: Pontaj and Învoiri.
-  if (value === 'pontaj' || value === 'requests_organization' || value === 'requests_departments' || value.startsWith('panel:pontaj:') || value.startsWith('panel:requests:')) return false;
+  // Opening a form must stay fast; the final submit remains protected by the
+  // entitlement check, so a free user can never save a Premium action.
+  if (value === 'pontaj' || value === 'requests_organization' || value === 'requests_departments' || value === 'panel:contracts:create' || value === 'panel:contracts:settings' || value === 'panel:stash:request' || value === 'panel:stash:donate' || value === 'panel:stash:create' || value.startsWith('panel:stash:decision_request:rejected:') || value === 'panel:marketplace:legal:create' || value === 'panel:marketplace:illegal:create' || value === 'panel:actions:organization:create' || value.startsWith('panel:pontaj:') || value.startsWith('panel:requests:')) return false;
   return true;
 }
 
