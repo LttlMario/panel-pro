@@ -10,6 +10,9 @@ verify_jwt = true
 [functions.manage-discord-config]
 verify_jwt = false
 
+[functions.discord-interactions]
+verify_jwt = false
+
 [functions.discover-discord-channels]
 verify_jwt = false
 

@@ -532,10 +532,9 @@ const submittedWebhookRoutes = Object.fromEntries(
  * Păstrăm și eventualele rute existente care nu au fost
  * trimise deloc de formular.
  */
-const webhook_routes = {
-  ...existingWebhookRoutes,
-  ...submittedWebhookRoutes
-};
+// Trimiterea Discord se face exclusiv prin bot și discord_channel_routes.
+// Rutele webhook istorice nu mai sunt păstrate și nu mai sunt folosite.
+const webhook_routes = {};
 const rawChannelRoutes = settings.discord_channel_routes && typeof settings.discord_channel_routes === 'object' ? settings.discord_channel_routes : {};
 const existingChannelRoutes = currentOrganizationSettings?.discord_channel_routes && typeof currentOrganizationSettings.discord_channel_routes === 'object' ? currentOrganizationSettings.discord_channel_routes : {};
 const discord_channel_routes = settings.discord_channel_routes === undefined
@@ -548,8 +547,6 @@ const { error: settingsError } =
       organization_id: organizationId,
       discord_client_id: clientId,
       panel_public_url: publicUrl,
-      // Pachetul controlează accesul la canale, nu șterge configurația
-      // webhook-urilor când formularul este salvat sau pachetul se schimbă.
       webhook_routes,
       discord_channel_routes,
       updated_by_discord_id: session.discord_id,

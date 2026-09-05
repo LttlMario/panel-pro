@@ -447,24 +447,24 @@ Deno.serve(async (request) => {
     const { error: organizationError } = await db.from('organizations').update(organizationPatch).eq('id', organizationId);
     if (organizationError) throw organizationError;
 
-    const webhookRoutes = body.webhook_routes === undefined
-      ? (settings.webhook_routes || {})
-      : mergeWebhookRoutes(settings.webhook_routes, body.webhook_routes);
+    // Organizațiile folosesc exclusiv botul Discord și rutele de canale.
+    // Webhook-urile istorice sunt ignorate și eliminate la următoarea salvare.
+    const webhookRoutes = {};
     const channelRoutes = body.discord_channel_routes === undefined
       ? (settings.discord_channel_routes || {})
       : sanitizeDiscordChannelRoutes(body.discord_channel_routes);
-    const packageWebhookRoutes = Object.fromEntries(Object.entries(webhookRoutes).filter(([channel]) => packageAllowsWebhook(state.package, channel)));
+    const packageWebhookRoutes = {};
     const settingsPatch = {
       organization_id: organizationId,
       discord_client_id: String(settings.discord_client_id ?? ''),
       panel_public_url: publicUrl,
-      family_webhook_url: settings.family_webhook_url || null,
-      mechanics_webhook_url: settings.mechanics_webhook_url || null,
-      pontaj_webhook_url: settings.pontaj_webhook_url || null,
-      requests_webhook_url: settings.requests_webhook_url || null,
-      contracts_webhook_url: settings.contracts_webhook_url || null,
-      marketplace_webhook_url: settings.marketplace_webhook_url || null,
-      illegal_marketplace_webhook_url: settings.illegal_marketplace_webhook_url || null,
+      family_webhook_url: null,
+      mechanics_webhook_url: null,
+      pontaj_webhook_url: null,
+      requests_webhook_url: null,
+      contracts_webhook_url: null,
+      marketplace_webhook_url: null,
+      illegal_marketplace_webhook_url: null,
       webhook_routes: packageWebhookRoutes,
       discord_channel_routes: channelRoutes,
       updated_by_discord_id: discordId,

@@ -22,6 +22,7 @@ Write-Host 'Se publică funcțiile Edge...'
 $functions = @(
     'sync-discord-role',
     'manage-discord-config',
+    'discord-interactions',
     'discover-discord-channels',
     'manage-community-posts',
     'manage-public-feedback',

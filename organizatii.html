@@ -1527,7 +1527,7 @@ roles.push({
     discord_role_name: role.name,
     panel_role: panelRole
 });
-}if(new Set(roles.map(role=>role.discord_role_id)).size!==roles.length)throw new Error('Același rol Discord nu poate fi adăugat de două ori.');const settings={discord_client_id:$('client').value,panel_public_url:$('url').value,webhook_routes:Object.fromEntries(fields.map(x=>[x,{primary:{enabled:$(`wh_primary_enabled_${x}`).checked,url:$(`wh_primary_url_${x}`).value.trim()},secondary:{enabled:$(`wh_secondary_enabled_${x}`).checked,url:$(`wh_secondary_url_${x}`).value.trim()}}]).filter(([,route])=>route.primary.enabled&&route.primary.url||route.secondary.enabled&&route.secondary.url)),discord_channel_routes:window.getDiscordChannelRoutes?.()||{}},guilds=[{guild_id:guildId,guild_name:$('guild-status').textContent.split(':')[0],kind:'primary'}];if(secondaryId)guilds.push({guild_id:secondaryId,guild_name:$('guild-secondary-status').textContent.split(':')[0],kind:'secondary'});
+}if(new Set(roles.map(role=>role.discord_role_id)).size!==roles.length)throw new Error('Același rol Discord nu poate fi adăugat de două ori.');const settings={discord_client_id:$('client').value,panel_public_url:$('url').value,webhook_routes:{},discord_channel_routes:window.getDiscordChannelRoutes?.()||{}},guilds=[{guild_id:guildId,guild_name:$('guild-status').textContent.split(':')[0],kind:'primary'}];if(secondaryId)guilds.push({guild_id:secondaryId,guild_name:$('guild-secondary-status').textContent.split(':')[0],kind:'secondary'});
 await invoke({
     action:'save',
 
