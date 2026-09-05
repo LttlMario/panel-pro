@@ -1728,23 +1728,42 @@ Deno.serve(async (request) => {
   const isStash = customId.startsWith('panel:stash:');
   if (!isComponent && !isModalSubmit) return reply(interactionMessage('Acest tip de interacțiune nu este disponibil.'));
   if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+
+  // Formularele Discord trebuie afișate imediat. Validarea organizației,
+  // rolurilor și canalului se face la trimiterea formularului, nu înainte de
+  // răspunsul inițial, deoarece Discord anulează interacțiunea după 3 secunde.
+  if (isButton && isRequests && ['organization', 'departments'].includes(customId.split(':')[2] || '') && customId.split(':')[3] === 'new') {
+    return reply(requestModal(customId.split(':')[2] === 'departments' ? 'departments' : 'organization'));
+  }
+  if (isButton && isContracts && ['create', 'settings', 'info'].includes(customId.split(':')[2] || '')) {
+    const action = customId.split(':')[2];
+    if (action === 'create') return reply(contractModal());
+    if (action === 'settings') {
+      if (!isDiscordManager(interaction)) return reply(interactionMessage('Doar ownerul serverului sau un administrator cu Manage Server poate seta contractul.'));
+      return reply(contractSettingsModal());
+    }
+    return reply(contractInfoMessage());
+  }
+  if (isButton && isAnnouncements && customId.split(':')[3] === 'create') {
+    const parts = customId.split(':');
+    const audience = parts[2] === 'departments' ? 'departments' : parts[2] === 'organization' ? 'organization' : null;
+    const postType = ['announcement', 'question', 'poll'].includes(parts[4]) ? parts[4] as 'announcement' | 'question' | 'poll' : null;
+    if (audience && postType) return reply(announcementModal(audience, postType));
+  }
+  if (isButton && isDiscipline && ['warning', 'sanction'].includes(customId.split(':')[3] || '')) {
+    const parts = customId.split(':');
+    const audience = parts[2] === 'departments' ? 'departments' : parts[2] === 'organization' ? 'organization' : null;
+    if (audience) return reply(disciplineTargetPicker(audience, parts[3] as 'warning' | 'sanction'));
+  }
+  if (isButton && isActions && customId.split(':')[3] === 'create') return reply(actionModal());
+  if (isButton && isStash && ['create', 'request', 'donate'].includes(customId.split(':')[2] || '')) {
+    const kind = customId.split(':')[2] === 'request' ? 'request' : customId.split(':')[2] === 'donate' ? 'donation' : 'item';
+    return reply(stashModal(kind));
+  }
   try {
     const key = serviceKey();
     if (!key) throw new Error('Cheia secretă Supabase lipsește.');
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
-    await ensureDiscordOnlyOrganization(db, interaction);
-    if (discordPremiumConfigured()) {
-      const guildId = String(interaction.guild_id || '').trim();
-      if (/^\d{15,22}$/.test(guildId)) {
-        const { data: guildAccess, error: guildAccessError } = await db.from('organization_guilds').select('organization_id').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
-        if (guildAccessError) throw guildAccessError;
-        if (guildAccess?.organization_id) {
-          const { data: premiumOrganization, error: premiumOrganizationError } = await db.from('organizations').select('access_mode').eq('id', guildAccess.organization_id).maybeSingle();
-          if (premiumOrganizationError) throw premiumOrganizationError;
-          if (premiumOrganization?.access_mode === 'discord_only' && discordPremiumModule(customId) && !(await discordPremiumAccess(db, String(guildAccess.organization_id), interaction, guildId))) return reply(discordPremiumMessage());
-        }
-      }
-    }
     if (isStash && isButton) {
       const parts = customId.split(':');
       if (parts[2] === 'pending_requests' || parts[2] === 'pending_donations') {
