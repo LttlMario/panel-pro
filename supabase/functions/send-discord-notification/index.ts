@@ -232,6 +232,12 @@ Deno.serve(async (request) => {
       ? 'log_announcements_organization'
       : finalChannel === 'departments'
         ? 'log_announcements_departments'
+      : finalChannel === 'pontaj'
+          ? 'log_pontaj'
+        : finalChannel === 'requests_organization'
+          ? 'log_requests_organization'
+        : finalChannel === 'requests_departments'
+          ? 'log_requests_departments'
       : finalChannel === 'contracts'
           ? 'log_contracts'
         : finalChannel === 'stash'
@@ -252,7 +258,7 @@ Deno.serve(async (request) => {
       }
       // Panourile cu butoane trebuie să rămână funcționale după publicare.
       // Persistăm ruta aleasă aici, astfel încât verificarea făcută ulterior
-      // de discord-interactions să vadă exact canalul în care a fost publicat
+      // pentru ca serviciile Discord să vadă exact canalul în care a fost publicat
       // embedul, chiar dacă utilizatorul nu a apăsat încă salvarea generală.
       const { error: routeSaveError } = await db.from('organization_settings')
         .update({ discord_channel_routes: settings.discord_channel_routes, updated_at: new Date().toISOString() })
@@ -392,7 +398,7 @@ Deno.serve(async (request) => {
   } catch (error) {
     console.error('[send-discord-notification]', error);
     const message = errorMessage(error);
-    const status = /Botul Discord nu are permisiuni|Discord bot HTTP 403/i.test(message) ? 403 : 400;
+    const status = /Botul Discord nu are (permisiuni|acces)|Discord bot HTTP 403/i.test(message) ? 403 : 400;
     return reply(request, { error: message }, status);
   }
 });

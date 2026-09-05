@@ -23,6 +23,8 @@
   insertSyntheticAfter('organization', 'log_announcements_organization');
   insertSyntheticAfter('departments', 'log_announcements_departments');
   insertSyntheticAfter('contracts', 'log_contracts');
+  insertSyntheticAfter('marketplace', 'log_marketplace');
+  insertSyntheticAfter('illegal_marketplace', 'log_illegal_marketplace');
   insertSyntheticAfter('log_announcements_organization', 'log_actions_organization');
   insertSyntheticAfter('stash', 'log_stash');
   insertSyntheticAfter('stash_requests', 'log_stash_requests');
@@ -40,6 +42,8 @@
       log_announcements_organization: 'Log anunțuri · Organizație',
       log_announcements_departments: 'Log anunțuri · Angajați',
       log_contracts: 'Log contracte',
+      log_marketplace: 'Log Marketplace legal',
+      log_illegal_marketplace: 'Log Marketplace ilegal',
       actions_organization: 'Acțiuni organizație',
       log_actions_organization: 'Log acțiuni organizație',
       stash: 'Stash · Embed cu butoane',
@@ -344,13 +348,61 @@
     } catch (error) { statusNode.textContent = error.message || 'Embedul nu a putut fi publicat.'; }
     finally { delete statusNode.dataset.busy; syncRequestPublishState(key, false); }
   };
+  const bulkPublishDefinitions = () => [
+    { key: 'organization', label: announcementPanelDefinition('organization').label, messageKey: 'announcements-control', payload: () => buildAnnouncementsPanelPayload('organization') },
+    { key: 'departments', label: announcementPanelDefinition('departments').label, messageKey: 'announcements-control', payload: () => buildAnnouncementsPanelPayload('departments') },
+    { key: 'pontaj', label: 'Pontaj', messageKey: 'pontaj-control', payload: buildPontajPanelPayload },
+    { key: 'requests_organization', label: requestPanelDefinition('requests_organization').label, messageKey: 'requests-control', payload: () => buildRequestsPanelPayload('requests_organization') },
+    { key: 'requests_departments', label: requestPanelDefinition('requests_departments').label, messageKey: 'requests-control', payload: () => buildRequestsPanelPayload('requests_departments') },
+    { key: 'contracts', label: 'Contracte', messageKey: 'contracts-control', payload: buildContractsPanelPayload },
+    { key: 'stash', label: 'Stash', messageKey: 'stash-control', payload: buildStashPanelPayload },
+    { key: 'stash_requests', label: 'Cereri stash', messageKey: 'stash_requests-control', payload: () => ({ allowed_mentions: { parse: [] }, embeds: [{ title: '📦 Cereri stash · Panel Pro', description: 'Folosește butonul pentru a trimite o cerere către stash. Datele sunt salvate în Supabase și respectă permisiunile organizației.', color: 0xf59e0b, footer: { text: 'Panel Pro · Cereri stash' } }], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Trimite cerere', custom_id: 'panel:stash:request' }] }] }) },
+    { key: 'stash_donations', label: 'Donații stash', messageKey: 'stash_donations-control', payload: () => ({ allowed_mentions: { parse: [] }, embeds: [{ title: '📦 Donații stash · Panel Pro', description: 'Folosește butonul pentru a înregistra o donație către stash. Datele sunt salvate în Supabase și respectă permisiunile organizației.', color: 0xa78bfa, footer: { text: 'Panel Pro · Donații stash' } }], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Donează către stash', custom_id: 'panel:stash:donate' }] }] }) },
+  ].filter((definition) => routeKeys.includes(definition.key));
+  const selectedBulkDefinitions = () => bulkPublishDefinitions().filter((definition) => selectedRouteTargets(definition.key).length);
+  const syncBulkPublishState = () => {
+    const button = section.querySelector('#discord-publish-all');
+    if (!button) return;
+    button.disabled = selectedBulkDefinitions().length === 0;
+  };
+  const publishAllPanels = async () => {
+    const button = section.querySelector('#discord-publish-all');
+    const statusNode = section.querySelector('#discord-publish-all-status');
+    if (!button || !statusNode) return;
+    const definitions = selectedBulkDefinitions();
+    const selectedOrganizationId = String(organizationId() || '').trim();
+    const activeOrganizationId = String(window.getActiveOrganizationId?.() || '').trim();
+    if (!definitions.length) { statusNode.textContent = 'Selectează cel puțin un canal pentru un embed cu butoane.'; return; }
+    if (!selectedOrganizationId || !activeOrganizationId || selectedOrganizationId !== activeOrganizationId) {
+      statusNode.textContent = 'Intră mai întâi în organizația aleasă din „Administrare organizații”, folosind modul de test.';
+      return;
+    }
+    if (typeof window.sendPanelDiscord !== 'function') { statusNode.textContent = 'Modulul de trimitere Discord nu este disponibil pe această pagină.'; return; }
+    button.disabled = true;
+    statusNode.textContent = `Se publică ${definitions.length} embed${definitions.length === 1 ? '' : 'uri'}...`;
+    let completed = 0;
+    const channelRoutes = window.getDiscordChannelRoutes?.() || {};
+    const results = await Promise.allSettled(definitions.map(async (definition) => {
+      const response = await window.sendPanelDiscord(definition.key, definition.payload(), { messageKey: definition.messageKey, channelRoutes });
+      const result = await response.clone().json().catch(() => ({}));
+      completed += 1;
+      statusNode.textContent = `Se publică embedurile... ${completed}/${definitions.length}`;
+      return { definition, result };
+    }));
+    const failed = results.filter((item) => item.status === 'rejected');
+    if (failed.length) {
+      const failedLabels = failed.map((item, index) => item.reason?.message || definitions[index]?.label).join('; ');
+      statusNode.textContent = `${definitions.length - failed.length}/${definitions.length} embeduri au fost publicate. Probleme: ${failedLabels}`;
+    } else {
+      statusNode.textContent = `Toate cele ${definitions.length} embeduri au fost publicate sau actualizate. Canalele de rezultat/log au fost transmise și salvate împreună cu configurația.`;
+    }
+    syncBulkPublishState();
+  };
   const render = () => {
-    grid.innerHTML = routeKeys.map((key) => `<fieldset class="rounded-lg border border-emerald-900/70 bg-slate-950/50 p-3${key === 'actions_organization' ? ' md:col-span-2' : ''}"><legend class="px-1 text-xs font-bold text-slate-200">${esc(labels[key])}</legend>${['primary', 'secondary'].map((target) => `<label class="mt-2 block text-xs text-slate-400">${target === 'primary' ? 'Canal principal' : 'Canal secundar'}<select class="field mt-1" data-discord-channel-route="${esc(key)}" data-discord-channel-target="${target}">${options(selectedChannel(key, target))}</select></label>`).join('')}${canPublishDiscordPanels && key === 'pontaj' ? '<div class="mt-3 rounded-lg border border-cyan-900/70 bg-cyan-950/20 p-3"><div class="flex flex-wrap items-center gap-2"><button id="discord-pontaj-publish" type="button" disabled class="rounded-xl bg-cyan-600 px-4 py-2 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">📌 Publică embedul Pontaj</button><span id="discord-pontaj-publish-status" class="text-xs text-slate-400">Selectează canalul „Pontaj”, apoi publică panoul cu butoane.</span></div></div>' : ''}${canPublishDiscordPanels && ['requests_organization', 'requests_departments'].includes(key) ? `<div class="mt-3 rounded-lg border border-amber-900/70 bg-amber-950/20 p-3"><div class="flex flex-wrap items-center gap-2"><button id="discord-${key}-publish" type="button" disabled class="rounded-xl bg-amber-500 px-4 py-2 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">📌 Publică embedul ${esc(requestPanelDefinition(key).label)}</button><span id="discord-${key}-publish-status" class="text-xs text-slate-400">Selectează canalul, apoi publică panoul cu butoane.</span></div></div>` : ''}${canPublishDiscordPanels && ['organization', 'departments'].includes(key) ? `<div class="mt-3 rounded-lg border border-violet-900/70 bg-violet-950/20 p-3"><div class="flex flex-wrap items-center gap-2"><button id="discord-${key}-publish" type="button" disabled class="rounded-xl bg-violet-500 px-4 py-2 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">📌 Publică embedul ${esc(announcementPanelDefinition(key).label)}</button><span id="discord-${key}-publish-status" class="text-xs text-slate-400">Selectează canalul, apoi publică panoul cu butoane.</span></div></div>` : ''}${canPublishDiscordPanels && key === 'contracts' ? '<div class="mt-3 rounded-lg border border-teal-900/70 bg-teal-950/20 p-3"><div class="flex flex-wrap items-center gap-2"><button id="discord-contracts-publish" type="button" disabled class="rounded-xl bg-teal-500 px-4 py-2 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">📌 Publică embedul Contracte</button><span id="discord-contracts-publish-status" class="text-xs text-slate-400">Selectează canalul, apoi publică panoul cu butoane.</span></div></div>' : ''}</fieldset>`).join('');
-    grid.querySelectorAll('[data-discord-channel-route]').forEach((select) => { select.onchange = () => { const key = select.dataset.discordChannelRoute; setRoute(key, select.dataset.discordChannelTarget, select.value); syncPontajPublishState(); syncContractsPublishState(); if (['requests_organization', 'requests_departments'].includes(key)) syncRequestPublishState(key); if (['organization', 'departments'].includes(key)) syncAnnouncementPublishState(key); }; });
+    grid.innerHTML = routeKeys.map((key) => `<fieldset class="rounded-lg border border-emerald-900/70 bg-slate-950/50 p-3${key === 'actions_organization' ? ' md:col-span-2' : ''}"><legend class="px-1 text-xs font-bold text-slate-200">${esc(labels[key])}</legend>${['primary', 'secondary'].map((target) => `<label class="mt-2 block text-xs text-slate-400">${target === 'primary' ? 'Canal principal' : 'Canal secundar'}<select class="field mt-1" data-discord-channel-route="${esc(key)}" data-discord-channel-target="${target}">${options(selectedChannel(key, target))}</select></label>`).join('')}</fieldset>`).join('');
+    grid.querySelectorAll('[data-discord-channel-route]').forEach((select) => { select.onchange = () => { const key = select.dataset.discordChannelRoute; setRoute(key, select.dataset.discordChannelTarget, select.value); syncBulkPublishState(); }; });
     const stashFieldset = grid.querySelector('[data-discord-channel-route="stash"]')?.closest('fieldset');
     grid.querySelector('[data-discord-channel-route="actions_organization"]')?.closest('fieldset')?.classList.remove('md:col-span-2');
-    if (stashFieldset) { stashFieldset.classList.add('md:row-span-3'); stashFieldset.insertAdjacentHTML('beforeend', '<div class="mt-3 rounded-lg border border-emerald-900/70 bg-emerald-950/20 p-3"><div class="flex flex-wrap items-center gap-2"><button id="discord-stash-publish" type="button" disabled class="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">📌 Publică embedul Stash</button><span id="discord-stash-publish-status" class="text-xs text-slate-400">Selectează canalul, apoi publică panoul cu butoane.</span></div></div>'); }
-    [['stash_requests', 'Cereri stash'], ['stash_donations', 'Donații stash']].forEach(([key, label]) => { const fieldset = grid.querySelector(`[data-discord-channel-route="${key}"]`)?.closest('fieldset'); if (fieldset) fieldset.insertAdjacentHTML('beforeend', `<div class="mt-3 rounded-lg border border-emerald-900/70 bg-emerald-950/20 p-3"><div class="flex flex-wrap items-center gap-2"><button id="discord-${key}-publish" type="button" disabled class="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">📌 Publică embedul ${label}</button><span id="discord-${key}-publish-status" class="text-xs text-slate-400">Selectează canalul, apoi publică panoul cu butoane.</span></div></div>`); });
     grid.querySelectorAll('[data-discord-channel-route]').forEach((select) => {
       const target = select.dataset.discordChannelTarget;
       const targetGuildId = guildIdForTarget(target);
@@ -362,17 +414,10 @@
     });
     grid.querySelectorAll('[data-discord-channel-route="stash"]').forEach((select) => select.addEventListener('change', () => syncStashPublishState()));
     ['stash_requests', 'stash_donations'].forEach((key) => { grid.querySelectorAll(`[data-discord-channel-route="${key}"]`).forEach((select) => select.addEventListener('change', () => syncStashRoutePublishState(key))); syncStashRoutePublishState(key); });
-    grid.querySelector('#discord-pontaj-publish')?.addEventListener('click', publishPontajPanel);
-    grid.querySelector('#discord-contracts-publish')?.addEventListener('click', publishContractsPanel);
-    grid.querySelector('#discord-stash-publish')?.addEventListener('click', publishStashPanel);
-    [['stash_requests', 'Cereri stash'], ['stash_donations', 'Donații stash']].forEach(([key, label]) => { grid.querySelector(`#discord-${key}-publish`)?.addEventListener('click', () => publishStashRoutePanel(key, label, `discord-${key}-publish`)); });
-    ['requests_organization', 'requests_departments'].forEach((key) => grid.querySelector(`#discord-${key}-publish`)?.addEventListener('click', () => publishRequestsPanel(key)));
-    ['organization', 'departments'].forEach((key) => grid.querySelector(`#discord-${key}-publish`)?.addEventListener('click', () => publishAnnouncementsPanel(key)));
-    syncPontajPublishState();
-    syncContractsPublishState();
-    syncStashPublishState();
-    ['requests_organization', 'requests_departments'].forEach((key) => syncRequestPublishState(key));
-    ['organization', 'departments'].forEach((key) => syncAnnouncementPublishState(key));
+    if (canPublishDiscordPanels && !section.querySelector('#discord-publish-all')) section.insertAdjacentHTML('beforeend', '<div class="mt-4 rounded-lg border border-cyan-800/70 bg-cyan-950/20 p-3"><div class="flex flex-wrap items-center gap-3"><button id="discord-publish-all" type="button" disabled class="rounded-xl bg-cyan-500 px-5 py-3 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">📌 Publică toate embedurile selectate</button><span id="discord-publish-all-status" class="text-xs text-slate-300">Selectează canalele, apoi publică toate embedurile dintr-o singură apăsare.</span></div></div>');
+    const bulkPublishButton = section.querySelector('#discord-publish-all');
+    if (bulkPublishButton) bulkPublishButton.onclick = publishAllPanels;
+    syncBulkPublishState();
   };
   const discover = async () => {
     const targets = guildTargets();
