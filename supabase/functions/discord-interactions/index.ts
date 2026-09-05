@@ -13,7 +13,10 @@ async function discordPublicKey(db?: any) {
   if (direct) return direct;
   if (discordPublicKeyCache) return discordPublicKeyCache;
   if (!db) return '';
-  discordPublicKeyCache = await getPlatformSecret(db, 'discord_public_key') || await getPlatformSecret(db, 'discord_application_public_key');
+  discordPublicKeyCache = await getPlatformSecret(db, 'discord_public_key')
+    || await getPlatformSecret(db, 'discord_application_public_key')
+    || await getPlatformSecret(db, 'DISCORD_PUBLIC_KEY')
+    || await getPlatformSecret(db, 'DISCORD_APPLICATION_PUBLIC_KEY');
   return discordPublicKeyCache;
 }
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
