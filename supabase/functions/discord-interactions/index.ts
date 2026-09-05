@@ -5,9 +5,17 @@ import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 import { deliverDiscordRoute, requestDiscordTarget, routeCandidates } from '../_shared/discord-delivery.ts';
 import { discordPremiumAccess, discordPremiumButton, discordPremiumConfigured, discordPremiumMessage, discordPremiumModule } from '../_shared/discord-premium.ts';
 
-const DISCORD_PUBLIC_KEY = () => String(Deno.env.get('DISCORD_PUBLIC_KEY') || Deno.env.get('DISCORD_APPLICATION_PUBLIC_KEY') || '').trim();
 const DISCORD_API = 'https://discord.com/api/v10';
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
+let discordPublicKeyCache = '';
+async function discordPublicKey(db?: any) {
+  const direct = String(Deno.env.get('DISCORD_PUBLIC_KEY') || Deno.env.get('DISCORD_APPLICATION_PUBLIC_KEY') || '').trim();
+  if (direct) return direct;
+  if (discordPublicKeyCache) return discordPublicKeyCache;
+  if (!db) return '';
+  discordPublicKeyCache = await getPlatformSecret(db, 'discord_public_key') || await getPlatformSecret(db, 'discord_application_public_key');
+  return discordPublicKeyCache;
+}
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 const interactionMessage = (content: string, extra: Record<string, unknown> = {}) => ({ type: 4, data: { content, flags: 64, ...extra } });
 const commandSubcommand = (interaction: any) => Array.isArray(interaction?.data?.options) ? interaction.data.options.find((option: any) => option?.type === 1) : null;
@@ -175,8 +183,8 @@ const hexBytes = (value: string, length: number) => {
   return bytes;
 };
 
-async function verifyDiscordSignature(request: Request, rawBody: string) {
-  const publicKey = hexBytes(DISCORD_PUBLIC_KEY(), 32);
+async function verifyDiscordSignature(request: Request, rawBody: string, configuredPublicKey: string) {
+  const publicKey = hexBytes(configuredPublicKey, 32);
   const signature = hexBytes(String(request.headers.get('x-signature-ed25519') || '').trim(), 64);
   const timestamp = String(request.headers.get('x-signature-timestamp') || '').trim();
   if (!publicKey || !signature || !/^\d{1,20}$/.test(timestamp)) return false;
@@ -1607,7 +1615,13 @@ async function handleButton(db: any, interaction: any, context: any, action: str
 Deno.serve(async (request) => {
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
   const rawBody = await request.text();
-  if (!(await verifyDiscordSignature(request, rawBody))) return reply({ error: 'Semnătură Discord invalidă.' }, 401);
+  let verificationDb: any = null;
+  if (!String(Deno.env.get('DISCORD_PUBLIC_KEY') || Deno.env.get('DISCORD_APPLICATION_PUBLIC_KEY') || '').trim()) {
+    const key = serviceKey();
+    const url = Deno.env.get('SUPABASE_URL');
+    if (key && url) verificationDb = createClient(url, key);
+  }
+  if (!(await verifyDiscordSignature(request, rawBody, await discordPublicKey(verificationDb)))) return reply({ error: 'Semnătură Discord invalidă.' }, 401);
   let interaction: any;
   try { interaction = JSON.parse(rawBody); } catch { return reply({ error: 'Payload Discord invalid.' }, 400); }
   if (Number(interaction?.type) === 1) return reply({ type: 1 });
