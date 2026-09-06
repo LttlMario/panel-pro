@@ -80,7 +80,12 @@ const channelRoutes=new Set([
   'stash_requests',
   'log_stash_requests',
   'stash_donations',
-  'log_stash_donations'
+  'log_stash_donations',
+  'log_actions_organization',
+  'log_marketplace',
+  'log_illegal_marketplace',
+  'log_event_reminders',
+  'log_contract_identity_weekly'
 ]);
 const discordBotHeaders=(bot:string)=>({Authorization:`Bot ${bot}`,'User-Agent':'PanelManagement/1.0 (+https://panel-management.netlify.app)'});
 const organizationIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

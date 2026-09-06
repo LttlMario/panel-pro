@@ -5,48 +5,39 @@ import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
-const id = (value: unknown) => /^\d{15,22}$/.test(String(value || '').trim()) ? String(value).trim() : '';
 const api = 'https://discord.com/api/v10';
+const id = (value: unknown) => /^\d{15,22}$/.test(String(value || '').trim()) ? String(value).trim() : '';
 const VIEW = 1024n, SEND = 2048n, EMBED = 16384n, HISTORY = 65536n, MANAGE_MESSAGES = 8192n;
 const allow = (...bits: bigint[]) => bits.reduce((sum, bit) => sum | bit, 0n).toString();
 
-type ModuleSpec = { key: string; label: string; description: string; handler: string; color: number; fields?: any[]; buttons: any[]; review?: boolean; channel: string; logChannel: string };
-type BundleSpec = { label: string; category: string; modules: ModuleSpec[] };
-
-const field = (id: string, label: string, type = 'short_text', required = true) => ({ id, label, type, required, max_length: type === 'long_text' ? 1500 : 300 });
-const module = (key: string, label: string, description: string, handler: string, color: number, channel: string, fields: any[] = [], review = false, button = 'Deschide formularul'): ModuleSpec => ({ key, label, description, handler, color, channel, logChannel: `🧾・log-${channel.replace(/^[^・]+・/, '')}`, fields, review, buttons: [{ label: button, action: handler === 'report' ? 'report' : 'open_form', style: review ? 3 : 1 }] });
-const bundles: Record<string, BundleSpec> = {
-  full: {
-    label: 'Full', category: 'PANEL PRO · FULL', modules: [
-      module('custom_full_anunturi', 'Anunțuri organizație', 'Publică anunțuri și comunicate.', 'announcement', 0x5865f2, '📣・anunturi', [field('message', 'Mesajul anunțului', 'long_text')], false, 'Publică anunț'),
-      module('custom_full_cereri', 'Cereri organizație', 'Colectează cereri de la membrii organizației.', 'request', 0x3b82f6, '📋・cereri', [field('subject', 'Subiect'), field('details', 'Detalii', 'long_text')], false, 'Trimite cerere'),
-      module('custom_full_aprobari', 'Cereri cu aprobare', 'Trimite cereri către staff pentru aprobare sau respingere.', 'approval', 0xf59e0b, '✅・aprobari', [field('subject', 'Subiect'), field('details', 'Detalii', 'long_text')], true, 'Trimite spre aprobare'),
-      module('custom_full_contracte', 'Contracte și documente', 'Înregistrează documente și linkuri importante.', 'request', 0x8b5cf6, '📄・documente', [field('title', 'Titlu document'), field('url', 'Link document', 'url'), field('details', 'Detalii', 'long_text')], false, 'Adaugă document'),
-      module('custom_full_pontaj', 'Pontaj și activitate', 'Centralizează pontajul și activitatea echipei.', 'report', 0x14b8a6, '⏱️・pontaj', [], false, 'Generează pontaj'),
-      module('custom_full_rapoarte', 'Rapoarte organizație', 'Generează rapoarte pentru activitatea organizației.', 'report', 0x22c55e, '📊・rapoarte', [], false, 'Vezi raportul')
-    ]
-  },
-  legal_management: {
-    label: 'Legale + Management', category: 'PANEL PRO · LEGALE', modules: [
-      module('custom_legal_anunturi', 'Anunțuri și comunicate', 'Publică informații oficiale.', 'announcement', 0x2563eb, '📣・anunturi-legale', [field('message', 'Mesajul anunțului', 'long_text')], false, 'Publică anunț'),
-      module('custom_legal_cereri', 'Cereri oficiale', 'Primește solicitări oficiale de la membri.', 'approval', 0xf59e0b, '📋・cereri-legale', [field('subject', 'Subiect'), field('details', 'Detalii', 'long_text')], true, 'Trimite cerere'),
-      module('custom_legal_contracte', 'Contracte și documente', 'Gestionează documentele organizației.', 'request', 0x7c3aed, '📄・contracte', [field('title', 'Titlu document'), field('url', 'Link document', 'url'), field('details', 'Detalii', 'long_text')], false, 'Adaugă document'),
-      module('custom_legal_rapoarte', 'Rapoarte de management', 'Generează rapoarte de management.', 'report', 0x16a34a, '📊・rapoarte-legale', [], false, 'Generează raport'),
-      module('custom_legal_pontaj', 'Pontaj echipă', 'Centralizează turele și activitatea.', 'report', 0x0891b2, '⏱️・pontaj-legal', [], false, 'Vezi pontajul')
-    ]
-  },
-  illegal: {
-    label: 'Ilegale', category: 'PANEL PRO · ILEGALE', modules: [
-      module('custom_illegal_anunturi', 'Anunțuri Ilegale', 'Publică informații operaționale.', 'announcement', 0xdc2626, '📣・anunturi-ilegale', [field('message', 'Mesajul anunțului', 'long_text')], false, 'Publică anunț'),
-      module('custom_illegal_cereri', 'Cereri operaționale', 'Trimite solicitări către staff.', 'approval', 0xea580c, '📋・cereri-ilegale', [field('subject', 'Subiect'), field('details', 'Detalii', 'long_text')], true, 'Trimite cerere'),
-      module('custom_illegal_rapoarte', 'Rapoarte operaționale', 'Centralizează rapoartele operaționale.', 'report', 0xb91c1c, '📊・rapoarte-ilegale', [], false, 'Generează raport'),
-      module('custom_illegal_sanctiuni', 'Sancțiuni și sesizări', 'Înregistrează sesizări pentru staff.', 'approval', 0x991b1b, '⚠️・sesizari', [field('member', 'Persoană / identificator'), field('details', 'Descrierea sesizării', 'long_text')], true, 'Trimite sesizare')
-    ]
-  }
+const routeLabels: Record<string, string> = {
+  organization: 'Anunțuri organizație', departments: 'Anunțuri angajați', pontaj: 'Pontaj și ture', weekly_reports: 'Rapoarte săptămânale', requests: 'Cereri', requests_organization: 'Învoiri organizație', requests_departments: 'Învoiri angajați', contracts: 'Contracte', contract_identity_weekly: 'Raport săptămânal contracte', marketplace: 'Marketplace legal', illegal_marketplace: 'Marketplace ilegal', fines_organization: 'Amenzi organizație', fines_departments: 'Amenzi angajați', warnings_organization: 'Avertismente organizație', warnings_departments: 'Avertismente angajați', sanctions_organization: 'Sancțiuni organizație', sanctions_departments: 'Sancțiuni angajați', actions_organization: 'Acțiuni organizație', actions_organization_weekly: 'Clasament acțiuni săptămânal', event_reminders: 'Evenimente și remindere', status_live: 'Status Live', organization_expiration: 'Expirare organizație', stash: 'Stash organizație', stash_requests: 'Cereri Stash', stash_donations: 'Donații Stash', log_pontaj: 'Log pontaj', log_requests_organization: 'Log învoiri organizație', log_requests_departments: 'Log învoiri angajați', log_announcements_organization: 'Log anunțuri organizație', log_announcements_departments: 'Log anunțuri angajați', log_contracts: 'Log contracte', log_stash: 'Log Stash', log_stash_requests: 'Log cereri Stash', log_stash_donations: 'Log donații Stash', log_actions_organization: 'Log acțiuni', log_marketplace: 'Log marketplace legal', log_illegal_marketplace: 'Log marketplace ilegal', log_event_reminders: 'Log evenimente', log_contract_identity_weekly: 'Log raport contracte', contract_uploads: 'Upload contracte'
 };
+const allRoutes = Object.keys(routeLabels);
+const bundles: Record<string, string[]> = {
+  full: allRoutes,
+  legal_management: ['organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization', 'requests_departments', 'contracts', 'contract_identity_weekly', 'marketplace', 'fines_departments', 'warnings_departments', 'sanctions_departments', 'actions_organization', 'actions_organization_weekly', 'event_reminders', 'status_live', 'organization_expiration', 'log_pontaj', 'log_requests_organization', 'log_requests_departments', 'log_announcements_organization', 'log_announcements_departments', 'log_contracts', 'log_actions_organization', 'log_marketplace', 'log_event_reminders', 'log_contract_identity_weekly', 'contract_uploads'],
+  illegal: ['illegal_marketplace', 'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'sanctions_organization', 'sanctions_departments', 'actions_organization', 'actions_organization_weekly', 'event_reminders', 'status_live', 'stash', 'stash_requests', 'stash_donations', 'organization_expiration', 'log_illegal_marketplace', 'log_actions_organization', 'log_event_reminders', 'log_stash', 'log_stash_requests', 'log_stash_donations', 'contract_uploads']
+};
+const logFor: Record<string, string> = { organization: 'log_announcements_organization', departments: 'log_announcements_departments', pontaj: 'log_pontaj', requests_organization: 'log_requests_organization', requests_departments: 'log_requests_departments', contracts: 'log_contracts', contract_identity_weekly: 'log_contract_identity_weekly', marketplace: 'log_marketplace', illegal_marketplace: 'log_illegal_marketplace', event_reminders: 'log_event_reminders', actions_organization: 'log_actions_organization', stash: 'log_stash', stash_requests: 'log_stash_requests', stash_donations: 'log_stash_donations' };
+const routeNames: Record<string, string> = { organization: '📣・anunturi-organizatie', departments: '📣・anunturi-angajati', pontaj: '⏱️・pontaj', weekly_reports: '📊・rapoarte-saptamanale', requests: '📋・cereri', requests_organization: '📋・invoiri-organizatie', requests_departments: '📋・invoiri-angajati', contracts: '📄・contracte', contract_identity_weekly: '📄・raport-contracte-saptamanal', marketplace: '🛒・marketplace-legal', illegal_marketplace: '🚨・marketplace-ilegal', fines_organization: '💰・amenzi-organizatie', fines_departments: '💰・amenzi-angajati', warnings_organization: '⚠️・avertismente-organizatie', warnings_departments: '⚠️・avertismente-angajati', sanctions_organization: '🔒・sanctiuni-organizatie', sanctions_departments: '🔒・sanctiuni-angajati', actions_organization: '🎯・actiuni-organizatie', actions_organization_weekly: '🏆・clasament-actiuni', event_reminders: '🗓️・evenimente', status_live: '📡・status-live', organization_expiration: '⏳・expirare-organizatie', stash: '📦・stash', stash_requests: '📨・cereri-stash', stash_donations: '🎁・donatii-stash', log_pontaj: '🧾・log-pontaj', log_requests_organization: '🧾・log-invoiri-organizatie', log_requests_departments: '🧾・log-invoiri-angajati', log_announcements_organization: '🧾・log-anunturi-organizatie', log_announcements_departments: '🧾・log-anunturi-angajati', log_contracts: '🧾・log-contracte', log_stash: '🧾・log-stash', log_stash_requests: '🧾・log-cereri-stash', log_stash_donations: '🧾・log-donatii-stash', log_actions_organization: '🧾・log-actiuni', log_marketplace: '🧾・log-marketplace-legal', log_illegal_marketplace: '🧾・log-marketplace-ilegal', log_event_reminders: '🧾・log-evenimente', log_contract_identity_weekly: '🧾・log-raport-contracte', contract_uploads: '🧾・upload-contracte' };
 
-const definitionFor = (item: ModuleSpec) => ({ title: item.label, description: item.description, color: item.color, handler: item.handler, form_schema: item.fields || [], buttons: item.buttons, workflow: { logging_enabled: true, actions: item.review ? ['review_buttons', 'send_log', 'update_message', 'notify_submitter'] : ['send_log', 'update_message'] }, responses: { success: 'Solicitarea a fost salvată și rezultatul a fost trimis în canalul de rezultate.', review: 'Solicitarea a fost trimisă pentru aprobare.', error: 'Solicitarea nu a putut fi procesată.' }, footer: 'Panel Pro · bot Discord' });
-const embedPayload = (item: ModuleSpec) => ({ allowed_mentions: { parse: [] }, embeds: [{ title: item.label, description: item.description, color: item.color, footer: { text: 'Panel Pro · folosește butonul de mai jos' } }], components: [{ type: 1, components: item.buttons.map((button, index) => ({ type: 2, style: Number(button.style) || 1, label: String(button.label).slice(0, 80), custom_id: `panel:custom:${item.key}:${index}:${button.action}` })) }] });
+const definitions: Record<string, any> = {
+  organization: { title: '📢 Anunțuri · Organizație', description: 'Publică anunțuri, întrebări și sondaje pentru organizație.', color: 0x8b5cf6, buttons: [['Publică anunț', 1, 'panel:announcements:organization:create:announcement'], ['Pune întrebare', 2, 'panel:announcements:organization:create:question'], ['Creează sondaj', 3, 'panel:announcements:organization:create:poll']] },
+  departments: { title: '📢 Anunțuri · Angajați', description: 'Publică anunțuri, întrebări și sondaje pentru angajați.', color: 0x8b5cf6, buttons: [['Publică anunț', 1, 'panel:announcements:departments:create:announcement'], ['Pune întrebare', 2, 'panel:announcements:departments:create:question'], ['Creează sondaj', 3, 'panel:announcements:departments:create:poll']] },
+  pontaj: { title: '🕒 Pontaj · Panel Pro', description: 'Alege tura și folosește butoanele pentru Start, Pauză și Stop.', color: 0x22c55e, buttons: [['Tura de zi', 1, 'panel:pontaj:shift_day'], ['Tura de noapte', 1, 'panel:pontaj:shift_night'], ['Start', 3, 'panel:pontaj:start'], ['Pauză', 2, 'panel:pontaj:pause'], ['Stop', 4, 'panel:pontaj:stop'], ['Pontajul meu', 1, 'panel:pontaj:my_stats']] },
+  requests_organization: { title: '📝 Învoiri · Organizație', description: 'Trimite și consultă învoirile organizației.', color: 0xf59e0b, buttons: [['Trimite învoire', 1, 'panel:requests:organization:new'], ['Învoirile mele', 2, 'panel:requests:organization:mine']] },
+  requests_departments: { title: '📝 Învoiri · Angajați', description: 'Trimite și consultă învoirile angajaților.', color: 0xf59e0b, buttons: [['Trimite învoire', 1, 'panel:requests:departments:new'], ['Învoirile mele', 2, 'panel:requests:departments:mine']] },
+  contracts: { title: '📄 Contracte · Panel Pro', description: 'Generează și trimite contracte folosind șablonul organizației.', color: 0x14b8a6, buttons: [['Creează contract', 1, 'panel:contracts:create'], ['Setează contractul', 2, 'panel:contracts:settings'], ['Info contract', 1, 'panel:contracts:info']] },
+  marketplace: { title: '🛒 Marketplace · Legal', description: 'Publică și consultă anunțuri pentru vehicule, bunuri și servicii.', color: 0x2563eb, buttons: [['Publică anunț', 1, 'panel:marketplace:legal:create'], ['Anunțurile mele', 2, 'panel:marketplace:legal:mine']] },
+  illegal_marketplace: { title: '🚨 Marketplace · Ilegal', description: 'Publică și consultă anunțuri Black Market, cu acces controlat.', color: 0xef4444, buttons: [['Publică anunț', 4, 'panel:marketplace:illegal:create'], ['Anunțurile mele', 2, 'panel:marketplace:illegal:mine']] },
+  event_reminders: { title: '🗓️ Evenimente și remindere', description: 'Înregistrează evenimente și trimite remindere automate.', color: 0xf59e0b, buttons: [['Adaugă eveniment', 1, 'panel:discovery:reminder_create'], ['Info remindere', 2, 'panel:discovery:reminder_info']] },
+  contract_identity_weekly: { title: '📋 Raport săptămânal contracte', description: 'Generează exportul săptămânal cu numele și CNP-ul angajaților.', color: 0x14b8a6, buttons: [['Generează raport', 1, 'panel:discovery:weekly_report'], ['Info raport', 2, 'panel:discovery:report_info']] },
+  actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [['Acțiune', 1, 'panel:actions:organization:create'], ['Clasament acțiuni', 2, 'panel:actions:organization:stats']] },
+  stash: { title: '📦 Stash · Administrare', description: 'Gestionează articolele, cererile și donațiile Stash.', color: 0x22c55e, buttons: [['Adaugă în Stash', 3, 'panel:stash:create'], ['Cereri în așteptare', 1, 'panel:stash:pending_requests'], ['Donații în așteptare', 1, 'panel:stash:pending_donations']] },
+  stash_requests: { title: '📨 Cereri Stash', description: 'Solicită articole și urmărește cererile pentru aprobare.', color: 0x3b82f6, buttons: [['Solicită articol', 1, 'panel:stash:request'], ['Cereri în așteptare', 2, 'panel:stash:pending_requests']] },
+  stash_donations: { title: '🎁 Donații Stash', description: 'Înregistrează donații și trimite-le spre aprobare.', color: 0x22c55e, buttons: [['Donează articol', 3, 'panel:stash:donate'], ['Donații în așteptare', 2, 'panel:stash:pending_donations']] }
+};
 
 async function discord(path: string, token: string, init: RequestInit = {}) {
   const response = await fetch(`${api}${path}`, { ...init, headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json', ...(init.headers || {}) } });
@@ -54,19 +45,16 @@ async function discord(path: string, token: string, init: RequestInit = {}) {
   if (!response.ok) throw new Error(`Discord a refuzat operația (${response.status}): ${String(data?.message || data?.code || 'eroare necunoscută')}.`);
   return data;
 }
-const sameName = (rows: any[], name: string) => rows.find((row) => String(row?.name || '').trim() === name);
-async function ensureRole(guildId: string, token: string, roles: any[], name: string) {
-  const found = sameName(roles, name);
-  if (found) return { row: found, created: false };
-  const row = await discord(`/guilds/${guildId}/roles`, token, { method: 'POST', body: JSON.stringify({ name, color: name.includes('Staff') ? 0x5865f2 : 0x64748b, hoist: true, mentionable: true, permissions: '0' }) });
-  roles.push(row); return { row, created: true };
-}
-async function ensureChannel(guildId: string, token: string, channels: any[], name: string, type: number, parentId = '', overwrites: any[] = []) {
+async function ensureChannel(guildId: string, token: string, channels: any[], name: string, type: number, parentId: string, overwrites: any[]) {
   const found = channels.find((row) => String(row?.name || '').trim() === name && Number(row?.type) === type && (!parentId || String(row?.parent_id || '') === parentId));
   if (found) return { row: found, created: false };
-  const row = await discord(`/guilds/${guildId}/channels`, token, { method: 'POST', body: JSON.stringify({ name, type, ...(parentId ? { parent_id: parentId } : {}), ...(overwrites.length ? { permission_overwrites: overwrites } : {}) }) });
+  const row = await discord(`/guilds/${guildId}/channels`, token, { method: 'POST', body: JSON.stringify({ name, type, ...(parentId ? { parent_id: parentId } : {}), permission_overwrites: overwrites }) });
   channels.push(row); return { row, created: true };
 }
+const payload = (routeKey: string) => {
+  const definition = definitions[routeKey] || { title: `⚙️ ${routeLabels[routeKey] || 'Panel Pro'}`, description: `Embed Panel Pro pentru ${routeLabels[routeKey] || routeKey}.`, color: 0x5865f2, buttons: [] };
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: definition.title, description: definition.description, color: definition.color, footer: { text: 'Panel Pro · configurat din Discord' } }], components: definition.buttons.length ? [{ type: 1, components: definition.buttons.map((button: any[]) => ({ type: 2, style: button[1], label: button[0], custom_id: button[2] })) }] : [] };
+};
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
@@ -77,45 +65,43 @@ Deno.serve(async (request) => {
     const session = await requirePanelSession(db, request, 0);
     if (!(session.is_platform_admin || await isPlatformAdminAccount(db, session.discord_id))) return reply({ error: 'Acces permis doar administratorului global.' }, 403);
     const body = await request.json().catch(() => ({}));
-    const bundle = bundles[String(body.bundle_key || '')];
+    const routeKeys = bundles[String(body.bundle_key || '')];
     const organizationId = String(body.organization_id || '').trim();
     const guildId = id(body.guild_id);
-    if (!bundle) return reply({ error: 'Preset Discord invalid.' }, 400);
+    if (!routeKeys) return reply({ error: 'Preset Discord invalid.' }, 400);
     if (!/^[0-9a-f-]{36}$/i.test(organizationId) || !guildId) return reply({ error: 'Organizația sau serverul Discord sunt invalide.' }, 400);
     const { data: guild } = await db.from('organization_guilds').select('guild_id,kind').eq('organization_id', organizationId).eq('guild_id', guildId).eq('enabled', true).maybeSingle();
     if (!guild) return reply({ error: 'Serverul nu aparține organizației selectate.' }, 400);
     const token = await getPlatformSecret(db, 'discord_bot_token'); if (!token) return reply({ error: 'DISCORD_BOT_TOKEN lipsește din Supabase.' }, 500);
-    const [guildInfo, channels] = await Promise.all([discord(`/guilds/${guildId}`, token), discord(`/guilds/${guildId}/channels`, token)]);
-    const bot = await discord('/users/@me', token);
-    const everyone = guildId;
-    const botAllow = allow(VIEW, SEND, EMBED, HISTORY, MANAGE_MESSAGES);
-    const botOverwrite = [{ id: String(bot.id), type: 1, allow: botAllow, deny: '0' }];
-    const category = await ensureChannel(guildId, token, channels, bundle.category, 4);
+    const [guildInfo, channels, bot] = await Promise.all([discord(`/guilds/${guildId}`, token), discord(`/guilds/${guildId}/channels`, token), discord('/users/@me', token)]);
+    const botOverwrite = [{ id: String(bot.id), type: 1, allow: allow(VIEW, SEND, EMBED, HISTORY, MANAGE_MESSAGES), deny: '0' }];
+    const category = await ensureChannel(guildId, token, channels, `PANEL PRO · ${String(body.bundle_key || '').toUpperCase()}`, 4, '', botOverwrite);
     let createdChannels = Number(category.created), createdMessages = 0;
-    const installedChannels: any[] = [];
-    for (const item of bundle.modules) {
-      const channel = await ensureChannel(guildId, token, channels, item.channel, 0, String(category.row.id), botOverwrite);
+    const routes: Record<string, any> = {};
+    const installed: any[] = [];
+    for (const routeKey of routeKeys) {
+      const channelName = routeNames[routeKey] || `⚙️・${routeKey.replace(/_/g, '-')}`;
+      const channel = await ensureChannel(guildId, token, channels, channelName, 0, String(category.row.id), botOverwrite);
       createdChannels += Number(channel.created);
-      const log = await ensureChannel(guildId, token, channels, item.logChannel, 0, String(category.row.id), botOverwrite);
-      createdChannels += Number(log.created);
-      const { data: existingModule } = await db.from('platform_module_templates').select('module_key').eq('module_key', item.key).maybeSingle();
-      if (!existingModule) {
-        const { error: moduleError } = await db.from('platform_module_templates').insert({ module_key: item.key, label: item.label, description: item.description, definition: definitionFor(item), enabled: true, updated_by_discord_id: session.discord_id });
-        if (moduleError) throw moduleError;
+      let messageId = '';
+      if (!routeKey.startsWith('log_') && routeKey !== 'contract_uploads') {
+        const existingSettings = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
+        const oldMessage = existingSettings.data?.discord_channel_routes?.[routeKey]?.primary?.message_id || '';
+        let response = await fetch(`${api}/channels/${channel.row.id}/messages${id(oldMessage) ? `/${oldMessage}` : ''}`, { method: id(oldMessage) ? 'PATCH' : 'POST', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload(routeKey)) });
+        if (!response.ok && id(oldMessage)) response = await fetch(`${api}/channels/${channel.row.id}/messages`, { method: 'POST', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload(routeKey)) });
+        if (!response.ok) throw new Error(`Embedul pentru ${routeLabels[routeKey] || routeKey} nu a putut fi publicat.`);
+        const message = await response.json().catch(() => ({})); messageId = String(message?.id || oldMessage); if (!oldMessage) createdMessages += 1;
       }
-      const target = String(guild.kind || 'primary') === 'secondary' ? 'secondary' : 'primary';
-      const { data: currentPublication } = await db.from('platform_module_publications').select('message_id').eq('module_key', item.key).eq('organization_id', organizationId).eq('target', target).maybeSingle();
-      const messageUrl = `${api}/channels/${channel.row.id}/messages${currentPublication?.message_id ? `/${currentPublication.message_id}` : ''}`;
-      let messageResponse = await fetch(messageUrl, { method: currentPublication?.message_id ? 'PATCH' : 'POST', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(embedPayload(item)) });
-      if (!messageResponse.ok && currentPublication?.message_id) messageResponse = await fetch(`${api}/channels/${channel.row.id}/messages`, { method: 'POST', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(embedPayload(item)) });
-      if (!messageResponse.ok) throw new Error(`Embedul „${item.label}” nu a putut fi publicat în canalul ${item.channel}.`);
-      const message = await messageResponse.json().catch(() => ({}));
-      if (!currentPublication?.message_id) createdMessages += 1;
-      const { error: publicationError } = await db.from('platform_module_publications').upsert({ module_key: item.key, organization_id: organizationId, guild_id: guildId, target, embed_channel_id: String(channel.row.id), result_channel_id: String(log.row.id), permissions: {}, message_id: String(message.id || currentPublication?.message_id || ''), status: 'published', last_error: null, published_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: 'module_key,organization_id,target' });
-      if (publicationError) throw publicationError;
-      installedChannels.push({ id: String(channel.row.id), name: String(channel.row.name || item.channel), purpose: item.label, module_key: item.key, kind: 'embed' }, { id: String(log.row.id), name: String(log.row.name || item.logChannel), purpose: `log ${item.label}`, module_key: item.key, kind: 'log' });
+      routes[routeKey] = { primary: { enabled: true, channel_id: String(channel.row.id), guild_id: guildId, ...(messageId ? { message_id: messageId } : {}) } };
+      installed.push({ route: routeKey, label: routeLabels[routeKey] || routeKey, channel_id: String(channel.row.id), message_id: messageId || null, buttons: definitions[routeKey]?.buttons?.length || 0 });
     }
-    await db.from('admin_audit_log').insert({ organization_id: organizationId, actor_discord_id: session.discord_id, action: 'discord_bundle_installed', target_type: 'discord_guild', target_id: guildId, details: { bundle: body.bundle_key, category_id: category.row.id, channel_count: installedChannels.length, module_count: bundle.modules.length } });
-    return reply({ ok: true, guild: { id: guildInfo.id, name: guildInfo.name }, category: { id: category.row.id, name: bundle.category }, created: { channels: createdChannels, roles: 0, messages: createdMessages }, channels: installedChannels, modules_available: bundle.modules.map((item) => ({ module_key: item.key, label: item.label, embed_channel_id: installedChannels.find((channel) => channel.module_key === item.key && channel.kind === 'embed')?.id || '', result_channel_id: installedChannels.find((channel) => channel.module_key === item.key && channel.kind === 'log')?.id || '' })) });
+    const target = String(guild.kind || 'primary') === 'secondary' ? 'secondary' : 'primary';
+    const { data: currentSettings } = await db.from('organization_settings').select('discord_client_id,panel_public_url,discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
+    const mergedRoutes = { ...(currentSettings?.discord_channel_routes || {}) };
+    for (const [key, value] of Object.entries(routes)) mergedRoutes[key] = { ...(mergedRoutes[key] || {}), [target]: value.primary };
+    const { error: settingsError } = await db.from('organization_settings').upsert({ organization_id: organizationId, discord_client_id: currentSettings?.discord_client_id || '0', panel_public_url: currentSettings?.panel_public_url || '', discord_channel_routes: mergedRoutes, updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
+    if (settingsError) throw settingsError;
+    await db.from('admin_audit_log').insert({ organization_id: organizationId, actor_discord_id: session.discord_id, action: 'discord_real_routes_installed', target_type: 'discord_guild', target_id: guildId, details: { bundle: body.bundle_key, category_id: category.row.id, route_count: installed.length, message_count: createdMessages } });
+    return reply({ ok: true, guild: { id: guildInfo.id, name: guildInfo.name }, category: { id: category.row.id, name: category.row.name }, created: { channels: createdChannels, roles: 0, messages: createdMessages }, routes: installed, route_count: installed.length, uses_real_panel_routes: true });
   } catch (error) { return reply({ error: error instanceof Error ? error.message : 'Instalarea pachetului a eșuat.' }, 400); }
 });
