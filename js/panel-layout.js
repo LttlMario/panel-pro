@@ -1378,10 +1378,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             ['administratie', 'Administrație', [
                 ['logs.html', '🧾', 'Loguri'],
                 ['diagnostic.html', '🩺', 'Verificare sistem'],
-                ['discord-configurare.html', '⚙️', 'Configurare Discord'],
                 ['administrare-organizatii-platforma.html', '🗂️', 'Administrare organizații'],
                 ['administrare-module.html', '🧩', 'Constructor module Panel Pro'],
-                ['organizatii.html', '🏢', 'Organizații platformă'],
                 ['secrete-platforma.html', '🔐', 'Secrete platformă'],
                 ['setari-platforma.html', '🔧', 'Setări platformă'],
                 ['developer.html', '🛠️', 'Developer'],
