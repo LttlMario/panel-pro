@@ -445,6 +445,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
 
         ensureCommunityLink(navigation, currentPage);
         normalizeNavigation(navigation, currentPage);
+        loadPlatformCustomNavigation(navigation, currentPage);
         if (typeof applyRoleBasedVisibility === 'function') {
             applyRoleBasedVisibility();
         }
@@ -1379,6 +1380,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 ['diagnostic.html', '🩺', 'Verificare sistem'],
                 ['discord-configurare.html', '⚙️', 'Configurare Discord'],
                 ['administrare-organizatii-platforma.html', '🗂️', 'Administrare organizații'],
+                ['administrare-module.html', '🧩', 'Constructor module Panel Pro'],
                 ['organizatii.html', '🏢', 'Organizații platformă'],
                 ['secrete-platforma.html', '🔐', 'Secrete platformă'],
                 ['setari-platforma.html', '🔧', 'Setări platformă'],
@@ -1428,6 +1430,31 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
 
         const existingMobileNavigation = document.querySelector('#mobile-menu nav');
         if (existingMobileNavigation) existingMobileNavigation.innerHTML = navigation.innerHTML;
+    }
+
+    async function loadPlatformCustomNavigation(navigation, currentPage) {
+        if (!navigation || typeof isPlatformAdmin !== 'function' || !isPlatformAdmin() || typeof window.panelRequestJson !== 'function') return;
+        try {
+            const result = await window.panelRequestJson('manage-platform-pages', { method: 'POST', body: JSON.stringify({ action: 'list' }), timeoutMs: 10000, retry: true });
+            const pages = Array.isArray(result?.pages) ? result.pages.filter((page) => page?.enabled !== false && /^[a-z][a-z0-9-]{1,79}\.html$/.test(String(page.slug || ''))) : [];
+            const groups = new Map();
+            pages.forEach((page) => {
+                const section = navigation.querySelector(`[data-nav-section="${CSS.escape(String(page.sidebar_section || 'administratie'))}"] .panel-nav-section-links`);
+                if (!section || section.querySelector(`a[data-custom-page="${CSS.escape(page.slug)}"]`)) return;
+                groups.set(section, [...(groups.get(section) || []), page]);
+            });
+            groups.forEach((items, section) => items.sort((a,b) => Number(a.sort_order||100)-Number(b.sort_order||100) || String(a.title).localeCompare(String(b.title),'ro')).forEach((page) => {
+                const link = document.createElement('a');
+                link.href = `custom-page.html?page=${encodeURIComponent(page.slug)}`;
+                link.dataset.customPage = page.slug;
+                link.className = `nav-link flex items-center space-x-3 px-4 py-3 rounded-xl transition text-sm ${currentPage === 'custom-page.html' && new URLSearchParams(location.search).get('page') === page.slug ? 'bg-emerald-500/10 text-emerald-400 font-medium' : 'text-slate-300 hover:bg-slate-800'}`;
+                link.innerHTML = `<span>${window.panelEscapeHtml?.(page.icon || '📄') || '📄'}</span><span>${window.panelEscapeHtml?.(page.title || page.slug) || page.title || page.slug}</span>`;
+                section.appendChild(link);
+            }));
+            refreshNavigationSections(navigation);
+            const mobileNavigation = document.querySelector('#panel-mobile-menu nav');
+            if (mobileNavigation) { mobileNavigation.innerHTML = navigation.innerHTML; refreshNavigationSections(mobileNavigation); }
+        } catch (_) { /* paginile custom sunt opționale; meniul de bază rămâne funcțional */ }
     }
 
     function ensureSidebarLogout(sidebar) {

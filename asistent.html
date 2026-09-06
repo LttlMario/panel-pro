@@ -52,6 +52,27 @@
                         <p class="text-xs text-slate-500">Se încarcă feedback-ul…</p>
                     </div>
                 </section>
+
+                <section id="assistant-page-builder" hidden class="mt-4 max-w-5xl mx-auto rounded-2xl border border-cyan-500/25 bg-slate-900 shadow-xl p-4 sm:p-5">
+                    <div class="flex flex-col gap-3 border-b border-slate-800 pb-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div><p class="text-sm font-semibold text-cyan-200">Atelier administrativ Panel Pro</p><p class="text-[10px] text-slate-500">Creează pagini sigure și alege automat zona sidebarului.</p></div>
+                        <div class="flex gap-2"><button id="page-new" type="button" class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-300">＋ Pagină nouă</button><button id="page-save" type="button" class="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Salvează pagina</button></div>
+                    </div>
+                    <p id="page-builder-status" class="text-xs mt-2 text-slate-400"></p>
+                    <div class="mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+                        <div id="page-list" class="space-y-2"></div>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <label class="text-xs text-slate-400">Ruta paginii<input id="page-slug" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100" placeholder="tutorial-panel"></label>
+                            <label class="text-xs text-slate-400">Titlu<input id="page-title" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100" placeholder="Tutorial Panel Pro"></label>
+                            <label class="text-xs text-slate-400">Iconiță<input id="page-icon" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100" value="📄"></label>
+                            <label class="text-xs text-slate-400">Zona sidebarului<select id="page-section" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100"><option value="management">Operațiuni</option><option value="resurse">Resurse</option><option value="ilegal">Resurse ilegale</option><option value="administratie" selected>Administrație</option><option value="feedback">Feedback</option></select></label>
+                            <label class="text-xs text-slate-400 sm:col-span-2">Descriere<input id="page-description" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100" placeholder="Ce conține pagina."></label>
+                            <label class="text-xs text-slate-400">Ordine în secțiune<input id="page-order" type="number" min="0" max="9999" value="100" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100"></label>
+                            <div class="flex items-end"><button id="page-add-block" type="button" class="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-200">＋ Adaugă bloc de conținut</button></div>
+                            <div id="page-blocks" class="sm:col-span-2 space-y-2"></div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -61,6 +82,7 @@
     <script src="js/asistent-calculator-data.js?v=4.9.0"></script>
     <script src="js/asistent-core.js?v=4.9.2"></script>
     <script src="js/asistent.js?v=4.9.2"></script>
+    <script src="js/asistent-page-builder.js?v=20260906-pages2"></script>
     <script src="js/global-footer.js"></script>
 </body>
 </html>

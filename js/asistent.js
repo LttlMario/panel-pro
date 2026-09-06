@@ -152,6 +152,8 @@
         engine.indexLocalPages().catch((error) => console.warn('Asistent: indexarea locală nu a fost finalizată.', error));
 
         const user = engine.user;
+        const pageBuilder = document.getElementById('assistant-page-builder');
+        if (pageBuilder && (typeof isPlatformAdmin === 'function' && isPlatformAdmin())) pageBuilder.hidden = false;
         const displayName = user.display_name || user.username || 'coleg';
         const displayNameElement = document.getElementById('user-display-name');
         const roleElement = document.getElementById('user-role');

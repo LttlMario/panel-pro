@@ -122,6 +122,154 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
   if (discordPremiumConfigured()) components.push(...discordPremiumButton());
   return { allowed_mentions: { parse: [] }, embeds: [{ title: definition.title, description: [definition.description, trialText].filter(Boolean).join('\n\n'), color: definition.color, footer: { text: 'Panel Pro · configurat din Discord' } }], components };
 };
+
+const customModuleKey = (value: unknown) => /^custom_[a-z0-9_]{2,60}$/.test(String(value || '').trim()) ? String(value).trim() : '';
+const customModuleActionId = (moduleKey: string, index: number, action: string) => `panel:custom:${moduleKey}:${index}:${String(action || 'none').replace(/[^a-z0-9_-]/gi, '_').slice(0, 32)}`;
+
+async function loadCustomModule(db: any, moduleKey: string) {
+  const key = customModuleKey(moduleKey);
+  if (!key) return null;
+  const { data, error } = await db.from('platform_module_templates').select('module_key,label,description,definition,enabled').eq('module_key', key).eq('enabled', true).maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
+function customModulePayload(module: any) {
+  const definition = module?.definition && typeof module.definition === 'object' ? module.definition : {};
+  const buttons = Array.isArray(definition.buttons) ? definition.buttons.slice(0, 20) : [];
+  const components: any[] = [];
+  for (let index = 0; index < buttons.length && components.length < 4; index += 5) {
+    components.push({ type: 1, components: buttons.slice(index, index + 5).map((button: any, offset: number) => ({
+      type: 2,
+      style: [1, 2, 3, 4].includes(Number(button?.style)) ? Number(button.style) : 1,
+      label: String(button?.label || `Acțiune ${index + offset + 1}`).slice(0, 80),
+      custom_id: customModuleActionId(String(module.module_key), index + offset, String(button?.action || 'open_form')),
+    })) });
+  }
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: String(definition.title || module?.label || 'Modul Panel Pro').slice(0, 256), description: String(definition.description || module?.description || 'Folosește butoanele de mai jos.').slice(0, 4096), color: Number(definition.color || 0x5865f2), fields: Array.isArray(definition.fields) ? definition.fields.slice(0, 25) : [], footer: { text: String(definition.footer || 'Panel Pro · modul custom').slice(0, 2048) } }], components };
+}
+
+function customModuleModal(module: any, actionId: string) {
+  const definition = module?.definition && typeof module.definition === 'object' ? module.definition : {};
+  const fields = Array.isArray(definition.form_schema) ? definition.form_schema.slice(0, 5) : [];
+  if (!fields.length) return null;
+  const components = fields.map((field: any, index: number) => ({ type: 1, components: [{ type: 4, custom_id: String(field?.id || `field_${index + 1}`).replace(/[^a-z0-9_-]/gi, '_').slice(0, 100), label: String(field?.label || `Câmp ${index + 1}`).slice(0, 45), style: String(field?.type || '').toLowerCase() === 'long_text' ? 2 : 1, required: field?.required !== false, placeholder: String(field?.placeholder || '').slice(0, 100), max_length: Math.min(4000, Math.max(1, Number(field?.max_length) || (String(field?.type || '').toLowerCase() === 'long_text' ? 1000 : 200))) }] }));
+  return { type: 9, data: { custom_id: `panel:custom:${module.module_key}:submit:${actionId}`, title: String(module.label || 'Modul Panel Pro').slice(0, 45), components } };
+}
+
+async function resolveCustomModulePublication(db: any, interaction: any, moduleKey: string) {
+  const guildId = String(interaction.guild_id || '').trim();
+  const channelId = String(interaction.channel_id || '').trim();
+  const discordId = String(interaction.member?.user?.id || interaction.user?.id || '').trim();
+  const { data: guild, error: guildError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
+  if (guildError) throw guildError;
+  if (!guild?.organization_id) throw new Error('Serverul Discord nu este asociat unei organizații Panel Pro.');
+  const { data: organization, error: organizationError } = await db.from('organizations').select('id,name,active').eq('id', guild.organization_id).maybeSingle();
+  if (organizationError) throw organizationError;
+  if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
+  const { data: publication, error: publicationError } = await db.from('platform_module_publications').select('*').eq('module_key', moduleKey).eq('organization_id', guild.organization_id).eq('target', target).eq('status', 'published').maybeSingle();
+  if (publicationError) throw publicationError;
+  const isEmbedChannel = publication && String(publication.embed_channel_id) === channelId;
+  const isResultChannel = publication && publication.result_channel_id && String(publication.result_channel_id) === channelId;
+  if (!publication || (!isEmbedChannel && !isResultChannel)) throw new Error('Acest canal nu este configurat pentru modulul Panel Pro.');
+  const { data: member, error: memberError } = await db.from('organization_members').select('active,panel_role,permission_level').eq('organization_id', guild.organization_id).eq('discord_id', discordId).eq('active', true).maybeSingle();
+  if (memberError) throw memberError;
+  if (!member && !isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, discordId))) throw new Error('Nu ai acces la acest modul în organizație.');
+  const displayName = String(interaction.member?.nick || interaction.member?.user?.global_name || interaction.member?.user?.username || discordId).slice(0, 120);
+  return { guildId, target, discordId, displayName, organization, publication };
+}
+
+function customModuleEmbed(module: any, context: any, values: Record<string, string>, status = 'submitted') {
+  const definition = module?.definition && typeof module.definition === 'object' ? module.definition : {};
+  const schema = Array.isArray(definition.form_schema) ? definition.form_schema : [];
+  const fields = schema.map((field: any) => ({ name: String(field?.label || field?.id || 'Câmp').slice(0, 256), value: String(values[String(field?.id || '')] || '—').slice(0, 1024), inline: String(field?.type || '').toLowerCase() !== 'long_text' })).slice(0, 25);
+  return { title: `${status === 'approved' ? '✅' : status === 'rejected' ? '❌' : '📨'} ${String(module.label || 'Modul Panel Pro').slice(0, 240)}`, description: `Trimis de **${context.displayName}**.`, color: status === 'approved' ? 0x22c55e : status === 'rejected' ? 0xef4444 : Number(definition.color || 0x5865f2), fields, footer: { text: String(definition.footer || 'Panel Pro · rezultat modul').slice(0, 2048) }, timestamp: new Date().toISOString() };
+}
+
+function assertCustomModulePermission(interaction: any, module: any, mode = 'use', publication: any = null) {
+  if (isDiscordManager(interaction)) return;
+  const definition = module?.definition && typeof module.definition === 'object' ? module.definition : {};
+  const publicationPermissions = publication?.permissions && typeof publication.permissions === 'object' ? publication.permissions : {};
+  const modulePermissions = definition.permissions && typeof definition.permissions === 'object' ? definition.permissions : {};
+  const permissions = publicationPermissions && (Array.isArray(publicationPermissions.allowed_role_ids) || Array.isArray(publicationPermissions.approval_role_ids)) ? publicationPermissions : modulePermissions;
+  const configured = mode === 'approve' ? permissions.approval_role_ids : permissions.allowed_role_ids;
+  const roleIds = Array.isArray(interaction.member?.roles) ? interaction.member.roles.map(String) : [];
+  if (mode === 'approve' && (!Array.isArray(configured) || !configured.length)) throw new Error('Doar ownerul sau administratorii pot aproba această cerere.');
+  if (Array.isArray(configured) && configured.length && !configured.map(String).some((roleId: string) => roleIds.includes(roleId))) throw new Error(mode === 'approve' ? 'Nu ai rolul necesar pentru aprobare.' : 'Nu ai rolul necesar pentru acest modul.');
+}
+
+async function notifyCustomModuleUser(db: any, discordId: string, content: string) {
+  const botToken = await getPlatformSecret(db, 'discord_bot_token');
+  if (!botToken || !/^\d{15,22}$/.test(String(discordId || ''))) return false;
+  const headers = { Authorization: `Bot ${botToken}`, 'Content-Type': 'application/json' };
+  const channelResponse = await fetch(`${DISCORD_API}/users/@me/channels`, { method: 'POST', headers, body: JSON.stringify({ recipient_id: String(discordId) }) });
+  const channel = await channelResponse.json().catch(() => ({}));
+  if (!channelResponse.ok || !channel?.id) return false;
+  const messageResponse = await fetch(`${DISCORD_API}/channels/${channel.id}/messages`, { method: 'POST', headers, body: JSON.stringify({ allowed_mentions: { parse: [] }, content: String(content || '').slice(0, 2000) }) });
+  return messageResponse.ok;
+}
+
+async function applyCustomDecision(db: any, interaction: any, module: any, context: any, submissionId: string, status: 'approved' | 'rejected') {
+  const { data: submission, error: submissionError } = await db.from('platform_module_submissions').select('id,values,discord_id,result_message_id,status').eq('id', submissionId).eq('organization_id', context.organization.id).eq('module_key', module.module_key).maybeSingle();
+  if (submissionError) throw submissionError;
+  if (!submission) throw new Error('Cererea nu mai există.');
+  const { error: updateError } = await db.from('platform_module_submissions').update({ status, reviewed_by_discord_id: context.discordId, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', submissionId).eq('status', 'submitted');
+  if (updateError) throw updateError;
+  if (context.publication.result_channel_id && submission.result_message_id) await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: context.publication.result_channel_id }, JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [customModuleEmbed(module, context, submission.values || {}, status)], components: [] }), { method: 'PATCH', messageId: String(submission.result_message_id) });
+  await db.from('platform_module_events').insert({ module_key: module.module_key, organization_id: context.organization.id, guild_id: context.guildId, discord_id: context.discordId, event_type: `submission_${status}`, payload: { submission_id: submissionId } });
+  const actions = module.definition?.workflow?.actions || module.definition?.actions || [];
+  if (Array.isArray(actions) && actions.includes('notify_submitter')) await notifyCustomModuleUser(db, String(submission.discord_id), status === 'approved' ? 'Cererea ta a fost aprobată.' : 'Cererea ta a fost respinsă.');
+}
+
+async function handleCustomModuleSubmit(db: any, context: any, module: any, values: Record<string, string>, submissionId = '') {
+  const definition = module?.definition && typeof module.definition === 'object' ? module.definition : {};
+  const actions = definition.workflow?.actions || definition.actions || [];
+  const requiresReview = Array.isArray(actions) && actions.includes('review_buttons');
+  const responses = definition.responses && typeof definition.responses === 'object' ? definition.responses : {};
+  const limits = definition.limits && typeof definition.limits === 'object' ? definition.limits : {};
+  const cooldownSeconds = Math.max(0, Math.min(86400, Number(limits.cooldown_seconds || 0)));
+  const maxRequests = Math.max(0, Math.min(10000, Number(limits.max_requests || 0)));
+  if (!submissionId && (cooldownSeconds > 0 || maxRequests > 0)) {
+    const { data: rate } = await db.from('platform_module_rate_limits').select('window_started_at,request_count').eq('module_key', module.module_key).eq('organization_id', context.organization.id).eq('discord_id', context.discordId).maybeSingle();
+    const started = Date.parse(String(rate?.window_started_at || ''));
+    if (rate && Number.isFinite(started) && started + cooldownSeconds * 1000 > Date.now()) throw new Error(`Poți trimite din nou peste ${Math.ceil((started + cooldownSeconds * 1000 - Date.now()) / 1000)} secunde.`);
+    const count = Number(rate?.request_count || 0);
+    if (maxRequests > 0 && Number.isFinite(started) && started + 86400000 > Date.now() && count >= maxRequests) throw new Error('Ai atins limita de cereri pentru această perioadă.');
+    await db.from('platform_module_rate_limits').upsert({ module_key: module.module_key, organization_id: context.organization.id, discord_id: context.discordId, window_started_at: Number.isFinite(started) && started + 86400000 > Date.now() ? String(rate.window_started_at) : new Date().toISOString(), request_count: Number.isFinite(started) && started + 86400000 > Date.now() ? count + 1 : 1, updated_at: new Date().toISOString() }, { onConflict: 'module_key,organization_id,discord_id' });
+  }
+  const schema = Array.isArray(definition.form_schema) ? definition.form_schema : [];
+  for (const field of schema) {
+    const fieldId = String(field?.id || '').trim();
+    const value = String(values[fieldId] || '').trim();
+    const type = String(field?.type || 'short_text').toLowerCase();
+    if (field?.required !== false && !value) throw new Error(`Completează câmpul „${String(field?.label || fieldId || 'formular')}”.`);
+    if (value && type === 'url' && !/^https?:\/\/\S+$/i.test(value)) throw new Error(`Câmpul „${String(field?.label || fieldId)}” trebuie să conțină un URL valid.`);
+    if (value && ['attachment','file','image'].includes(type)) throw new Error('Atașamentele nu sunt disponibile direct în modalul Discord. Folosește un câmp URL.');
+  }
+  let id = submissionId;
+  if (!id) {
+    const { data, error } = await db.from('platform_module_submissions').insert({ module_key: module.module_key, organization_id: context.organization.id, guild_id: context.guildId, discord_id: context.discordId, display_name: context.displayName, values, status: requiresReview ? 'submitted' : 'closed' }).select('id').single();
+    if (error) throw error;
+    id = String(data.id);
+  }
+  const resultChannel = String(context.publication.result_channel_id || '').trim();
+  let resultId = '';
+  if (resultChannel && (definition.workflow?.logging_enabled !== false || actions.includes('send_log') || requiresReview)) {
+    const payload: any = { allowed_mentions: { parse: [] }, embeds: [customModuleEmbed(module, context, values)] };
+    if (requiresReview) payload.components = [{ type: 1, components: [{ type: 2, style: 3, label: 'Aprobă', custom_id: `panel:custom:${module.module_key}:decision:${id}:approved` }, { type: 2, style: 4, label: 'Respinge', custom_id: `panel:custom:${module.module_key}:decision:${id}:rejected` }] }];
+    const response = await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: resultChannel }, JSON.stringify(payload), { method: 'POST' });
+    if (!response.ok) throw new Error(`Rezultatul nu a putut fi trimis în canalul configurat (HTTP ${response.status}).`);
+    const sent = await response.json().catch(() => ({})); resultId = String(sent?.id || '');
+  if (resultId) await db.from('platform_module_submissions').update({ result_message_id: resultId, updated_at: new Date().toISOString() }).eq('id', id);
+  }
+  if (actions.includes('update_message') && context.publication.message_id) {
+    await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: context.publication.embed_channel_id }, JSON.stringify(customModulePayload(module)), { method: 'PATCH', messageId: context.publication.message_id }).catch((error) => console.error('[discord-interactions] custom module message update failed', error));
+  }
+  if (actions.includes('notify_submitter')) await notifyCustomModuleUser(db, context.discordId, String(responses.success || 'Cererea ta a fost procesată în Panel Pro.')).catch(() => false);
+  await db.from('platform_module_events').insert({ module_key: module.module_key, organization_id: context.organization.id, guild_id: context.guildId, discord_id: context.discordId, event_type: 'submission_created', payload: { submission_id: id, result_message_id: resultId } });
+  return requiresReview ? interactionMessage(String(responses.review || 'Cererea a fost salvată și trimisă pentru aprobare.')) : interactionMessage(String(responses.success || (resultChannel ? 'Cererea a fost salvată și rezultatul a fost trimis în canalul configurat.' : 'Cererea a fost salvată.')));
+}
 const readableError = (error: unknown, fallback: string) => {
   if (error instanceof Error && error.message) return error.message;
   if (error && typeof error === 'object') {
@@ -1879,6 +2027,7 @@ Deno.serve(async (request) => {
   }
   const customId = String(interaction?.data?.custom_id || '');
   const isComponent = Number(interaction?.type) === 3;
+  const isCommand = Number(interaction?.type) === 2;
   const isButton = isComponent && Number(interaction?.data?.component_type || 2) === 2;
   const isSelect = isComponent && [3, 5].includes(Number(interaction?.data?.component_type || 0));
   const isModalSubmit = Number(interaction?.type) === 5;
@@ -1891,8 +2040,115 @@ Deno.serve(async (request) => {
   const isStash = customId.startsWith('panel:stash:');
   const isMarketplace = customId.startsWith('panel:marketplace:');
   const isDiscovery = customId.startsWith('panel:discovery:');
+  const isCustomModule = customId.startsWith('panel:custom:');
+  if (isCommand) {
+    const commandKey = customModuleKey(interaction?.data?.name);
+    if (commandKey) {
+      const commandSecret = serviceKey();
+      if (!commandSecret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+      const commandDb = createClient(Deno.env.get('SUPABASE_URL')!, commandSecret);
+      const commandModule = await loadCustomModule(commandDb, commandKey);
+      if (!commandModule) return reply(interactionMessage('Modulul nu mai există sau este dezactivat.'));
+      const commandModal = customModuleModal(commandModule, 'slash');
+      if (commandModal) return reply(commandModal);
+      return reply({ type: 4, data: { embeds: [customModulePayload(commandModule).embeds[0]], flags: 64 } });
+    }
+    return reply(interactionMessage('Comanda Panel Pro nu este disponibilă.'));
+  }
   if (!isComponent && !isModalSubmit) return reply(interactionMessage('Acest tip de interacțiune nu este disponibil.'));
-  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+
+  if (isCustomModule) {
+    const key = customModuleKey(customId.split(':')[2]);
+    if (!key) return reply(interactionMessage('Modulul Panel Pro nu este valid.'));
+    const secret = serviceKey();
+    if (!secret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+    const customDb = createClient(Deno.env.get('SUPABASE_URL')!, secret);
+    const module = await loadCustomModule(customDb, key);
+    if (!module) return reply(interactionMessage('Modulul nu mai există sau este dezactivat.'));
+    const parts = customId.split(':');
+    if (isSelect && parts[3] === 'decision_select') {
+      const status = parts[4] === 'approved' ? 'approved' : parts[4] === 'rejected' ? 'rejected' : '';
+      const submissionId = String(interaction.data?.values?.[0] || '').trim();
+      if (!status || !/^[0-9a-f-]{36}$/i.test(submissionId)) return reply(interactionMessage('Selecția deciziei nu este validă.'));
+      const deferred = await deferInteraction(interaction, false); let result;
+      try { const context = await resolveCustomModulePublication(customDb, interaction, key); assertCustomModulePermission(interaction, module, 'approve', context.publication); await applyCustomDecision(customDb, interaction, module, context, submissionId, status); result = interactionMessage(status === 'approved' ? 'Cererea a fost aprobată.' : 'Cererea a fost respinsă.'); } catch (error) { result = interactionMessage(readableError(error, 'Decizia nu a putut fi salvată.')); }
+      await sendFollowup(deferred.applicationId, deferred.interactionToken, result); return new Response(null, { status: 204 });
+    }
+    if (isButton && parts[3] === 'decision') {
+      const submissionId = String(parts[4] || '').trim();
+      const status = parts[5] === 'approved' ? 'approved' : parts[5] === 'rejected' ? 'rejected' : '';
+      if (!/^[0-9a-f-]{36}$/i.test(submissionId) || !status) return reply(interactionMessage('Decizia modulului nu este validă.'));
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try {
+        const context = await resolveCustomModulePublication(customDb, interaction, key);
+        assertCustomModulePermission(interaction, module, 'approve', context.publication);
+        await applyCustomDecision(customDb, interaction, module, context, submissionId, status);
+        result = interactionMessage(status === 'approved' ? 'Cererea a fost aprobată.' : 'Cererea a fost respinsă.');
+      } catch (error) { result = interactionMessage(readableError(error, 'Decizia nu a putut fi salvată.')); }
+      await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      return new Response(null, { status: 204 });
+    }
+    if (isButton) {
+      const action = String(parts[4] || 'open_form');
+      const context = await resolveCustomModulePublication(customDb, interaction, key);
+      try { assertCustomModulePermission(interaction, module, 'use', context.publication); } catch (error) { return reply(interactionMessage(readableError(error, 'Nu ai acces la această acțiune.'))); }
+      const definition = module.definition && typeof module.definition === 'object' ? module.definition : {};
+      if (action === 'open_form') {
+        const modal = customModuleModal(module, String(parts[3] || '0'));
+        if (modal) return reply(modal);
+      }
+      if (action === 'report') {
+        const { data: rows } = await customDb.from('platform_module_submissions').select('display_name,status,created_at').eq('organization_id', context.organization.id).eq('module_key', key).order('created_at', { ascending: false }).limit(10);
+        const report = Array.isArray(rows) && rows.length ? rows.map((row: any) => `• ${String(row.display_name || 'Membru')} — ${String(row.status || 'submitted')} — ${new Date(row.created_at).toLocaleDateString('ro-RO')}`).join('\n') : 'Nu există cereri înregistrate pentru acest modul.';
+        return reply({ type: 4, data: { flags: 64, embeds: [{ title: `Raport · ${String(module.label || 'Modul').slice(0, 240)}`, description: report.slice(0, 4000), color: 0x5865f2 }] } });
+      }
+      if (action === 'update_message') {
+        if (!context.publication.message_id) return reply(interactionMessage('Modulul nu are încă un mesaj publicat care să poată fi actualizat.'));
+        const bodyJson = JSON.stringify(customModulePayload(module));
+        let response = await requestDiscordTarget(customDb, { target: context.target, transport: 'bot', channel_id: context.publication.embed_channel_id }, bodyJson, { method: 'PATCH', messageId: String(context.publication.message_id) });
+        let messageId = String(context.publication.message_id);
+        if (!response.ok && [400, 404].includes(response.status)) {
+          response = await requestDiscordTarget(customDb, { target: context.target, transport: 'bot', channel_id: context.publication.embed_channel_id }, bodyJson, { method: 'POST' });
+          if (response.ok) {
+            const sent = await response.json().catch(() => ({}));
+            messageId = String(sent?.id || '');
+            await customDb.from('platform_module_publications').update({ message_id: messageId || null, updated_at: new Date().toISOString(), last_error: null }).eq('id', context.publication.id);
+          }
+        }
+        if (!response.ok) return reply(interactionMessage('Embedul nu a putut fi actualizat pe Discord.'));
+        return reply(interactionMessage(String(definition.responses?.success || 'Embedul a fost actualizat.')));
+      }
+      if (action === 'notify_submitter') {
+        const sent = await notifyCustomModuleUser(customDb, context.discordId, String(definition.responses?.success || definition.responses?.button || 'Ai primit o notificare de la Panel Pro.'));
+        return reply(interactionMessage(sent ? 'Notificarea a fost trimisă.' : 'Notificarea nu a putut fi trimisă.'));
+      }
+      if ((action === 'save_submission' || action === 'send_log') && Array.isArray(definition.form_schema) && definition.form_schema.length) return reply(customModuleModal(module, String(parts[3] || '0')) || interactionMessage('Formularul modulului nu este disponibil.'));
+      if (action === 'approve' || action === 'reject') {
+        try { assertCustomModulePermission(interaction, module, 'approve', context.publication); } catch (error) { return reply(interactionMessage(readableError(error, 'Nu ai dreptul să iei această decizie.'))); }
+        const { data: pending } = await customDb.from('platform_module_submissions').select('id,display_name,created_at').eq('organization_id', context.organization.id).eq('module_key', key).eq('guild_id', context.guildId).eq('status', 'submitted').order('created_at', { ascending: false }).limit(25);
+        if (!Array.isArray(pending) || !pending.length) return reply(interactionMessage('Nu există cereri în așteptarea unei decizii.'));
+        return reply({ type: 4, data: { flags: 64, content: action === 'approve' ? 'Alege cererea de aprobat:' : 'Alege cererea de respins:', components: [{ type: 1, components: [{ type: 3, custom_id: `panel:custom:${key}:decision_select:${action === 'approve' ? 'approved' : 'rejected'}`, placeholder: 'Selectează cererea', options: pending.map((row: any) => ({ label: String(row.display_name || 'Membru').slice(0, 100), value: String(row.id), description: new Date(row.created_at).toLocaleDateString('ro-RO').slice(0, 100) })) }] }] } });
+      }
+      if (action === 'save_submission' || action === 'send_log') {
+        const deferred = await deferInteraction(interaction, false);
+        let result;
+        try { result = await handleCustomModuleSubmit(customDb, context, module, {}); } catch (error) { result = interactionMessage(readableError(error, 'Acțiunea nu a putut fi executată.')); }
+        await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+        return new Response(null, { status: 204 });
+      }
+      return reply(interactionMessage(String(definition.responses?.button || 'Acțiunea modulului a fost primită.')));
+    }
+    if (isModalSubmit && parts[3] === 'submit') {
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try { const context = await resolveCustomModulePublication(customDb, interaction, key); assertCustomModulePermission(interaction, module, 'use', context.publication); result = await handleCustomModuleSubmit(customDb, context, module, modalValues(interaction)); }
+      catch (error) { const definition = module.definition && typeof module.definition === 'object' ? module.definition : {}; const responses = definition.responses && typeof definition.responses === 'object' ? definition.responses : {}; result = interactionMessage(String(responses.error || readableError(error, 'Formularul modulului nu a putut fi procesat.'))); }
+      await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      return new Response(null, { status: 204 });
+    }
+  }
 
   // Formularele Discord trebuie afișate imediat. Validarea organizației,
   // rolurilor și canalului se face la trimiterea formularului, nu înainte de

@@ -20,6 +20,8 @@ const AdministrativePages = new Set([
     'developer.html',
     'secrete-platforma.html',
     'setari-platforma.html'
+    ,'administrare-module.html'
+    ,'custom-page.html'
 ]);
 
 // Aceste două pagini sunt publice la nivelul platformei: orice membru cu o
