@@ -19,6 +19,9 @@ verify_jwt = false
 [functions.manage-panel-modules]
 verify_jwt = false
 
+[functions.manage-discord-bundles]
+verify_jwt = false
+
 [functions.sync-discord-commands]
 verify_jwt = false
 

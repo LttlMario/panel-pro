@@ -40,6 +40,7 @@ $functions = @(
     'manage-platform-settings',
     'manage-platform-pages',
     'manage-panel-modules',
+    'manage-discord-bundles',
     'sync-discord-commands',
     'manage-organizations',
     'manage-owned-organization',

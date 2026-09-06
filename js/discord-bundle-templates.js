@@ -9,6 +9,8 @@
   const status = $('discord-bundle-status');
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
   const call = (body) => window.panelRequestJson('manage-platform-pages', { method: 'POST', body: JSON.stringify(body), timeoutMs: 30000 });
+  const moduleCall = (body) => window.panelRequestJson('manage-panel-modules', { method: 'POST', body: JSON.stringify(body), timeoutMs: 30000 });
+  const installCall = (body) => window.panelRequestJson('manage-discord-bundles', { method: 'POST', body: JSON.stringify(body), timeoutMs: 60000 });
 
   const form = (fields) => fields.map((field) => ({ id: field[0], label: field[1], type: field[2] || 'short_text', required: field[3] !== false, max_length: field[2] === 'long_text' ? 1500 : 300 }));
   const workflow = (review = false) => ({ logging_enabled: true, actions: review ? ['review_buttons', 'send_log', 'update_message', 'notify_submitter'] : ['send_log', 'update_message'] });
@@ -74,12 +76,27 @@
     preview.hidden = false;
     preview.innerHTML = `<div class="flex items-center justify-between gap-2"><strong>${esc(bundle.label)}</strong><span class="tag">${bundle.modules.length} module</span></div><p class="muted mt-2">${esc(bundle.description)}</p><div class="grid gap-2 sm:grid-cols-2 mt-3">${bundle.modules.map((item) => `<div class="rounded-lg border border-slate-800 bg-slate-950/60 p-2"><strong>${esc(item[1])}</strong><br><small class="muted">${esc(item[3])} · ${item[6]?.length || 0} butoane · ${item[5]?.length || 0} câmpuri${item[7] ? ' · necesită aprobare' : ''}</small></div>`).join('')}</div><p class="muted text-xs mt-3">Presetul creează șabloanele. Publicarea pe Discord și alegerea canalului embed / canalului de rezultate rămân în secțiunea „Publică modulul pe Panel Pro”.</p>`;
   };
+  const loadInstallTargets = async () => {
+    try {
+      const catalog = await moduleCall({ action: 'catalog' });
+      const organizationSelect = $('discord-bundle-organization');
+      const guildSelect = $('discord-bundle-guild');
+      if (organizationSelect) organizationSelect.innerHTML = '<option value="">Organizația pentru instalare…</option>' + (catalog.organizations || []).map((org) => `<option value="${esc(org.id)}">${esc(org.name)}</option>`).join('');
+      const renderGuilds = () => {
+        const organizationId = organizationSelect?.value || '';
+        if (guildSelect) guildSelect.innerHTML = '<option value="">Serverul Discord…</option>' + (catalog.guilds || []).filter((guild) => !organizationId || String(guild.organization_id) === String(organizationId)).map((guild) => `<option value="${esc(guild.guild_id)}" data-organization="${esc(guild.organization_id)}">${esc(guild.guild_name || guild.guild_id)} · ${esc(guild.kind || 'primary')}</option>`).join('');
+      };
+      organizationSelect?.addEventListener('change', renderGuilds);
+      renderGuilds();
+    } catch (error) { setStatus(`Nu am putut încărca serverele Discord: ${error?.message || 'eroare necunoscută'}.`, true); }
+  };
   const load = async () => {
     if (!select) return;
     Object.entries(bundles).forEach(([key, bundle]) => { const option = document.createElement('option'); option.value = key; option.textContent = bundle.label; select.appendChild(option); });
     select.addEventListener('change', renderPreview);
     $('discord-bundle-show-preview')?.addEventListener('click', () => { renderPreview(); if (!selected()) setStatus('Alege un preset Discord.', true); });
     $('discord-bundle-create')?.addEventListener('click', createBundle);
+    $('discord-bundle-install')?.addEventListener('click', installBundle);
   };
   const createBundle = async () => {
     const bundle = selected();
@@ -105,5 +122,20 @@
       setStatus(error?.message || 'Presetul nu a putut fi creat complet.', true);
     }
   };
+  const installBundle = async () => {
+    const bundle = selected();
+    const organizationId = $('discord-bundle-organization')?.value || '';
+    const guildId = $('discord-bundle-guild')?.value || '';
+    if (!bundle) { setStatus('Alege un preset Discord înainte de instalare.', true); return; }
+    if (!organizationId || !/^\d{15,22}$/.test(guildId)) { setStatus('Alege organizația și serverul Discord.', true); return; }
+    renderPreview();
+    if (!window.confirm(`Instalezi „${bundle.label}” pe serverul selectat?\n\nVor fi create sau reutilizate categoriile, canalele, rolurile și embedurile. Nu se șterge nimic.`)) return;
+    try {
+      setStatus('Instalez pachetul pe Discord. Nu închide pagina…');
+      const result = await installCall({ action: 'install_bundle', bundle_key: select.value, organization_id: organizationId, guild_id: guildId });
+      setStatus(`Instalare finalizată: ${result.created?.channels || 0} canale, ${result.created?.roles || 0} roluri și ${result.created?.messages || 0} embeduri. Canalul de log a fost configurat automat.`);
+    } catch (error) { setStatus(error?.message || 'Instalarea pe Discord a eșuat.', true); }
+  };
   load();
+  loadInstallTargets();
 })();
