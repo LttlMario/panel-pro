@@ -99,9 +99,11 @@ Deno.serve(async (request) => {
       if (!icons.test(icon)) throw new Error('Iconița paginii este invalidă.');
       const content = { blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
       const row = { slug, title, description, icon, sidebar_section: section, sort_order: Math.max(0, Math.min(9999, Number(body.sort_order) || 100)), content, enabled: body.enabled !== false, updated_by_discord_id: session.discord_id };
-      const { data: existingPage } = await db.from('platform_custom_pages').select('created_by_discord_id').eq('slug', slug).maybeSingle();
+      const { data: existingPage } = await db.from('platform_custom_pages').select('*').eq('slug', slug).maybeSingle();
+      if (existingPage) await db.from('platform_content_versions').insert({ content_type: 'page', content_key: slug, snapshot: existingPage, changed_by_discord_id: session.discord_id, change_type: 'before_save' });
       const { error } = await db.from('platform_custom_pages').upsert({ ...row, created_by_discord_id: existingPage?.created_by_discord_id || session.discord_id }, { onConflict: 'slug' });
       if (error) throw error;
+      await db.from('platform_content_versions').insert({ content_type: 'page', content_key: slug, snapshot: { ...row, created_by_discord_id: existingPage?.created_by_discord_id || session.discord_id }, changed_by_discord_id: session.discord_id, change_type: 'saved' });
       await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: 'platform_custom_page_saved', target_type: 'platform_custom_page', target_id: slug, details: { sidebar_section: section } });
       return reply({ ok: true, page: row });
     }
@@ -112,14 +114,61 @@ Deno.serve(async (request) => {
       await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: 'platform_custom_page_deleted', target_type: 'platform_custom_page', target_id: slug, details: {} });
       return reply({ ok: true, slug });
     }
+    if (action === 'set_page_enabled') {
+      const slug = cleanSlug(body.slug);
+      const enabled = body.enabled !== false;
+      const { data, error } = await db.from('platform_custom_pages').update({ enabled, updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() }).eq('slug', slug).select('slug,enabled').maybeSingle();
+      if (error) throw error;
+      if (!data) return reply({ error: 'Pagina nu există.' }, 404);
+      await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: enabled ? 'platform_custom_page_enabled' : 'platform_custom_page_disabled', target_type: 'platform_custom_page', target_id: slug, details: { enabled } });
+      return reply({ ok: true, page: data });
+    }
+    if (action === 'history') {
+      const contentType = body.content_type === 'module' ? 'module' : 'page';
+      const contentKey = String(body.content_key || '').trim();
+      if (!contentKey) throw new Error('Cheia conținutului lipsește.');
+      const { data, error } = await db.from('platform_content_versions').select('id,content_type,content_key,snapshot,changed_by_discord_id,change_type,created_at').eq('content_type', contentType).eq('content_key', contentKey).order('created_at', { ascending: false }).limit(20);
+      if (error) throw error;
+      return reply({ versions: data || [] });
+    }
+    if (action === 'restore_page') {
+      const slug = cleanSlug(body.slug);
+      const versionId = Number(body.version_id);
+      if (!Number.isInteger(versionId) || versionId < 1) throw new Error('Versiunea este invalidă.');
+      const { data: version, error: versionError } = await db.from('platform_content_versions').select('snapshot').eq('id', versionId).eq('content_type', 'page').eq('content_key', slug).maybeSingle();
+      if (versionError) throw versionError;
+      if (!version?.snapshot) throw new Error('Versiunea nu a fost găsită.');
+      const snapshot: any = version.snapshot;
+      const { error } = await db.from('platform_custom_pages').upsert({ ...snapshot, slug, updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() }, { onConflict: 'slug' });
+      if (error) throw error;
+      await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: 'platform_custom_page_restored', target_type: 'platform_custom_page', target_id: slug, details: { version_id: versionId } });
+      return reply({ ok: true, slug });
+    }
+    if (action === 'restore_module') {
+      const moduleKey = String(body.module_key || '').trim().toLowerCase();
+      const versionId = Number(body.version_id);
+      if (!/^custom_[a-z0-9_]{2,60}$/.test(moduleKey)) throw new Error('Cheia modulului este invalidă.');
+      if (!Number.isInteger(versionId) || versionId < 1) throw new Error('Versiunea este invalidă.');
+      const { data: version, error: versionError } = await db.from('platform_content_versions').select('snapshot').eq('id', versionId).eq('content_type', 'module').eq('content_key', moduleKey).maybeSingle();
+      if (versionError) throw versionError;
+      if (!version?.snapshot) throw new Error('Versiunea nu a fost găsită.');
+      const snapshot: any = version.snapshot;
+      const { error } = await db.from('platform_module_templates').upsert({ ...snapshot, module_key: moduleKey, updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() }, { onConflict: 'module_key' });
+      if (error) throw error;
+      await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: 'platform_module_restored', target_type: 'platform_module_template', target_id: moduleKey, details: { version_id: versionId } });
+      return reply({ ok: true, module_key: moduleKey });
+    }
     if (action === 'save_module') {
       const moduleKey = String(body.module_key || '').trim().toLowerCase();
       if (!/^custom_[a-z0-9_]{2,60}$/.test(moduleKey)) throw new Error('Cheia modulului este invalidă.');
       const label = String(body.label || '').trim().slice(0, 120);
       if (label.length < 2) throw new Error('Numele modulului este obligatoriu.');
       const definition = cleanModuleDefinition(body.definition);
+      const { data: existingModule } = await db.from('platform_module_templates').select('*').eq('module_key', moduleKey).maybeSingle();
+      if (existingModule) await db.from('platform_content_versions').insert({ content_type: 'module', content_key: moduleKey, snapshot: existingModule, changed_by_discord_id: session.discord_id, change_type: 'before_save' });
       const { error } = await db.from('platform_module_templates').upsert({ module_key: moduleKey, label, description: String(body.description || '').trim().slice(0, 500), definition, enabled: body.enabled !== false, updated_by_discord_id: session.discord_id }, { onConflict: 'module_key' });
       if (error) throw error;
+      await db.from('platform_content_versions').insert({ content_type: 'module', content_key: moduleKey, snapshot: { module_key: moduleKey, label, description: String(body.description || '').trim().slice(0, 500), definition, enabled: body.enabled !== false, updated_by_discord_id: session.discord_id }, changed_by_discord_id: session.discord_id, change_type: 'saved' });
       await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: 'platform_module_template_saved', target_type: 'platform_module_template', target_id: moduleKey, details: { label } });
       return reply({ ok: true, module_key: moduleKey });
     }
