@@ -11,13 +11,13 @@ const VIEW = 1024n, SEND = 2048n, EMBED = 16384n, HISTORY = 65536n, MANAGE_MESSA
 const allow = (...bits: bigint[]) => bits.reduce((sum, bit) => sum | bit, 0n).toString();
 
 type ModuleSpec = { key: string; label: string; description: string; handler: string; color: number; fields?: any[]; buttons: any[]; review?: boolean; channel: string };
-type BundleSpec = { label: string; category: string; roles: string[]; modules: ModuleSpec[] };
+type BundleSpec = { label: string; category: string; modules: ModuleSpec[] };
 
 const field = (id: string, label: string, type = 'short_text', required = true) => ({ id, label, type, required, max_length: type === 'long_text' ? 1500 : 300 });
 const module = (key: string, label: string, description: string, handler: string, color: number, channel: string, fields: any[] = [], review = false, button = 'Deschide formularul'): ModuleSpec => ({ key, label, description, handler, color, channel, fields, review, buttons: [{ label: button, action: handler === 'report' ? 'report' : 'open_form', style: review ? 3 : 1 }] });
 const bundles: Record<string, BundleSpec> = {
   full: {
-    label: 'Full', category: 'PANEL PRO · FULL', roles: ['Panel Pro Staff', 'Panel Pro Member'], modules: [
+    label: 'Full', category: 'PANEL PRO · FULL', modules: [
       module('custom_full_anunturi', 'Anunțuri organizație', 'Publică anunțuri și comunicate.', 'announcement', 0x5865f2, '📣・anunturi', [field('message', 'Mesajul anunțului', 'long_text')], false, 'Publică anunț'),
       module('custom_full_cereri', 'Cereri organizație', 'Colectează cereri de la membrii organizației.', 'request', 0x3b82f6, '📋・cereri', [field('subject', 'Subiect'), field('details', 'Detalii', 'long_text')], false, 'Trimite cerere'),
       module('custom_full_aprobari', 'Cereri cu aprobare', 'Trimite cereri către staff pentru aprobare sau respingere.', 'approval', 0xf59e0b, '✅・aprobari', [field('subject', 'Subiect'), field('details', 'Detalii', 'long_text')], true, 'Trimite spre aprobare'),
@@ -27,7 +27,7 @@ const bundles: Record<string, BundleSpec> = {
     ]
   },
   legal_management: {
-    label: 'Legale + Management', category: 'PANEL PRO · LEGALE', roles: ['Panel Pro Staff', 'Panel Pro Management'], modules: [
+    label: 'Legale + Management', category: 'PANEL PRO · LEGALE', modules: [
       module('custom_legal_anunturi', 'Anunțuri și comunicate', 'Publică informații oficiale.', 'announcement', 0x2563eb, '📣・anunturi-legale', [field('message', 'Mesajul anunțului', 'long_text')], false, 'Publică anunț'),
       module('custom_legal_cereri', 'Cereri oficiale', 'Primește solicitări oficiale de la membri.', 'approval', 0xf59e0b, '📋・cereri-legale', [field('subject', 'Subiect'), field('details', 'Detalii', 'long_text')], true, 'Trimite cerere'),
       module('custom_legal_contracte', 'Contracte și documente', 'Gestionează documentele organizației.', 'request', 0x7c3aed, '📄・contracte', [field('title', 'Titlu document'), field('url', 'Link document', 'url'), field('details', 'Detalii', 'long_text')], false, 'Adaugă document'),
@@ -36,7 +36,7 @@ const bundles: Record<string, BundleSpec> = {
     ]
   },
   illegal: {
-    label: 'Ilegale', category: 'PANEL PRO · ILEGALE', roles: ['Panel Pro Staff', 'Panel Pro Ilegal'], modules: [
+    label: 'Ilegale', category: 'PANEL PRO · ILEGALE', modules: [
       module('custom_illegal_anunturi', 'Anunțuri Ilegale', 'Publică informații operaționale.', 'announcement', 0xdc2626, '📣・anunturi-ilegale', [field('message', 'Mesajul anunțului', 'long_text')], false, 'Publică anunț'),
       module('custom_illegal_cereri', 'Cereri operaționale', 'Trimite solicitări către staff.', 'approval', 0xea580c, '📋・cereri-ilegale', [field('subject', 'Subiect'), field('details', 'Detalii', 'long_text')], true, 'Trimite cerere'),
       module('custom_illegal_rapoarte', 'Rapoarte operaționale', 'Centralizează rapoartele operaționale.', 'report', 0xb91c1c, '📊・rapoarte-ilegale', [], false, 'Generează raport'),
@@ -85,38 +85,36 @@ Deno.serve(async (request) => {
     const { data: guild } = await db.from('organization_guilds').select('guild_id,kind').eq('organization_id', organizationId).eq('guild_id', guildId).eq('enabled', true).maybeSingle();
     if (!guild) return reply({ error: 'Serverul nu aparține organizației selectate.' }, 400);
     const token = await getPlatformSecret(db, 'discord_bot_token'); if (!token) return reply({ error: 'DISCORD_BOT_TOKEN lipsește din Supabase.' }, 500);
-    const [guildInfo, roles, channels] = await Promise.all([discord(`/guilds/${guildId}`, token), discord(`/guilds/${guildId}/roles`, token), discord(`/guilds/${guildId}/channels`, token)]);
+    const [guildInfo, channels] = await Promise.all([discord(`/guilds/${guildId}`, token), discord(`/guilds/${guildId}/channels`, token)]);
     const bot = await discord('/users/@me', token);
-    const staff = await ensureRole(guildId, token, roles, bundle.roles[0]);
-    const member = await ensureRole(guildId, token, roles, bundle.roles[1]);
     const everyone = guildId;
     const botAllow = allow(VIEW, SEND, EMBED, HISTORY, MANAGE_MESSAGES);
-    const staffAllow = allow(VIEW, SEND, EMBED, HISTORY, MANAGE_MESSAGES);
-    const logOverwrites = [{ id: everyone, type: 0, deny: allow(VIEW), allow: '0' }, { id: String(staff.row.id), type: 0, allow: staffAllow, deny: '0' }, { id: String(bot.id), type: 1, allow: botAllow, deny: '0' }];
+    const botOverwrite = [{ id: String(bot.id), type: 1, allow: botAllow, deny: '0' }];
     const category = await ensureChannel(guildId, token, channels, bundle.category, 4);
-    const log = await ensureChannel(guildId, token, channels, '🤖・panel-pro-log', 0, String(category.row.id), logOverwrites);
-    let createdChannels = Number(category.created) + Number(log.created), createdMessages = 0, createdRoles = Number(staff.created) + Number(member.created);
-    const publications: any[] = [];
+    const log = await ensureChannel(guildId, token, channels, '🤖・panel-pro-log', 0, String(category.row.id), botOverwrite);
+    let createdChannels = Number(category.created) + Number(log.created), createdMessages = 0;
+    const installedChannels: any[] = [{ id: String(log.row.id), name: String(log.row.name || '🤖・panel-pro-log'), purpose: 'rezultate și loguri' }];
     for (const item of bundle.modules) {
-      const { data: existing } = await db.from('platform_module_templates').select('module_key,label,description,definition').eq('module_key', item.key).maybeSingle();
-      if (!existing) {
-        const { error } = await db.from('platform_module_templates').insert({ module_key: item.key, label: item.label, description: item.description, definition: definitionFor(item), enabled: true, updated_by_discord_id: session.discord_id });
-        if (error) throw error;
-      }
-      const channel = await ensureChannel(guildId, token, channels, item.channel, 0, String(category.row.id), [{ id: String(bot.id), type: 1, allow: botAllow, deny: '0' }]);
+      const channel = await ensureChannel(guildId, token, channels, item.channel, 0, String(category.row.id), botOverwrite);
       createdChannels += Number(channel.created);
-      const { data: current } = await db.from('platform_module_publications').select('message_id').eq('module_key', item.key).eq('organization_id', organizationId).eq('target', String(guild.kind || 'primary') === 'secondary' ? 'secondary' : 'primary').maybeSingle();
-      const payload = JSON.stringify(embedPayload(item));
-      let response = await fetch(`${api}/channels/${channel.row.id}/messages${current?.message_id ? `/${current.message_id}` : ''}`, { method: current?.message_id ? 'PATCH' : 'POST', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: payload });
-      if (!response.ok && current?.message_id) response = await fetch(`${api}/channels/${channel.row.id}/messages`, { method: 'POST', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: payload });
-      if (!response.ok) throw new Error(`Embedul „${item.label}” nu a putut fi publicat în Discord.`);
-      const message = await response.json().catch(() => ({})); if (!current?.message_id) createdMessages += 1;
+      const { data: existingModule } = await db.from('platform_module_templates').select('module_key').eq('module_key', item.key).maybeSingle();
+      if (!existingModule) {
+        const { error: moduleError } = await db.from('platform_module_templates').insert({ module_key: item.key, label: item.label, description: item.description, definition: definitionFor(item), enabled: true, updated_by_discord_id: session.discord_id });
+        if (moduleError) throw moduleError;
+      }
       const target = String(guild.kind || 'primary') === 'secondary' ? 'secondary' : 'primary';
-      const { data: publication, error: publicationError } = await db.from('platform_module_publications').upsert({ module_key: item.key, organization_id: organizationId, guild_id: guildId, target, embed_channel_id: String(channel.row.id), result_channel_id: String(log.row.id), message_id: String(message.id || current?.message_id || ''), permissions: { allowed_role_ids: [String(member.row.id)], approval_role_ids: [String(staff.row.id)] }, status: 'published', last_error: null, published_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: 'module_key,organization_id,target' }).select('module_key,embed_channel_id,result_channel_id,message_id,status').single();
+      const { data: currentPublication } = await db.from('platform_module_publications').select('message_id').eq('module_key', item.key).eq('organization_id', organizationId).eq('target', target).maybeSingle();
+      const messageUrl = `${api}/channels/${channel.row.id}/messages${currentPublication?.message_id ? `/${currentPublication.message_id}` : ''}`;
+      let messageResponse = await fetch(messageUrl, { method: currentPublication?.message_id ? 'PATCH' : 'POST', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(embedPayload(item)) });
+      if (!messageResponse.ok && currentPublication?.message_id) messageResponse = await fetch(`${api}/channels/${channel.row.id}/messages`, { method: 'POST', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(embedPayload(item)) });
+      if (!messageResponse.ok) throw new Error(`Embedul „${item.label}” nu a putut fi publicat în canalul ${item.channel}.`);
+      const message = await messageResponse.json().catch(() => ({}));
+      if (!currentPublication?.message_id) createdMessages += 1;
+      const { error: publicationError } = await db.from('platform_module_publications').upsert({ module_key: item.key, organization_id: organizationId, guild_id: guildId, target, embed_channel_id: String(channel.row.id), result_channel_id: String(log.row.id), permissions: {}, message_id: String(message.id || currentPublication?.message_id || ''), status: 'published', last_error: null, published_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: 'module_key,organization_id,target' });
       if (publicationError) throw publicationError;
-      publications.push(publication);
+      installedChannels.push({ id: String(channel.row.id), name: String(channel.row.name || item.channel), purpose: item.label, module_key: item.key });
     }
-    await db.from('admin_audit_log').insert({ organization_id: organizationId, actor_discord_id: session.discord_id, action: 'discord_bundle_installed', target_type: 'discord_guild', target_id: guildId, details: { bundle: body.bundle_key, category_id: category.row.id, log_channel_id: log.row.id, publication_count: publications.length } });
-    return reply({ ok: true, guild: { id: guildInfo.id, name: guildInfo.name }, category: { id: category.row.id, name: bundle.category }, log_channel: { id: log.row.id, name: log.row.name }, created: { channels: createdChannels, roles: createdRoles, messages: createdMessages }, publications });
+    await db.from('admin_audit_log').insert({ organization_id: organizationId, actor_discord_id: session.discord_id, action: 'discord_bundle_structure_installed', target_type: 'discord_guild', target_id: guildId, details: { bundle: body.bundle_key, category_id: category.row.id, log_channel_id: log.row.id, channel_count: installedChannels.length } });
+    return reply({ ok: true, guild: { id: guildInfo.id, name: guildInfo.name }, category: { id: category.row.id, name: bundle.category }, log_channel: { id: log.row.id, name: log.row.name }, created: { channels: createdChannels, roles: 0, messages: createdMessages }, channels: installedChannels, modules_available: bundle.modules.map((item) => ({ module_key: item.key, label: item.label, embed_channel_id: installedChannels.find((channel) => channel.module_key === item.key)?.id || '', result_channel_id: String(log.row.id) })) });
   } catch (error) { return reply({ error: error instanceof Error ? error.message : 'Instalarea pachetului a eșuat.' }, 400); }
 });
