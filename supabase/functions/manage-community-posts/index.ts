@@ -419,9 +419,19 @@ const canManageMarketplaceComment = (table:string, item:any, comment:any) =>
     ));
 
 if (body.action === 'marketplace_access') {
+    const { data: activeMember } = await db.from('organization_members')
+        .select('panel_role,permission_level,active')
+        .eq('organization_id', organizationId)
+        .eq('discord_id', du.id)
+        .eq('active', true)
+        .maybeSingle();
+    const activeRole = String(activeMember?.panel_role || '').trim().toLocaleLowerCase('ro-RO');
+    const organizationOwner = Number(activeMember?.permission_level || 0) >= 90 ||
+        new Set(['owner', 'administrator', 'administrator organizație', 'administrator organizatie', 'admin']).has(activeRole);
     return reply({
-        can_delete: canDeleteMarketplaceByRole,
-        platform_admin: isPlatformAdmin
+        can_delete: isPlatformAdmin || organizationOwner,
+        platform_admin: isPlatformAdmin,
+        organization_owner: organizationOwner
     });
 }
 
@@ -808,17 +818,27 @@ const own = async (id:string) => {
  if(body.action==='marketplace_delete'){
    const table=body.table;
    if(!['marketplace','marketplace_ilegal'].includes(table))throw new Error('Tabel Marketplace invalid.');
-   const globalMarketplace=table==='marketplace_ilegal';
+   const illegalMarketplace=table==='marketplace_ilegal';
    const itemQuery=db.from(table).select('id,organization_id,created_by_discord_id,discord_message_ids').eq('id',body.item_id);
-   if(!globalMarketplace)itemQuery.eq('organization_id',organizationId);
-   if(globalMarketplace)itemQuery.is('organization_id',null);
+   if(illegalMarketplace)itemQuery.is('organization_id',null);
    const {data:item,error:itemError}=await itemQuery.maybeSingle();
    if(itemError)throw itemError;
    if(!item)throw new Error('Anunțul nu mai există sau nu este accesibil.');
-   if(!isPlatformAdmin && !canDeleteMarketplaceByRole && String(item.created_by_discord_id||'')!==String(du.id))return reply({error:'Nu ai permisiunea de a șterge acest anunț.'},403);
+   let itemOrganizationOwner=false;
+   if(item.organization_id){
+     const { data: itemMember } = await db.from('organization_members')
+       .select('panel_role,permission_level,active')
+       .eq('organization_id',item.organization_id)
+       .eq('discord_id',du.id)
+       .eq('active',true)
+       .maybeSingle();
+     const itemRole=String(itemMember?.panel_role||'').trim().toLocaleLowerCase('ro-RO');
+     itemOrganizationOwner=Number(itemMember?.permission_level||0)>=90 || new Set(['owner','administrator','administrator organizație','administrator organizatie','admin']).has(itemRole);
+   }
+   const isAuthor=String(item.created_by_discord_id||'')===String(du.id);
+   if(!isPlatformAdmin && !itemOrganizationOwner && !isAuthor)return reply({error:'Doar administratorul global, ownerul organizației sau autorul poate șterge acest anunț.'},403);
    const deleteQuery=db.from(table).delete().eq('id',body.item_id);
-   if(!globalMarketplace)deleteQuery.eq('organization_id',organizationId);
-   if(globalMarketplace)deleteQuery.is('organization_id',null);
+   if(illegalMarketplace)deleteQuery.is('organization_id',null);
    const {data:deleted,error}=await deleteQuery.select('id');
    if(error)throw error;
    if(!deleted?.length)throw new Error('Anunțul nu a fost șters.');
@@ -831,7 +851,7 @@ const own = async (id:string) => {
    for (const ref of messageRefs) {
      if (ref?.channel_id && ref?.id) {
        const refSettings = settingsByOrganization.get(String(ref.organization_id || organizationId));
-       const routeKey = globalMarketplace ? 'illegal_marketplace' : 'marketplace';
+       const routeKey = illegalMarketplace ? 'illegal_marketplace' : 'marketplace';
        const target = routeCandidates(refSettings, routeKey).flatMap((entry) => entry.candidates).find((candidate) => candidate.transport === 'bot' && String(candidate.channel_id) === String(ref.channel_id));
        if (target) await requestDiscordTarget(db, target, null, { method: 'DELETE', messageId: String(ref.id) }).catch(() => null);
      }

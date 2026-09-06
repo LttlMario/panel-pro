@@ -425,12 +425,8 @@
                 if (tipBadge === 'Servicii') catBadge = 'SERVICII';
                 const user = typeof getUser === 'function' ? getUser() : null;
                 const esteAdministrator = typeof isPlatformAdmin === 'function' && isPlatformAdmin();
-                const apartineOrganizatieiActive =
-                    String(item.organization_id || '') === String(currentUser.organization_id || '');
-                const poateSterge = esteAdministrator || marketplaceDeleteAccess || (
-                    apartineOrganizatieiActive &&
-                    String(item.created_by_discord_id || '') === String(currentUser.discord_id || '')
-                );
+                const poateSterge = esteAdministrator || marketplaceDeleteAccess ||
+                    String(item.created_by_discord_id || '') === String(currentUser.discord_id || '');
                 const organizatieText = item.organization_name || 'Organizație legală';
 
                 let continutAfisat = item.produse || '';

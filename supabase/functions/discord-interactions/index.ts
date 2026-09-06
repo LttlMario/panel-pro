@@ -103,7 +103,7 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
     requests_departments: { title: '📝 Învoiri · Angajați', description: 'Trimite și consultă învoirile angajaților.', color: 0xf59e0b, buttons: [{ label: 'Trimite învoire', style: 1, id: 'panel:requests:departments:new' }, { label: 'Învoirile mele', style: 2, id: 'panel:requests:departments:mine' }] },
       contracts: { title: '📄 Contracte · Panel Pro', description: 'Generează și trimite contracte folosind șablonul organizației.', color: 0x14b8a6, buttons: [{ label: 'Creează contract', style: 1, id: 'panel:contracts:create' }, { label: 'Setează contractul', style: 2, id: 'panel:contracts:settings' }, { label: 'Info contract', style: 1, id: 'panel:contracts:info' }] },
       status_live: { title: '📡 Status live · Panel Pro', description: 'Acest embed este actualizat automat la fiecare minut cu pontajele și pauzele active. Configurează canalul Status live, apoi pornește sincronizarea din pagina Status live.', color: 0x06b6d4, buttons: [] },
-      marketplace: { title: '🛒 Marketplace · Legal', description: 'Publică și consultă anunțuri pentru vehicule, bunuri și servicii.', color: 0x2563eb, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:marketplace:legal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:legal:mine' }] },
+    marketplace: { title: '🛒 Marketplace', description: 'Publică și consultă anunțuri pentru vehicule, bunuri și servicii.', color: 0x2563eb, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:marketplace:legal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:legal:mine' }] },
       illegal_marketplace: { title: '🚨 Marketplace · Ilegal', description: 'Publică și consultă anunțuri Black Market, cu acces controlat.', color: 0xef4444, buttons: [{ label: 'Publică anunț', style: 4, id: 'panel:marketplace:illegal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:illegal:mine' }] },
       event_reminders: { title: '🗓️ Evenimente și remindere', description: 'Înregistrează evenimente și trimite remindere automate pe durata aleasă.', color: 0xf59e0b, buttons: [{ label: 'Adaugă eveniment', style: 1, id: 'panel:discovery:reminder_create' }, { label: 'Info remindere', style: 2, id: 'panel:discovery:reminder_info' }] },
       contract_identity_weekly: { title: '📋 Raport săptămânal contracte', description: 'Generează exportul săptămânal cu numele și CNP-ul angajaților.', color: 0x14b8a6, buttons: [{ label: 'Generează raport', style: 1, id: 'panel:discovery:weekly_report' }, { label: 'Info raport', style: 2, id: 'panel:discovery:report_info' }] },
@@ -664,7 +664,7 @@ function universalTextInput(custom_id: string, label: string, style = 1, require
 
 function marketplaceModal(kind: 'legal' | 'illegal') {
   const illegal = kind === 'illegal';
-  return { type: 9, data: { custom_id: `panel:marketplace:${kind}:submit`, title: illegal ? 'Anunț Marketplace ilegal' : 'Anunț Marketplace legal', components: [
+  return { type: 9, data: { custom_id: `panel:marketplace:${kind}:submit`, title: illegal ? 'Anunț Marketplace ilegal' : 'Anunț Marketplace', components: [
     { type: 1, components: [universalTextInput('name', 'Nume afișat', 1, true, 'Numele anunțului', 120)] },
     { type: 1, components: [universalTextInput('phone', 'Telefon', 1, true, 'Număr de contact', 40)] },
     { type: 1, components: [universalTextInput('action', 'Tip acțiune', 1, true, 'Vânzare / Cumpărare / Servicii', 40)] },
@@ -711,7 +711,7 @@ async function resolveUniversalModuleContext(db: any, interaction: any, routeKey
 
 function marketplaceEmbed(kind: 'legal' | 'illegal', values: Record<string, any>, context: any, id: string) {
   const illegal = kind === 'illegal';
-  return { allowed_mentions: { parse: [] }, embeds: [{ title: illegal ? '🚨 Anunț nou · Marketplace ilegal' : '🛒 Anunț nou · Marketplace legal', description: `Publicat de **${context.displayName}**.`, color: illegal ? 0xef4444 : 0x2563eb, fields: [
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: illegal ? '🚨 Anunț nou · Marketplace ilegal' : '🛒 Anunț nou · Marketplace', description: `Publicat de **${context.displayName}**.`, color: illegal ? 0xef4444 : 0x2563eb, fields: [
     { name: 'Nume', value: String(values.name || '—').slice(0, 1024), inline: true },
     { name: 'Telefon', value: String(values.phone || '—').slice(0, 1024), inline: true },
     { name: 'Tip acțiune', value: String(values.action || '—').slice(0, 1024), inline: true },
@@ -720,17 +720,43 @@ function marketplaceEmbed(kind: 'legal' | 'illegal', values: Record<string, any>
   ], footer: { text: 'Panel Pro · rezultat în canalul de log' }, timestamp: new Date().toISOString() }], components: [{ type: 1, components: [{ type: 2, style: 5, label: 'Deschide în panel', url: `https://panel-pro.ro/${illegal ? 'marketplace-ilegal.html' : 'marketplace.html'}?anunt=${encodeURIComponent(id)}` }] }] };
 }
 
+async function deliverGlobalMarketplaceResult(db: any, routeKey: string, body: BodyInit) {
+  const { data: organizations, error: organizationsError } = await db.from('organizations').select('id').eq('active', true);
+  if (organizationsError) throw organizationsError;
+  const organizationIds = (organizations || []).map((organization: any) => String(organization.id)).filter(Boolean);
+  if (!organizationIds.length) throw new Error('Nu există organizații active pentru livrarea Marketplace.');
+  const { data: settingsRows, error: settingsError } = await db.from('organization_settings').select('organization_id,discord_channel_routes').in('organization_id', organizationIds);
+  if (settingsError) throw settingsError;
+  const results: any[] = [];
+  const failures: string[] = [];
+  for (const settings of settingsRows || []) {
+    if (!routeCandidates(settings, routeKey).some((item: any) => item.candidates.length)) continue;
+    try {
+      const delivery = await deliverDiscordRoute(db, settings, routeKey, body, { postOnly: true });
+      results.push(...delivery.results.map((item: any) => ({ ...item, organization_id: settings.organization_id })));
+      failures.push(...delivery.failures.map((failure: string) => `${settings.organization_id}: ${failure}`));
+    } catch (error) {
+      failures.push(`${settings.organization_id}: ${error instanceof Error ? error.message : 'Eroare Discord.'}`);
+    }
+  }
+  if (!results.length) throw new Error(failures.join(' | ') || 'Nu există canale Discord configurate pentru notificarea globală.');
+  return { results, failures };
+}
+
 async function handleMarketplaceSubmit(db: any, context: any, kind: 'legal' | 'illegal', values: Record<string, any>) {
   const table = kind === 'illegal' ? 'marketplace_ilegal' : 'marketplace';
   const name = String(values.name || '').trim();
   const products = String(values.products || '').trim();
   if (name.length < 2 || products.length < 2) throw new Error('Completează numele și descrierea anunțului.');
-  const row: any = { nume: name.slice(0, 120), display_name: context.displayName, telefon: String(values.phone || '').trim().slice(0, 40), tip_actiune: String(values.action || '').trim().slice(0, 40), categorie: 'General', produse: products.slice(0, 4000), pret: String(values.price || 'Negociabil').trim().slice(0, 80) || 'Negociabil', imagini_json: '[]', imagine_url: null, created_by_discord_id: context.discordId, organization_id: kind === 'illegal' ? null : context.organization.id };
+  const row: any = { nume: name.slice(0, 120), telefon: String(values.phone || '').trim().slice(0, 40), tip_actiune: String(values.action || '').trim().slice(0, 40), categorie: 'General', produse: products.slice(0, 4000), pret: String(values.price || 'Negociabil').trim().slice(0, 80) || 'Negociabil', imagini_json: '[]', imagine_url: null, created_by_discord_id: context.discordId, organization_id: kind === 'illegal' ? null : context.organization.id };
+  if (kind !== 'illegal') row.display_name = context.displayName;
   const { data, error } = await db.from(table).insert(row).select('id').single();
   if (error) throw error;
-  const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify(marketplaceEmbed(kind, values, context, String(data.id))), { postOnly: true });
+  const delivery = await deliverGlobalMarketplaceResult(db, context.logRouteKey, JSON.stringify(marketplaceEmbed(kind, values, context, String(data.id))));
   if (!delivery.results?.length) throw new Error(delivery.failures?.join(' | ') || 'Anunțul a fost salvat, dar logul Discord nu a putut fi trimis.');
-  return interactionMessage('Anunțul a fost salvat și publicat în canalul de log configurat.');
+  const failedTargets = Number(delivery.failures?.length || 0);
+  const warning = failedTargets ? `\n⚠️ ${failedTargets} destinație(e) nu au primit notificarea: ${delivery.failures.join(' | ').slice(0, 1400)}` : '';
+  return interactionMessage(`Anunțul a fost salvat și trimis în ${delivery.results.length} destinație(e) globale configurate.${warning}`);
 }
 
 async function handleReminderSubmit(db: any, context: any, values: Record<string, any>) {
@@ -911,7 +937,7 @@ function contractSettingsModal() {
   const input = (custom_id: string, label: string, style: number, required: boolean, placeholder: string, max_length: number) => ({ type: 4, custom_id, label, style, required, placeholder, max_length });
   return { type: 9, data: { custom_id: 'panel:contracts:settings_submit', title: 'Setează contractul', components: [
     { type: 1, components: [input('title', 'Numele contractului', 1, true, 'Ex: Contract de colaborare', 100)] },
-    { type: 1, components: [input('position', 'Funcție implicită', 1, false, 'Ex: Angajat', 100)] },
+    { type: 1, components: [input('address', 'Adresă de lucru', 1, false, 'Ex: Str. Exemplu nr. 10, București', 200)] },
     { type: 1, components: [input('salary', 'Salariu implicit', 1, false, 'Ex: 100 lei/lună', 120)] },
     { type: 1, components: [input('schedule', 'Program implicit', 1, false, 'Ex: 20:00-23:00', 120)] },
     { type: 1, components: [input('template', 'Șablonul contractului', 2, true, 'Lipește textul contractului și folosește variabilele de mai jos', 4000)] },
@@ -934,16 +960,19 @@ async function handleContractSettingsSubmit(db: any, context: any, interaction: 
   if (!isDiscordManager(interaction) && !context.platformAdmin) throw new Error('Doar ownerul serverului sau un administrator cu Manage Server poate seta contractul.');
   const title = contractValue(values.title, '');
   const template = String(values.template ?? '').trim().slice(0, 50000);
-  const position = contractValue(values.position, 'Angajat');
+  const address = contractValue(values.address, context.organization.address || '');
   const salary = contractValue(values.salary, '');
   const schedule = contractValue(values.schedule, '20:00-23:00');
   if (title.length < 2) return interactionMessage('Numele contractului este obligatoriu.');
   if (template.length < 20) return interactionMessage('Șablonul contractului este prea scurt.');
   const unknown = [...template.matchAll(/{{[A-Z0-9_]+}}/g)].map((match) => match[0]).filter((value) => !contractTemplateVariables().has(value));
   if (unknown.length) return interactionMessage(`Variabile necunoscute în șablon: ${[...new Set(unknown)].join(', ')}`);
-  const { error } = await db.from('app_settings').upsert({ organization_id: context.organization.id, key: 'contract_template', value: { title, template, defaults: { position, salary: salary || null, schedule } }, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+  const { data: previousTemplate } = await db.from('app_settings').select('value').eq('organization_id', context.organization.id).eq('key', 'contract_template').maybeSingle();
+  const previousDefaults = previousTemplate?.value?.defaults && typeof previousTemplate.value.defaults === 'object' ? previousTemplate.value.defaults : {};
+  const position = contractValue(previousDefaults.position, 'Angajat');
+  const { error } = await db.from('app_settings').upsert({ organization_id: context.organization.id, key: 'contract_template', value: { title, template, defaults: { position, address: address || null, salary: salary || null, schedule } }, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
   if (error) throw error;
-  return interactionMessage(`Șablonul **${title}** a fost salvat. La generare se completează automat organizația, managerul, funcția, salariul, programul, data și numărul contractului; angajatul completează numele, CNP-ul și telefonul.`);
+  return interactionMessage(`Șablonul **${title}** a fost salvat. La generare se completează automat organizația, adresa de lucru, managerul, funcția, salariul, programul, data și numărul contractului; angajatul completează numele, CNP-ul și telefonul.`);
 }
 
 function disciplineModal(audience: 'organization' | 'departments', kind: 'warning' | 'sanction', targetId = '') {
@@ -1106,6 +1135,7 @@ function contractEmbed(contract: any, organization: any, title: string, instruct
     { name: '👤 Angajat', value: contract.employee_name, inline: true },
     { name: '🪪 CNP', value: contract.cnp, inline: true },
     { name: '📞 Telefon', value: contract.phone, inline: true },
+    { name: '📍 Adresă de lucru', value: contract.address || organization.address || '—', inline: false },
     { name: '💼 Funcție', value: contract.position, inline: true },
     { name: '💰 Salariu', value: contract.salary, inline: true },
     { name: '🕒 Program', value: contract.schedule, inline: true },
@@ -1162,6 +1192,7 @@ async function handleContractSubmit(db: any, context: any, values: Record<string
     cnp,
     phone,
     position: contractValue(defaults.position, 'Angajat'),
+    address: contractValue(defaults.address, context.organization.address || '—'),
     salary: contractValue(defaults.salary, '100 lei/lună'),
     schedule: contractValue(defaults.schedule, '20:00-23:00'),
     start_date: contractValue(defaults.start_date, today),
@@ -1171,7 +1202,7 @@ async function handleContractSubmit(db: any, context: any, values: Record<string
   const template = String(custom.template || contractTemplateFallback()).trim().slice(0, 50000);
   const contractText = replaceContractPlaceholders(template, {
     COMPANY: contractValue(context.organization.name, 'Organizație'),
-    ADDRESS: contractValue(context.organization.address, '—'),
+    ADDRESS: contract.address,
     MANAGER: contract.manager,
     EMPLOYEE_NAME: contract.employee_name,
     CNP: contract.cnp,

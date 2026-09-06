@@ -2415,6 +2415,10 @@
             // 2. Construim hărțile și markerele.
             initMaps();
 
+            // Permite embedului informativ Discord să deschidă direct harta aleasă.
+            const requestedMap = new URLSearchParams(window.location.search).get('map');
+            if (['ls', 'cayo', 'maldive'].includes(requestedMap)) switchMap(requestedMap);
+
             // 3. Pornim sincronizarea periodică prin REST.
             startIllegalLocationsPolling();
 
