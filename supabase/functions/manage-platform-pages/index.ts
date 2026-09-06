@@ -24,7 +24,7 @@ function cleanBlocks(value: unknown) {
   if (value.length > 40) throw new Error('Pagina poate avea maximum 40 de blocuri.');
   return value.map((block: any, index) => {
     const type = String(block?.type || 'text');
-    if (!['hero', 'heading', 'text', 'callout', 'list', 'link', 'cards', 'faq', 'table', 'button', 'divider'].includes(type)) throw new Error(`Tip de bloc invalid la poziția ${index + 1}.`);
+    if (!['hero', 'heading', 'text', 'callout', 'list', 'link', 'cards', 'stats', 'faq', 'table', 'button', 'divider'].includes(type)) throw new Error(`Tip de bloc invalid la poziția ${index + 1}.`);
     const result: any = { type };
     if (type === 'list') {
       const items = Array.isArray(block.items) ? block.items.map((item: any) => String(item || '').trim()).filter(Boolean).slice(0, 30) : [];
@@ -37,6 +37,10 @@ function cleanBlocks(value: unknown) {
     } else if (type === 'faq') {
       const items = Array.isArray(block.items) ? block.items.slice(0, 15).map((item: any) => ({ question: String(item?.question || '').trim().slice(0, 180), answer: String(item?.answer || '').trim().slice(0, 1000) })).filter((item: any) => item.question && item.answer) : [];
       if (!items.length) throw new Error(`Întrebările FAQ de la poziția ${index + 1} sunt goale.`);
+      result.items = items;
+    } else if (type === 'stats') {
+      const items = Array.isArray(block.items) ? block.items.slice(0, 8).map((item: any) => ({ label: String(item?.label || '').trim().slice(0, 80), value: String(item?.value || '0').trim().slice(0, 80), detail: String(item?.detail || '').trim().slice(0, 180) })).filter((item: any) => item.label) : [];
+      if (!items.length) throw new Error(`Statisticile de la poziția ${index + 1} sunt goale.`);
       result.items = items;
     } else if (type === 'table') {
       const headers = Array.isArray(block.headers) ? block.headers.map((item: any) => String(item || '').trim().slice(0, 80)).filter(Boolean).slice(0, 8) : [];
