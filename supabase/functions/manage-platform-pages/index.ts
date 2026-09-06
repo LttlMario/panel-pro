@@ -24,17 +24,33 @@ function cleanBlocks(value: unknown) {
   if (value.length > 40) throw new Error('Pagina poate avea maximum 40 de blocuri.');
   return value.map((block: any, index) => {
     const type = String(block?.type || 'text');
-    if (!['heading', 'text', 'callout', 'list', 'link'].includes(type)) throw new Error(`Tip de bloc invalid la poziția ${index + 1}.`);
+    if (!['hero', 'heading', 'text', 'callout', 'list', 'link', 'cards', 'faq', 'table', 'button', 'divider'].includes(type)) throw new Error(`Tip de bloc invalid la poziția ${index + 1}.`);
     const result: any = { type };
     if (type === 'list') {
       const items = Array.isArray(block.items) ? block.items.map((item: any) => String(item || '').trim()).filter(Boolean).slice(0, 30) : [];
       if (!items.length) throw new Error(`Lista de la poziția ${index + 1} este goală.`);
       result.items = items;
+    } else if (type === 'cards') {
+      const cards = Array.isArray(block.cards) ? block.cards.slice(0, 8).map((card: any) => ({ title: String(card?.title || '').trim().slice(0, 120), text: String(card?.text || '').trim().slice(0, 500), href: String(card?.href || '').trim().slice(0, 160) })).filter((card: any) => card.title && card.text) : [];
+      if (!cards.length) throw new Error(`Cardurile de la poziția ${index + 1} sunt goale.`);
+      result.cards = cards;
+    } else if (type === 'faq') {
+      const items = Array.isArray(block.items) ? block.items.slice(0, 15).map((item: any) => ({ question: String(item?.question || '').trim().slice(0, 180), answer: String(item?.answer || '').trim().slice(0, 1000) })).filter((item: any) => item.question && item.answer) : [];
+      if (!items.length) throw new Error(`Întrebările FAQ de la poziția ${index + 1} sunt goale.`);
+      result.items = items;
+    } else if (type === 'table') {
+      const headers = Array.isArray(block.headers) ? block.headers.map((item: any) => String(item || '').trim().slice(0, 80)).filter(Boolean).slice(0, 8) : [];
+      const rows = Array.isArray(block.rows) ? block.rows.slice(0, 20).map((row: any) => Array.isArray(row) ? row.map((cell: any) => String(cell || '').trim().slice(0, 200)).slice(0, 8) : []).filter((row: any[]) => row.length) : [];
+      if (!headers.length || !rows.length) throw new Error(`Tabelul de la poziția ${index + 1} nu are date.`);
+      result.headers = headers; result.rows = rows;
+    } else if (type === 'button') {
+      result.text = String(block.text || 'Deschide pagina').trim().slice(0, 120);
+      result.href = String(block.href || 'index.html').trim().slice(0, 160);
     } else {
       result.text = String(block.text || '').trim().slice(0, 2000);
-      if (!result.text) throw new Error(`Blocul de la poziția ${index + 1} nu are text.`);
+      if (type !== 'divider' && !result.text) throw new Error(`Blocul de la poziția ${index + 1} nu are text.`);
     }
-    if (type === 'link') {
+    if (type === 'link' || type === 'button') {
       const href = String(block.href || '').trim();
       if (!/^[a-z0-9][a-z0-9-]{1,79}\.html(?:[?#].*)?$/i.test(href)) throw new Error('Legăturile paginilor custom pot indica doar pagini Panel Pro.');
       result.href = href;
@@ -97,7 +113,10 @@ Deno.serve(async (request) => {
       if (!sections.has(section)) throw new Error('Zona sidebarului este invalidă.');
       const icon = String(body.icon || '📄').trim().slice(0, 8);
       if (!icons.test(icon)) throw new Error('Iconița paginii este invalidă.');
-      const content = { blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
+      const sourceSettings = body.content?.settings && typeof body.content.settings === 'object' ? body.content.settings : {};
+      const access = ['public', 'authenticated', 'global_admin'].includes(String(sourceSettings.access)) ? String(sourceSettings.access) : 'global_admin';
+      const layout = ['single', 'wide', 'two-column'].includes(String(sourceSettings.layout)) ? String(sourceSettings.layout) : 'single';
+      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'panel-pro').slice(0, 40), responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
       const row = { slug, title, description, icon, sidebar_section: section, sort_order: Math.max(0, Math.min(9999, Number(body.sort_order) || 100)), content, enabled: body.enabled !== false, updated_by_discord_id: session.discord_id };
       const { data: existingPage } = await db.from('platform_custom_pages').select('*').eq('slug', slug).maybeSingle();
       if (existingPage) await db.from('platform_content_versions').insert({ content_type: 'page', content_key: slug, snapshot: existingPage, changed_by_discord_id: session.discord_id, change_type: 'before_save' });
