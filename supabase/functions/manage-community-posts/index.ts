@@ -287,7 +287,7 @@ const loadDisciplineTargets = async (scope:string) => {
     }).sort((left:any, right:any) => String(left.name).localeCompare(String(right.name), 'ro'));
 };
 const notifyActionDiscord = async (record:any) => {
-    const { data: settings } = await db.from('organization_settings').select('webhook_routes,discord_channel_routes,panel_public_url').eq('organization_id', organizationId).maybeSingle();
+    const { data: settings } = await db.from('organization_settings').select('discord_channel_routes,panel_public_url').eq('organization_id', organizationId).maybeSingle();
     const routeKey = 'log_actions_organization';
     if (!routeCandidates(settings, routeKey).some((item) => item.candidates.length)) return null;
     const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
@@ -371,7 +371,7 @@ if (String(body.action || '').startsWith('actions_')) {
         const { data: row, error: loadError } = await db.from('organization_actions').select('*').eq('organization_id', organizationId).eq('id', id).maybeSingle();
         if (loadError) throw loadError;
         if (!row) return reply({ error: 'Acțiunea nu există.' }, 404);
-        const { data: settings } = await db.from('organization_settings').select('webhook_routes,discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
+        const { data: settings } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
         const candidate = routeCandidates(settings, 'log_announcements_organization').flatMap((item) => item.candidates)[0];
         if (row.discord_message_id && candidate) await requestDiscordTarget(db, candidate, null, { method: 'DELETE', messageId: String(row.discord_message_id) }).catch(() => null);
         const { error } = await db.from('organization_actions').delete().eq('organization_id', organizationId).eq('id', id);
@@ -571,7 +571,7 @@ const activeDisciplineCount = async (scope:string, targetDiscordId:string|null) 
 
 const notifyDisciplineDiscord = async (kind:'warning'|'sanction', record:any) => {
     const { data: settings } = await db.from('organization_settings')
-        .select('webhook_routes,discord_channel_routes,panel_public_url')
+        .select('discord_channel_routes,panel_public_url')
         .eq('organization_id', organizationId)
         .maybeSingle();
     const audience = record.target_scope === 'departments' ? 'departments' : 'organization';
@@ -678,7 +678,7 @@ if (body.action === 'discipline_delete') {
     if (!hasDisciplineFeature(item.target_scope)) return reply({ error: 'Această categorie disciplinară nu este inclusă în pachetul organizației.' }, 403);
     if (!isPlatformAdmin && !isAuthor && !configuredDelete) return reply({ error: 'Nu ai dreptul să ștergi această înregistrare.' }, 403);
 
-    const { data: settings } = await db.from('organization_settings').select('webhook_routes,discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
+    const { data: settings } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
     if (item.discord_message_id) {
         const audience = item.target_scope === 'departments' ? 'departments' : 'organization';
         const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
@@ -784,7 +784,7 @@ const own = async (id:string) => {
     if (post.discord_message_id) {
         const { data: cfg } = await db
             .from('organization_settings')
-            .select('webhook_routes,discord_channel_routes')
+            .select('discord_channel_routes')
             .eq('organization_id', organizationId)
             .maybeSingle();
 
@@ -826,7 +826,7 @@ const own = async (id:string) => {
    if (commentsCleanupError) console.warn('Comentariile anunțului nu au putut fi curățate:', commentsCleanupError.message);
    const messageRefs = Array.isArray(item.discord_message_ids) ? item.discord_message_ids : [];
    const referenceOrganizationIds = [...new Set(messageRefs.map((ref: any) => String(ref?.organization_id || organizationId)).filter(Boolean))];
-   const { data: referenceSettings } = await db.from('organization_settings').select('organization_id,webhook_routes,discord_channel_routes').in('organization_id', referenceOrganizationIds);
+    const { data: referenceSettings } = await db.from('organization_settings').select('organization_id,discord_channel_routes').in('organization_id', referenceOrganizationIds);
    const settingsByOrganization = new Map((referenceSettings || []).map((settings: any) => [String(settings.organization_id), settings]));
    for (const ref of messageRefs) {
      if (ref?.channel_id && ref?.id) {

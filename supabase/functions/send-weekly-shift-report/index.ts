@@ -208,7 +208,7 @@ Deno.serve(async (request) => {
             .order('date', { ascending: false })
             .order('created_at', { ascending: false }),
           db.from('organization_settings')
-            .select('webhook_routes,discord_channel_routes')
+            .select('discord_channel_routes')
             .eq('organization_id', organization.id)
             .maybeSingle(),
         ]);

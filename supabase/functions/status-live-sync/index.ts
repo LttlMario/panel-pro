@@ -117,7 +117,7 @@ Deno.serve(async (request) => {
       .select('name,live_status_message_id,live_status_last_update')
       .eq('id', organizationId)
       .maybeSingle(),      
-      db.from('organization_settings').select('webhook_routes,discord_channel_routes').eq('organization_id', organizationId).maybeSingle(),
+      db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle(),
       db.from('shifts').select('*').eq('organization_id', organizationId).in('status', ['active', 'paused']).is('end_time', null),
     ]);
     if (shiftsError) throw shiftsError;
@@ -179,8 +179,8 @@ Deno.serve(async (request) => {
       for (const candidate of destination.candidates) {
         // Prioritatea este ID-ul salvat pe rută, apoi ID-ul păstrat în browser,
         // iar pentru canalul principal folosim și ID-ul istoric al organizației.
-        // Dacă ID-ul vechi aparține unui webhook șters/dezactivat, PATCH-ul
-        // eșuează și se face automat un singur POST de înlocuire.
+        // Dacă mesajul botului a fost șters, PATCH-ul eșuează și se face
+        // automat un singur POST de înlocuire.
         const existingId = String(
           candidate.message_id || requestedMessageIds[target] || (target === 'primary' ? storedMessageId : '') || ''
         ).trim();

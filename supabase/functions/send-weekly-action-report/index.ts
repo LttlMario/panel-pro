@@ -115,7 +115,7 @@ Deno.serve(async (request) => {
       try {
         const [{ data: rows, error: rowsError }, { data: settings, error: settingsError }] = await Promise.all([
           db.from('organization_actions').select('id,action_type,action_label,participants,created_at').eq('organization_id', organization.id).gte('created_at', period.start).lte('created_at', period.end).order('created_at', { ascending: false }),
-          db.from('organization_settings').select('webhook_routes,discord_channel_routes').eq('organization_id', organization.id).maybeSingle()
+          db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organization.id).maybeSingle()
         ]);
         if (rowsError) throw rowsError;
         if (settingsError) throw settingsError;

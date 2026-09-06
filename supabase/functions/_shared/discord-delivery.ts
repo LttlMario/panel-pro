@@ -25,7 +25,7 @@ const errorMessage = (error: unknown) => {
   return 'Eroare Discord.';
 };
 
-export const routeCandidates = (settings: any, routeKey: string, _legacyWebhookUrls: string[] = [], fallbackRouteKey = '') => {
+export const routeCandidates = (settings: any, routeKey: string, fallbackRouteKey = '') => {
   const channelRoutes = settings?.discord_channel_routes || {};
   const channelRoute = channelRoutes?.[routeKey] || {};
   const fallbackRoute = channelRoutes?.[fallbackRouteKey] || {};
@@ -164,11 +164,11 @@ export async function deliverDiscordRoute(
   settings: any,
   routeKey: string,
   body: BodyInit,
-  options: { messageIds?: Record<string, string>; legacyWebhookUrls?: string[]; headers?: Record<string, string>; fallbackRouteKey?: string; postOnly?: boolean } = {}
+  options: { messageIds?: Record<string, string>; headers?: Record<string, string>; fallbackRouteKey?: string; postOnly?: boolean } = {}
 ) {
   const results: any[] = [];
   const failures: string[] = [];
-  for (const { target, candidates } of routeCandidates(settings, routeKey, options.legacyWebhookUrls || [], options.fallbackRouteKey || '')) {
+  for (const { target, candidates } of routeCandidates(settings, routeKey, options.fallbackRouteKey || '')) {
     if (!candidates.length) continue;
     const requestedMessageId = options.postOnly ? '' : String(options.messageIds?.[target] || '').trim();
     let delivered = false;

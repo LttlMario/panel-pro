@@ -45,7 +45,7 @@ const discordGuildName=async(guildId:string,botToken:string)=>{
     return String(data?.name||'').trim().slice(0,120);
   }catch(_){return '';}
 };
-const webhookChannels=new Set([
+const channelRoutes=new Set([
   'organization',
   'departments',
   'pontaj',
@@ -101,7 +101,7 @@ const webhookFeature=(channel:string)=>{
 };
 const filterWebhookRoutesForPackage=(routes:any,features:string[])=>Object.fromEntries(Object.entries(routes&&typeof routes==='object'?routes:{}).filter(([channel])=>{const feature=webhookFeature(channel);return !feature||features.includes(feature);}));
 const validDiscordChannelId=(value:any)=>/^\d{15,22}$/.test(String(value||'').trim());
-const sanitizeDiscordChannelRoutes=(routes:any)=>Object.fromEntries(Object.entries(routes&&typeof routes==='object'?routes:{}).filter(([channel,route]:any)=>webhookChannels.has(channel)&&route&&typeof route==='object').map(([channel,route]:any)=>{
+const sanitizeDiscordChannelRoutes=(routes:any)=>Object.fromEntries(Object.entries(routes&&typeof routes==='object'?routes:{}).filter(([channel,route]:any)=>channelRoutes.has(channel)&&route&&typeof route==='object').map(([channel,route]:any)=>{
   const target=(name:'primary'|'secondary')=>{
     const item=route?.[name];
     if(!item?.enabled||!validDiscordChannelId(item.channel_id))return null;
@@ -111,7 +111,7 @@ const sanitizeDiscordChannelRoutes=(routes:any)=>Object.fromEntries(Object.entri
 }));
 const summarizeBotChannels=(routes:any)=>{
   const source=routes&&typeof routes==='object'?routes:{};
-  const channels=[...webhookChannels];
+  const channels=[...channelRoutes];
   let configured=0,missing=0,invalid=0;
   for(const channel of channels){
     const route=source[channel]&&typeof source[channel]==='object'?source[channel]:{};
@@ -414,30 +414,10 @@ Deno.serve(async request=>{
       const settings=body.settings||{};let clientId=String(settings.discord_client_id||'').trim();let publicUrl=String(settings.panel_public_url||'').replace(/\/$/,'');
       if(!clientId||!publicUrl){const rootIds=await getPlatformAdminDiscordIds(db);const {data:ownerSession,error:ownerSessionError}=rootIds.length?await db.from('panel_sessions').select('organization_id').in('discord_id',rootIds).order('created_at',{ascending:false}).limit(1).maybeSingle():{data:null,error:null};if(ownerSessionError)throw ownerSessionError;const {data:platformSettings,error:platformSettingsError}=ownerSession?.organization_id?await db.from('organization_settings').select('discord_client_id,panel_public_url').eq('organization_id',ownerSession.organization_id).maybeSingle():{data:null,error:null};if(platformSettingsError)throw platformSettingsError;clientId=clientId||String(platformSettings?.discord_client_id||'').trim();publicUrl=publicUrl||String(platformSettings?.panel_public_url||'').replace(/\/$/,'');}
       if(!/^\d{15,22}$/.test(clientId))throw new Error('Configurarea platformei nu are un Discord Client ID valid.');try{new URL(publicUrl)}catch{throw new Error('Configurarea platformei nu are un URL public valid.');}
-const rawRoutes =
-  settings.webhook_routes &&
-  typeof settings.webhook_routes === 'object'
-    ? settings.webhook_routes
-    : {};
-
-const validWebhook = (value:any) => {
-  try {
-    const url = new URL(String(value || ''));
-
-    return (
-      url.protocol === 'https:' &&
-      ['discord.com', 'discordapp.com'].includes(url.hostname) &&
-      url.pathname.startsWith('/api/webhooks/')
-    );
-  } catch {
-    return false;
-  }
-};
-
 const { data: currentOrganizationSettings, error: currentOrganizationSettingsError } =
   await db
     .from('organization_settings')
-    .select('webhook_routes,discord_channel_routes')
+    .select('discord_channel_routes')
     .eq('organization_id', organizationId)
     .maybeSingle();
 
@@ -445,96 +425,6 @@ if (currentOrganizationSettingsError) {
   throw currentOrganizationSettingsError;
 }
 
-const existingWebhookRoutes =
-  currentOrganizationSettings?.webhook_routes &&
-  typeof currentOrganizationSettings.webhook_routes === 'object'
-    ? currentOrganizationSettings.webhook_routes
-    : {};
-
-const submittedWebhookRoutes = Object.fromEntries(
-  Object.entries(rawRoutes)
-    .filter(([channel, route]: any) => {
-      if (!webhookChannels.has(channel)) return false;
-      if (!route || typeof route !== 'object') return false;
-
-      return true;
-    })
-    .map(([channel, route]: any) => {
-
-      const existingRoute =
-        existingWebhookRoutes[channel] &&
-        typeof existingWebhookRoutes[channel] === 'object'
-          ? existingWebhookRoutes[channel]
-          : {};
-
-      const buildTarget = (
-        target: 'primary' | 'secondary'
-      ) => {
-
-        const submitted = route?.[target];
-        const existing = existingRoute?.[target];
-
-        /*
-         * Dacă formularul trimite explicit acest target,
-         * folosim valoarea nouă.
-         */
-        if (submitted && typeof submitted === 'object') {
-
-          const enabled = submitted.enabled === true;
-          const url = String(submitted.url || '').trim();
-
-          /*
-           * Debifat sau URL gol = ștergere explicită.
-           */
-          if (!enabled || !url) {
-            return null;
-          }
-
-          if (!validWebhook(url)) {
-            throw new Error(
-              `Webhook Discord invalid pentru ${channel}/${target}.`
-            );
-          }
-
-          return {
-            enabled: true,
-            url,
-            ...(existing?.message_id ? { message_id: String(existing.message_id) } : {})
-          };
-        }
-
-        /*
-         * Dacă formularul NU a trimis targetul,
-         * păstrăm configurația existentă.
-         */
-        if (
-          existing &&
-          typeof existing === 'object' &&
-          existing.url
-        ) {
-          return existing;
-        }
-
-        return null;
-      };
-
-      return [
-        channel,
-        {
-          primary: buildTarget('primary'),
-          secondary: buildTarget('secondary')
-        }
-      ];
-    })
-);
-
-/*
- * Păstrăm și eventualele rute existente care nu au fost
- * trimise deloc de formular.
- */
-// Trimiterea Discord se face exclusiv prin bot și discord_channel_routes.
-// Rutele webhook istorice nu mai sunt păstrate și nu mai sunt folosite.
-const webhook_routes = {};
 const rawChannelRoutes = settings.discord_channel_routes && typeof settings.discord_channel_routes === 'object' ? settings.discord_channel_routes : {};
 const existingChannelRoutes = currentOrganizationSettings?.discord_channel_routes && typeof currentOrganizationSettings.discord_channel_routes === 'object' ? currentOrganizationSettings.discord_channel_routes : {};
 const discord_channel_routes = settings.discord_channel_routes === undefined
@@ -547,7 +437,6 @@ const { error: settingsError } =
       organization_id: organizationId,
       discord_client_id: clientId,
       panel_public_url: publicUrl,
-      webhook_routes,
       discord_channel_routes,
       updated_by_discord_id: session.discord_id,
       updated_at: new Date().toISOString()

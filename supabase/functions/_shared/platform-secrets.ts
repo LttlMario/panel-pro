@@ -11,11 +11,6 @@ const SECRET_ENV_FALLBACKS: Record<string, string[]> = {
   public_community_channel_secondary: ['PUBLIC_COMMUNITY_CHANNEL_SECONDARY'],
   public_rating_channel_primary: ['PUBLIC_RATING_CHANNEL_PRIMARY'],
   public_rating_channel_secondary: ['PUBLIC_RATING_CHANNEL_SECONDARY'],
-  discord_pontaj_webhook_url: ['DISCORD_PONTAJ_WEBHOOK_URL'],
-  public_community_webhook_primary: ['PUBLIC_COMMUNITY_WEBHOOK_PRIMARY'],
-  public_community_webhook_secondary: ['PUBLIC_COMMUNITY_WEBHOOK_SECONDARY'],
-  public_rating_webhook_primary: ['PUBLIC_RATING_WEBHOOK_PRIMARY'],
-  public_rating_webhook_secondary: ['PUBLIC_RATING_WEBHOOK_SECONDARY'],
 };
 
 export async function getPlatformSecret(db: any, name: string): Promise<string> {

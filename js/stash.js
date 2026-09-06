@@ -105,7 +105,7 @@
       if (modalMode === 'request') result = await api('create_request', values);
       if (modalMode === 'donation') result = await api('create_donation', values);
       const wasDonation = modalMode === 'donation', wasWithdrawal = modalMode === 'withdraw'; closeModal(); showNotice(wasDonation ? 'Donația a fost trimisă pentru aprobare.' : wasWithdrawal ? 'Retragerea a fost salvată, iar embedul a fost actualizat cu stocul rămas.' : 'Modificările au fost salvate.'); await load();
-      if (result?.webhook && (!result.webhook.configured || result.webhook.failed > 0)) showNotice('Datele au fost salvate, dar mesajul botului nu a fost livrat. Verifică ruta și canalul Discord selectat în administrarea organizației.', true);
+      if (result?.delivery && (!result.delivery.configured || result.delivery.failed > 0)) showNotice('Datele au fost salvate, dar mesajul botului nu a fost livrat. Verifică ruta și canalul Discord selectat în administrarea organizației.', true);
     } catch (error) { showNotice(error.message, true); }
   };
   const setTab = (tab) => { document.querySelectorAll('[data-stash-tab]').forEach((button) => button.classList.toggle('active', button.dataset.stashTab === tab)); $('stash-items-panel').hidden = tab !== 'items'; $('stash-requests-panel').hidden = tab !== 'requests'; $('stash-donations-panel').hidden = tab !== 'donations'; $('stash-archives-panel').hidden = tab !== 'archives'; };

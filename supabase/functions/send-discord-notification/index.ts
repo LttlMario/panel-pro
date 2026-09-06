@@ -219,7 +219,7 @@ Deno.serve(async (request) => {
 
     const { data: settings, error: settingsError } = await db
       .from('organization_settings')
-      .select('discord_client_id,panel_public_url,webhook_routes,discord_channel_routes')
+      .select('discord_client_id,panel_public_url,discord_channel_routes')
       .eq('organization_id', sessionOrganizationId)
       .maybeSingle();
     if (settingsError) throw settingsError;
@@ -283,11 +283,11 @@ Deno.serve(async (request) => {
         : '';
     let effectiveRouteKey = finalChannel;
     let effectiveFallbackRouteKey = fallbackRouteKey;
-    let configuredRoutes = routeCandidates(settings, finalChannel, [], fallbackRouteKey);
+    let configuredRoutes = routeCandidates(settings, finalChannel, fallbackRouteKey);
     // Cele două panouri de învoiri pot fi publicate în același canal dacă
     // este selectat doar unul dintre ele. Logurile nu folosesc acest fallback.
     if (!configuredRoutes.some((item) => item.candidates.length) && alternateControlRouteKey) {
-      const alternateRoutes = routeCandidates(settings, alternateControlRouteKey, [], fallbackRouteKey);
+      const alternateRoutes = routeCandidates(settings, alternateControlRouteKey, fallbackRouteKey);
       if (alternateRoutes.some((item) => item.candidates.length)) {
         effectiveRouteKey = alternateControlRouteKey;
         effectiveFallbackRouteKey = fallbackRouteKey;

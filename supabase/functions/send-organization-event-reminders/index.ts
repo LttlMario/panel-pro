@@ -67,7 +67,7 @@ Deno.serve(async (request) => {
     if (!organizationIds.length) return reply({ ok: true, reminder_date: today, results: [] });
     const [{ data: events, error: eventError }, { data: settings, error: settingsError }] = await Promise.all([
       db.from('organization_events').select('id,organization_id,title,event_type,event_date,details,evidence_url,status').eq('status', 'active').in('organization_id', organizationIds).gte('event_date', oldest).lte('event_date', today).order('event_date'),
-      db.from('organization_settings').select('organization_id,webhook_routes,discord_channel_routes').in('organization_id', organizationIds),
+      db.from('organization_settings').select('organization_id,discord_channel_routes').in('organization_id', organizationIds),
     ]);
     if (eventError) throw eventError;
     if (settingsError) throw settingsError;

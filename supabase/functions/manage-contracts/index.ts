@@ -239,7 +239,7 @@ async function manualDiscordExport(db: any, session: any, body: any) {
 
   const [{ data: employees, error: employeesError }, { data: settings, error: settingsError }, { data: organization, error: organizationError }] = await Promise.all([
     db.from('organization_employees').select('id,full_name,cnp,status').eq('organization_id', session.organization_id).is('archived_at', null).in('id', ids).order('full_name'),
-    db.from('organization_settings').select('webhook_routes,discord_channel_routes').eq('organization_id', session.organization_id).maybeSingle(),
+    db.from('organization_settings').select('discord_channel_routes').eq('organization_id', session.organization_id).maybeSingle(),
     db.from('organizations').select('name').eq('id', session.organization_id).maybeSingle(),
   ]);
   if (employeesError) throw employeesError;

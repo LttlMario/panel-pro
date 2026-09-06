@@ -108,9 +108,9 @@ Deno.serve(async (req) => {
       const { error } = await db.from('organizations').update(patch).eq('id', id);
       if (error) throw error;
     }
-    if (body.webhook_routes || body.discord_channel_routes) {
-      const { data: currentSettings } = await db.from('organization_settings').select('discord_client_id,panel_public_url,webhook_routes,discord_channel_routes').eq('organization_id', id).maybeSingle();
-       const { error } = await db.from('organization_settings').upsert({ organization_id: id, discord_client_id: String(body.discord_client_id || currentSettings?.discord_client_id || ''), panel_public_url: String(body.panel_public_url || currentSettings?.panel_public_url || ''), webhook_routes: body.webhook_routes ? sanitizeWebhookRoutes(body.webhook_routes, packageAllowsWebhook) : (currentSettings?.webhook_routes || {}), discord_channel_routes: body.discord_channel_routes ? sanitizeDiscordChannelRoutes(body.discord_channel_routes) : (currentSettings?.discord_channel_routes || {}), updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
+    if (body.discord_channel_routes) {
+      const { data: currentSettings } = await db.from('organization_settings').select('discord_client_id,panel_public_url,discord_channel_routes').eq('organization_id', id).maybeSingle();
+       const { error } = await db.from('organization_settings').upsert({ organization_id: id, discord_client_id: String(body.discord_client_id || currentSettings?.discord_client_id || ''), panel_public_url: String(body.panel_public_url || currentSettings?.panel_public_url || ''), discord_channel_routes: sanitizeDiscordChannelRoutes(body.discord_channel_routes), updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
       if (error) throw error;
     }
     if (body.page_permissions) {

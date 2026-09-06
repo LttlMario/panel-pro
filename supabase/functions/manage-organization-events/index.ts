@@ -140,7 +140,7 @@ Deno.serve(async (request) => {
       if (error) throw error;
       let notification: any = { status: 'not_sent', error: 'Notificarea automată nu a putut fi pregătită.' };
       try {
-        const { data: settings, error: settingsError } = await db.from('organization_settings').select('webhook_routes,discord_channel_routes').eq('organization_id', session.organization_id).maybeSingle();
+        const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', session.organization_id).maybeSingle();
         if (settingsError) throw settingsError;
         notification = await sendAutomaticReminder(db, settings, data);
       } catch (notificationError) {
@@ -161,7 +161,7 @@ Deno.serve(async (request) => {
     if (action === 'send_test') {
       const { data: event, error: eventError } = await db.from('organization_events').select(eventFields).eq('id', clean(body.id, 80)).eq('organization_id', session.organization_id).single();
       if (eventError) throw eventError;
-      const { data: settings, error: settingsError } = await db.from('organization_settings').select('webhook_routes,discord_channel_routes').eq('organization_id', session.organization_id).maybeSingle();
+        const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', session.organization_id).maybeSingle();
       if (settingsError) throw settingsError;
       if (!routeCandidates(settings, 'event_reminders').some((item) => item.candidates.length)) return reply(request, { error: 'Configurează întâi canalul Discord al botului pentru „Evenimente · remindere 14 zile”.' }, 400);
       const today = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);

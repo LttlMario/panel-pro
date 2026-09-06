@@ -112,7 +112,7 @@ Deno.serve(async (request) => {
     const [accessResult, packageResult, settingsResult] = await Promise.all([
       db.from('app_settings').select('organization_id,value').in('organization_id', ids).eq('key', 'organization_access'),
       db.from('app_settings').select('organization_id,value').in('organization_id', ids).eq('key', 'organization_package'),
-      db.from('organization_settings').select('organization_id,panel_public_url,webhook_routes,discord_channel_routes').in('organization_id', ids),
+      db.from('organization_settings').select('organization_id,panel_public_url,discord_channel_routes').in('organization_id', ids),
     ]);
     for (const result of [accessResult, packageResult, settingsResult]) if (result.error) throw result.error;
 

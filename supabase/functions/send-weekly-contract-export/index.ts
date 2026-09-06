@@ -144,7 +144,7 @@ Deno.serve(async (request) => {
       try {
         if (botToken) await refreshDiscordEmployees(db, organization, botToken);
         const [{ data: settings, error: settingsError }, { data: contracts, error: contractsError }] = await Promise.all([
-          db.from('organization_settings').select('webhook_routes,discord_channel_routes').eq('organization_id', organization.id).maybeSingle(),
+          db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organization.id).maybeSingle(),
           db.from('organization_contracts').select('employee_id,created_at').eq('organization_id', organization.id).gte('created_at', period.startIso).lt('created_at', period.nextIso).order('created_at'),
         ]);
         if (settingsError) throw settingsError;
