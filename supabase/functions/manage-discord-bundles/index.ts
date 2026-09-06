@@ -10,11 +10,11 @@ const api = 'https://discord.com/api/v10';
 const VIEW = 1024n, SEND = 2048n, EMBED = 16384n, HISTORY = 65536n, MANAGE_MESSAGES = 8192n;
 const allow = (...bits: bigint[]) => bits.reduce((sum, bit) => sum | bit, 0n).toString();
 
-type ModuleSpec = { key: string; label: string; description: string; handler: string; color: number; fields?: any[]; buttons: any[]; review?: boolean; channel: string };
+type ModuleSpec = { key: string; label: string; description: string; handler: string; color: number; fields?: any[]; buttons: any[]; review?: boolean; channel: string; logChannel: string };
 type BundleSpec = { label: string; category: string; modules: ModuleSpec[] };
 
 const field = (id: string, label: string, type = 'short_text', required = true) => ({ id, label, type, required, max_length: type === 'long_text' ? 1500 : 300 });
-const module = (key: string, label: string, description: string, handler: string, color: number, channel: string, fields: any[] = [], review = false, button = 'Deschide formularul'): ModuleSpec => ({ key, label, description, handler, color, channel, fields, review, buttons: [{ label: button, action: handler === 'report' ? 'report' : 'open_form', style: review ? 3 : 1 }] });
+const module = (key: string, label: string, description: string, handler: string, color: number, channel: string, fields: any[] = [], review = false, button = 'Deschide formularul'): ModuleSpec => ({ key, label, description, handler, color, channel, logChannel: `🧾・log-${channel.replace(/^[^・]+・/, '')}`, fields, review, buttons: [{ label: button, action: handler === 'report' ? 'report' : 'open_form', style: review ? 3 : 1 }] });
 const bundles: Record<string, BundleSpec> = {
   full: {
     label: 'Full', category: 'PANEL PRO · FULL', modules: [
@@ -91,12 +91,13 @@ Deno.serve(async (request) => {
     const botAllow = allow(VIEW, SEND, EMBED, HISTORY, MANAGE_MESSAGES);
     const botOverwrite = [{ id: String(bot.id), type: 1, allow: botAllow, deny: '0' }];
     const category = await ensureChannel(guildId, token, channels, bundle.category, 4);
-    const log = await ensureChannel(guildId, token, channels, '🤖・panel-pro-log', 0, String(category.row.id), botOverwrite);
-    let createdChannels = Number(category.created) + Number(log.created), createdMessages = 0;
-    const installedChannels: any[] = [{ id: String(log.row.id), name: String(log.row.name || '🤖・panel-pro-log'), purpose: 'rezultate și loguri' }];
+    let createdChannels = Number(category.created), createdMessages = 0;
+    const installedChannels: any[] = [];
     for (const item of bundle.modules) {
       const channel = await ensureChannel(guildId, token, channels, item.channel, 0, String(category.row.id), botOverwrite);
       createdChannels += Number(channel.created);
+      const log = await ensureChannel(guildId, token, channels, item.logChannel, 0, String(category.row.id), botOverwrite);
+      createdChannels += Number(log.created);
       const { data: existingModule } = await db.from('platform_module_templates').select('module_key').eq('module_key', item.key).maybeSingle();
       if (!existingModule) {
         const { error: moduleError } = await db.from('platform_module_templates').insert({ module_key: item.key, label: item.label, description: item.description, definition: definitionFor(item), enabled: true, updated_by_discord_id: session.discord_id });
@@ -112,9 +113,9 @@ Deno.serve(async (request) => {
       if (!currentPublication?.message_id) createdMessages += 1;
       const { error: publicationError } = await db.from('platform_module_publications').upsert({ module_key: item.key, organization_id: organizationId, guild_id: guildId, target, embed_channel_id: String(channel.row.id), result_channel_id: String(log.row.id), permissions: {}, message_id: String(message.id || currentPublication?.message_id || ''), status: 'published', last_error: null, published_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: 'module_key,organization_id,target' });
       if (publicationError) throw publicationError;
-      installedChannels.push({ id: String(channel.row.id), name: String(channel.row.name || item.channel), purpose: item.label, module_key: item.key });
+      installedChannels.push({ id: String(channel.row.id), name: String(channel.row.name || item.channel), purpose: item.label, module_key: item.key, kind: 'embed' }, { id: String(log.row.id), name: String(log.row.name || item.logChannel), purpose: `log ${item.label}`, module_key: item.key, kind: 'log' });
     }
-    await db.from('admin_audit_log').insert({ organization_id: organizationId, actor_discord_id: session.discord_id, action: 'discord_bundle_structure_installed', target_type: 'discord_guild', target_id: guildId, details: { bundle: body.bundle_key, category_id: category.row.id, log_channel_id: log.row.id, channel_count: installedChannels.length } });
-    return reply({ ok: true, guild: { id: guildInfo.id, name: guildInfo.name }, category: { id: category.row.id, name: bundle.category }, log_channel: { id: log.row.id, name: log.row.name }, created: { channels: createdChannels, roles: 0, messages: createdMessages }, channels: installedChannels, modules_available: bundle.modules.map((item) => ({ module_key: item.key, label: item.label, embed_channel_id: installedChannels.find((channel) => channel.module_key === item.key)?.id || '', result_channel_id: String(log.row.id) })) });
+    await db.from('admin_audit_log').insert({ organization_id: organizationId, actor_discord_id: session.discord_id, action: 'discord_bundle_installed', target_type: 'discord_guild', target_id: guildId, details: { bundle: body.bundle_key, category_id: category.row.id, channel_count: installedChannels.length, module_count: bundle.modules.length } });
+    return reply({ ok: true, guild: { id: guildInfo.id, name: guildInfo.name }, category: { id: category.row.id, name: bundle.category }, created: { channels: createdChannels, roles: 0, messages: createdMessages }, channels: installedChannels, modules_available: bundle.modules.map((item) => ({ module_key: item.key, label: item.label, embed_channel_id: installedChannels.find((channel) => channel.module_key === item.key && channel.kind === 'embed')?.id || '', result_channel_id: installedChannels.find((channel) => channel.module_key === item.key && channel.kind === 'log')?.id || '' })) });
   } catch (error) { return reply({ error: error instanceof Error ? error.message : 'Instalarea pachetului a eșuat.' }, 400); }
 });

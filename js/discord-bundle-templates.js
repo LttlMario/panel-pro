@@ -74,7 +74,7 @@
     const bundle = selected();
     if (!bundle || !preview) { if (preview) preview.hidden = true; return; }
     preview.hidden = false;
-    preview.innerHTML = `<div class="flex items-center justify-between gap-2"><strong>${esc(bundle.label)}</strong><span class="tag">${bundle.modules.length} module + canale</span></div><p class="muted mt-2">${esc(bundle.description)}</p><div class="grid gap-2 sm:grid-cols-2 mt-3">${bundle.modules.map((item) => `<div class="rounded-lg border border-slate-800 bg-slate-950/60 p-2"><strong>${esc(item[1])}</strong><br><small class="muted">Embed cu butoane · rezultate în canalul Panel Pro log</small></div>`).join('')}</div><p class="muted text-xs mt-3">Instalarea creează categoria și canalele, activează modulele și publică embedurile. Nu creează roluri noi. Membrii activi ai organizației pot folosi modulele configurate.</p>`;
+    preview.innerHTML = `<div class="flex items-center justify-between gap-2"><strong>${esc(bundle.label)}</strong><span class="tag">${bundle.modules.length} module + canale</span></div><p class="muted mt-2">${esc(bundle.description)}</p><div class="grid gap-2 sm:grid-cols-2 mt-3">${bundle.modules.map((item) => `<div class="rounded-lg border border-slate-800 bg-slate-950/60 p-2"><strong>${esc(item[1])}</strong><br><small class="muted">Embed cu butoane + canal propriu de log</small></div>`).join('')}</div><p class="muted text-xs mt-3">Pentru fiecare modul se creează un canal principal și un canal separat de log. Embedul rămâne în canalul principal, iar acțiunile merg în logul pereche. Nu se creează roluri noi.</p>`;
   };
   const loadInstallTargets = async () => {
     try {
@@ -133,7 +133,7 @@
     try {
       setStatus('Instalez pachetul pe Discord. Nu închide pagina…');
       const result = await installCall({ action: 'install_bundle', bundle_key: select.value, organization_id: organizationId, guild_id: guildId });
-      setStatus(`Pachet instalat: ${result.created?.channels || 0} canale și ${result.created?.messages || 0} embeduri publicate. Nu au fost create roluri noi.`);
+      setStatus(`Pachet instalat: ${result.created?.channels || 0} canale și ${result.created?.messages || 0} embeduri publicate. Fiecare modul are logul lui; nu au fost create roluri noi.`);
     } catch (error) { setStatus(error?.message || 'Instalarea pe Discord a eșuat.', true); }
   };
   load();
