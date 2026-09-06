@@ -13,6 +13,15 @@ verify_jwt = false
 [functions.discord-interactions]
 verify_jwt = false
 
+[functions.manage-platform-pages]
+verify_jwt = false
+
+[functions.manage-panel-modules]
+verify_jwt = false
+
+[functions.sync-discord-commands]
+verify_jwt = false
+
 [functions.discover-discord-channels]
 verify_jwt = false
 
