@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Activator organizație · Panel Pro</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+  <script src="js/supabase-config.js?v=20260907-activator1"></script>
+  <script src="js/permissions.js?v=20260907-activator1"></script>
+  <script src="js/panel-layout.js?v=20260907-activator1"></script>
+  <script src="js/project-version.js?v=3.13.0"></script>
+  <link rel="stylesheet" href="css/global-footer.css">
+  <style>
+    *{box-sizing:border-box}.shell{max-width:1220px;margin:auto;padding:28px 24px 54px}.hero,.card{border:1px solid #26364d;border-radius:20px;background:linear-gradient(145deg,#101c31,#091222);box-shadow:0 18px 48px #02061755}.hero{padding:25px}.eyebrow{color:#67e8f9;font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}.hero h1{margin-top:6px;font-size:clamp(24px,3vw,36px);font-weight:950}.muted{color:#94a3b8;line-height:1.55}.layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(330px,.8fr);gap:16px;margin-top:16px}.card{padding:19px}.card h2{font-size:16px;font-weight:950}.field{display:grid;gap:6px;margin-top:14px;color:#b9c7d8;font-size:12px;font-weight:700}.field input,.field select{width:100%;border:1px solid #334155;border-radius:10px;background:#07101f;color:#e2e8f0;padding:11px;outline:0}.field input:focus,.field select:focus{border-color:#22d3ee}.checks{display:grid;gap:10px;margin-top:16px}.check{display:flex;align-items:flex-start;gap:9px;padding:11px;border:1px solid #263b58;border-radius:11px;background:#07101f;color:#cbd5e1;font-size:12px}.check input{margin-top:2px;accent-color:#22d3ee}.check small{display:block;margin-top:3px;color:#8294aa;font-weight:400}.button{border:1px solid #36516f;border-radius:10px;background:#12243a;color:#e2e8f0;padding:11px 14px;font-size:12px;font-weight:900;cursor:pointer}.button.primary{border-color:#10b981;background:#047857;color:#ecfdf5}.button:disabled{opacity:.55;cursor:wait}.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}.status{min-height:22px;margin-top:14px;color:#94a3b8;font-size:12px}.status.ok{color:#6ee7b7}.status.error{color:#fda4af}.summary{display:grid;gap:9px;margin-top:14px}.summary-row{display:flex;justify-content:space-between;gap:12px;padding:10px;border-bottom:1px solid #1e2c40;color:#9fb0c5;font-size:12px}.summary-row strong{color:#f8fafc;text-align:right}.feature-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.feature{border:1px solid #36516f;border-radius:999px;padding:5px 8px;color:#93c5fd;font-size:10px}.notice{margin-top:14px;padding:11px;border:1px solid #36516f;border-radius:11px;background:#07101f;color:#aebed1;font-size:11px;line-height:1.5}@media(max-width:850px){.shell{padding:18px 14px 36px}.layout{grid-template-columns:1fr}}
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <main><div id="panel-header-host"></div><section class="shell">
+    <section class="hero"><p class="eyebrow">Administrație globală · Panel Pro Web</p><h1>⚡ Activator organizație</h1><p class="muted">Activează o organizație în câțiva pași: pachet, durată, server Discord și modulele Panel Pro. Operațiile sunt validate pe server și apar în audit.</p></section>
+    <p id="activator-status" class="status">Se încarcă organizațiile și serverele Discord…</p>
+    <section class="layout">
+      <section class="card"><h2>1. Organizație și acces</h2><p class="muted text-xs mt-1">Alege organizația existentă pe care vrei să o activezi.</p>
+        <label class="field">Organizație<select id="organization-select"><option value="">Se încarcă…</option></select></label>
+        <div class="grid gap-3 sm:grid-cols-2"><label class="field">Pachet web<select id="package-select"><option value="standard">Standard</option><option value="operations">Operations</option><option value="full">Full</option></select></label><label class="field">Durată<select id="duration-select"><option value="7">7 zile</option><option value="30" selected>30 zile</option><option value="90">90 zile</option><option value="365">1 an</option><option value="unlimited">Nelimitat</option></select></label></div>
+        <div class="checks"><label class="check"><input id="discord-install" type="checkbox" checked><span><strong>Configurează Discord</strong><small>Creează sau reutilizează categoria și canalele presetului ales.</small></span></label><label class="check"><input id="publish-embeds" type="checkbox" checked><span><strong>Publică embedurile cu butoane</strong><small>Trimite panourile interactive în canalele modulelor. Logurile sunt configurate automat.</small></span></label></div>
+        <label class="field">Preset Discord<select id="bundle-select"><option value="full">Full · toate modulele</option><option value="legal_management">Legale + Management</option><option value="illegal">Ilegale · operațiuni și sancțiuni</option></select></label>
+        <label class="field">Server Discord<select id="guild-select"><option value="">Alege organizația mai întâi…</option></select></label>
+        <div class="notice">Nu se creează roluri noi. Botul Panel Pro Web primește acces la canalele create sau reutilizate. Botul Discovery nu este modificat.</div>
+        <div class="actions"><button id="activate-button" class="button primary" type="button">⚡ Activează organizația</button><button id="refresh-button" class="button" type="button">↻ Reîncarcă</button></div>
+      </section>
+      <aside class="card"><h2>2. Previzualizare</h2><p class="muted text-xs mt-1">Rezumatul se actualizează automat înainte de activare.</p><div id="summary" class="summary"></div><div id="feature-list" class="feature-list"></div></aside>
+    </section>
+  </section></main><script src="js/global-footer.js"></script><script src="js/activator-organizatie.js?v=20260907-activator1"></script>
+</body></html>

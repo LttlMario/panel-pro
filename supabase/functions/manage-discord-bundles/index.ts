@@ -86,6 +86,7 @@ Deno.serve(async (request) => {
     const { data: guild } = await db.from('organization_guilds').select('guild_id,kind').eq('organization_id', organizationId).eq('guild_id', guildId).eq('enabled', true).maybeSingle();
     if (!guild) return reply({ error: 'Serverul nu aparține organizației selectate.' }, 400);
     const token = await getPlatformSecret(db, 'discord_bot_token'); if (!token) return reply({ error: 'DISCORD_BOT_TOKEN lipsește din Supabase.' }, 500);
+    const publishEmbeds = body.publish_embeds !== false;
     const [guildInfo, channels, bot] = await Promise.all([discord(`/guilds/${guildId}`, token), discord(`/guilds/${guildId}/channels`, token), discord('/users/@me', token)]);
     const botOverwrite = [{ id: String(bot.id), type: 1, allow: allow(VIEW, SEND, EMBED, HISTORY, MANAGE_MESSAGES), deny: '0' }];
     const category = await ensureChannel(guildId, token, channels, `PANEL PRO · ${String(body.bundle_key || '').toUpperCase()}`, 4, '', botOverwrite);
@@ -98,14 +99,14 @@ Deno.serve(async (request) => {
       const channel = await ensureChannel(guildId, token, channels, channelName, 0, String(category.row.id), botOverwrite);
       createdChannels += Number(channel.created);
       let messageId = '';
-      if (!routeKey.startsWith('log_') && routeKey !== 'contract_uploads' && hasInteractiveDefinition(routeKey)) {
+      if (publishEmbeds && !routeKey.startsWith('log_') && routeKey !== 'contract_uploads' && hasInteractiveDefinition(routeKey)) {
         const existingSettings = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
         const oldMessage = existingSettings.data?.discord_channel_routes?.[routeKey]?.[target]?.message_id || '';
         let response = await fetch(`${api}/channels/${channel.row.id}/messages${id(oldMessage) ? `/${oldMessage}` : ''}`, { method: id(oldMessage) ? 'PATCH' : 'POST', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload(routeKey)) });
         if (!response.ok && id(oldMessage)) response = await fetch(`${api}/channels/${channel.row.id}/messages`, { method: 'POST', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload(routeKey)) });
         if (!response.ok) throw new Error(`Embedul pentru ${routeLabels[routeKey] || routeKey} nu a putut fi publicat.`);
         const message = await response.json().catch(() => ({})); messageId = String(message?.id || oldMessage); if (!oldMessage) createdMessages += 1;
-      } else if (!routeKey.startsWith('log_') && routeKey !== 'contract_uploads') {
+      } else if (publishEmbeds && !routeKey.startsWith('log_') && routeKey !== 'contract_uploads') {
         // Template-ul nu mai publică embeduri informative fără acțiuni. Dacă o
         // instalare veche a lăsat un astfel de mesaj, îl eliminăm doar dacă
         // este mesajul botului salvat în configurație.
@@ -124,7 +125,7 @@ Deno.serve(async (request) => {
     for (const [key, value] of Object.entries(routes)) mergedRoutes[key] = { ...(mergedRoutes[key] || {}), [target]: value.primary };
     const { error: settingsError } = await db.from('organization_settings').upsert({ organization_id: organizationId, discord_client_id: currentSettings?.discord_client_id || '0', panel_public_url: currentSettings?.panel_public_url || '', discord_channel_routes: mergedRoutes, updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
     if (settingsError) throw settingsError;
-    await db.from('admin_audit_log').insert({ organization_id: organizationId, actor_discord_id: session.discord_id, action: 'discord_real_routes_installed', target_type: 'discord_guild', target_id: guildId, details: { bundle: body.bundle_key, category_id: category.row.id, route_count: installed.length, message_count: createdMessages } });
+    await db.from('admin_audit_log').insert({ organization_id: organizationId, actor_discord_id: session.discord_id, action: 'discord_real_routes_installed', target_type: 'discord_guild', target_id: guildId, details: { bundle: body.bundle_key, category_id: category.row.id, route_count: installed.length, message_count: createdMessages, publish_embeds: publishEmbeds } });
     return reply({ ok: true, guild: { id: guildInfo.id, name: guildInfo.name }, category: { id: category.row.id, name: category.row.name }, created: { channels: createdChannels, roles: 0, messages: createdMessages }, routes: installed, route_count: installed.length, uses_real_panel_routes: true });
   } catch (error) { return reply({ error: error instanceof Error ? error.message : 'Instalarea pachetului a eșuat.' }, 400); }
 });
