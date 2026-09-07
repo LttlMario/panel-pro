@@ -22,7 +22,7 @@ WITH (security_invoker = true)
 AS
 SELECT m.id, m.nume, m.display_name, m.telefon, m.tip_actiune, m.categorie, m.produse, m.pret,
        m.imagini_json, m.imagine_url, m.created_at, m.updated_at, m.created_by_discord_id,
-       m.organization_id, m.status, m.sold_at, m.sold_by_discord_id, o.name AS organization_name
+       m.organization_id, o.name AS organization_name, m.status, m.sold_at, m.sold_by_discord_id
 FROM public.marketplace m
 LEFT JOIN public.organizations o ON o.id = m.organization_id
 WHERE public.current_panel_permission_level() >= 1;
@@ -32,8 +32,8 @@ WITH (security_invoker = true)
 AS
 SELECT m.id, m.nume, m.telefon, m.tip_actiune, m.categorie, m.subcategorie, m.produse, m.pret,
        m.imagini_json, m.imagine_url, m.created_at, m.updated_at, m.created_by_discord_id,
-       m.organization_id, m.status, m.sold_at, m.sold_by_discord_id,
-       o.name AS organization_name, o.illegal_name AS organization_illegal_name
+       m.organization_id, o.name AS organization_name, o.illegal_name AS organization_illegal_name,
+       m.status, m.sold_at, m.sold_by_discord_id
 FROM public.marketplace_ilegal m
 LEFT JOIN public.organizations o ON o.id = m.organization_id
 WHERE m.organization_id IS NULL OR m.organization_id = public.current_panel_organization_id();
