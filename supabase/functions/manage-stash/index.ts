@@ -354,7 +354,7 @@ Deno.serve(async (req) => {
       if (!validId(body.id) || !['pending', 'approved', 'rejected', 'completed'].includes(body.status)) return reply({ error: 'Cererea sau statusul sunt invalide.' }, 400);
       const { data, error } = await db.from('organization_stash_requests').update({ status: body.status, handled_by_discord_id: session.discord_id, handled_by_name: name, handled_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', body.id).select('*').single();
       if (error) throw error;
-      const delivery = await syncAndStoreMessage(db, 'organization_stash_requests', { ...data, discord_message_ids: {} }, organizationId, 'log_stash_requests', requestEmbed(data, body.status === 'approved' ? 'Cerere aprobată' : body.status === 'rejected' ? 'Cerere respinsă' : 'Cerere actualizată'));
+      const delivery = await syncAndStoreMessage(db, 'organization_stash_requests', { ...data, discord_message_ids: {} }, organizationId, 'log_stash', requestEmbed(data, body.status === 'approved' ? 'Cerere aprobată' : body.status === 'rejected' ? 'Cerere respinsă' : 'Cerere actualizată'));
       return reply({ ok: true, request: data, delivery });
     }
 
@@ -366,7 +366,7 @@ Deno.serve(async (req) => {
       if (!canDeleteOwn(request, 'requested_by_discord_id', 'request')) return reply({ error: 'Doar rolurile care pot trimite cereri, proprietarul organizației sau administratorul global pot șterge această cerere.' }, 403);
       const { error } = await db.from('organization_stash_requests').delete().eq('organization_id', organizationId).eq('id', body.id);
       if (error) throw error;
-      const delivery = await syncDiscordMessage(db, organizationId, 'log_stash_requests', requestEmbed({ ...request, status: 'deleted' }, 'Cerere ștearsă din Stash'), request.discord_message_ids || {}, false);
+      const delivery = await syncDiscordMessage(db, organizationId, 'log_stash', requestEmbed({ ...request, status: 'deleted' }, 'Cerere ștearsă din Stash'), request.discord_message_ids || {}, false);
       return reply({ ok: true, deleted_id: body.id, delivery });
     }
 
@@ -401,7 +401,7 @@ Deno.serve(async (req) => {
         if (error) throw error;
         updated = changed;
       }
-      const delivery = await syncAndStoreMessage(db, 'organization_stash_donations', { ...updated, discord_message_ids: {} }, organizationId, 'log_stash_donations', donationEmbed(updated, body.status === 'approved' ? 'Donație aprobată' : 'Donație respinsă'));
+      const delivery = await syncAndStoreMessage(db, 'organization_stash_donations', { ...updated, discord_message_ids: {} }, organizationId, 'log_stash', donationEmbed(updated, body.status === 'approved' ? 'Donație aprobată' : 'Donație respinsă'));
       return reply({ ok: true, donation: updated, delivery, item_delivery: itemDelivery });
     }
 
@@ -413,7 +413,7 @@ Deno.serve(async (req) => {
       if (!canDeleteOwn(donation, 'donated_by_discord_id', 'donate')) return reply({ error: 'Doar rolurile care pot înregistra donații, proprietarul organizației sau administratorul global pot șterge această donație.' }, 403);
       const { error } = await db.from('organization_stash_donations').delete().eq('organization_id', organizationId).eq('id', body.id);
       if (error) throw error;
-      const delivery = await syncDiscordMessage(db, organizationId, 'log_stash_donations', donationEmbed({ ...donation, status: 'deleted' }, 'Donație ștearsă din Stash'), donation.discord_message_ids || {}, false);
+      const delivery = await syncDiscordMessage(db, organizationId, 'log_stash', donationEmbed({ ...donation, status: 'deleted' }, 'Donație ștearsă din Stash'), donation.discord_message_ids || {}, false);
       return reply({ ok: true, deleted_id: body.id, delivery });
     }
 
