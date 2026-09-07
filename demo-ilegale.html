@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Panel Pro · Darkweb · demo interactiv pentru modulele ilegale.">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Panel Pro · Darkweb</title>
+  <link rel="icon" href="img/favicon.ico"><link rel="stylesheet" href="css/demo.css?v=20260907-illegal-demo">
+  <script src="js/text-normalizer.js?v=1.0.1"></script>
+</head>
+<body data-demo-start="blackmarket">
+  <div class="demo-app">
+    <header class="demo-topbar"><button class="demo-mobile-toggle" id="demo-mobile-toggle" type="button" aria-label="Deschide meniul" aria-expanded="false">☰</button><div class="demo-header-title"><h2 id="demo-header-title">Black Market</h2></div><label class="demo-global-search"><input id="demo-global-search" type="search" placeholder="Caută în zona Darkweb..." autocomplete="off"></label></header>
+    <div class="demo-layout">
+      <aside class="demo-sidebar"><div class="sidebar-heading">ACCES RESTRICȚIONAT <span>LM</span></div><nav class="demo-nav" aria-label="Module ilegale"><p class="nav-label">DARKWEB</p><button class="demo-nav-item is-active" data-demo="blackmarket"><span class="nav-icon">⚠</span> Black Market</button><button class="demo-nav-item" data-demo="calculator-ilegal"><span class="nav-icon">▣</span> Calculator Ilegal</button><button class="demo-nav-item" data-demo="locatii"><span class="nav-icon">⌖</span> Locații Ilegale</button><button class="demo-nav-item" data-demo="stash"><span class="nav-icon">▦</span> Stash organizație</button><p class="nav-label">NAVIGARE</p><a class="demo-nav-item" href="demo.html"><span class="nav-icon">←</span> Înapoi la demo principal</a></nav><div class="sidebar-bottom"><span class="status-dot"></span><div><b>Zonă Darkweb separată</b><small>Fără conexiune Discord</small></div></div></aside>
+      <div class="demo-mobile-backdrop" id="demo-mobile-backdrop"></div>
+      <main class="demo-main"><div class="demo-context"><span>GO DEEPER</span><span>•</span><span>Module ilegale</span><span>•</span><span>Fără salvare</span></div><section class="demo-heading"><div><p class="demo-kicker">ZONĂ AVANSATĂ · DEMO</p><h1 id="demo-title">Go Deeper</h1><p id="demo-subtitle">Explorează modulele ilegale într-un spațiu separat de prezentarea principală.</p></div><div class="profile-chip"><span class="profile-avatar">DM</span><span><b>Utilizator Demo</b><small>Acces demonstrativ</small></span></div></section><div class="demo-guide" id="demo-guide"><div class="guide-icon">i</div><div><b>Explorezi o zonă separată</b><p>Aceste module sunt disponibile doar aici pentru prezentare. Nicio acțiune nu se salvează și nimic nu este trimis pe Discord.</p></div></div><section class="demo-stats" aria-label="Statistici simulate"><article><span>Module ilegale</span><strong>4</strong><small class="positive">Disponibile în demo</small></article><article><span>Postări active</span><strong>12</strong><small>Valori fictive</small></article><article><span>Locații catalogate</span><strong>36</strong><small>Fără coordonate reale</small></article><article><span>Status demo</span><strong class="stat-status">LOCAL</strong><small class="positive">Fără date reale</small></article></section><section class="demo-content-grid"><article class="demo-panel demo-panel-main" id="demo-panel-main"></article><aside class="demo-panel demo-side-panel"><div class="panel-title"><div><span class="panel-eyebrow">GO DEEPER</span><h2>Zona ilegală</h2></div><span class="panel-count">4 module</span></div><div class="quick-list"><div><span class="quick-check">✓</span><span><b>Black Market</b><small>Postări și categorii simulate</small></span></div><div><span class="quick-check">✓</span><span><b>Calculatoare</b><small>Rezultate locale pentru resurse</small></span></div><div><span class="quick-check">✓</span><span><b>Locații și Stash</b><small>Hărți și inventar demonstrativ</small></span></div></div><div class="no-external"><span>◌</span><p><b>Nicio acțiune externă</b><br>Totul este fictiv și rămâne în această pagină.</p></div></aside></section></main>
+    </div>
+  </div>
+  <aside class="demo-assistant" id="demo-assistant" aria-label="Asistent Panel demo"><button class="demo-assistant-launcher" id="demo-assistant-launcher" type="button" aria-label="Deschide asistentul demo" aria-controls="demo-assistant-panel" aria-expanded="false"><img src="css/robot-assistant.svg" alt="Asistent demo"><span class="demo-assistant-online"></span></button><section class="demo-assistant-panel" id="demo-assistant-panel" hidden><header><div><span class="panel-eyebrow">ASISTENT PANEL</span><strong>Cu ce te pot ajuta?</strong></div><button id="demo-assistant-close" type="button" aria-label="Închide asistentul">×</button></header><div class="demo-assistant-messages" id="demo-assistant-messages"><div class="demo-assistant-message assistant">Sunt în zona Go Deeper. Îți pot explica Black Market, Calculatorul Ilegal, Locațiile Ilegale și Stash.</div></div><form class="demo-assistant-form" id="demo-assistant-form"><input id="demo-assistant-input" type="text" autocomplete="off" placeholder="Întreabă despre zona ilegală..."><button type="submit" aria-label="Trimite întrebarea">↗</button></form><small class="demo-assistant-note">Răspunsuri locale · fără date reale</small></section></aside>
+  <div class="demo-toast" id="demo-toast" role="status" aria-live="polite"></div><script src="js/demo.js?v=20260907-illegal-demo"></script>
+  <script>
+    document.querySelectorAll('.demo-context span, .panel-eyebrow').forEach((node) => {
+      if (node.textContent.trim() === 'GO DEEPER') node.textContent = 'GO DARKWEB';
+    });
+    const pageTitle = document.getElementById('demo-title');
+    if (pageTitle) pageTitle.textContent = 'Darkweb';
+    const pageKicker = document.querySelector('.demo-kicker');
+    if (pageKicker) pageKicker.textContent = 'ZONĂ DARKWEB · DEMO';
+    const assistantMessage = document.querySelector('.demo-assistant-message.assistant');
+    if (assistantMessage) assistantMessage.textContent = 'Sunt în zona Darkweb. Îți pot explica toate modulele organizației și resursele ilegale disponibile aici.';
+  </script>
+</body></html>

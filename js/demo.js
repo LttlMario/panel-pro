@@ -28,12 +28,27 @@ demoScreens.asistent = { title:'Asistent Panel', subtitle:'Primește îndrumare 
 demoScreens.blackmarket = { title:'Black Market', subtitle:'Completează și publică un anunț exact după fluxul Black Market-ului real, dar fără salvare sau tranzacție.', tag:'POSTARE TEMPORARĂ', guide:['Ce faci în Black Market','Completezi numele, telefonul, tipul acțiunii, categoria, subcategoria, produsele, prețul și imaginile. Postarea rămâne doar în această sesiune demo.'], body:`<div class="screen-head"><div><p class="panel-eyebrow">ADĂUGĂ ANUNȚ ILEGAL</p><h2>Black Market</h2><p>Formularul real, cu opțiuni fictive și fără backend.</p></div><span class="screen-tag">FĂRĂ SALVARE</span></div><div class="market-form-grid"><label>Nume<input id="black-name" class="demo-input" placeholder="Nume afișat"></label><label>Nr. tel.<input id="black-phone" class="demo-input" placeholder="Număr de telefon"></label><label>Tip Acțiune<select id="black-action-type" class="demo-input"><option>Vânzare</option><option>Cumpărare</option><option>Servicii</option></select></label><label>Categorie<select id="black-category" class="demo-input"><option>Arme</option><option>Muniție</option><option>Plicuri coca</option><option>Plicuri ciuperci</option><option>Jointuri</option><option>Piese de armă</option></select></label><label>Element specific<select id="black-subcategory" class="demo-input"><option>Navy Pistol</option><option>Combat MG</option><option>Assault SMG</option><option>9MM PBM</option><option>7.62MM</option></select></label><label>Preț<input id="black-price" class="demo-input" placeholder="1500 / Negociabil"></label><label class="full-field">Produse / Descriere<textarea id="black-products" class="demo-input demo-textarea" placeholder="- Detaliu 1&#10;- Detaliu 2"></textarea></label><label>Link Direct Imagine<input id="black-image-url" class="demo-input" type="url" placeholder="https://..."></label></div><div id="black-paste-zone" class="paste-zone" tabindex="0"><span class="paste-icon">⌁</span><div><b>📋 Ctrl + V pentru imagini demo</b><small>Maxim 5 imagini. Nu se salvează.</small></div></div><button class="demo-action warning-action" data-action="post-blackmarket">Publică Anunțul</button><div class="section-divider"></div><div class="screen-head compact-head"><div><p class="panel-eyebrow">ANUNȚURI ACTIVE</p><h2>Filtrare</h2></div><select id="black-filter" class="demo-input filter-input"><option>TOATE</option><option>Arme</option><option>Muniție</option><option>Plicuri coca</option><option>Jointuri</option></select></div><div class="feature-layout"><div class="feature-box"><h3>Resursă specială A</h3><p>Categorie: Piese de armă<br>Preț: <b>$4.500</b></p></div><div class="feature-box"><h3>Resursă specială B</h3><p>Categorie: Muniție<br>Preț: <b>Negociabil</b></p></div></div><div id="blackmarket-demo-posts" class="activity-list"></div>` };
 demoScreens['calculator-ilegal'] = { title:'Calculator ilegal', subtitle:'Folosește categoriile din Calculatorul Ilegal cu materiale și rezultate fictive, fără salvare.', tag:'MODUL AVANSAT', guide:['Ce faci în Calculator ilegal','Alegi categoria — Arme, Piese Armă, Muniție, Plicuri, Weed sau Mushrooms — și introduci cantitățile. Rezultatul este calculat doar local.'], body:`<div class="screen-head"><div><p class="panel-eyebrow">CALCULATOR ILEGAL</p><h2>Materii prime și producție</h2><p>Structura reală a calculatorului, în variantă demonstrativă.</p></div><span class="screen-tag">LOCAL</span></div><div class="calculator-category"><button class="category-header-demo" data-action="toggle-category">🔫 Arme <span>⌄</span></button><div class="category-content-demo"><label>Armă<select id="illegal-weapon" class="demo-input"><option>Navy Pistol</option><option>Combat MG</option><option>Assault SMG</option><option>Gadget Pistol</option></select></label><label>Cantitate<input id="illegal-weapon-qty" class="demo-input" type="number" value="1" min="0"></label></div></div><div class="calculator-category"><button class="category-header-demo" data-action="toggle-category">🧩 Piese Armă <span>⌄</span></button><div class="category-content-demo"><label>Țeavă Pistol<input id="illegal-parts-barrel" class="demo-input" type="number" value="0" min="0"></label><label>Corp Pistol<input id="illegal-parts-body" class="demo-input" type="number" value="0" min="0"></label></div></div><div class="calculator-category"><button class="category-header-demo" data-action="toggle-category">💥 Muniție <span>⌄</span></button><div class="category-content-demo"><label>Tip muniție<select id="illegal-ammo" class="demo-input"><option>.9MM PBM</option><option>7.62MM</option><option>.44 Marlin</option></select></label><label>Cantitate<input id="illegal-ammo-qty" class="demo-input" type="number" value="0" min="0"></label></div></div><div class="calculator-category"><button class="category-header-demo" data-action="toggle-category">🧪 Plicuri / Weed / Mushrooms <span>⌄</span></button><div class="category-content-demo"><label>Resursă<select id="illegal-resource" class="demo-input"><option>Plicuri coca</option><option>Jointuri</option><option>Pink Light</option><option>Psilocybe</option></select></label><label>Cantitate<input id="illegal-resource-qty" class="demo-input" type="number" value="0" min="0"></label></div></div><div class="section-divider"></div><div class="screen-head compact-head"><div><p class="panel-eyebrow">REZULTATE CALCUL</p><h2>Rezultate fictive</h2></div><span class="screen-tag">FĂRĂ SALVARE</span></div><div class="results-grid-demo"><div><span>Total piese armă</span><b id="illegal-total-parts">2</b></div><div><span>Aur</span><b id="illegal-gold">1</b></div><div><span>Diamante</span><b id="illegal-diamonds">0</b></div><div><span>Total greutate</span><b id="illegal-weight">0.5 KG</b></div><div><span>Profit estimat</span><b id="illegal-profit">1.250 $</b></div></div><button class="demo-action secondary" data-action="calculate-illegal">Calculează local</button>` };
 demoScreens.locatii = { title:'Locații ilegale', subtitle:'Păstrează hărțile și fluxul de navigare al panelului, dar ascunde complet locațiile concrete în demo.', tag:'HĂRȚI DEMO', guide:['Ce găsești în Locații Ilegale','În panelul real există hărți Los Santos, Cayo și Maldive, filtre și detalii pe locații. În demo poți schimba doar harta de fundal; nu afișăm pinuri, nume sau coordonate.'], body:`<div class="screen-head"><div><p class="panel-eyebrow">HĂRȚI & LOCAȚII ILEGALE</p><h2>Selectare Hartă</h2><p>Centrare standard și favoritele rămân doar vizuale în demo.</p></div><span class="screen-tag">FĂRĂ LOCAȚII</span></div><div class="map-tabs-demo"><button class="map-tab is-active" data-action="select-map" data-map="ls">Los Santos</button><button class="map-tab" data-action="select-map" data-map="cayo">Cayo</button><button class="map-tab" data-action="select-map" data-map="maldive">Maldive</button></div><div class="map-gallery"><div class="map-card map-one active-map" data-map-view="ls"><span>Los Santos & Blaine County</span><small>Hartă de fundal · fără locații</small></div><div class="map-card map-two" data-map-view="cayo"><span>Cayo Perico</span><small>Hartă de fundal · fără locații</small></div><div class="map-card map-three" data-map-view="maldive"><span>Maldive</span><small>Hartă de fundal · fără locații</small></div></div><div class="map-tools-demo"><button class="demo-action secondary" data-action="map-center">🎯 Centrare Standard</button><button class="demo-action secondary" data-action="map-favorites">Favorite Salvate <b>0</b></button></div><div class="map-explanation"><span class="info-index">INFO</span><p><b>Ce ar putea fi aici în panelul real?</b><br>În funcție de rol, aici ar putea apărea o locație, categoria ei, descrierea, cerințele, recompensele și imaginile asociate. Demo-ul păstrează intenționat doar harta de fundal.</p></div>` };
-// Prezentarea publică păstrează doar operațiunile, resursele normale, evenimentele și administrația.
-delete demoScreens.blackmarket;
-delete demoScreens['calculator-ilegal'];
-delete demoScreens.locatii;
-delete demoScreens.craft;
-delete demoScreens.asistent;
+demoScreens.stash = { title:'Stash organizație', subtitle:'Gestionează inventarul, cererile și donațiile într-un singur flux, cu loguri și aprobări.', tag:'STASH DEMO', guide:['Ce poți testa în Stash','Adaugi un articol, trimiți o cerere sau înregistrezi o donație. În varianta reală, cererile și donațiile ajung la aprobare, iar rezultatele sunt trimise în logul Stash.'], body:`<div class="screen-head"><div><p class="panel-eyebrow">INVENTAR ORGANIZAȚIE</p><h2>Stash · activitate și aprobări</h2><p>Un singur loc pentru articole, cereri și donații.</p></div><span class="screen-tag">LOCAL</span></div><div class="feature-layout"><div class="feature-box"><h3>Inventar curent</h3><div class="compact-history"><div><b>Kit reparații</b><small>Disponibil · 18 bucăți</small></div><div><b>Stație radio</b><small>Disponibil · 7 bucăți</small></div><div><b>Vestă tactică</b><small>Stoc redus · 2 bucăți</small></div></div></div><div class="feature-box"><h3>Fluxuri cu aprobare</h3><p>Cererile și donațiile sunt verificate de staff, apoi se actualizează inventarul și logul comun.</p></div></div><div class="demo-composer"><div class="composer-actions"><button class="demo-action" data-action="stash-add">＋ Adaugă articol</button><button class="demo-action secondary" data-action="stash-request">📨 Solicită articol</button><button class="demo-action secondary" data-action="stash-donate">🎁 Donează articol</button></div><p id="stash-demo-status">Toate acțiunile sunt simulate local și nu se salvează.</p></div><div class="section-divider"></div><div class="screen-head compact-head"><div><p class="panel-eyebrow">ACTIVITATE RECENTĂ</p><h2>Log Stash</h2></div><span class="screen-tag">FICTIV</span></div><div class="activity-list"><div class="activity-item"><span><b>Cerere · Kit medical</b><small>Trimisă de Maria Ionescu · acum 18 min</small></span><strong class="warning">ÎN AȘTEPTARE</strong></div><div class="activity-item"><span><b>Donație · Stații radio</b><small>Aprobată și adăugată în inventar · ieri</small></span><strong class="activity-value">APROBAT</strong></div></div>` };
+demoScreens['status-live'] = { title:'Status Live', subtitle:'Urmărește în timp real turele active, pauzele și starea organizației.', tag:'MONITORIZARE DEMO', guide:['Ce poți testa în Status Live','În varianta reală, panoul se actualizează automat cu membrii aflați în tură, pauzele și durata activității. Demo-ul folosește valori fictive.'], body:`<div class="screen-head"><div><p class="panel-eyebrow">STATUS LIVE · ORGANIZAȚIE</p><h2>Activitate în timp real</h2><p>Ultima sincronizare: acum 18 secunde.</p></div><span class="screen-tag">ONLINE</span></div><div class="screen-grid"><div class="screen-stat"><span>În tură</span><strong>12</strong><small class="positive">+2 în ultima oră</small></div><div class="screen-stat"><span>În pauză</span><strong>03</strong><small>Monitorizare activă</small></div><div class="screen-stat"><span>Offline</span><strong>08</strong><small>Din 23 membri</small></div></div><div class="activity-list"><div class="activity-item"><span><b>Alexandru Pop</b><small>☀️ Tură de zi · 02h 48m · activ</small></span><strong class="activity-value">ONLINE</strong></div><div class="activity-item"><span><b>Maria Ionescu</b><small>🌙 Tură de noapte · pauză de 08m</small></span><strong class="warning">PAUZĂ</strong></div><div class="activity-item"><span><b>Radu Matei</b><small>☀️ Tură de zi · 05h 12m · activ</small></span><strong class="activity-value">ONLINE</strong></div></div><div class="report-footer-actions"><button class="demo-action" data-action="live-refresh">↻ Actualizează statusul</button><small>În varianta reală, actualizarea este automată și se poate publica pe Discord.</small></div>` };
+
+const organizationIllegalModule = (title, subtitle, eyebrow, description) => ({
+  title,
+  subtitle,
+  tag: 'ORGANIZAȚIE · DEMO',
+  guide: [`Ce poți face în ${title}`, `${description} În demo vezi fluxul și structura modulului, cu date fictive și fără salvare.`],
+  body: `<div class="screen-head"><div><p class="panel-eyebrow">${eyebrow}</p><h2>${title}</h2><p>${description}</p></div><span class="screen-tag">FĂRĂ SALVARE</span></div><div class="feature-layout"><div class="feature-box"><h3>Flux organizație</h3><p>Configurează, publică și urmărește informațiile organizației într-un singur loc.</p><button class="demo-action" data-action="blocked">Simulează acțiunea</button></div><div class="feature-box"><h3>Activitate și log</h3><p>Acțiunile sunt centralizate în logul modulului și pot fi verificate de persoanele autorizate.</p><strong class="activity-value">DEMO LOCAL</strong></div></div><div class="section-divider"></div><div class="activity-list"><div class="activity-item"><span><b>Înregistrare demonstrativă</b><small>Organizație · fără date reale</small></span><strong class="warning">ÎN AȘTEPTARE</strong></div></div>`
+});
+
+demoScreens['anunturi-organizatie'] = { ...demoScreens.anunturi, title: 'Anunțuri organizație', subtitle: 'Publică anunțuri, întrebări și sondaje pentru întreaga organizație, fără secțiuni pentru angajați.' };
+demoScreens['invoiri-organizatie'] = organizationIllegalModule('Învoiri organizație', 'Gestionează învoirile și aprobările la nivel de organizație.', 'ÎNVOIRI ORGANIZAȚIE', 'Primește și verifică învoirile trimise pentru organizație.');
+demoScreens['avertismente-organizatie'] = organizationIllegalModule('Avertismente organizație', 'Înregistrează avertismentele și păstrează istoricul organizației.', 'AVERTISMENTE ORGANIZAȚIE', 'Acordă un avertisment, adaugă motivul și păstrează dovada în logul comun.');
+demoScreens['amenzi-organizatie'] = organizationIllegalModule('Amenzi organizație', 'Gestionează amenzile și evidența sancțiunilor organizației.', 'AMENZI ORGANIZAȚIE', 'Înregistrează o amendă și trimite rezultatul în logul organizației.');
+demoScreens['sanctiuni-organizatie'] = organizationIllegalModule('Sancțiuni organizație', 'Centralizează sancțiunile și deciziile administrative.', 'SANCȚIUNI ORGANIZAȚIE', 'Creează o sancțiune, selectează motivul și urmărește istoricul administrativ.');
+demoScreens.minigames = organizationIllegalModule('Minigames organizație', 'Gestionează activitățile și jocurile configurate pentru organizație.', 'MINIGAMES ORGANIZAȚIE', 'Deschide activitățile disponibile și urmărește rezultatele locale ale organizației.');
+demoScreens['anunturi-angajati'] = { ...demoScreens.anunturi, title: 'Anunțuri angajați', subtitle: 'Publică anunțuri, sondaje și evidență disciplinară pentru angajați, cu date demo.', guide: ['Ce poți face în Anunțuri angajați', 'Creezi anunțuri și sondaje, alegi publicul și consulți taburile pentru avertismente, sancțiuni, acțiuni și amenzi istorice. În demo toate datele sunt fictive.'] };
+demoScreens['anunturi-organizatie'] = { ...demoScreens.anunturi, title: 'Anunțuri organizație', subtitle: 'Publică anunțuri, sondaje, acțiuni și evidență disciplinară pentru organizație, cu date demo.', guide: ['Ce poți face în Anunțuri organizație', 'Creezi comunicări pentru organizație, sondaje, acțiuni, avertismente și sancțiuni financiare. Fiecare categorie are istoric și log, iar demo-ul nu salvează nimic.'] };
+demoScreens['cereri-angajati'] = { ...demoScreens.cereri, title: 'Învoiri angajați', subtitle: 'Trimite și urmărește învoirile angajaților, cu date demo și fără salvare.', guide: ['Ce poți face în Învoiri angajați', 'Completezi o învoire, adaugi perioada, motivul și dovada opțională, apoi urmărești statusul și istoricul cererilor.'] };
+demoScreens['cereri-organizatie'] = { ...demoScreens.cereri, title: 'Învoiri organizație', subtitle: 'Trimite și urmărește învoirile organizației, cu date demo și fără salvare.', guide: ['Ce poți face în Învoiri organizație', 'Înregistrezi o învoire informativă pentru organizație, completezi intervalul și motivul, apoi consulți istoricul.'] };
 
 const titleEl = document.getElementById('demo-title');
 const subtitleEl = document.getElementById('demo-subtitle');
@@ -156,18 +171,33 @@ function initDemoShell() {
   demoSidebarEl.querySelector('.sidebar-heading')?.remove();
   const demoNav = demoSidebarEl.querySelector('.demo-nav');
   if (demoNav) {
-    demoNav.innerHTML = `<p class="nav-label">Operațiuni</p>
+    const isDarkwebDemo = document.body.dataset.demoStart === 'blackmarket';
+    demoNav.innerHTML = isDarkwebDemo ? `<p class="nav-label">ORGANIZAȚIE</p>
+      <button class="demo-nav-item" data-demo="anunturi-organizatie"><span class="nav-icon">📣</span> Anunțuri organizație</button>
+      <button class="demo-nav-item" data-demo="invoiri-organizatie"><span class="nav-icon">📝</span> Învoiri organizație</button>
+      <button class="demo-nav-item" data-demo="amenzi-organizatie"><span class="nav-icon">💰</span> Amenzi organizație</button>
+      <p class="nav-label">RESURSE ILEGALE</p>
+      <button class="demo-nav-item is-active" data-demo="calculator-ilegal"><span class="nav-icon">▣</span> Calculator Ilegal</button>
+      <button class="demo-nav-item" data-demo="locatii"><span class="nav-icon">⌖</span> Locații Ilegale</button>
+      <button class="demo-nav-item" data-demo="blackmarket"><span class="nav-icon">⚠</span> Black Market</button>
+      <button class="demo-nav-item" data-demo="minigames"><span class="nav-icon">🎮</span> Minigames</button>
+      <button class="demo-nav-item" data-demo="stash"><span class="nav-icon">▦</span> Stash organizație</button>
+      <p class="nav-label">NAVIGARE</p>
+      <a class="demo-nav-item" href="demo.html"><span class="nav-icon">←</span> Înapoi la demo principal</a>` : `<p class="nav-label">Operațiuni</p>
       <button class="demo-nav-item is-active" data-demo="dashboard"><span class="nav-icon">▣</span> Dashboard</button>
-      <button class="demo-nav-item" data-demo="anunturi"><span class="nav-icon">▰</span> Anunțuri &amp; Sondaje</button>
+      <button class="demo-nav-item" data-demo="anunturi-angajati"><span class="nav-icon">📣</span> Anunțuri angajați</button>
       <button class="demo-nav-item" data-demo="pontaj"><span class="nav-icon">◷</span> Pontaj</button>
-       <button class="demo-nav-item" data-demo="cereri"><span class="nav-icon">▱</span> Cereri / Absențe</button>
+       <button class="demo-nav-item" data-demo="cereri-angajati"><span class="nav-icon">📋</span> Învoiri angajați</button>
        <button class="demo-nav-item" data-demo="contracte"><span class="nav-icon">▤</span> Contracte</button>
        <button class="demo-nav-item" data-demo="rapoarte"><span class="nav-icon">▥</span> Rapoarte</button>
        <button class="demo-nav-item" data-demo="evenimente"><span class="nav-icon">◌</span> Evenimente &amp; Remindere</button>
        <p class="nav-label">Resurse</p>
       <button class="demo-nav-item" data-demo="marketplace"><span class="nav-icon">◇</span> Marketplace</button>
       <button class="demo-nav-item" data-demo="calculator"><span class="nav-icon">⊞</span> Calculator</button>
+      <button class="demo-nav-item" data-demo="craft"><span class="nav-icon">⚒</span> Craft Mecanic</button>
       <button class="demo-nav-item" data-demo="bucatarie"><span class="nav-icon">♨</span> Bucătărie</button>
+      <p class="nav-label">Acces restricționat</p>
+      <a class="demo-nav-item demo-deeper-link" href="demo-ilegale.html"><span class="nav-icon">🔒</span> Acces restricționat</a>
       <p class="nav-label">Administrație</p>
       <button class="demo-nav-item" data-demo="administrare"><span class="nav-icon">⚙</span> Administrare organizație</button>`;
   }
@@ -276,6 +306,14 @@ function bindScreenActions() {
       demoState.shiftStatus = 'stopped'; clearInterval(demoState.shiftTimer); updateShiftDemoUI(); showToast('Stop Pontaj executat local. Tura nu este salvată.'); return;
     }
     if (action === 'blocked') { showToast('Această modificare este disponibilă doar în panelul real; aici este păstrată ca simulare.'); return; }
+    if (action === 'stash-add' || action === 'stash-request' || action === 'stash-donate') {
+      const labels = { 'stash-add': 'Articolul ar fi adăugat în Stash', 'stash-request': 'Cererea ar fi trimisă spre aprobare', 'stash-donate': 'Donația ar fi trimisă spre aprobare' };
+      const status = document.getElementById('stash-demo-status');
+      if (status) status.textContent = `${labels[action]}. În demo, acțiunea este doar locală.`;
+      showToast(`${labels[action]}. Nu s-a modificat nimic real.`);
+      return;
+    }
+    if (action === 'live-refresh') { showToast('Status Live actualizat cu valori fictive. În panelul real, actualizarea este automată.'); return; }
     if (action === 'event-save') {
       const title = document.getElementById('event-demo-title')?.value.trim();
       const date = document.getElementById('event-demo-date')?.value;
@@ -355,7 +393,7 @@ function bindScreenActions() {
     }
     if (action === 'announcement-audience') { const title = document.getElementById('announcement-title')?.value.trim(); const text = document.getElementById('announcement-text')?.value.trim(); if (!title || !text) { showToast('Completează titlul și conținutul.'); return; } document.getElementById('audience-demo')?.removeAttribute('hidden'); showToast('Alege audiența, ca în panelul real.'); return; }
     if (action === 'add-poll-option') { const wrap = document.getElementById('poll-options-demo'); const count = wrap?.querySelectorAll('input').length || 0; if (wrap && count < 5) wrap.insertAdjacentHTML('beforeend', `<input class="demo-input" placeholder="Opțiunea ${count + 1}">`); return; }
-    if (action === 'post-announcement') { const title = document.getElementById('announcement-title')?.value.trim(); const text = document.getElementById('announcement-text')?.value.trim(); if (!title || !text) { showToast('Completează titlul și conținutul.'); return; } const type = document.getElementById('announcement-type')?.value === 'poll' ? 'Sondaj' : document.getElementById('announcement-type')?.value === 'question' ? 'Întrebare' : 'Anunț'; transientDemoItems.anunturi.push({ title: `${type} · ${title}`, details: `${text} · ${button.dataset.audience === 'departments' ? 'Birouri / Angajați' : 'Organizație'}` }); renderDemo(currentDemoKey); showToast(`${type} adăugat temporar. Nu se postează pe Discord.`); return; }
+    if (action === 'post-announcement') { const title = document.getElementById('announcement-title')?.value.trim(); const text = document.getElementById('announcement-text')?.value.trim(); if (!title || !text) { showToast('Completează titlul și conținutul.'); return; } const selectedType = document.getElementById('announcement-type')?.value; const type = selectedType === 'poll' ? 'Sondaj' : selectedType === 'question' ? 'Întrebare' : selectedType === 'warning' ? 'Avertisment' : selectedType === 'sanction' ? 'Sancțiune financiară' : 'Anunț'; transientDemoItems.anunturi.push({ title: `${type} · ${title}`, details: `${text} · ${button.dataset.audience === 'departments' ? 'Birouri / Angajați' : 'Organizație'}` }); renderDemo(currentDemoKey); showToast(`${type} adăugat temporar. Nu se postează pe Discord.`); return; }
     if (action === 'announcement-filter') { panelEl.querySelectorAll('.filter-tab').forEach((item) => item.classList.toggle('is-active', item === button)); showToast('Filtrul demo a fost aplicat local.'); return; }
     if (action === 'select-map') { panelEl.querySelectorAll('.map-tab').forEach((item) => item.classList.toggle('is-active', item === button)); panelEl.querySelectorAll('[data-map-view]').forEach((item) => item.classList.toggle('active-map', item.dataset.mapView === button.dataset.map)); showToast(`Harta ${button.textContent.trim()} afișată fără locații.`); return; }
     if (action === 'map-center') { showToast('Harta a fost recentrată în demo.'); return; }
@@ -372,6 +410,41 @@ function bindScreenActions() {
   updateShiftDemoUI();
 }
 
+const demoModuleVisuals = {
+  dashboard: null,
+  pontaj: ['img/module-pontaj.png', 'Pontajul gestionează turele de zi și de noapte, Start, Pauză, Stop și istoricul orelor lucrate.', 'Există și varianta de bot Discord, pentru pontaj rapid direct din canalele organizației.'],
+  'anunturi-angajati': ['img/module-anunturi-angajati.png', 'Anunțurile pentru angajați includ postări, întrebări, sondaje, avertismente și sancțiuni.', 'Botul Discord afișează embedurile și butoanele în canalul ales, iar rezultatele ajung în logul configurat.'],
+  'anunturi-organizatie': [['img/module-anunturi-organizatie.png', 'img/module-actiuni.png'], 'Anunțurile organizației includ comunicări, sondaje, acțiuni, avertismente, sancțiuni și amenzi istorice.', 'Botul Discord automatizează publicarea și înregistrează acțiunile în canalul de log al organizației.'],
+  'cereri-angajati': ['img/module-invoiri-angajati.png', 'Învoirile angajaților permit completarea perioadei, motivului, dovezii și urmărirea istoricului.', 'Botul Discord poate primi și anunța învoirile prin embeduri și butoane.'],
+  'cereri-organizatie': ['img/module-invoiri-organizatie.png', 'Învoirile organizației sunt înregistrate informativ, cu perioadă, motiv și istoric.', 'Botul Discord trimite notificarea și rezultatul în canalele configurate.'],
+  contracte: ['img/module-contracte.png', 'Contractele permit configurarea șablonului, generarea documentului, atașarea imaginilor și trimiterea rezultatului.', 'Botul Discord oferă butoane pentru creare, setarea contractului și informații despre document.'],
+  evenimente: null,
+  marketplace: ['img/discord-module-06.png', 'Marketplace-ul permite publicarea și gestionarea anunțurilor, imaginilor, prețurilor și statusului vândut.', 'Botul Discord publică anunțurile și gestionează acțiunile din embeduri.'],
+  calculator: null,
+  bucatarie: null,
+  'status-live': ['img/module-status-live.png', 'Status Live arată turele active, pauzele, membrii online și ultima actualizare.', 'Botul Discord automatizează actualizările live în canalul configurat.'],
+  blackmarket: ['img/discord-module-09.png', 'Black Market gestionează anunțurile ilegale, categoriile, prețurile și imaginile.', 'Botul Discord publică embedurile, iar butoanele trimit acțiunile în logul dedicat.'],
+  'calculator-ilegal': null,
+  locatii: null,
+  minigames: null,
+  stash: [['img/module-stash.png', 'img/discord-module-01.png', 'img/discord-module-02.png', 'img/discord-module-12.png'], 'Stash-ul gestionează articolele, cererile, donațiile, aprobările și logul comun.', 'Botul Discord pune la dispoziție butoane pentru adăugare în Stash, gestionarea articolelor, cereri și donații, cu rezultate în log.'],
+  rapoarte: ['img/discord-module-08.png', 'Rapoartele centralizează orele, turele, cererile, absențele și activitatea organizației pe perioade.', 'Botul Discord poate trimite rapoarte și notificări în canalele configurate.'],
+  administrare: null,
+  asistent: null,
+  'invoiri-organizatie': ['img/module-invoiri-organizatie.png', 'Învoirile organizației permit trimiterea, consultarea și gestionarea învoirilor informative.', 'Botul Discord primește învoirea prin buton și transmite rezultatul în canalul configurat.'],
+  'amenzi-organizatie': null
+};
+
+function renderModuleVisual(key) {
+  const visual = demoModuleVisuals[key];
+  if (!visual || !panelEl) return;
+  const screenHead = panelEl.querySelector('.screen-head');
+  if (!screenHead) return;
+  const images = Array.isArray(visual[0]) ? visual[0] : [visual[0]];
+  const imageMarkup = images.map((src) => `<img src="${src}" alt="Exemplu Discord pentru ${key}">`).join('');
+  screenHead.insertAdjacentHTML('afterend', `<section class="demo-module-visual"><div class="demo-module-visual-images">${imageMarkup}</div><div><p class="panel-eyebrow">CE INCLUDE MODULUL</p><h3>${visual[1]}</h3><p>${visual[2]}</p></div></section>`);
+}
+
 function renderDemo(key) {
   const screen = demoScreens[key] || demoScreens.dashboard;
   currentDemoKey = key;
@@ -382,6 +455,28 @@ function renderDemo(key) {
   guideTitleEl.textContent = screen.guide[0];
   guideTextEl.textContent = screen.guide[1];
   panelEl.innerHTML = screen.body;
+  if (key === 'anunturi-angajati' || key === 'anunturi-organizatie' || key === 'anunturi') {
+    const employeeScope = key === 'anunturi-angajati';
+    if (employeeScope) {
+      const heading = panelEl.querySelector('.screen-head h2');
+      const eyebrow = panelEl.querySelector('.screen-head .panel-eyebrow');
+      const description = panelEl.querySelector('.screen-head p:not(.panel-eyebrow)');
+      if (heading) heading.textContent = 'Comunicare pentru angajați';
+      if (eyebrow) eyebrow.textContent = 'ANUNȚURI & SONDAJE · ANGAJAȚI';
+      if (description) description.textContent = 'Postările sunt fictive și nu pleacă pe Discord.';
+      const organizationAudience = panelEl.querySelector('[data-audience="organization"]');
+      if (organizationAudience) organizationAudience.replaceChildren(document.createTextNode('👥 Angajați'));
+    }
+    const tabs = panelEl.querySelector('.tabs-demo');
+    if (tabs) {
+      tabs.innerHTML = `<button class="filter-tab is-active" data-action="announcement-filter">Toate</button><button class="filter-tab" data-action="announcement-filter">Anunțuri ${employeeScope ? 'angajați' : 'organizație'}</button><button class="filter-tab" data-action="announcement-filter">Sondaje ${employeeScope ? 'angajați' : 'organizație'}</button><button class="filter-tab" data-action="announcement-filter">Amenzi istorice</button><button class="filter-tab" data-action="announcement-filter">Acțiuni</button><button class="filter-tab" data-action="announcement-filter">Avertismente</button><button class="filter-tab" data-action="announcement-filter">Sancțiuni</button>`;
+    }
+    const announcementType = panelEl.querySelector('#announcement-type');
+    if (announcementType && !announcementType.querySelector('option[value="warning"]')) {
+      announcementType.insertAdjacentHTML('beforeend', '<option value="warning">Avertisment</option><option value="sanction">Sancțiune financiară</option>');
+    }
+  }
+  renderModuleVisual(key);
   renderTransientContent(key);
   renderAssetGallery(key);
   configurePontajDemo();
@@ -445,4 +540,4 @@ document.addEventListener('paste', (event) => {
 });
 window.addEventListener('pagehide', clearTransientDemo);
 window.addEventListener('beforeunload', clearTransientDemo);
-renderDemo('dashboard');
+renderDemo(document.body.dataset.demoStart || 'dashboard');
