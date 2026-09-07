@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /supabase/
+Sitemap: https://panel-pro.ro/sitemap.xml
