@@ -410,6 +410,30 @@ const loadMarketplaceItem = async (table:string, itemId:string) => {
     if (error) throw error;
     return data;
 };
+const marketplaceDiscordPayload = (table:string, item:any) => {
+    const illegal = table === 'marketplace_ilegal';
+    const sold = String(item.status || 'active') === 'sold';
+    const panelUrl = `https://panel-pro.ro/${illegal ? 'marketplace-ilegal.html' : 'marketplace.html'}?anunt=${encodeURIComponent(String(item.id))}`;
+    return JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: `${sold ? '✅ Vândut · ' : ''}${illegal ? '🚨 Anunț nou · Marketplace ilegal' : '🛒 Anunț nou · Marketplace'}`, description: `${sold ? 'Acest anunț a fost marcat ca vândut. ' : ''}Publicat de **${String(item.display_name || item.created_by_discord_id || 'Utilizator')}**.`, color: sold ? 0x64748b : illegal ? 0xef4444 : 0x2563eb, fields: [{ name: 'Nume', value: String(item.nume || '—').slice(0, 1024), inline: true }, { name: 'Telefon', value: String(item.telefon || '—').slice(0, 1024), inline: true }, { name: 'Tip acțiune', value: String(item.tip_actiune || '—').slice(0, 1024), inline: true }, { name: 'Descriere', value: String(item.produse || '—').slice(0, 1024), inline: false }, { name: 'Preț', value: String(item.pret || 'Negociabil').slice(0, 1024), inline: true }], footer: { text: 'Panel Pro · rezultat în canalul de log' }, timestamp: new Date().toISOString() }], components: [{ type: 1, components: [{ type: 2, style: 5, label: 'Deschide în panel', url: panelUrl }, { type: 2, style: 4, label: sold ? 'Vândut' : 'Marchează ca vândut', custom_id: `panel:marketplace:${illegal ? 'illegal' : 'legal'}:sold:${item.id}`, ...(sold ? { disabled: true } : {}) }] }] });
+};
+const updateMarketplaceDiscordMessages = async (item:any, table:string) => {
+    const refs = Array.isArray(item.discord_message_ids) ? item.discord_message_ids : [];
+    if (!refs.length) return 0;
+    const organizationIds = [...new Set(refs.map((ref:any) => String(ref?.organization_id || organizationId)).filter(Boolean))];
+    const { data: settingsRows } = await db.from('organization_settings').select('organization_id,discord_channel_routes').in('organization_id', organizationIds);
+    const settingsByOrganization = new Map((settingsRows || []).map((row:any) => [String(row.organization_id), row]));
+    const routeKey = table === 'marketplace_ilegal' ? 'illegal_marketplace' : 'marketplace';
+    let updated = 0;
+    for (const ref of refs) {
+        if (!ref?.id || !ref?.channel_id) continue;
+        const settings = settingsByOrganization.get(String(ref.organization_id || organizationId));
+        const target = routeCandidates(settings, routeKey).flatMap((entry:any) => entry.candidates).find((candidate:any) => String(candidate.channel_id) === String(ref.channel_id));
+        if (!target) continue;
+        const response = await requestDiscordTarget(db, target, marketplaceDiscordPayload(table, item), { method: 'PATCH', messageId: String(ref.id) }).catch(() => null);
+        if (response?.ok) updated += 1;
+    }
+    return updated;
+};
 const canManageMarketplaceComment = (table:string, item:any, comment:any) =>
     isPlatformAdmin ||
     String(comment.author_discord_id || '') === String(du.id) ||
@@ -815,7 +839,7 @@ const own = async (id:string) => {
         deleted_id: body.post_id
     });
 }
- if(body.action==='marketplace_delete'){
+if(body.action==='marketplace_delete'){
    const table=body.table;
    if(!['marketplace','marketplace_ilegal'].includes(table))throw new Error('Tabel Marketplace invalid.');
    const illegalMarketplace=table==='marketplace_ilegal';
@@ -857,6 +881,30 @@ const own = async (id:string) => {
      }
    }
    return reply({ok:true,deleted_id:body.item_id});
+ }
+ if(body.action==='marketplace_mark_sold'){
+   const table=String(body.table||'');
+   if(!['marketplace','marketplace_ilegal'].includes(table))throw new Error('Tabel Marketplace invalid.');
+   const illegalMarketplace=table==='marketplace_ilegal';
+   const itemQuery=db.from(table).select('id,organization_id,created_by_discord_id,status,display_name,nume,telefon,tip_actiune,produse,pret,discord_message_ids').eq('id',body.item_id);
+   if(illegalMarketplace)itemQuery.is('organization_id',null);
+   const {data:item,error:itemError}=await itemQuery.maybeSingle();
+   if(itemError)throw itemError;
+   if(!item)throw new Error('Anunțul nu mai există sau nu este accesibil.');
+   let itemOrganizationOwner=false;
+   if(item.organization_id){
+     const {data:itemMember}=await db.from('organization_members').select('panel_role,permission_level,active').eq('organization_id',item.organization_id).eq('discord_id',du.id).eq('active',true).maybeSingle();
+     const role=String(itemMember?.panel_role||'').trim().toLocaleLowerCase('ro-RO');
+     itemOrganizationOwner=Number(itemMember?.permission_level||0)>=90||new Set(['owner','administrator','administrator organizație','administrator organizatie','admin']).has(role);
+   }
+   if(!isPlatformAdmin&&!itemOrganizationOwner&&String(item.created_by_discord_id||'')!==String(du.id))return reply({error:'Doar administratorul global, ownerul organizației sau autorul poate marca anunțul ca vândut.'},403);
+   if(String(item.status||'active')==='sold')return reply({ok:true,status:'sold'});
+   const {data:updated,error:updateError}=await db.from(table).update({status:'sold',sold_at:new Date().toISOString(),sold_by_discord_id:du.id,updated_at:new Date().toISOString()}).eq('id',body.item_id).select('id,status,sold_at').single();
+   if(updateError)throw updateError;
+   item.status = updated.status;
+   item.sold_at = updated.sold_at;
+   const discordUpdated = await updateMarketplaceDiscordMessages(item, table);
+   return reply({ok:true,status:updated.status,sold_at:updated.sold_at,discord_updated:discordUpdated});
  }
  if(body.action==='marketplace_update'){if(body.table!=='marketplace_ilegal')throw new Error('Tabel Marketplace invalid.');const itemQuery=db.from('marketplace_ilegal').select('id,organization_id,created_by_discord_id').eq('id',body.item_id).is('organization_id',null);const {data:item,error:itemError}=await itemQuery.maybeSingle();if(itemError)throw itemError;if(!item)return reply({error:'Anunțul global nu există sau nu este accesibil.'},404);if(!isPlatformAdmin&&String(item.created_by_discord_id||'')!==String(du.id))return reply({error:'Poți edita numai anunțurile publicate de tine.'},403);const {data:updated,error:updateError}=await db.from('marketplace_ilegal').update({nume:normalizeBlackMarketName(body.nume),telefon:String(body.telefon||''),tip_actiune:body.tip_actiune||null,categorie:body.categorie||null,subcategorie:body.subcategorie||null,produse:String(body.produse||''),pret:body.pret||null,imagini_json:body.imagini_json||'[]',imagine_url:body.imagine_url||null,updated_at:new Date().toISOString()}).eq('id',body.item_id).is('organization_id',null).select('*').single();if(updateError)throw updateError;return reply({ok:true,item:updated})}
  if(body.action==='react'){const reaction=String(body.reaction||'');if(!allowedCommunityReactions.has(reaction))return reply({error:'Reacție invalidă.'},400);const key={organization_id:organizationId,post_id:body.post_id,user_discord_id:du.id,reaction};const {data}=await db.from('community_reactions').select('id').match(key).maybeSingle();const q=data?db.from('community_reactions').delete().eq('organization_id',organizationId).eq('id',data.id):db.from('community_reactions').insert(key);const {error}=await q;if(error)throw error;return reply({ok:true})}

@@ -21,7 +21,9 @@
   insertSyntheticAfter('requests_organization', 'log_requests_organization');
   insertSyntheticAfter('requests_departments', 'log_requests_departments');
   insertSyntheticAfter('organization', 'log_announcements_organization');
+  insertSyntheticAfter('organization', 'log_discipline_organization');
   insertSyntheticAfter('departments', 'log_announcements_departments');
+  insertSyntheticAfter('departments', 'log_discipline_departments');
   insertSyntheticAfter('contracts', 'log_contracts');
   insertSyntheticAfter('marketplace', 'log_marketplace');
   insertSyntheticAfter('illegal_marketplace', 'log_illegal_marketplace');
@@ -32,7 +34,7 @@
   insertSyntheticAfter('stash', 'log_stash');
   insertSyntheticAfter('stash_requests', 'log_stash_requests');
   insertSyntheticAfter('stash_donations', 'log_stash_donations');
-  const preferredRouteOrder = ['organization', 'log_announcements_organization', 'departments', 'log_announcements_departments', 'pontaj', 'log_pontaj', 'requests_organization', 'log_requests_organization', 'requests_departments', 'log_requests_departments', 'contracts', 'log_contracts', 'marketplace', 'log_marketplace', 'illegal_marketplace', 'log_illegal_marketplace', 'illegal_locations', 'event_reminders', 'log_event_reminders', 'contract_identity_weekly', 'log_contract_identity_weekly', 'actions_organization', 'log_actions_organization', 'status_live', 'stash', 'log_stash', 'stash_requests', 'log_stash_requests', 'stash_donations', 'log_stash_donations'];
+  const preferredRouteOrder = ['organization', 'log_announcements_organization', 'log_discipline_organization', 'departments', 'log_announcements_departments', 'log_discipline_departments', 'pontaj', 'log_pontaj', 'requests_organization', 'log_requests_organization', 'requests_departments', 'log_requests_departments', 'contracts', 'log_contracts', 'marketplace', 'log_marketplace', 'illegal_marketplace', 'log_illegal_marketplace', 'illegal_locations', 'event_reminders', 'log_event_reminders', 'contract_identity_weekly', 'log_contract_identity_weekly', 'actions_organization', 'log_actions_organization', 'status_live', 'stash', 'log_stash', 'stash_requests', 'log_stash_requests', 'stash_donations', 'log_stash_donations'];
   const preferredRoutes = preferredRouteOrder.filter((key) => routeKeys.includes(key));
   const remainingRoutes = routeKeys.filter((key) => !preferredRoutes.includes(key));
   routeKeys.splice(0, routeKeys.length, ...preferredRoutes, ...remainingRoutes);
@@ -44,6 +46,8 @@
       log_requests_departments: 'Log învoiri · Angajați',
       log_announcements_organization: 'Log anunțuri · Organizație',
       log_announcements_departments: 'Log anunțuri · Angajați',
+      log_discipline_organization: 'Log avertismente și amenzi · Organizație',
+      log_discipline_departments: 'Log avertismente și amenzi · Angajați',
       log_contracts: 'Log contracte',
       log_marketplace: 'Log Marketplace legal',
       log_illegal_marketplace: 'Log Marketplace ilegal',
@@ -267,7 +271,7 @@
          ] },
          { type: 1, components: [
            { type: 2, style: 4, label: 'Avertisment', custom_id: `panel:discipline:${prefix}:warning` },
-           { type: 2, style: 4, label: 'Sancțiune', custom_id: `panel:discipline:${prefix}:sanction` },
+           { type: 2, style: 4, label: 'Amendă', custom_id: `panel:discipline:${prefix}:sanction` },
            ...(prefix === 'organization' ? [{ type: 2, style: 1, label: 'Acțiune', custom_id: 'panel:actions:organization:create' }, { type: 2, style: 2, label: 'Clasament acțiuni', custom_id: 'panel:actions:organization:stats' }] : []),
          ] },
        ],

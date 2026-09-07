@@ -27,7 +27,7 @@ const commandOption = (interaction: any, name: string) => commandOptions(interac
 const PANEL_ROUTE_LABELS: Record<string, string> = {
   organization: 'Anunțuri organizație', departments: 'Anunțuri angajați', pontaj: 'Pontaj', log_pontaj: 'Log pontaj',
   requests_organization: 'Învoiri organizație', requests_departments: 'Învoiri angajați', log_requests_organization: 'Log învoiri organizație', log_requests_departments: 'Log învoiri angajați',
-  contracts: 'Contracte', log_contracts: 'Log contracte', log_actions_organization: 'Log acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
+  contracts: 'Contracte', log_contracts: 'Log contracte', log_discipline_organization: 'Log avertismente și amenzi organizație', log_discipline_departments: 'Log avertismente și amenzi angajați', log_actions_organization: 'Log acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
   stash: 'Stash', log_stash: 'Log Stash', stash_requests: 'Cereri Stash', log_stash_requests: 'Log cereri Stash', stash_donations: 'Donații Stash', log_stash_donations: 'Log donații Stash',
   marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
 };
@@ -35,8 +35,13 @@ const panelRouteKeys = Object.keys(PANEL_ROUTE_LABELS);
 const PANEL_LOG_ROUTES: Record<string, string> = {
   organization: 'log_announcements_organization', departments: 'log_announcements_departments', pontaj: 'log_pontaj',
   requests_organization: 'log_requests_organization', requests_departments: 'log_requests_departments', contracts: 'log_contracts',
-  actions_organization: 'log_actions_organization', marketplace: 'log_marketplace', illegal_marketplace: 'log_illegal_marketplace', event_reminders: 'log_event_reminders', contract_identity_weekly: 'log_contract_identity_weekly', stash: 'log_stash', stash_requests: 'log_stash_requests', stash_donations: 'log_stash_donations',
+  actions_organization: 'log_actions_organization', fines_organization: 'log_discipline_organization', fines_departments: 'log_discipline_departments', warnings_organization: 'log_discipline_organization', warnings_departments: 'log_discipline_departments', sanctions_organization: 'log_discipline_organization', sanctions_departments: 'log_discipline_departments', marketplace: 'log_marketplace', illegal_marketplace: 'log_illegal_marketplace', event_reminders: 'log_event_reminders', contract_identity_weekly: 'log_contract_identity_weekly', stash: 'log_stash', stash_requests: 'log_stash_requests', stash_donations: 'log_stash_donations',
 };
+const DISCIPLINE_LOG_ROUTES: Record<string, string> = {
+  organization: 'log_discipline_organization',
+  departments: 'log_discipline_departments',
+};
+const disciplineFineLogRoute = (audience: 'organization' | 'departments') => DISCIPLINE_LOG_ROUTES[audience];
 const isDiscordManager = (interaction: any) => {
   try { return (BigInt(String(interaction?.member?.permissions || '0')) & 40n) !== 0n; } catch { return false; }
 };
@@ -96,8 +101,8 @@ async function ensureDiscordOnlyOrganization(db: any, interaction: any) {
 }
 const controlPayload = (routeKey: string, trialText = '', includeDonation = true) => {
   const definitions: Record<string, { title: string; description: string; color: number; buttons: any[] }> = {
-    organization: { title: '📢 Anunțuri · Organizație', description: 'Publică anunțuri, întrebări și sondaje pentru organizație.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:organization:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:organization:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:organization:create:poll' }] },
-    departments: { title: '📢 Anunțuri · Angajați', description: 'Publică anunțuri, întrebări și sondaje pentru angajați.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:departments:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:departments:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:departments:create:poll' }] },
+    organization: { title: '📢 Anunțuri · Organizație', description: 'Publică anunțuri, întrebări, sondaje și măsuri disciplinare pentru organizație.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:organization:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:organization:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:organization:create:poll' }, { label: 'Avertisment', style: 4, id: 'panel:discipline:organization:warning' }, { label: 'Amendă', style: 4, id: 'panel:discipline:organization:sanction' }] },
+    departments: { title: '📢 Anunțuri · Angajați', description: 'Publică anunțuri, întrebări, sondaje și măsuri disciplinare pentru angajați.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:departments:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:departments:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:departments:create:poll' }, { label: 'Avertisment', style: 4, id: 'panel:discipline:departments:warning' }, { label: 'Amendă', style: 4, id: 'panel:discipline:departments:sanction' }] },
     pontaj: { title: '🕒 Pontaj · Panel Pro', description: 'Alege tura și folosește butoanele pentru Start, Pauză și Stop.', color: 0x22c55e, buttons: [{ label: 'Tura de zi', style: 1, id: 'panel:pontaj:shift_day' }, { label: 'Tura de noapte', style: 1, id: 'panel:pontaj:shift_night' }, { label: 'Start', style: 3, id: 'panel:pontaj:start' }, { label: 'Pauză', style: 2, id: 'panel:pontaj:pause' }, { label: 'Stop', style: 4, id: 'panel:pontaj:stop' }, { label: 'Pontajul meu', style: 1, id: 'panel:pontaj:my_stats' }] },
     requests_organization: { title: '📝 Învoiri · Organizație', description: 'Trimite și consultă învoirile organizației.', color: 0xf59e0b, buttons: [{ label: 'Trimite învoire', style: 1, id: 'panel:requests:organization:new' }, { label: 'Învoirile mele', style: 2, id: 'panel:requests:organization:mine' }] },
     requests_departments: { title: '📝 Învoiri · Angajați', description: 'Trimite și consultă învoirile angajaților.', color: 0xf59e0b, buttons: [{ label: 'Trimite învoire', style: 1, id: 'panel:requests:departments:new' }, { label: 'Învoirile mele', style: 2, id: 'panel:requests:departments:mine' }] },
@@ -591,7 +596,10 @@ async function resolveManagementContext(db: any, interaction: any, audience: 'or
   const platformAdmin = await isPlatformAdminAccount(db, discordId);
   if (!platformAdmin && !discordOnly && (!packageFeatures.includes(feature) || ![...effectiveRoleIds].some((roleId) => configuredRoles.includes(roleId)))) throw new Error(`Nu ai permisiunea necesară pentru ${audience === 'organization' ? 'Organizație' : 'Angajați'}.`);
   const displayName = String(interaction.member?.nick || user.global_name || user.username || discordId).trim().slice(0, 120) || discordId;
-  return { guildId, channelId, target, discordId, displayName, organization, settings, platformAdmin, audience, logRouteKey: routes.log, role: mappings?.find((mapping: any) => effectiveRoleIds.has(String(mapping.discord_role_id)))?.panel_role || organizationMember?.panel_role || 'Membru' };
+  const logRouteKey = feature.startsWith('discipline_')
+    ? (permission === 'sanction' ? disciplineFineLogRoute(audience) : DISCIPLINE_LOG_ROUTES[audience])
+    : routes.log;
+  return { guildId, channelId, target, discordId, displayName, organization, settings, platformAdmin, audience, logRouteKey, role: mappings?.find((mapping: any) => effectiveRoleIds.has(String(mapping.discord_role_id)))?.panel_role || organizationMember?.panel_role || 'Membru' };
 }
 
 async function resolveContractContext(db: any, interaction: any, routeKey = 'contracts') {
@@ -711,13 +719,36 @@ async function resolveUniversalModuleContext(db: any, interaction: any, routeKey
 
 function marketplaceEmbed(kind: 'legal' | 'illegal', values: Record<string, any>, context: any, id: string) {
   const illegal = kind === 'illegal';
-  return { allowed_mentions: { parse: [] }, embeds: [{ title: illegal ? '🚨 Anunț nou · Marketplace ilegal' : '🛒 Anunț nou · Marketplace', description: `Publicat de **${context.displayName}**.`, color: illegal ? 0xef4444 : 0x2563eb, fields: [
+  const sold = String(values.status || 'active') === 'sold';
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: `${sold ? '✅ Vândut · ' : ''}${illegal ? '🚨 Anunț nou · Marketplace ilegal' : '🛒 Anunț nou · Marketplace'}`, description: `${sold ? 'Acest anunț a fost marcat ca vândut. ' : ''}Publicat de **${context.displayName}**.`, color: sold ? 0x64748b : illegal ? 0xef4444 : 0x2563eb, fields: [
     { name: 'Nume', value: String(values.name || '—').slice(0, 1024), inline: true },
     { name: 'Telefon', value: String(values.phone || '—').slice(0, 1024), inline: true },
     { name: 'Tip acțiune', value: String(values.action || '—').slice(0, 1024), inline: true },
     { name: 'Descriere', value: String(values.products || '—').slice(0, 1024), inline: false },
     { name: 'Preț', value: String(values.price || 'Negociabil').slice(0, 1024), inline: true },
-  ], footer: { text: 'Panel Pro · rezultat în canalul de log' }, timestamp: new Date().toISOString() }], components: [{ type: 1, components: [{ type: 2, style: 5, label: 'Deschide în panel', url: `https://panel-pro.ro/${illegal ? 'marketplace-ilegal.html' : 'marketplace.html'}?anunt=${encodeURIComponent(id)}` }] }] };
+  ], footer: { text: 'Panel Pro · rezultat în canalul de log' }, timestamp: new Date().toISOString() }], components: [{ type: 1, components: [{ type: 2, style: 5, label: 'Deschide în panel', url: `https://panel-pro.ro/${illegal ? 'marketplace-ilegal.html' : 'marketplace.html'}?anunt=${encodeURIComponent(id)}` }, { type: 2, style: 4, label: sold ? 'Vândut' : 'Marchează ca vândut', custom_id: `panel:marketplace:${illegal ? 'illegal' : 'legal'}:sold:${encodeURIComponent(id)}`, ...(sold ? { disabled: true } : {}) }] }] };
+}
+
+async function markMarketplaceSoldFromDiscord(db: any, interaction: any, kind: 'legal' | 'illegal', itemId: string) {
+  const routeKey = kind === 'illegal' ? 'illegal_marketplace' : 'marketplace';
+  const feature = kind === 'illegal' ? 'illegal_marketplace' : 'legal_marketplace';
+  let context;
+  try { context = await resolveUniversalModuleContext(db, interaction, routeKey, feature); }
+  catch (_) { context = await resolveUniversalModuleContext(db, interaction, kind === 'illegal' ? 'log_illegal_marketplace' : 'log_marketplace', feature); }
+  const table = kind === 'illegal' ? 'marketplace_ilegal' : 'marketplace';
+  const query = db.from(table).select('id,nume,telefon,tip_actiune,produse,pret,status,organization_id,created_by_discord_id').eq('id', itemId);
+  if (kind === 'illegal') query.is('organization_id', null); else query.eq('organization_id', context.organization.id);
+  const { data: item, error } = await query.maybeSingle();
+  if (error) throw error;
+  if (!item) throw new Error('Anunțul nu există sau nu mai este accesibil.');
+  if (!isDiscordManager(interaction) && !context.platformAdmin && String(item.created_by_discord_id || '') !== context.discordId) throw new Error('Doar autorul, ownerul serverului sau administratorul global poate marca anunțul ca vândut.');
+  if (String(item.status || 'active') !== 'sold') {
+    const { error: updateError } = await db.from(table).update({ status: 'sold', sold_at: new Date().toISOString(), sold_by_discord_id: context.discordId, updated_at: new Date().toISOString() }).eq('id', itemId);
+    if (updateError) throw updateError;
+    item.status = 'sold';
+  }
+  const payload = marketplaceEmbed(kind, { ...item, name: item.nume, phone: item.telefon, action: item.tip_actiune, products: item.produse, price: item.pret }, context, itemId);
+  return { type: 7, data: { allowed_mentions: payload.allowed_mentions, embeds: payload.embeds, components: payload.components } };
 }
 
 async function deliverGlobalMarketplaceResult(db: any, routeKey: string, body: BodyInit) {
@@ -1262,7 +1293,7 @@ async function handleContractPublish(db: any, context: any, contractId: string) 
 }
 
 async function sendDisciplineDiscord(db: any, context: any, kind: 'warning' | 'sanction', record: any, action = 'nou') {
-  const routeKey = context.logRouteKey || announcementRoutes(context.audience).log;
+  const routeKey = context.logRouteKey || (kind === 'sanction' ? disciplineFineLogRoute(context.audience) : DISCIPLINE_LOG_ROUTES[context.audience]);
   const destinations = routeCandidates(context.settings, routeKey);
   if (!destinations.some((item: any) => item.candidates.length)) throw new Error(`Canalul Discord pentru ${routeKey} nu este configurat.`);
   const payload = JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [disciplineEmbed(record, kind, context, action)], components: disciplineComponents(context.audience, kind, String(record.id)) });
@@ -2216,6 +2247,15 @@ Deno.serve(async (request) => {
     const parts = customId.split(':');
     const kind = parts[2] === 'illegal' ? 'illegal' : parts[2] === 'legal' ? 'legal' : null;
     if (!kind) return reply(interactionMessage('Tipul Marketplace nu este valid.'));
+    if (parts[3] === 'sold') {
+      const itemId = decodeURIComponent(String(parts[4] || ''));
+      if (!/^[0-9a-f-]{36}$/i.test(itemId)) return reply(interactionMessage('ID-ul anunțului nu este valid.'));
+      const key = serviceKey();
+      if (!key) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+      const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+      try { return reply(await markMarketplaceSoldFromDiscord(db, interaction, kind, itemId)); }
+      catch (error) { return reply(interactionMessage(error instanceof Error ? error.message : 'Anunțul nu a putut fi marcat ca vândut.')); }
+    }
     if (parts[3] === 'create') {
       const key = serviceKey();
       if (!key) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));

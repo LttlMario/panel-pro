@@ -624,6 +624,7 @@
                                     ${dataFormatata ? `<div class="text-[10px] text-slate-500">Publicat: ${dataFormatata}</div>` : ''}
                                     <button type="button" data-marketplace-comments-open data-marketplace-table="marketplace_ilegal" data-marketplace-id="${escapeHtml(item.id)}" data-marketplace-title="${escapeHtml(numeAfisat || 'Anunț')}" class="mt-2 px-2.5 py-1 rounded-lg border border-sky-500/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 text-[10px] font-bold">💬 Comentarii</button>
                                     ${poateEdita ? `<button type="button" onclick="editeazaAnuntMarketplace('${item.id}')" class="mt-2 px-2.5 py-1 rounded-lg border border-sky-500/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 text-[10px] font-bold">Editează</button>` : ''}
+                                    ${item.status === 'sold' ? `<span class="mt-2 inline-block px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 text-[10px] font-bold">✅ Vândut</span>` : (poateSterge ? `<button type="button" onclick="marcheazaVandutMarketplace('${item.id}')" class="mt-2 px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 text-[10px] font-bold">Marchează ca vândut</button>` : '')}
                                     ${poateSterge ? `<button type="button" onclick="stergeAnuntMarketplace('${item.id}')" class="mt-2 ml-1 px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-[10px] font-bold">Șterge</button>` : ''}
                                 </div>
                             </div>
@@ -656,6 +657,14 @@
             });
             const result = await response.json();
             if (!response.ok) return alert(result.error || 'Anunțul nu a putut fi șters.');
+            await incarcaAnunturi();
+        }
+
+        async function marcheazaVandutMarketplace(id) {
+            if (!confirm('Marchezi acest anunț ca vândut?')) return;
+            const response = await fetch(`${SUPABASE_URL}/functions/v1/manage-community-posts`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, authorization: `Bearer ${SUPABASE_KEY}` }, body: JSON.stringify({ action: 'marketplace_mark_sold', table: 'marketplace_ilegal', item_id: id, access_token: window.getPanelDiscordAccessToken?.() }) });
+            const result = await response.json();
+            if (!response.ok) return alert(result.error || 'Anunțul nu a putut fi marcat ca vândut.');
             await incarcaAnunturi();
         }
 
@@ -763,7 +772,7 @@
                         style: 5,
                         label: 'Deschide anunțul în panel',
                         url: `${MARKETPLACE_PANEL_URL}?anunt=${encodeURIComponent(anunt.id)}`
-                    }]
+                    }, { type: 2, style: 4, label: 'Marchează ca vândut', custom_id: `panel:marketplace:illegal:sold:${anunt.id}` }]
                 }] : []
             };
 
