@@ -516,7 +516,7 @@ function sanitizeIllegalDemo() {
 
 function addIllegalLocationImages() {
   if (!panelEl || document.getElementById('demo-location-images')) return;
-  const maps = [['.map-two', 'img/cayo.jpg'], ['.map-three', 'img/maldive.jpg']];
+  const maps = [['.map-one', 'img/gtav.jpg'], ['.map-two', 'img/cayo.jpg'], ['.map-three', 'img/maldive.jpg']];
   maps.forEach(([selector, image]) => { const card = panelEl.querySelector(selector); if (card) card.style.backgroundImage = `url("${image}")`; });
 }
 
