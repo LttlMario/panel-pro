@@ -850,6 +850,21 @@
                         </div>
                     </div>
                 </div>
+                <div class="result-box" id="kitchenResults" hidden>
+                    <div class="croitorie-result-layout">
+                        <div>
+                            <h3>Calculator Bucătărie · Necesar direct și materiale brute</h3>
+                            <p id="kitchenSelectedTitle" class="text-xs text-slate-400" style="margin:6px 0 12px;"></p>
+                            <div class="grid-results" id="kitchenDirectResults"></div>
+                            <h3 style="margin-top:16px;">Total materiale brute</h3>
+                            <div class="grid-results" id="kitchenRawResults"></div>
+                        </div>
+                        <aside class="croitorie-result-preview" aria-label="Imaginea rețetei selectate">
+                            <img id="kitchenSelectedImage" alt="Preparat selectat" loading="lazy">
+                        </aside>
+                    </div>
+                </div>
+
                 <div class="croitorie-image-lightbox" id="croitorieImageLightbox" hidden onclick="closeCroitorieImagePreview(event)">
                     <div class="croitorie-image-lightbox-content" role="dialog" aria-modal="true" aria-labelledby="croitorieImageLightboxTitle" onclick="event.stopPropagation()">
                         <button type="button" class="croitorie-image-lightbox-close" onclick="closeCroitorieImagePreview()" aria-label="Închide imaginea mărită">✕</button>
@@ -857,20 +872,6 @@
                         <div class="croitorie-image-lightbox-title" id="croitorieImageLightboxTitle"></div>
                     </div>
 
-                    <div class="result-box" id="kitchenResults" hidden>
-                        <div class="croitorie-result-layout">
-                            <div>
-                                <h3>Calculator Bucătărie · Necesar direct și materiale brute</h3>
-                                <p id="kitchenSelectedTitle" class="text-xs text-slate-400" style="margin:6px 0 12px;"></p>
-                                <div class="grid-results" id="kitchenDirectResults"></div>
-                                <h3 style="margin-top:16px;">Total materiale brute</h3>
-                                <div class="grid-results" id="kitchenRawResults"></div>
-                            </div>
-                            <aside class="croitorie-result-preview" aria-label="Imaginea rețetei selectate">
-                                <img id="kitchenSelectedImage" alt="Preparat selectat" loading="lazy">
-                            </aside>
-                        </div>
-                    </div>
                 </div>
             </div>
         </main>
@@ -1711,6 +1712,7 @@ const upgradeChains = {
                 if (catId === 'cat-masa') showMasaGallery();
                 if (catId === 'cat-croitor') showCroitorieGallery();
                 if (catId === 'cat-mecanic') showMecanicGallery();
+                if (catId === 'cat-bucatarie') window.showKitchenGallery?.();
             }
         }
 

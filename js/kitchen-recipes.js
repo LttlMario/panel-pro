@@ -57,6 +57,10 @@
   if (!select || !quantity || !gallery || !direct || !raw || !result) return;
 
   select.innerHTML = recipes.map(recipe => `<option value="${esc(recipe.id)}">${esc(recipe.name)}</option>`).join('');
+  galleryView.hidden = false;
+  selectionView.hidden = true;
+  quantity.value = '0';
+  result.hidden = true;
   const card = recipe => {
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'mecanic-gallery-card'; button.title = `Calculează ${recipe.name}`;
@@ -89,5 +93,4 @@
   window.showKitchenGallery = () => { galleryView.hidden = false; selectionView.hidden = true; quantity.value = 0; result.hidden = true; };
   select.onchange = render; quantity.oninput = render;
   document.getElementById('kitchenSelectionBack')?.addEventListener('click', window.showKitchenGallery);
-  render();
 })();
