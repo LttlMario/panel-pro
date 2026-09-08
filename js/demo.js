@@ -118,15 +118,18 @@ function renderLiveCalculatorDemo() {
     ['🔧 Craft Mecanic', craftGallery.slice(0, 16).map((_, i) => `img/masa${i + 1}.png`), craftGallery.slice(0, 16).map(([name]) => name)],
     ['🍳 Calculator Bucătărie', Array.from({ length: 29 }, (_, i) => `img/bucatarie-calc-${String(i + 1).padStart(2, '0')}.png`), kitchenDemoRecipes.map(([name]) => name)]
   ];
+  const calcLayout = document.createElement('div'); calcLayout.className = 'demo-calculator-layout'; panelEl.appendChild(calcLayout);
+  const categoryList = document.createElement('div'); categoryList.className = 'demo-calculator-category-list'; calcLayout.appendChild(categoryList);
   categories.forEach(([title, images, names]) => {
     const category = document.createElement('div'); category.className = 'calculator-category';
     category.innerHTML = `<button class="category-header-demo" type="button">${title} <span>⌄</span></button><div class="category-content-demo"><p class="demo-help-text">Alege imaginea din galerie pentru a selecta rețeta. Demo-ul nu afișează rezultate reale și nu trimite nimic pe Discord.</p><div class="asset-gallery">${images.map((image, i) => `<button type="button" class="asset-card demo-calculator-card"><img src="${image}" alt="${escapeHtml(names[i])}" loading="lazy"><span>${escapeHtml(names[i])}</span></button>`).join('')}</div><div class="demo-selection-note">Nicio rețetă selectată.</div></div>`;
-    panelEl.appendChild(category);
-    category.querySelector('.category-header-demo').addEventListener('click', () => category.classList.toggle('is-open'));
+    category.classList.add('is-collapsed');
+    categoryList.appendChild(category);
+    category.querySelector('.category-header-demo').addEventListener('click', () => category.classList.toggle('is-collapsed'));
     category.querySelectorAll('.demo-calculator-card').forEach((card, i) => card.addEventListener('click', () => { category.querySelector('.demo-selection-note').textContent = `Ai selectat ${names[i]}.`; }));
   });
   const results = document.createElement('aside'); results.className = 'feature-box demo-calculator-results'; results.innerHTML = '<h3>Rezultate calcul</h3><p>Aici vor apărea rețetele, materialele și rezultatele reale în varianta live. Demo-ul nu afișează valori reale.</p>';
-  panelEl.appendChild(results);
+  calcLayout.appendChild(results);
 }
 
 function renderKitchenDemo() {
@@ -489,7 +492,18 @@ function renderModuleVisual(key) {
 function sanitizeIllegalDemo() {
   if (!panelEl) return;
   const resultGrid = panelEl.querySelector('.results-grid-demo');
-  if (resultGrid) { resultGrid.innerHTML = '<div class="feature-box demo-calculator-results"><h3>Rezultate calcul</h3><p>Aici vor apărea rețetele, materialele și rezultatele reale în varianta live. Demo-ul nu afișează valori reale.</p></div>'; }
+  if (resultGrid) {
+    resultGrid.className = 'feature-box demo-calculator-results';
+    resultGrid.innerHTML = '<h3>Rezultate calcul</h3><p>Aici vor apărea rețetele, materialele și rezultatele reale în varianta live. Demo-ul nu afișează valori reale.</p>';
+    const categories = Array.from(panelEl.querySelectorAll('.calculator-category'));
+    const layout = document.createElement('div'); layout.className = 'demo-calculator-layout';
+    const left = document.createElement('div'); left.className = 'demo-calculator-category-list';
+    categories.forEach((category) => left.appendChild(category));
+    layout.append(left, resultGrid);
+    panelEl.querySelector('.screen-head.compact-head')?.remove();
+    panelEl.querySelector('.section-divider')?.remove();
+    panelEl.appendChild(layout);
+  }
   panelEl.querySelector('[data-action="calculate-illegal"]')?.remove();
   panelEl.querySelectorAll('.calculator-category').forEach((category) => {
     const note = document.createElement('div'); note.className = 'demo-selection-note'; note.textContent = 'Nicio selecție.'; category.querySelector('.category-content-demo')?.appendChild(note);

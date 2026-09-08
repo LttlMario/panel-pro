@@ -66,6 +66,8 @@ button { font:inherit; }
 .map-three:before { transform:rotate(-42deg) scale(1.35); }
 .demo-mobile-backdrop { display:none; }
 
+/* Calculatoarele demo păstrează panoul de rezultate în dreapta, ca în live. */
+.demo-calculator-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,.42fr); gap:14px; align-items:start; margin-top:18px; }.demo-calculator-layout .demo-calculator-results { position:sticky; top:15px; }.demo-selection-note { grid-column:1/-1; margin-top:8px; padding:9px; border:1px dashed #2b405b; border-radius:7px; color:#8fa4bd; font-size:10px; }
 @media (max-width:900px) {
   .demo-topbar { position:sticky; top:0; z-index:80; min-height:64px; padding:0 16px; gap:12px; }
   .demo-mobile-toggle { display:grid; place-items:center; flex:none; width:34px; height:34px; border:1px solid #2b405b; border-radius:8px; font-size:20px; }
