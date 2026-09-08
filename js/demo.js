@@ -484,6 +484,20 @@ function renderModuleVisual(key) {
   screenHead.insertAdjacentHTML('afterend', `<section class="demo-module-visual"><div class="demo-module-visual-images">${imageMarkup}</div><div><p class="panel-eyebrow">CE INCLUDE MODULUL</p><h3>${visual[1]}</h3><p>${visual[2]}</p></div></section>`);
 }
 
+function sanitizeIllegalDemo() {
+  if (!panelEl) return;
+  panelEl.querySelector('.results-grid-demo')?.closest('.section-divider')?.remove();
+  panelEl.querySelector('.results-grid-demo')?.remove();
+  panelEl.querySelector('[data-action="calculate-illegal"]')?.remove();
+  panelEl.querySelectorAll('.calculator-category').forEach((category) => {
+    const note = document.createElement('div'); note.className = 'demo-selection-note'; note.textContent = 'Nicio selecție.'; category.querySelector('.category-content-demo')?.appendChild(note);
+    category.querySelectorAll('select, input[type="number"]').forEach((control) => control.addEventListener('change', () => {
+      const selected = category.querySelector('select'); const label = selected?.selectedOptions?.[0]?.textContent?.trim() || 'element';
+      note.textContent = `Ai selectat ${label}.`;
+    }));
+  });
+}
+
 function renderDemo(key) {
   const screen = demoScreens[key] || demoScreens.dashboard;
   currentDemoKey = key;
@@ -495,6 +509,7 @@ function renderDemo(key) {
   guideTextEl.textContent = screen.guide[1];
   panelEl.innerHTML = screen.body;
   if (key === 'calculator') renderKitchenDemo();
+  if (key === 'calculator-ilegal') sanitizeIllegalDemo();
   if (key === 'anunturi-angajati' || key === 'anunturi-organizatie' || key === 'anunturi') {
     const employeeScope = key === 'anunturi-angajati';
     if (employeeScope) {
