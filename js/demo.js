@@ -125,6 +125,8 @@ function renderLiveCalculatorDemo() {
     category.querySelector('.category-header-demo').addEventListener('click', () => category.classList.toggle('is-open'));
     category.querySelectorAll('.demo-calculator-card').forEach((card, i) => card.addEventListener('click', () => { category.querySelector('.demo-selection-note').textContent = `Ai selectat ${names[i]}.`; }));
   });
+  const results = document.createElement('aside'); results.className = 'feature-box demo-calculator-results'; results.innerHTML = '<h3>Rezultate calcul</h3><p>Aici vor apărea rețetele, materialele și rezultatele reale în varianta live. Demo-ul nu afișează valori reale.</p>';
+  panelEl.appendChild(results);
 }
 
 function renderKitchenDemo() {
@@ -486,8 +488,8 @@ function renderModuleVisual(key) {
 
 function sanitizeIllegalDemo() {
   if (!panelEl) return;
-  panelEl.querySelector('.results-grid-demo')?.closest('.section-divider')?.remove();
-  panelEl.querySelector('.results-grid-demo')?.remove();
+  const resultGrid = panelEl.querySelector('.results-grid-demo');
+  if (resultGrid) { resultGrid.innerHTML = '<div class="feature-box demo-calculator-results"><h3>Rezultate calcul</h3><p>Aici vor apărea rețetele, materialele și rezultatele reale în varianta live. Demo-ul nu afișează valori reale.</p></div>'; }
   panelEl.querySelector('[data-action="calculate-illegal"]')?.remove();
   panelEl.querySelectorAll('.calculator-category').forEach((category) => {
     const note = document.createElement('div'); note.className = 'demo-selection-note'; note.textContent = 'Nicio selecție.'; category.querySelector('.category-content-demo')?.appendChild(note);
