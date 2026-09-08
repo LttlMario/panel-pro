@@ -108,6 +108,11 @@ const kitchenDemoRecipes = [
 function renderKitchenDemo() {
   if (!panelEl || document.getElementById('demo-kitchen-calculator')) return;
   panelEl.insertAdjacentHTML('beforeend', `<div id="demo-kitchen-calculator" class="calculator-category kitchen-demo-category"><button class="category-header-demo" type="button">🍳 Calculator Bucătărie <span>⌄</span></button><div class="category-content-demo"><p class="demo-help-text">Alege preparatul și cantitatea pentru a vedea materialele necesare. Calculatorul este disponibil în panelul web; botul Discord nu efectuează calcule.</p><label>Preparat / material<select id="demo-kitchen-recipe" class="demo-input">${kitchenDemoRecipes.map(([name]) => `<option>${escapeHtml(name)}</option>`).join('')}</select></label><label>Cantitate<input id="demo-kitchen-qty" class="demo-input" type="number" min="0" value="0"></label><div id="demo-kitchen-result" class="feature-box"><h3>Rezultate</h3><p>Selectează un preparat și introdu cantitatea.</p></div></div></div>`);
+  const craftCategory = document.createElement('div');
+  craftCategory.id = 'demo-craft-calculator';
+  craftCategory.className = 'calculator-category';
+  craftCategory.innerHTML = `<button class="category-header-demo" type="button">🔧 Craft Mecanic <span>⌄</span></button><div class="category-content-demo"><p class="demo-help-text">Craft Mecanic este integrat în Calculator, exact ca în varianta live. Alege sistemul pentru a vedea rețeta și cantitatea necesară.</p><label>Sistem / rețetă<select class="demo-input">${craftGallery.map(([name]) => `<option>${escapeHtml(name)}</option>`).join('')}</select></label><label>Cantitate<input class="demo-input" type="number" min="0" value="0"></label></div>`;
+  panelEl.insertBefore(craftCategory, document.getElementById('demo-kitchen-calculator'));
   const recipe = document.getElementById('demo-kitchen-recipe');
   const quantity = document.getElementById('demo-kitchen-qty');
   const result = document.getElementById('demo-kitchen-result');
@@ -207,7 +212,6 @@ function initDemoShell() {
        <p class="nav-label">Resurse</p>
       <button class="demo-nav-item" data-demo="marketplace"><span class="nav-icon">◇</span> Marketplace</button>
       <button class="demo-nav-item" data-demo="calculator"><span class="nav-icon">⊞</span> Calculator</button>
-      <button class="demo-nav-item" data-demo="craft"><span class="nav-icon">⚒</span> Craft Mecanic</button>
       <p class="nav-label">Acces restricționat</p>
       <a class="demo-nav-item demo-deeper-link" href="demo-ilegale.html"><span class="nav-icon">🔒</span> Acces restricționat</a>
       <p class="nav-label">Administrație</p>
