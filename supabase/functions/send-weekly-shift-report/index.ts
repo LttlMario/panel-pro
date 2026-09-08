@@ -273,8 +273,10 @@ Deno.serve(async (request) => {
         const delivery = await deliverDiscordRoute(db, settings, 'weekly_reports', JSON.stringify({ allowed_mentions: { parse: [] }, embeds }));
         const failures: string[] = delivery.failures || [];
         if (!delivery.results.length) throw new Error(failures.join(' | ') || 'Discord nu a acceptat raportul.');
+        const { data: resetRows, error: resetError } = await db.from('shifts').delete().eq('organization_id', organization.id).eq('status', 'completed').gte('date', period.start).lte('date', period.end).select('id');
+        if (resetError) throw resetError;
         await finishRun(db, runId, 'sent', failures.length ? `Unele canale Discord au eșuat: ${failures.join(' | ')}` : null);
-        results.push({ organization_id: organization.id, status: failures.length ? 'sent_partial' : 'sent' });
+        results.push({ organization_id: organization.id, status: failures.length ? 'sent_partial' : 'sent', reset_shifts: (resetRows || []).length });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Eroare necunoscută.';
         await finishRun(db, runId, 'failed', message);

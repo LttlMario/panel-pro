@@ -114,6 +114,9 @@
                         <button onclick="sendManualReport()" class="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-md cursor-pointer">
                             Trimite raportul complet pe Discord
                         </button>
+                        <button id="reset-pontaj-button" onclick="resetCompletedPontaj()" class="hidden shrink-0 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-semibold px-4 py-2.5 rounded-xl transition cursor-pointer">
+                            Resetează pontajele închise
+                        </button>
                     </div>
                 </div>
 
@@ -384,6 +387,7 @@
                     isPlatformAdmin() ||
                     canAccessPage('rapoarte.html')
                 );
+                document.getElementById('reset-pontaj-button')?.classList.toggle('hidden', !canManagePontaj);
 
                 localStorage.setItem('discord_user', JSON.stringify(activeUser));
 
@@ -1293,6 +1297,19 @@ async function forceStopActiveShift(shiftId) {
             if (parts.length === 3 && parts.every(Number.isFinite)) return ((parts[0] * 3600) + (parts[1] * 60) + parts[2]) * 1000;
             if (parts.length === 2 && parts.every(Number.isFinite)) return ((parts[0] * 60) + parts[1]) * 1000;
             return 0;
+        }
+
+        async function resetCompletedPontaj() {
+            if (!requirePontajManagement() || !confirm('Resetezi toate pontajele închise din organizația activă? Turele active și contractele nu vor fi afectate.')) return;
+            const config = window.PANEL_SUPABASE_CONFIG;
+            const session = localStorage.getItem('panel_session_token') || '';
+            try {
+                const response = await fetch(`${config.url}/functions/v1/manage-admin-center`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': session }, body: JSON.stringify({ action: 'reset_completed_shifts' }) });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(result.error || 'Pontajele nu au putut fi resetate.');
+                await fetchAllShifts();
+                alert(`Au fost resetate ${Number(result.deleted || 0)} pontaje închise.`);
+            } catch (error) { alert(error.message || 'Pontajele nu au putut fi resetate.'); }
         }
 
         function reportDateLabel(date) {
