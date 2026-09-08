@@ -1153,24 +1153,30 @@ async function forceStopActiveShift(shiftId) {
             filteredShiftsData.forEach(shift => {
                 const type = (shift.shift_type || '').toLowerCase();
                 const name = shift.mechanic_name || 'Necunoscut';
-                const ms = Number(shift.duration_ms) || 0;
+                const ms = reportShiftDurationMs(shift);
+                const salary = shiftSalary(shift);
+                const stats = type === 'zi' ? dayStats : type === 'noapte' ? nightStats : null;
+                if (!stats) return;
+                const current = stats[name] || { ms: 0, salary: null };
+                current.ms += ms;
+                if (salary) current.salary = { amount: (current.salary?.amount || 0) + salary.amount, currency: salary.currency || defaultSalaryCurrency };
 
                 if (type === 'zi') {
-                    dayStats[name] = (dayStats[name] || 0) + ms;
+                    dayStats[name] = current;
                 } else if (type === 'noapte') {
-                    nightStats[name] = (nightStats[name] || 0) + ms;
+                    nightStats[name] = current;
                 }
             });
 
-            let sortedDay = Object.entries(dayStats).sort((a, b) => b[1] - a[1]);
-            let sortedNight = Object.entries(nightStats).sort((a, b) => b[1] - a[1]);
+            let sortedDay = Object.entries(dayStats).sort((a, b) => b[1].ms - a[1].ms);
+            let sortedNight = Object.entries(nightStats).sort((a, b) => b[1].ms - a[1].ms);
 
             if (sortedDay.length === 0) {
                 dayContainer.innerHTML = `<p class="text-center text-slate-500 py-3">Nu există ture de zi înregistrate.</p>`;
             } else {
                 let html = '';
-                sortedDay.forEach(([name, ms], index) => {
-                    let hours = formatRankingHours(ms);
+                sortedDay.forEach(([name, stats], index) => {
+                    let hours = formatRankingHours(stats.ms);
                     let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
                     html += `
                         <div class="flex items-center justify-between bg-slate-950/40 border border-slate-800/60 p-2.5 rounded-xl">
@@ -1178,7 +1184,7 @@ async function forceStopActiveShift(shiftId) {
                                 <span class="font-bold text-amber-400 w-5 text-center">${medal}</span>
                                 <span class="font-medium text-emerald-400 truncate">${name}</span>
                             </div>
-                            <span class="font-bold text-emerald-400 text-xs">${hours}h</span>
+                            <span class="text-right"><strong class="font-bold text-emerald-400 text-xs block">${hours}</strong><small class="text-emerald-300/80 block mt-0.5">${stats.salary ? formatMoney(stats.salary) : '—'}</small></span>
                         </div>
                     `;
                 });
@@ -1189,8 +1195,8 @@ async function forceStopActiveShift(shiftId) {
                 nightContainer.innerHTML = `<p class="text-center text-slate-500 py-3">Nu există ture de noapte înregistrate.</p>`;
             } else {
                 let html = '';
-                sortedNight.forEach(([name, ms], index) => {
-                    let hours = formatRankingHours(ms);
+                sortedNight.forEach(([name, stats], index) => {
+                    let hours = formatRankingHours(stats.ms);
                     let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
                     html += `
                         <div class="flex items-center justify-between bg-slate-950/40 border border-slate-800/60 p-2.5 rounded-xl">
@@ -1198,7 +1204,7 @@ async function forceStopActiveShift(shiftId) {
                                 <span class="font-bold text-indigo-400 w-5 text-center">${medal}</span>
                                 <span class="font-medium text-emerald-400 truncate">${name}</span>
                             </div>
-                            <span class="font-bold text-emerald-400 text-xs">${hours}h</span>
+                            <span class="text-right"><strong class="font-bold text-emerald-400 text-xs block">${hours}</strong><small class="text-emerald-300/80 block mt-0.5">${stats.salary ? formatMoney(stats.salary) : '—'}</small></span>
                         </div>
                     `;
                 });
