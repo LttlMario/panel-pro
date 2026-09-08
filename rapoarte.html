@@ -149,7 +149,7 @@
                 </section>
 
                 <!-- Statistici Sumar -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
                         <p class="text-xs text-slate-400 font-medium">Total Ture Înregistrate</p>
                         <h4 id="stat-total-shifts" class="text-2xl font-black text-slate-100 mt-1">0</h4>
@@ -161,6 +161,11 @@
                     <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
                         <p class="text-xs text-slate-400 font-medium">Membri Activi în Perioadă</p>
                         <h4 id="stat-total-mechanics" class="text-2xl font-black text-indigo-400 mt-1">0</h4>
+                    </div>
+                    <div class="bg-slate-900 border border-emerald-500/20 p-5 rounded-2xl">
+                        <p class="text-xs text-slate-400 font-medium">Total de plată</p>
+                        <h4 id="stat-total-salary" class="text-2xl font-black text-emerald-400 mt-1">—</h4>
+                        <p class="text-[10px] text-slate-500 mt-1">salariul lunar = 1 oră lucrată</p>
                     </div>
                 </div>
 
@@ -218,12 +223,13 @@
                                         <th class="p-2.5 bg-slate-950">Tip</th>
                                         <th class="p-2.5 bg-slate-950">Data</th>
                                         <th class="p-2.5 bg-slate-950">Start / Stop</th>
-                                        <th class="p-2.5 bg-slate-950 text-right">Durată / Acțiuni</th>
+                                        <th class="p-2.5 bg-slate-950 text-right">Durată</th>
+                                        <th class="p-2.5 bg-slate-950 text-right">Plată</th>
                                     </tr>
                                 </thead>
                                 <tbody id="reports-table-body" class="divide-y divide-slate-800 text-slate-300">
                                     <tr>
-                                        <td colspan="5" class="p-6 text-center text-slate-500">Se încarcă...</td>
+                                        <td colspan="6" class="p-6 text-center text-slate-500">Se încarcă...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -283,6 +289,8 @@
         let allShiftsData = [];
         let filteredShiftsData = [];
         let usersMap = {};
+        let salaryByDiscordId = {};
+        let defaultMonthlySalary = null;
 
         // Variabile pentru pontajul activ integrat
         let selectedShiftType = null;
@@ -951,15 +959,30 @@ async function forceStopActiveShift(shiftId) {
                     throw new Error('Organizația activă nu a fost identificată.');
                 }
 
-                let { data, error } = await supabaseClient
+                let [{ data, error }, { data: contracts, error: contractsError }, { data: employees, error: employeesError }, { data: templateSetting, error: templateError }] = await Promise.all([
+                    supabaseClient
                     .from('shifts')
                     .select('id, organization_id, discord_id, colleague_name, date, start_time, end_time, duration, created_at, shift_type, duration_ms')
                     .eq('organization_id', currentUser.organization_id)
-                    .order('created_at', { ascending: false });
+                    .order('created_at', { ascending: false }),
+                    supabaseClient.from('organization_contracts').select('employee_id,salary,created_at').eq('organization_id', currentUser.organization_id).order('created_at', { ascending: false }),
+                    supabaseClient.from('organization_employees').select('id,discord_id').eq('organization_id', currentUser.organization_id),
+                    supabaseClient.from('app_settings').select('value').eq('organization_id', currentUser.organization_id).eq('key', 'contract_template').maybeSingle()
+                ]);
 
                 if (!reportsAreOrganizationScoped) data = (data || []).filter((shift) => String(shift.discord_id || '') === String(currentUser.discord_id || ''));
 
                 if (error) throw error;
+                if (contractsError) console.warn('Contractele cu salarii nu au putut fi încărcate.', contractsError);
+                if (employeesError) console.warn('Angajații cu salarii nu au putut fi încărcați.', employeesError);
+                if (templateError) console.warn('Șablonul contractului nu a putut fi încărcat.', templateError);
+                salaryByDiscordId = {};
+                const employeeDiscordIds = Object.fromEntries((employees || []).map((employee) => [String(employee.id), String(employee.discord_id || '')]));
+                (contracts || []).forEach((contract) => {
+                    const discordId = employeeDiscordIds[String(contract.employee_id || '')];
+                    if (discordId && salaryByDiscordId[discordId] == null) salaryByDiscordId[discordId] = parseMonthlySalary(contract.salary);
+                });
+                defaultMonthlySalary = parseMonthlySalary(templateSetting?.value?.defaults?.salary);
 
                 allShiftsData = (data || []).map(shift => {
                     const normalizedId = String(shift.discord_id || '').trim();
@@ -1030,6 +1053,23 @@ async function forceStopActiveShift(shiftId) {
             applyFilters();
         }
 
+        function parseMonthlySalary(value) {
+            const raw = String(value ?? '').match(/\d[\d\s.,]*/)?.[0];
+            if (!raw) return null;
+            const normalized = raw.trim().replace(/\s/g, '').replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.');
+            const amount = Number(normalized);
+            return Number.isFinite(amount) && amount >= 0 ? amount : null;
+        }
+
+        function shiftSalary(shift) {
+            const monthly = salaryByDiscordId[String(shift.discord_id || '').trim()] ?? defaultMonthlySalary;
+            return monthly == null ? null : (reportShiftDurationMs(shift) / 3600000) * monthly;
+        }
+
+        function formatMoney(value) {
+            return `${Number(value || 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} lei`;
+        }
+
         function renderTableAndStats() {
             const tbody = document.getElementById('reports-table-body');
             const badge = document.getElementById('table-count-badge');
@@ -1037,7 +1077,7 @@ async function forceStopActiveShift(shiftId) {
             badge.textContent = `${filteredShiftsData.length} rânduri`;
 
             if (filteredShiftsData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">Nicio tură găsită cu filtrele selectate.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500">Nicio tură găsită cu filtrele selectate.</td></tr>`;
             } else {
                 let html = '';
                 filteredShiftsData.forEach(shift => {
@@ -1052,6 +1092,7 @@ async function forceStopActiveShift(shiftId) {
                     }
 
                     // Am adăugat butonul de ștergere pe fiecare rând din tabel
+                    const salary = shiftSalary(shift);
                     html += `
                         <tr class="hover:bg-slate-800/40 transition">
                             <td class="p-2.5 font-semibold text-emerald-400 truncate max-w-[130px]" title="${shift.mechanic_name}">
@@ -1066,6 +1107,7 @@ async function forceStopActiveShift(shiftId) {
                                     ${canManagePontaj ? `<button onclick="openAdminShiftModal('${shift.id}')" title="Editează tura" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 p-1.5 rounded-lg transition cursor-pointer">✏️</button><button onclick="deleteShift('${shift.id}')" title="Șterge tura" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 p-1.5 rounded-lg transition cursor-pointer">🗑️</button>` : ''}
                                 </div>
                             </td>
+                            <td class="p-2.5 text-right font-semibold ${salary == null ? 'text-slate-500' : 'text-emerald-400'}">${salary == null ? '—' : formatMoney(salary)}</td>
                         </tr>
                     `;
                 });
@@ -1078,6 +1120,8 @@ async function forceStopActiveShift(shiftId) {
             document.getElementById('stat-total-shifts').textContent = filteredShiftsData.length;
             document.getElementById('stat-total-hours').textContent = `${(totalMs / 3600000).toFixed(2)}h`;
             document.getElementById('stat-total-mechanics').textContent = uniqueMechanics.size;
+            const totalSalary = filteredShiftsData.reduce((sum, shift) => sum + (shiftSalary(shift) || 0), 0);
+            document.getElementById('stat-total-salary').textContent = totalSalary ? formatMoney(totalSalary) : '—';
         }
 
         function renderRankings() {
@@ -1149,7 +1193,7 @@ async function forceStopActiveShift(shiftId) {
                 return;
             }
 
-            let csvContent = "Nume Membru,Data,Tip Tura,Ora Start,Ora Stop,Durata\n";
+            let csvContent = "Nume Membru,Data,Tip Tura,Ora Start,Ora Stop,Durata,Plată\n";
 
             filteredShiftsData.forEach(shift => {
                 const row = [
@@ -1158,7 +1202,8 @@ async function forceStopActiveShift(shiftId) {
                     `"${shift.shift_type || ''}"`,
                     `"${shift.start_time || ''}"`,
                     `"${shift.end_time || ''}"`,
-                    `"${shift.duration || ''}"`
+                    `"${shift.duration || ''}"`,
+                    `"${shiftSalary(shift) == null ? '' : shiftSalary(shift).toFixed(2)}"`
                 ];
                 csvContent += row.join(",") + "\n";
             });
@@ -1247,7 +1292,7 @@ async function forceStopActiveShift(shiftId) {
             const grouped = new Map();
             shifts.forEach((shift) => {
                 const key = String(shift.discord_id || shift.mechanic_name || 'unknown');
-                const member = grouped.get(key) || { name: shift.mechanic_name || 'Membru necunoscut', totalMs: 0, dates: new Map() };
+                const member = grouped.get(key) || { name: shift.mechanic_name || 'Membru necunoscut', totalMs: 0, dates: new Map(), salary: salaryByDiscordId[String(shift.discord_id || '').trim()] ?? defaultMonthlySalary };
                 const durationMs = reportShiftDurationMs(shift);
                 member.totalMs += durationMs;
                 member.dates.set(String(shift.date || ''), (member.dates.get(String(shift.date || '')) || 0) + durationMs);
@@ -1257,7 +1302,7 @@ async function forceStopActiveShift(shiftId) {
             const memberBlocks = [...grouped.values()].sort((left, right) => left.name.localeCompare(right.name, 'ro')).map((member) => [
                 member.name,
                 ...[...member.dates.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([date, durationMs]) => `  ${reportDateLabel(date)} — ${formatTime(Math.floor(durationMs / 1000))}`),
-                `  Total săptămână — ${formatTime(Math.floor(member.totalMs / 1000))}`,
+                `  Total săptămână — ${formatTime(Math.floor(member.totalMs / 1000))} · ${member.salary == null ? 'salariu neconfigurat' : formatMoney((member.totalMs / 3600000) * member.salary)}`,
             ].join('\n'));
             const totalMs = shifts.reduce((sum, shift) => sum + reportShiftDurationMs(shift), 0);
             const header = `Total ore ${label.toLowerCase()}: **${(totalMs / 3600000).toFixed(2)}h**\nAngajați: **${grouped.size}** · Ture: **${shifts.length}**`;

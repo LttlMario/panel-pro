@@ -292,6 +292,22 @@ async function manualDiscordExport(db: any, session: any, body: any) {
   return { batch_id: batch.id, row_count: exportItems.length, sent_messages: successfulPosts, partial: failures.length > 0 };
 }
 
+async function saveContractTemplate(db: any, session: any, body: any) {
+  const input = body.contract_template && typeof body.contract_template === 'object' ? body.contract_template : {};
+  const title = clean(input.title, 120);
+  const template = clean(input.template, 50000);
+  if (title.length < 2) throw new Error('Numele contractului este obligatoriu.');
+  if (template.length < 20) throw new Error('Șablonul contractului este prea scurt.');
+  const allowed = ['{{COMPANY}}','{{ADDRESS}}','{{MANAGER}}','{{EMPLOYEE_NAME}}','{{CNP}}','{{PHONE}}','{{POSITION}}','{{SALARY}}','{{PROGRAM}}','{{START_DATE}}','{{CONTRACT_NUMBER}}'];
+  const unknown = [...template.matchAll(/{{[A-Z0-9_]+}}/g)].map((match) => match[0]).filter((value) => !allowed.includes(value));
+  if (unknown.length) throw new Error(`Câmpuri necunoscute în contract: ${[...new Set(unknown)].join(', ')}`);
+  const defaults = input.defaults && typeof input.defaults === 'object' ? input.defaults : {};
+  const value = { title, template, defaults: { company: clean(defaults.company, 200) || null, address: clean(defaults.address, 300) || null, manager: clean(defaults.manager, 160) || null, position: clean(defaults.position, 120) || 'Angajat', salary: clean(defaults.salary, 120) || null, schedule: clean(defaults.schedule, 120) || '20:00-23:00', start_date: clean(defaults.start_date, 40) || null } };
+  const { error } = await db.from('app_settings').upsert({ organization_id: session.organization_id, key: 'contract_template', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+  if (error) throw error;
+  return { contract_template: value };
+}
+
 async function resendRecentContracts(db: any, session: any) {
   const organizationId = session.organization_id;
   const [{ data: contracts, error: contractsError }, { data: settings, error: settingsError }, { data: organization, error: organizationError }] = await Promise.all([
@@ -343,6 +359,7 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const action = clean(body.action, 40) || 'list';
     if (action === 'create_contract') return reply({ ok: true, ...(await createContract(db, session, body)) });
+    if (action === 'save_contract_template') return reply({ ok: true, ...(await saveContractTemplate(db, session, body)) });
     if (action === 'manual_export') return reply({ ok: true, ...(await manualExport(db, session, body)) });
     if (action === 'manual_discord_export') return reply({ ok: true, ...(await manualDiscordExport(db, session, body)) });
     if (action === 'resend_recent_contracts') return reply({ ok: true, ...(await resendRecentContracts(db, session)) });

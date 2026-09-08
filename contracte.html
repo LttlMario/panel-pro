@@ -110,6 +110,11 @@
                         </div>
 
                         <div class="space-y-1.5">
+                            <label class="text-xs font-medium text-slate-400">Adresă de lucru</label>
+                            <input type="text" id="address" placeholder="Adresa sediului / locului de muncă" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div class="space-y-1.5">
                             <label class="text-xs font-medium text-slate-400">Manager * (Rol: Manager / Admin)</label>
                             <input type="text" id="manager" placeholder="Introduceți numele managerului" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
                         </div>
@@ -173,7 +178,7 @@
                 <div class="lg:col-span-7 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg flex flex-col justify-between space-y-6">
                     <div>
                         <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
-                            <span id="contractPreviewTitle" class="text-sm font-bold text-slate-100 uppercase tracking-wide">Previzualizare Contract</span>
+                            <div class="flex items-center gap-3"><span id="contractPreviewTitle" class="text-sm font-bold text-slate-100 uppercase tracking-wide">Previzualizare Contract</span><button type="button" onclick="openContractTemplateSettings()" class="text-[11px] bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-2 rounded-lg">Configurare contract / șablon</button></div>
                             <div class="flex items-center space-x-3 text-[11px] text-slate-400">
                                 <span id="currentDateTime">Data: --</span>
                                 <span id="statusIndicator" class="font-semibold text-amber-400">Așteptare generare...</span>
@@ -239,6 +244,24 @@
 
             </div>
         </main>
+        <div id="contractTemplateModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4">
+            <section class="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4"><div><h2 class="text-base font-bold text-white">Configurare contract / șablon</h2><p class="mt-1 text-xs text-slate-400">Completează datele implicite folosite la generarea contractelor.</p></div><button type="button" onclick="closeContractTemplateSettings()" class="text-xl text-slate-400 hover:text-white">×</button></div>
+                <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <label class="text-xs text-slate-400">Numele contractului<input id="template-title" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-200" placeholder="Ex: Contract de colaborare"></label>
+                    <label class="text-xs text-slate-400">Nume firmă / companie<input id="template-company" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-200"></label>
+                    <label class="text-xs text-slate-400">Adresă de lucru<input id="template-address" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-200"></label>
+                    <label class="text-xs text-slate-400">Manager implicit<input id="template-manager" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-200"></label>
+                    <label class="text-xs text-slate-400">Funcție implicită<input id="template-position" value="Angajat" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-200"></label>
+                    <label class="text-xs text-slate-400">Salariu lunar<input id="template-salary" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-200" placeholder="Ex: 100 lei/lună"></label>
+                    <label class="text-xs text-slate-400">Program implicit<input id="template-schedule" value="20:00-23:00" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-200"></label>
+                    <label class="text-xs text-slate-400">Data implicită de început<input id="template-start-date" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-200" placeholder="DD.MM.YYYY"></label>
+                </div>
+                <label class="mt-4 block text-xs text-slate-400">Șablonul contractului<textarea id="template-text" class="mt-1 min-h-[280px] w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 font-mono text-xs text-slate-200" placeholder="Lipește textul contractului aici..."></textarea></label>
+                <p class="mt-3 rounded-xl border border-slate-800 bg-slate-950 p-3 text-[11px] leading-6 text-slate-400"><b class="text-slate-200">Variabile:</b> {{COMPANY}} · {{ADDRESS}} · {{MANAGER}} · {{EMPLOYEE_NAME}} · {{CNP}} · {{PHONE}} · {{POSITION}} · {{SALARY}} · {{PROGRAM}} · {{START_DATE}} · {{CONTRACT_NUMBER}}</p>
+                <div class="mt-5 flex flex-wrap justify-end gap-2"><button type="button" onclick="closeContractTemplateSettings()" class="rounded-xl border border-slate-700 px-4 py-2.5 text-xs text-slate-300">Renunță</button><button type="button" onclick="saveContractTemplateSettings()" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white">Salvează configurarea</button></div>
+            </section>
+        </div>
     </div>
 
     <!-- Modal imagine mărită -->
@@ -383,6 +406,20 @@ Semnătură:`;
             });
         }
 
+        function openContractTemplateSettings() {
+            const modal = document.getElementById('contractTemplateModal');
+            const organization = window.getActiveOrganization?.() || {};
+            const values = { title: document.getElementById('contractFormTitle')?.textContent?.trim() || 'Contract de colaborare', company: document.getElementById('company')?.value || organization.name || '', address: organization.address || '', manager: document.getElementById('manager')?.value || currentUser.display_name || '', position: document.getElementById('position')?.value || 'Angajat', salary: document.getElementById('salary')?.value || '', schedule: document.getElementById('schedule')?.value || '20:00-23:00', start_date: document.getElementById('startDate')?.value || '' };
+            Object.entries(values).forEach(([key, value]) => { const field = document.getElementById(`template-${key.replace('_', '-')}`); if (field && !field.value) field.value = value; });
+            const text = document.getElementById('template-text'); if (text && !text.value) text.value = contractTemplate;
+            modal?.classList.remove('hidden'); modal?.classList.add('flex');
+        }
+        function closeContractTemplateSettings() { const modal = document.getElementById('contractTemplateModal'); modal?.classList.add('hidden'); modal?.classList.remove('flex'); }
+        async function saveContractTemplateSettings() {
+            const payload = { title: document.getElementById('template-title')?.value.trim(), template: document.getElementById('template-text')?.value.trim(), defaults: { company: document.getElementById('template-company')?.value.trim(), address: document.getElementById('template-address')?.value.trim(), manager: document.getElementById('template-manager')?.value.trim(), position: document.getElementById('template-position')?.value.trim(), salary: document.getElementById('template-salary')?.value.trim(), schedule: document.getElementById('template-schedule')?.value.trim(), start_date: document.getElementById('template-start-date')?.value.trim() } };
+            try { await contractApi('save_contract_template', { contract_template: payload }); contractTemplate = payload.template; const fields = { company: payload.defaults.company, manager: payload.defaults.manager, position: payload.defaults.position, salary: payload.defaults.salary, schedule: payload.defaults.schedule, startDate: payload.defaults.start_date }; Object.entries(fields).forEach(([id, value]) => { const field = document.getElementById(id); if (field && value) field.value = value; }); document.getElementById('contractFormTitle')?.replaceChildren(document.createTextNode(payload.title)); document.getElementById('contractPreviewTitle')?.replaceChildren(document.createTextNode(`Previzualizare: ${payload.title}`)); closeContractTemplateSettings(); alert('Configurarea contractului a fost salvată.'); } catch (error) { alert(error.message || 'Configurarea contractului nu a putut fi salvată.'); }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const organization = window.getActiveOrganization?.();
@@ -397,7 +434,8 @@ Semnătură:`;
                     const { data } = await db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'contract_template').maybeSingle();
                     const custom = data?.value;
                     if (custom?.template) contractTemplate = String(custom.template);
-                    if (custom?.defaults?.salary) document.getElementById('salary').value = String(custom.defaults.salary);
+                    const defaults = custom?.defaults || {};
+                    Object.entries({ company: defaults.company, address: defaults.address, manager: defaults.manager, position: defaults.position, salary: defaults.salary, schedule: defaults.schedule, startDate: defaults.start_date }).forEach(([id, value]) => { if (value && document.getElementById(id)) document.getElementById(id).value = String(value); });
                     if (custom?.title) {
                         document.getElementById('contractSystemTitle')?.setAttribute('data-title', `${custom.title} — ${organization?.name || ''}`);
                         document.getElementById('contractFormTitle')?.replaceChildren(document.createTextNode(custom.title));
@@ -623,7 +661,7 @@ Semnătură:`;
             // Recalculează numărul dacă pagina a rămas deschisă peste schimbarea zilei.
             loadOrInitContractNumber();
             const company = document.getElementById('company').value.trim();
-            const address = String(window.getActiveOrganization?.()?.address || '').trim();
+            const address = document.getElementById('address')?.value.trim() || String(window.getActiveOrganization?.()?.address || '').trim();
             const manager = document.getElementById('manager').value.trim();
             const employeeName = document.getElementById('employeeName').value.trim();
             const cnp = document.getElementById('cnp').value.trim();

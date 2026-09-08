@@ -666,6 +666,17 @@ function modalValues(interaction: any) {
   return values;
 }
 
+function monthlySalary(value: unknown) {
+  const raw = String(value ?? '').match(/\d[\d\s.,]*/)?.[0];
+  if (!raw) return null;
+  const amount = Number(raw.trim().replace(/\s/g, '').replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.'));
+  return Number.isFinite(amount) && amount >= 0 ? amount : null;
+}
+
+function money(value: number) {
+  return `${Number(value || 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} lei`;
+}
+
 function universalTextInput(custom_id: string, label: string, style = 1, required = false, placeholder = '', max_length = 1000) {
   return { type: 4, custom_id, label, style, required, placeholder, max_length };
 }
@@ -1872,9 +1883,21 @@ async function myStats(db: any, context: any) {
   sunday.setUTCDate(sunday.getUTCDate() + 6);
   const start = monday.toISOString().slice(0, 10);
   const end = sunday.toISOString().slice(0, 10);
-  const { data: shifts, error } = await db.from('shifts').select('date,shift_type,status,duration,duration_ms,started_at,ended_at,paused_at,paused_seconds').eq('organization_id', context.organization.id).eq('discord_id', context.discordId).gte('date', start).lte('date', end).order('date', { ascending: true }).order('created_at', { ascending: true }).limit(100);
+  const [{ data: shifts, error }, { data: employee, error: employeeError }, { data: templateSetting, error: templateError }] = await Promise.all([
+    db.from('shifts').select('date,shift_type,status,duration,duration_ms,started_at,ended_at,paused_at,paused_seconds').eq('organization_id', context.organization.id).eq('discord_id', context.discordId).gte('date', start).lte('date', end).order('date', { ascending: true }).order('created_at', { ascending: true }).limit(100),
+    db.from('organization_employees').select('id').eq('organization_id', context.organization.id).eq('discord_id', context.discordId).maybeSingle(),
+    db.from('app_settings').select('value').eq('organization_id', context.organization.id).eq('key', 'contract_template').maybeSingle(),
+  ]);
   if (error) throw error;
+  if (employeeError) throw employeeError;
+  if (templateError) throw templateError;
   const rows = shifts || [];
+  let salary = monthlySalary(templateSetting?.value?.defaults?.salary);
+  if (employee?.id) {
+    const { data: contract, error: contractError } = await db.from('organization_contracts').select('salary,created_at').eq('organization_id', context.organization.id).eq('employee_id', employee.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    if (contractError) throw contractError;
+    salary = monthlySalary(contract?.salary) ?? salary;
+  }
   const secondsForShift = (shift: any) => {
     if (['active', 'paused'].includes(String(shift.status))) return workedSeconds(shift, now);
     const durationMs = Number(shift.duration_ms);
@@ -1896,6 +1919,7 @@ async function myStats(db: any, context: any) {
   const total = [...secondsByDate.values()].reduce((sum, value) => sum + value.total, 0);
   const day = [...secondsByDate.values()].reduce((sum, value) => sum + value.day, 0);
   const night = [...secondsByDate.values()].reduce((sum, value) => sum + value.night, 0);
+  const salaryTotal = salary == null ? null : (total / 3600) * salary;
   const active = rows.find((shift: any) => ['active', 'paused'].includes(String(shift.status)));
   const activeLabel = active ? `${active.status === 'paused' ? 'În pauză' : 'În tură'} · ${String(active.shift_type || '').toUpperCase()} · ${formatDuration(workedSeconds(active, now))}` : 'Nicio tură activă';
   const dayNames = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
@@ -1911,6 +1935,7 @@ async function myStats(db: any, context: any) {
     { name: 'Săptămâna', value: `${start} – ${end}`, inline: false },
     ...dailyFields,
     { name: 'Total lucrat', value: `**${formatDuration(total)}**`, inline: true },
+    { name: 'Total de plată', value: salaryTotal == null ? 'Salariul nu este configurat.' : `**${money(salaryTotal)}**`, inline: true },
     { name: 'Ture de zi', value: formatDuration(day), inline: true },
     { name: 'Ture de noapte', value: formatDuration(night), inline: true },
     { name: 'Status curent', value: activeLabel, inline: false },

@@ -71,6 +71,13 @@ function shiftDurationMs(shift: any) {
   return 0;
 }
 
+function monthlySalary(value: unknown) {
+  const raw = String(value ?? '').match(/\d[\d\s.,]*/)?.[0];
+  if (!raw) return null;
+  const amount = Number(raw.trim().replace(/\s/g, '').replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.'));
+  return Number.isFinite(amount) && amount >= 0 ? amount : null;
+}
+
 function dateLabel(date: string) {
   const parsed = new Date(`${date}T12:00:00Z`);
   if (Number.isNaN(parsed.getTime())) return date;
@@ -78,12 +85,12 @@ function dateLabel(date: string) {
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
-function shiftMemberBlocks(shifts: any[]) {
+function shiftMemberBlocks(shifts: any[], salaryByDiscordId: Map<string, number | null>, defaultSalary: number | null) {
   const grouped = new Map<string, { name: string; totalMs: number; dates: Map<string, number> }>();
   for (const shift of shifts) {
     const key = String(shift.discord_id || shift.colleague_name || 'unknown');
     const durationMs = shiftDurationMs(shift);
-    const current = grouped.get(key) || { name: shift.colleague_name || 'Membru necunoscut', totalMs: 0, dates: new Map<string, number>() };
+    const current = grouped.get(key) || { name: shift.colleague_name || 'Membru necunoscut', totalMs: 0, dates: new Map<string, number>(), salary: salaryByDiscordId.get(String(shift.discord_id || '')) ?? defaultSalary };
     current.totalMs += durationMs;
     current.dates.set(String(shift.date || ''), (current.dates.get(String(shift.date || '')) || 0) + durationMs);
     grouped.set(key, current);
@@ -93,14 +100,18 @@ function shiftMemberBlocks(shifts: any[]) {
     .map((member) => [
       member.name,
       ...[...member.dates.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([date, durationMs]) => `  ${dateLabel(date)} — ${formatDuration(Math.floor(durationMs / 1000))}`),
-      `  Total săptămână — ${formatDuration(Math.floor(member.totalMs / 1000))}`,
+      `  Total săptămână — ${formatDuration(Math.floor(member.totalMs / 1000))} · ${member.salary == null ? 'salariu neconfigurat' : `${((member.totalMs / 3600000) * member.salary).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} lei`}`,
     ].join('\n'));
 }
 
-function shiftEmbedDescription(shifts: any[], label: string, maxLength = 3500) {
-  const lines = shiftMemberBlocks(shifts);
+function shiftEmbedDescription(shifts: any[], label: string, salaryByDiscordId: Map<string, number | null>, defaultSalary: number | null, maxLength = 3500) {
+  const lines = shiftMemberBlocks(shifts, salaryByDiscordId, defaultSalary);
   const totalMs = shifts.reduce((sum, shift) => sum + shiftDurationMs(shift), 0);
-  const header = `Total ore ${label.toLowerCase()}: **${formatDuration(Math.floor(totalMs / 1000))}**\nMembri: **${new Set(shifts.map((shift: any) => String(shift.discord_id || shift.colleague_name || ''))).size}**`;
+  const totalSalary = shifts.reduce((sum, shift) => {
+    const salary = salaryByDiscordId.get(String(shift.discord_id || '')) ?? defaultSalary;
+    return sum + (salary == null ? 0 : (shiftDurationMs(shift) / 3600000) * salary);
+  }, 0);
+  const header = `Total ore ${label.toLowerCase()}: **${formatDuration(Math.floor(totalMs / 1000))}**\nMembri: **${new Set(shifts.map((shift: any) => String(shift.discord_id || shift.colleague_name || ''))).size}**\nTotal de plată: **${totalSalary.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} lei**`;
   let content = '';
   let shown = 0;
   for (const block of lines) {
@@ -199,7 +210,7 @@ Deno.serve(async (request) => {
       }
 
       try {
-        const [{ data: shifts, error: shiftsError }, { data: settings, error: settingsError }] = await Promise.all([
+        const [{ data: shifts, error: shiftsError }, { data: settings, error: settingsError }, { data: contracts, error: contractsError }, { data: employees, error: employeesError }, { data: templateSetting, error: templateError }] = await Promise.all([
           db.from('shifts')
             .select('discord_id,colleague_name,date,shift_type,duration,duration_ms,created_at')
             .eq('organization_id', organization.id)
@@ -211,9 +222,23 @@ Deno.serve(async (request) => {
             .select('discord_channel_routes')
             .eq('organization_id', organization.id)
             .maybeSingle(),
+          db.from('organization_contracts').select('employee_id,salary,created_at').eq('organization_id', organization.id).order('created_at', { ascending: false }),
+          db.from('organization_employees').select('id,discord_id').eq('organization_id', organization.id),
+          db.from('app_settings').select('value').eq('organization_id', organization.id).eq('key', 'contract_template').maybeSingle(),
         ]);
         if (shiftsError) throw shiftsError;
         if (settingsError) throw settingsError;
+        if (contractsError) throw contractsError;
+        if (employeesError) throw employeesError;
+        if (templateError) throw templateError;
+
+        const employeeDiscordIds = new Map((employees || []).map((employee: any) => [String(employee.id), String(employee.discord_id || '')]));
+        const salaryByDiscordId = new Map<string, number | null>();
+        for (const contract of contracts || []) {
+          const discordId = employeeDiscordIds.get(String(contract.employee_id || '')) || '';
+          if (discordId && !salaryByDiscordId.has(discordId)) salaryByDiscordId.set(discordId, monthlySalary(contract.salary));
+        }
+        const defaultSalary = monthlySalary(templateSetting?.value?.defaults?.salary);
 
         if (!shifts?.length) {
           await finishRun(db, runId, 'skipped', 'Nu există ture în perioada raportată.');
@@ -228,13 +253,13 @@ Deno.serve(async (request) => {
         const embeds = [
           {
             title: `🔔 Raport Săptămânal · ☀️ Ture de zi · ${period.start} – ${period.end}`,
-            description: `${organization.name ? `Organizație: **${organization.name}**\n\n` : ''}${shiftEmbedDescription(dayShifts, 'turele de zi')}`,
+            description: `${organization.name ? `Organizație: **${organization.name}**\n\n` : ''}${shiftEmbedDescription(dayShifts, 'turele de zi', salaryByDiscordId, defaultSalary)}`,
             color: 16766720,
             timestamp: now.toISOString(),
           },
           {
             title: `🔔 Raport Săptămânal · 🌙 Ture de noapte · ${period.start} – ${period.end}`,
-            description: `${organization.name ? `Organizație: **${organization.name}**\n\n` : ''}${shiftEmbedDescription(nightShifts, 'turele de noapte')}`,
+            description: `${organization.name ? `Organizație: **${organization.name}**\n\n` : ''}${shiftEmbedDescription(nightShifts, 'turele de noapte', salaryByDiscordId, defaultSalary)}`,
             color: 65535,
             timestamp: now.toISOString(),
           },
