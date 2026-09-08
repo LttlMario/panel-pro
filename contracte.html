@@ -274,6 +274,7 @@
     <script>
         let imageData1 = null;
         let imageData2 = null;
+        let contractTemplateDefaults = {};
 
         let contractTemplate = `CONTRACT INDIVIDUAL DE MUNCĂ
 
@@ -416,7 +417,7 @@ Semnătură:`;
         function closeContractTemplateSettings() { const modal = document.getElementById('contractTemplateModal'); modal?.classList.add('hidden'); modal?.classList.remove('flex'); }
         async function saveContractTemplateSettings() {
             const payload = { title: document.getElementById('template-title')?.value.trim(), template: document.getElementById('template-text')?.value.trim(), defaults: { company: document.getElementById('template-company')?.value.trim(), address: document.getElementById('template-address')?.value.trim(), position: document.getElementById('template-position')?.value.trim(), salary: `${document.getElementById('template-salary')?.value.trim() || ''} ${document.getElementById('template-salary-currency')?.value || '$'}/lună`.trim(), schedule: document.getElementById('template-schedule')?.value.trim() } };
-            try { await contractApi('save_contract_template', { contract_template: payload }); contractTemplate = payload.template; const fields = { company: payload.defaults.company, position: payload.defaults.position, salary: document.getElementById('template-salary')?.value.trim(), schedule: payload.defaults.schedule }; Object.entries(fields).forEach(([id, value]) => { const field = document.getElementById(id); if (field && value) field.value = value; }); if (document.getElementById('salary-currency')) document.getElementById('salary-currency').value = document.getElementById('template-salary-currency')?.value || '$'; document.getElementById('contractFormTitle')?.replaceChildren(document.createTextNode(payload.title)); document.getElementById('contractPreviewTitle')?.replaceChildren(document.createTextNode(`Previzualizare: ${payload.title}`)); closeContractTemplateSettings(); alert('Configurarea contractului a fost salvată.'); } catch (error) { alert(error.message || 'Configurarea contractului nu a putut fi salvată.'); }
+            try { await contractApi('save_contract_template', { contract_template: payload }); contractTemplate = payload.template; contractTemplateDefaults = payload.defaults; const fields = { company: payload.defaults.company, position: payload.defaults.position, salary: document.getElementById('template-salary')?.value.trim(), schedule: payload.defaults.schedule }; Object.entries(fields).forEach(([id, value]) => { const field = document.getElementById(id); if (field && value) field.value = value; }); if (document.getElementById('salary-currency')) document.getElementById('salary-currency').value = document.getElementById('template-salary-currency')?.value || '$'; document.getElementById('contractFormTitle')?.replaceChildren(document.createTextNode(payload.title)); document.getElementById('contractPreviewTitle')?.replaceChildren(document.createTextNode(`Previzualizare: ${payload.title}`)); closeContractTemplateSettings(); alert('Configurarea contractului a fost salvată.'); } catch (error) { alert(error.message || 'Configurarea contractului nu a putut fi salvată.'); }
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -434,6 +435,7 @@ Semnătură:`;
                     const custom = contractState?.contract_template;
                     if (custom?.template) contractTemplate = String(custom.template);
                     const defaults = custom?.defaults || {};
+                    contractTemplateDefaults = defaults;
                     Object.entries({ company: defaults.company, address: defaults.address, position: defaults.position, schedule: defaults.schedule }).forEach(([id, value]) => { if (value && document.getElementById(id)) document.getElementById(id).value = String(value); });
                     const salaryText = String(defaults.salary || ''); const salaryAmount = salaryText.match(/\d[\d\s.,]*/)?.[0]; if (salaryAmount && document.getElementById('salary')) document.getElementById('salary').value = salaryAmount.trim().replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.').replace(/\s/g, ''); if (/€|eur|euro/i.test(salaryText)) document.getElementById('salary-currency').value = '€'; else if (/lei|ron/i.test(salaryText)) document.getElementById('salary-currency').value = 'lei'; else if (document.getElementById('salary-currency')) document.getElementById('salary-currency').value = '$';
                     if (custom?.title) {
@@ -729,8 +731,11 @@ Semnătură:`;
         function resetForm() {
             document.getElementById('contractForm').reset();
             setCompanyFromActiveOrganization();
-            document.getElementById('salary').value = '100 lei/lună';
-            document.getElementById('schedule').value = '20:00-23:00';
+            const salaryText = String(contractTemplateDefaults.salary || '');
+            const salaryAmount = salaryText.match(/\d[\d\s.,]*/)?.[0];
+            document.getElementById('salary').value = salaryAmount ? salaryAmount.trim().replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.').replace(/\s/g, '') : '';
+            document.getElementById('salary-currency').value = /€|eur|euro/i.test(salaryText) ? '€' : /lei|ron/i.test(salaryText) ? 'lei' : '$';
+            document.getElementById('schedule').value = contractTemplateDefaults.schedule || '';
             const displayNameToRender = currentUser.display_name || currentUser.username || '';
             document.getElementById('manager').value = displayNameToRender;
             setDefaultDate();

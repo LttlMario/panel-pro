@@ -5,9 +5,15 @@ import { corsOptions, getCorsHeaders } from '../_shared/cors.ts';
 const buildReply = (data: unknown, status = 200, headers = getCorsHeaders(new Request('https://panel-pro.ro'))) =>
   new Response(JSON.stringify(data), { status, headers });
 
-const serviceKey = () =>
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ||
-  JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}').default;
+const serviceKey = () => {
+  const direct = String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '').trim();
+  if (direct) return direct;
+  try {
+    return String(JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}').default || '').trim();
+  } catch (_) {
+    return '';
+  }
+};
 
 const sha256 = async (value: string) =>
   Array.from(
@@ -222,6 +228,9 @@ Deno.serve(async (request) => {
     if (error) throw error;
     return reply({ ok: true, last_seen_at: now, verification: 'deferred' });
   } catch (error) {
-    return reply({ error: error instanceof Error ? error.message : 'Eroare necunoscută.' }, 500);
+    // O problemă temporară de DB/Discord nu trebuie să întrerupă sesiunea.
+    // Revocările reale folosesc în continuare răspunsurile 401/403 de mai sus.
+    console.error('touch-panel-session verification deferred:', error);
+    return reply({ ok: true, verification: 'deferred' });
   }
 });
