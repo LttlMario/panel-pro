@@ -89,7 +89,7 @@
     document.getElementById('kitchenSelectedImage').src = `img/${recipe.image}`;
     result.hidden = false;
   };
-  function open(id) { select.value = id; quantity.value = 1; galleryView.hidden = true; selectionView.hidden = false; render(); }
+  function open(id) { select.value = id; quantity.value = 0; galleryView.hidden = true; selectionView.hidden = false; render(); }
   window.showKitchenGallery = () => { galleryView.hidden = false; selectionView.hidden = true; quantity.value = 0; result.hidden = true; };
   select.onchange = render; quantity.oninput = render;
   document.getElementById('kitchenSelectionBack')?.addEventListener('click', window.showKitchenGallery);
