@@ -33,6 +33,8 @@
             <span class="text-xs font-black uppercase tracking-[0.25em] text-emerald-300">Organizația mea</span>
             <h1 class="mt-2 text-2xl font-black">Administrare organizație</h1>
             <p class="mt-2 text-sm text-slate-400">Poți modifica doar organizația al cărei server Discord îl deții.</p>
+            <button id="owner-auto-discord" type="button" class="mt-4 inline-flex items-center gap-2 rounded-xl border border-cyan-500/50 bg-cyan-500/10 px-4 py-2.5 text-sm font-bold text-cyan-200 transition hover:border-cyan-300 hover:bg-cyan-500/20">⚙️ Configurează automat canalele de Discord</button>
+            <p id="owner-auto-discord-status" class="mt-2 hidden text-xs text-cyan-200"></p>
           </div>
           <button id="owner-logout" type="button" class="rounded-xl border border-rose-500/30 px-4 py-2 text-sm font-bold text-rose-300 hover:bg-rose-500/10">Logout</button>
         </div>
@@ -160,6 +162,30 @@
       $('owner-username').textContent = user?.username ? '@' + user.username : 'Sesiune Discord';
       $('owner-avatar').src = user?.avatar || user?.avatar_url || 'img/logo-192.png';
       $('owner-logout').onclick = () => { if (typeof logout === 'function') logout(); else { localStorage.clear(); sessionStorage.clear(); location.replace('login.html'); } };
+      $('owner-auto-discord').onclick = () => {
+        const button = $('owner-auto-discord');
+        const status = $('owner-auto-discord-status');
+        const openChannelSetup = () => {
+          const section = document.getElementById('discord-channel-routes');
+          const discover = document.getElementById('discord-channel-discover');
+          if (!section || !discover) return false;
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          discover.click();
+          button.disabled = true;
+          status.textContent = 'Se încarcă automat canalele Discord ale organizației…';
+          status.classList.remove('hidden');
+          window.setTimeout(() => { button.disabled = false; }, 1200);
+          return true;
+        };
+        if (openChannelSetup()) return;
+        status.textContent = 'Se pregătește configurarea canalelor Discord…';
+        status.classList.remove('hidden');
+        window.setTimeout(() => {
+          if (!openChannelSetup()) {
+            status.textContent = 'Configurarea canalelor nu este disponibilă încă. Reîncarcă pagina și încearcă din nou.';
+          }
+        }, 350);
+      };
       $('owner-webhooks').innerHTML = webhookDefinitions.map(([key, label]) => `<fieldset data-owner-webhook-fieldset="${key}" hidden><legend>${label}</legend><input id="webhook-${key}-primary" data-owner-webhook="${key}" data-target="primary" type="hidden"><input id="webhook-${key}-secondary" data-owner-webhook="${key}" data-target="secondary" type="hidden"></fieldset>`).join('');
 
       let organizationId = '';
