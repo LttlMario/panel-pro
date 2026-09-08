@@ -105,8 +105,32 @@ const kitchenDemoRecipes = [
   ['Întreg', 'Găină'], ['Făină x10', '10 Grâu'], ['Somon crud x2', '1 Somon'], ['Ton crud x2', '1 Ton'], ['Rechin crud', '1 Rechin'], ['Balenă crudă', '1 Balenă'], ['Ouă ochiuri x3', '1 Carton de ouă (6 ouă)'], ['Pulpă de pui x2', '1 Pui'], ['Omletă x2', '1 Carton de ouă + 3 Roșii'], ['Paste cu brânză', '1 Paste crude + 2 Brânză'], ['Carne de pește gătită', '1 Somon'], ['Carne roșie de pește gătită', '1 Ton'], ['Paste crude', 'Aluat'], ['Brânză', '3 cutii Lapte'], ['Aluat', '1 Făină + 2 Apă'], ['Ouă cu cartofi prăjiți', '1 Ouă ochiuri + 3 Cartofi'], ['Paste cu pui', '1 Pulpă + 2 Paste crude + 2 Brânză'], ['Carne de pește mare gătită', '1 Balenă crudă'], ['Pâine', '1 Aluat'], ['Carne fină de pește mare gătită', '1 Rechin'], ['Sendviș cu brânză x2', '1 Pâine + 1 Brânză'], ['Salată cu omletă', '1 Omletă + 1 Salată + 2 Roșii'], ['Salată cu pui și cartofi', '1 Pulpă + 1 Salată + 2 Roșii + 2 Cartofi'], ['Burger cu ton', '1 Chiflă + 1 Salată + 2 Roșii + 1 Ceapă + 1 Cartof + 1 Ton crud'], ['Mâncare de somon', '3 Champignon + 1 Salată + 2 Roșii + 1 Ceapă + 1 Cartof + 1 Somon crud'], ['Chifle proaspete x2', '1 Aluat'], ['Mâncare de rechin', '1 Rechin crud + 1 Salată + 2 Roșii + 1 Condimente de lux + 1 Cartof + 1 Ton'], ['Mâncare de balenă', '1 Balenă crudă + 1 Salată + 10 Champignon + 1 Condimente de lux + 1 Cartof + 1 Somon'], ['Fursex x2', '2 Lapte + 1 Aluat + 2 Bomboane']
 ];
 
+function renderLiveCalculatorDemo() {
+  panelEl.querySelectorAll('.calculator-category').forEach((element) => element.remove());
+  panelEl.querySelector('#calc-search')?.remove();
+  panelEl.querySelector('[data-action="reset-calculator"]')?.remove();
+  panelEl.querySelector('#calc-results')?.closest('.section-divider')?.remove();
+  panelEl.querySelector('#calc-results')?.remove();
+  panelEl.querySelector('[data-action="calculate"]')?.remove();
+  const categories = [
+    ['🛠️ Masă Crafting', Array.from({ length: 29 }, (_, i) => `img/masa${i + 1}.png`), ['Zip Tie', 'Momeală de pește (x10)', 'Undiță de plastic', 'Undiță de cupru', 'Undiță de aluminiu', 'Undiță de fier', 'Placă mesteacăn', 'Placă stejar (x2)', 'Placă de cedru (x3)', 'Țeavă de metal', 'Plicuri goale (x10)', 'Aprinzător', 'Clește', 'Tabletă de hacking', 'Flash drive de hack', 'Lockpick (x5)', 'Cauciuc x1', 'Cauciuc x2', 'Cauciuc x3', 'Târnacop de cupru', 'Târnacop de fier', 'Târnacop de oțel', 'Târnacop de aur', 'Târnacop de diamant', 'Topor de cupru', 'Topor de fier', 'Topor de oțel', 'Topor de aur', 'Topor de diamant']],
+    ['🧵 Croitorie', ['img/croitorie1.jpg', 'img/croitorie2.jpg', 'img/croitorie3.jpg', 'img/croitorie4.jpg', 'img/croitorie6.jpg', 'img/croitorie5.jpg', 'img/croitorie7.jpg', 'img/croitorie8.jpg'], ['Ață x 2', 'Sfoară', 'Fibră', 'Bandaj improvizat x 2', 'Fibră de Kevlar', 'Armură kevlar', 'Sac de fibră', 'Parașută']],
+    ['🔧 Craft Mecanic', craftGallery.slice(0, 16).map((_, i) => `img/masa${i + 1}.png`), craftGallery.slice(0, 16).map(([name]) => name)],
+    ['🍳 Calculator Bucătărie', Array.from({ length: 29 }, (_, i) => `img/bucatarie-calc-${String(i + 1).padStart(2, '0')}.png`), kitchenDemoRecipes.map(([name]) => name)]
+  ];
+  categories.forEach(([title, images, names]) => {
+    const category = document.createElement('div'); category.className = 'calculator-category';
+    category.innerHTML = `<button class="category-header-demo" type="button">${title} <span>⌄</span></button><div class="category-content-demo"><p class="demo-help-text">Alege imaginea din galerie pentru a selecta rețeta. Demo-ul nu afișează rezultate reale și nu trimite nimic pe Discord.</p><div class="asset-gallery">${images.map((image, i) => `<button type="button" class="asset-card demo-calculator-card"><img src="${image}" alt="${escapeHtml(names[i])}" loading="lazy"><span>${escapeHtml(names[i])}</span></button>`).join('')}</div><div class="demo-selection-note">Nicio rețetă selectată.</div></div>`;
+    panelEl.appendChild(category);
+    category.querySelector('.category-header-demo').addEventListener('click', () => category.classList.toggle('is-open'));
+    category.querySelectorAll('.demo-calculator-card').forEach((card, i) => card.addEventListener('click', () => { category.querySelector('.demo-selection-note').textContent = `Ai selectat ${names[i]}.`; }));
+  });
+}
+
 function renderKitchenDemo() {
   if (!panelEl || document.getElementById('demo-kitchen-calculator')) return;
+  renderLiveCalculatorDemo();
+  return;
   panelEl.insertAdjacentHTML('beforeend', `<div id="demo-kitchen-calculator" class="calculator-category kitchen-demo-category"><button class="category-header-demo" type="button">🍳 Calculator Bucătărie <span>⌄</span></button><div class="category-content-demo"><p class="demo-help-text">Alege preparatul și cantitatea pentru a vedea materialele necesare. Calculatorul este disponibil în panelul web; botul Discord nu efectuează calcule.</p><label>Preparat / material<select id="demo-kitchen-recipe" class="demo-input">${kitchenDemoRecipes.map(([name]) => `<option>${escapeHtml(name)}</option>`).join('')}</select></label><label>Cantitate<input id="demo-kitchen-qty" class="demo-input" type="number" min="0" value="0"></label><div id="demo-kitchen-result" class="feature-box"><h3>Rezultate</h3><p>Selectează un preparat și introdu cantitatea.</p></div></div></div>`);
   const craftCategory = document.createElement('div');
   craftCategory.id = 'demo-craft-calculator';
