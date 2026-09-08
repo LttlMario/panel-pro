@@ -80,7 +80,7 @@
   const render = () => {
     const recipe = recipes.find(item => item.id === select.value);
     const amount = Math.max(0, Number.parseInt(quantity.value, 10) || 0);
-    if (!recipe || !amount) { result.hidden = true; return; }
+    if (!recipe || !amount) { result.hidden = true; result.classList.remove('active'); return; }
     const directValues = {}; Object.entries(recipe.base).forEach(([name, value]) => add(directValues, name, value * amount));
     const rawValues = {}; Object.entries(recipe.base).forEach(([name, value]) => totals(name, value * amount, rawValues));
     direct.innerHTML = Object.entries(directValues).map(([name, value]) => `<div class="result-card"><div class="item-title">${esc(name)}</div><div class="item-value is-non-zero">${value}</div></div>`).join('');
@@ -88,9 +88,11 @@
     document.getElementById('kitchenSelectedTitle').textContent = `${recipe.name} · ${amount} buc.`;
     document.getElementById('kitchenSelectedImage').src = `img/${recipe.image}`;
     result.hidden = false;
+    result.classList.add('active');
   };
   function open(id) { select.value = id; quantity.value = 0; galleryView.hidden = true; selectionView.hidden = false; render(); }
-  window.showKitchenGallery = () => { galleryView.hidden = false; selectionView.hidden = true; quantity.value = 0; result.hidden = true; };
+  window.showKitchenGallery = () => { galleryView.hidden = false; selectionView.hidden = true; quantity.value = 0; result.hidden = true; result.classList.remove('active'); };
+  window.resetKitchenCalculator = () => { select.selectedIndex = 0; quantity.value = 0; galleryView.hidden = false; selectionView.hidden = true; result.hidden = true; result.classList.remove('active'); };
   select.onchange = render; quantity.oninput = render;
   document.getElementById('kitchenSelectionBack')?.addEventListener('click', window.showKitchenGallery);
 })();
