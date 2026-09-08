@@ -518,9 +518,6 @@ function addIllegalLocationImages() {
   if (!panelEl || document.getElementById('demo-location-images')) return;
   const maps = [['.map-two', 'img/cayo.jpg'], ['.map-three', 'img/maldive.jpg']];
   maps.forEach(([selector, image]) => { const card = panelEl.querySelector(selector); if (card) card.style.backgroundImage = `url("${image}")`; });
-  const images = ['image_6d67a5.jpg', 'image_6d6b63.jpg', 'image_6d6bdd.jpg', 'image_6d6f9f.jpg', 'image_6d6ee2.jpg', 'image_6d6f06.jpg', 'image_6dc1bb.jpg', 'image_6dc259.jpg', 'image_6dc5bb.jpg', 'image_6e3e73.jpg', 'image_6e4c80.jpg', 'image_6e4cfa.jpg', 'image_6e5081.jpg', 'image_6d687a.jpg', 'image_6dc214.jpg', 'image_6e489f.jpg', 'image_6e491e.jpg', 'image_6e4d74.jpg'];
-  const section = document.createElement('section'); section.id = 'demo-location-images'; section.className = 'feature-box'; section.innerHTML = `<h3>Galerie imagini locații</h3><p>Imaginile sunt prezentate pentru exemplificare. Demo-ul nu afișează coordonate sau informații reale.</p><div class="asset-gallery">${images.map((image, index) => `<button type="button" class="asset-card demo-calculator-card"><img src="img/${image}" alt="Imagine locație demo ${index + 1}" loading="lazy"><span>Imagine locație ${index + 1}</span></button>`).join('')}</div>`;
-  panelEl.appendChild(section);
 }
 
 function renderDemo(key) {
