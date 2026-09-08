@@ -667,14 +667,17 @@ function modalValues(interaction: any) {
 }
 
 function monthlySalary(value: unknown) {
-  const raw = String(value ?? '').match(/\d[\d\s.,]*/)?.[0];
+  const text = String(value ?? '');
+  const raw = text.match(/\d[\d\s.,]*/)?.[0];
   if (!raw) return null;
   const amount = Number(raw.trim().replace(/\s/g, '').replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.'));
-  return Number.isFinite(amount) && amount >= 0 ? amount : null;
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  const currency = /\$|usd|dolar/i.test(text) ? '$' : /€|eur|euro/i.test(text) ? '€' : /lei|ron/i.test(text) ? 'lei' : '$';
+  return { amount, currency };
 }
 
-function money(value: number) {
-  return `${Number(value || 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} lei`;
+function money(value: any) {
+  return `${Number(value?.amount ?? value ?? 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${value?.currency || '$'}`;
 }
 
 function universalTextInput(custom_id: string, label: string, style = 1, required = false, placeholder = '', max_length = 1000) {
@@ -1919,7 +1922,7 @@ async function myStats(db: any, context: any) {
   const total = [...secondsByDate.values()].reduce((sum, value) => sum + value.total, 0);
   const day = [...secondsByDate.values()].reduce((sum, value) => sum + value.day, 0);
   const night = [...secondsByDate.values()].reduce((sum, value) => sum + value.night, 0);
-  const salaryTotal = salary == null ? null : (total / 3600) * salary;
+  const salaryTotal = salary == null ? null : { amount: (total / 3600) * salary.amount, currency: salary.currency };
   const active = rows.find((shift: any) => ['active', 'paused'].includes(String(shift.status)));
   const activeLabel = active ? `${active.status === 'paused' ? 'În pauză' : 'În tură'} · ${String(active.shift_type || '').toUpperCase()} · ${formatDuration(workedSeconds(active, now))}` : 'Nicio tură activă';
   const dayNames = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];

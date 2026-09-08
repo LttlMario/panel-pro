@@ -72,10 +72,13 @@ function shiftDurationMs(shift: any) {
 }
 
 function monthlySalary(value: unknown) {
-  const raw = String(value ?? '').match(/\d[\d\s.,]*/)?.[0];
+  const text = String(value ?? '');
+  const raw = text.match(/\d[\d\s.,]*/)?.[0];
   if (!raw) return null;
   const amount = Number(raw.trim().replace(/\s/g, '').replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.'));
-  return Number.isFinite(amount) && amount >= 0 ? amount : null;
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  const currency = /\$|usd|dolar/i.test(text) ? '$' : /€|eur|euro/i.test(text) ? '€' : /lei|ron/i.test(text) ? 'lei' : '$';
+  return { amount, currency };
 }
 
 function dateLabel(date: string) {
@@ -100,18 +103,20 @@ function shiftMemberBlocks(shifts: any[], salaryByDiscordId: Map<string, number 
     .map((member) => [
       member.name,
       ...[...member.dates.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([date, durationMs]) => `  ${dateLabel(date)} — ${formatDuration(Math.floor(durationMs / 1000))}`),
-      `  Total săptămână — ${formatDuration(Math.floor(member.totalMs / 1000))} · ${member.salary == null ? 'salariu neconfigurat' : `${((member.totalMs / 3600000) * member.salary).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} lei`}`,
+      `  Total săptămână — ${formatDuration(Math.floor(member.totalMs / 1000))} · ${member.salary == null ? 'salariu neconfigurat' : `${((member.totalMs / 3600000) * member.salary.amount).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${member.salary.currency}`}`,
     ].join('\n'));
 }
 
 function shiftEmbedDescription(shifts: any[], label: string, salaryByDiscordId: Map<string, number | null>, defaultSalary: number | null, maxLength = 3500) {
   const lines = shiftMemberBlocks(shifts, salaryByDiscordId, defaultSalary);
   const totalMs = shifts.reduce((sum, shift) => sum + shiftDurationMs(shift), 0);
-  const totalSalary = shifts.reduce((sum, shift) => {
+  const totalsByCurrency = shifts.reduce((totals, shift) => {
     const salary = salaryByDiscordId.get(String(shift.discord_id || '')) ?? defaultSalary;
-    return sum + (salary == null ? 0 : (shiftDurationMs(shift) / 3600000) * salary);
-  }, 0);
-  const header = `Total ore ${label.toLowerCase()}: **${formatDuration(Math.floor(totalMs / 1000))}**\nMembri: **${new Set(shifts.map((shift: any) => String(shift.discord_id || shift.colleague_name || ''))).size}**\nTotal de plată: **${totalSalary.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} lei**`;
+    if (salary) totals[salary.currency] = (totals[salary.currency] || 0) + (shiftDurationMs(shift) / 3600000) * salary.amount;
+    return totals;
+  }, {} as Record<string, number>);
+  const salaryLabel = Object.entries(totalsByCurrency).map(([currency, amount]) => `${Number(amount).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`).join(' · ') || 'neconfigurat';
+  const header = `Total ore ${label.toLowerCase()}: **${formatDuration(Math.floor(totalMs / 1000))}**\nMembri: **${new Set(shifts.map((shift: any) => String(shift.discord_id || shift.colleague_name || ''))).size}**\nTotal de plată: **${salaryLabel}**`;
   let content = '';
   let shown = 0;
   for (const block of lines) {

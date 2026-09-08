@@ -104,16 +104,18 @@ async function syncEmployees(db: any, organizationId: string, botToken = '') {
 
 async function listContracts(db: any, organizationId: string) {
   await syncEmployees(db, organizationId, await getPlatformSecret(db, 'discord_bot_token'));
-  const [{ data: employees, error: employeesError }, { data: contracts, error: contractsError }, { data: batches, error: batchesError }, { data: members, error: membersError }] = await Promise.all([
+  const [{ data: employees, error: employeesError }, { data: contracts, error: contractsError }, { data: batches, error: batchesError }, { data: members, error: membersError }, { data: templateSetting, error: templateError }] = await Promise.all([
     db.from('organization_employees').select('id,discord_id,full_name,cnp,status,joined_at,left_at,last_discord_seen_at,created_at,updated_at').eq('organization_id', organizationId).is('archived_at', null).order('status').order('full_name'),
     db.from('organization_contracts').select('id,employee_id,contract_number,phone,position,salary,schedule,start_date,created_at,created_by_discord_id,id_card_url,signed_contract_url,discord_message_id,discord_message_ids').eq('organization_id', organizationId).order('created_at', { ascending: false }),
     db.from('contract_export_batches').select('id,created_at,row_count,completed_at').eq('organization_id', organizationId).eq('export_type', 'manual').eq('status', 'completed').order('created_at', { ascending: false }).limit(100),
     db.from('organization_members').select('discord_id,active,panel_role').eq('organization_id', organizationId).eq('active', true).order('discord_id'),
+    db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'contract_template').maybeSingle(),
   ]);
   if (employeesError) throw employeesError;
   if (contractsError) throw contractsError;
   if (batchesError) throw batchesError;
   if (membersError) throw membersError;
+  if (templateError) throw templateError;
 
   const batchIds = (batches || []).map((batch: any) => batch.id);
   const { data: exportedItems, error: exportedItemsError } = batchIds.length
@@ -142,6 +144,7 @@ async function listContracts(db: any, organizationId: string) {
       last_manual_export_at: exportMap.get(String(employee.id))?.last || null,
     })),
     contracts: contracts || [],
+    contract_template: templateSetting?.value || null,
     discord_members: (members || []).map((member: any) => {
       const user = userMap.get(String(member.discord_id));
       return { discord_id: String(member.discord_id), display_name: user?.display_name || user?.username || String(member.discord_id), panel_role: member.panel_role || '' };

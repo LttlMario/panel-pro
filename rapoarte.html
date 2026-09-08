@@ -291,6 +291,7 @@
         let usersMap = {};
         let salaryByDiscordId = {};
         let defaultMonthlySalary = null;
+        let defaultSalaryCurrency = '$';
 
         // Variabile pentru pontajul activ integrat
         let selectedShiftType = null;
@@ -953,36 +954,52 @@ async function forceStopActiveShift(shiftId) {
             usersDirectoryLoadedAt = Date.now();
         }
 
+        function parseSalary(value) {
+            const text = String(value ?? '');
+            const raw = text.match(/\d[\d\s.,]*/)?.[0];
+            if (!raw) return null;
+            const amount = Number(raw.trim().replace(/\s/g, '').replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.'));
+            if (!Number.isFinite(amount) || amount < 0) return null;
+            const currency = /\$|usd|dolar/i.test(text) ? '$' : /€|eur|euro/i.test(text) ? '€' : /lei|ron/i.test(text) ? 'lei' : '';
+            return { amount, currency };
+        }
+
+        async function loadReportSalaries() {
+            salaryByDiscordId = {};
+            defaultMonthlySalary = null;
+            defaultSalaryCurrency = '$';
+            const config = window.PANEL_SUPABASE_CONFIG;
+            const panelSession = localStorage.getItem('panel_session_token') || '';
+            if (!config || !panelSession) return;
+            const response = await fetch(`${config.url}/functions/v1/manage-contracts`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'x-panel-session': panelSession }, body: JSON.stringify({ action: 'list', organization_id: currentUser.organization_id }) });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || 'Salariile contractelor nu au putut fi încărcate.');
+            const employeeDiscordIds = Object.fromEntries((result.employees || []).map((employee) => [String(employee.id), String(employee.discord_id || '')]));
+            (result.contracts || []).forEach((contract) => {
+                const discordId = employeeDiscordIds[String(contract.employee_id || '')];
+                if (discordId && salaryByDiscordId[discordId] == null) salaryByDiscordId[discordId] = parseSalary(contract.salary);
+            });
+            const defaultSalary = parseSalary(result.contract_template?.defaults?.salary);
+            defaultMonthlySalary = defaultSalary?.amount ?? null;
+            defaultSalaryCurrency = defaultSalary?.currency || '$';
+        }
+
         async function fetchAllShifts() {
             try {
                 if (!currentUser.organization_id) {
                     throw new Error('Organizația activă nu a fost identificată.');
                 }
 
-                let [{ data, error }, { data: contracts, error: contractsError }, { data: employees, error: employeesError }, { data: templateSetting, error: templateError }] = await Promise.all([
-                    supabaseClient
+                let { data, error } = await supabaseClient
                     .from('shifts')
                     .select('id, organization_id, discord_id, colleague_name, date, start_time, end_time, duration, created_at, shift_type, duration_ms')
                     .eq('organization_id', currentUser.organization_id)
-                    .order('created_at', { ascending: false }),
-                    supabaseClient.from('organization_contracts').select('employee_id,salary,created_at').eq('organization_id', currentUser.organization_id).order('created_at', { ascending: false }),
-                    supabaseClient.from('organization_employees').select('id,discord_id').eq('organization_id', currentUser.organization_id),
-                    supabaseClient.from('app_settings').select('value').eq('organization_id', currentUser.organization_id).eq('key', 'contract_template').maybeSingle()
-                ]);
+                    .order('created_at', { ascending: false });
 
                 if (!reportsAreOrganizationScoped) data = (data || []).filter((shift) => String(shift.discord_id || '') === String(currentUser.discord_id || ''));
 
                 if (error) throw error;
-                if (contractsError) console.warn('Contractele cu salarii nu au putut fi încărcate.', contractsError);
-                if (employeesError) console.warn('Angajații cu salarii nu au putut fi încărcați.', employeesError);
-                if (templateError) console.warn('Șablonul contractului nu a putut fi încărcat.', templateError);
-                salaryByDiscordId = {};
-                const employeeDiscordIds = Object.fromEntries((employees || []).map((employee) => [String(employee.id), String(employee.discord_id || '')]));
-                (contracts || []).forEach((contract) => {
-                    const discordId = employeeDiscordIds[String(contract.employee_id || '')];
-                    if (discordId && salaryByDiscordId[discordId] == null) salaryByDiscordId[discordId] = parseMonthlySalary(contract.salary);
-                });
-                defaultMonthlySalary = parseMonthlySalary(templateSetting?.value?.defaults?.salary);
+                try { await loadReportSalaries(); } catch (salaryError) { console.warn('Salariile contractelor nu au putut fi încărcate.', salaryError); }
 
                 allShiftsData = (data || []).map(shift => {
                     const normalizedId = String(shift.discord_id || '').trim();
@@ -1053,21 +1070,18 @@ async function forceStopActiveShift(shiftId) {
             applyFilters();
         }
 
-        function parseMonthlySalary(value) {
-            const raw = String(value ?? '').match(/\d[\d\s.,]*/)?.[0];
-            if (!raw) return null;
-            const normalized = raw.trim().replace(/\s/g, '').replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.');
-            const amount = Number(normalized);
-            return Number.isFinite(amount) && amount >= 0 ? amount : null;
-        }
-
         function shiftSalary(shift) {
-            const monthly = salaryByDiscordId[String(shift.discord_id || '').trim()] ?? defaultMonthlySalary;
-            return monthly == null ? null : (reportShiftDurationMs(shift) / 3600000) * monthly;
+            const configured = salaryByDiscordId[String(shift.discord_id || '').trim()] || (defaultMonthlySalary == null ? null : { amount: defaultMonthlySalary, currency: defaultSalaryCurrency });
+            return configured == null ? null : { amount: (reportShiftDurationMs(shift) / 3600000) * configured.amount, currency: configured.currency || defaultSalaryCurrency };
         }
 
         function formatMoney(value) {
-            return `${Number(value || 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} lei`;
+            return `${Number(value?.amount ?? value ?? 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${value?.currency || defaultSalaryCurrency}`.trim();
+        }
+
+        function formatRankingHours(milliseconds) {
+            const totalMinutes = Math.max(0, Math.floor((Number(milliseconds) || 0) / 60000));
+            return `${Math.floor(totalMinutes / 60)}.${String(totalMinutes % 60).padStart(2, '0')}h`;
         }
 
         function renderTableAndStats() {
@@ -1120,8 +1134,9 @@ async function forceStopActiveShift(shiftId) {
             document.getElementById('stat-total-shifts').textContent = filteredShiftsData.length;
             document.getElementById('stat-total-hours').textContent = `${(totalMs / 3600000).toFixed(2)}h`;
             document.getElementById('stat-total-mechanics').textContent = uniqueMechanics.size;
-            const totalSalary = filteredShiftsData.reduce((sum, shift) => sum + (shiftSalary(shift) || 0), 0);
-            document.getElementById('stat-total-salary').textContent = totalSalary ? formatMoney(totalSalary) : '—';
+            const salaryTotals = {};
+            filteredShiftsData.forEach((shift) => { const value = shiftSalary(shift); if (value) salaryTotals[value.currency || defaultSalaryCurrency] = (salaryTotals[value.currency || defaultSalaryCurrency] || 0) + value.amount; });
+            document.getElementById('stat-total-salary').textContent = Object.entries(salaryTotals).length ? Object.entries(salaryTotals).map(([currency, amount]) => formatMoney({ amount, currency })).join(' · ') : '—';
         }
 
         function renderRankings() {
@@ -1151,7 +1166,7 @@ async function forceStopActiveShift(shiftId) {
             } else {
                 let html = '';
                 sortedDay.forEach(([name, ms], index) => {
-                    let hours = (ms / 3600000).toFixed(2);
+                    let hours = formatRankingHours(ms);
                     let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
                     html += `
                         <div class="flex items-center justify-between bg-slate-950/40 border border-slate-800/60 p-2.5 rounded-xl">
@@ -1171,7 +1186,7 @@ async function forceStopActiveShift(shiftId) {
             } else {
                 let html = '';
                 sortedNight.forEach(([name, ms], index) => {
-                    let hours = (ms / 3600000).toFixed(2);
+                    let hours = formatRankingHours(ms);
                     let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
                     html += `
                         <div class="flex items-center justify-between bg-slate-950/40 border border-slate-800/60 p-2.5 rounded-xl">
@@ -1203,7 +1218,7 @@ async function forceStopActiveShift(shiftId) {
                     `"${shift.start_time || ''}"`,
                     `"${shift.end_time || ''}"`,
                     `"${shift.duration || ''}"`,
-                    `"${shiftSalary(shift) == null ? '' : shiftSalary(shift).toFixed(2)}"`
+                    `"${shiftSalary(shift) == null ? '' : shiftSalary(shift).amount.toFixed(2)}"`
                 ];
                 csvContent += row.join(",") + "\n";
             });
@@ -1292,7 +1307,7 @@ async function forceStopActiveShift(shiftId) {
             const grouped = new Map();
             shifts.forEach((shift) => {
                 const key = String(shift.discord_id || shift.mechanic_name || 'unknown');
-                const member = grouped.get(key) || { name: shift.mechanic_name || 'Membru necunoscut', totalMs: 0, dates: new Map(), salary: salaryByDiscordId[String(shift.discord_id || '').trim()] ?? defaultMonthlySalary };
+                const member = grouped.get(key) || { name: shift.mechanic_name || 'Membru necunoscut', totalMs: 0, dates: new Map(), salary: salaryByDiscordId[String(shift.discord_id || '').trim()] || (defaultMonthlySalary == null ? null : { amount: defaultMonthlySalary, currency: defaultSalaryCurrency }) };
                 const durationMs = reportShiftDurationMs(shift);
                 member.totalMs += durationMs;
                 member.dates.set(String(shift.date || ''), (member.dates.get(String(shift.date || '')) || 0) + durationMs);
@@ -1302,10 +1317,13 @@ async function forceStopActiveShift(shiftId) {
             const memberBlocks = [...grouped.values()].sort((left, right) => left.name.localeCompare(right.name, 'ro')).map((member) => [
                 member.name,
                 ...[...member.dates.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([date, durationMs]) => `  ${reportDateLabel(date)} — ${formatTime(Math.floor(durationMs / 1000))}`),
-                `  Total săptămână — ${formatTime(Math.floor(member.totalMs / 1000))} · ${member.salary == null ? 'salariu neconfigurat' : formatMoney((member.totalMs / 3600000) * member.salary)}`,
+                `  Total săptămână — ${formatTime(Math.floor(member.totalMs / 1000))} · ${member.salary == null ? 'salariu neconfigurat' : formatMoney({ amount: (member.totalMs / 3600000) * member.salary.amount, currency: member.salary.currency || defaultSalaryCurrency })}`,
             ].join('\n'));
             const totalMs = shifts.reduce((sum, shift) => sum + reportShiftDurationMs(shift), 0);
-            const header = `Total ore ${label.toLowerCase()}: **${(totalMs / 3600000).toFixed(2)}h**\nAngajați: **${grouped.size}** · Ture: **${shifts.length}**`;
+            const salaryTotals = {};
+            shifts.forEach((shift) => { const value = shiftSalary(shift); if (value) salaryTotals[value.currency || defaultSalaryCurrency] = (salaryTotals[value.currency || defaultSalaryCurrency] || 0) + value.amount; });
+            const salaryLabel = Object.entries(salaryTotals).map(([currency, amount]) => `${Number(amount).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`).join(' · ') || 'neconfigurat';
+            const header = `Total ore ${label.toLowerCase()}: **${(totalMs / 3600000).toFixed(2)}h**\nAngajați: **${grouped.size}** · Ture: **${shifts.length}**\nTotal de plată: **${salaryLabel}**`;
             let body = '';
             let shown = 0;
             for (const block of memberBlocks) {
