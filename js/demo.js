@@ -582,15 +582,28 @@ function initDemoAssistant() {
     const question = input.value.trim();
     if (!question) return;
     const query = question.toLocaleLowerCase('ro-RO');
+    const darkweb = document.body.dataset.demoStart === 'blackmarket';
     const answer = /craft|rețet|retet|runflat|mecanic/.test(query)
       ? 'Craft Mecanic este integrat în Calculator. Deschide Calculatorul și alege categoria „Craft Mecanic” pentru galerie, rețete și cantități.'
-      : /eveniment|reminder|14 zile/.test(query)
+      : /bucătărie|bucatarie|mâncare|mancare|ingredient/.test(query)
+        ? 'Calculatorul Bucătărie se găsește în Calculator. Alege preparatul și cantitatea; în demo vezi doar selecția, iar rețetele și materialele reale apar în panelul live.'
+        : /calculator ilegal|arme|armă|arma|muniție|munitie|piese de armă|piese arma/.test(query) && darkweb
+          ? 'Calculatorul Ilegal include Arme, Piese de Armă, Muniție, Plicuri Cocaină, Marijuana, Plicuri Ciuperci și Topitorie. În demo poți doar selecta opțiunile, fără calcule reale.'
+          : /locații|locatii|hartă|harta|los santos|cayo|maldive/.test(query) && darkweb
+            ? 'În Locații Ilegale poți schimba între hărțile Los Santos, Cayo și Maldive. Demo-ul afișează hărțile fără coordonate sau locații reale.'
+            : /black market|blackmarket|marketplace ilegal|vânzare|vanzare|cumpărare|cumparare/.test(query) && darkweb
+              ? 'Black Market are formularul de anunț, categorii, element specific, preț și imagini. În demo postarea este doar locală și nu reprezintă o tranzacție reală.'
+              : /stash|inventar|donație|donatie/.test(query) && darkweb
+                ? 'Stash organizație afișează inventarul, cererile și donațiile. În demo acțiunile sunt simulate și nu modifică date reale.'
+                : /anunț|anunt|sondaj|avertisment|sancțiune|sanctiune/.test(query)
+                  ? 'În Anunțuri poți crea anunțuri, întrebări, sondaje, avertismente și sancțiuni, în funcție de pagina demo. Totul rămâne local.'
+                  : /eveniment|reminder|14 zile/.test(query)
         ? 'În Evenimente și remindere alegi tipul și data. În varianta reală, evenimentul se postează pe canalul Discord ales, apoi botul trimite zilnic câte zile au rămas până la ziua 14.'
         : /pontaj|tură|tura|ore/.test(query)
           ? 'Pentru Pontaj alegi tipul turei, apoi folosești Start, Pauză și Oprește. În demo cronometrul este doar local.'
           : /rol|permisi|citire|scriere|ștergere|stergere/.test(query)
             ? 'Permisiunile se bazează pe rolurile Discord. În configurația reală, rolurile cu scriere pot modifica și șterge, iar rolurile cu citire pot consulta informațiile permise.'
-            : 'Îți pot explica modulele din demo, inclusiv Calculatorul, Craft Mecanic, Pontajul și Evenimentele. Încearcă o întrebare mai specifică.';
+            : darkweb ? 'Îți pot explica Black Market, Calculatorul Ilegal, Arme, Muniție, hărțile, Locațiile și Stash-ul din Darkweb.' : 'Îți pot explica Calculatorul, Craft Mecanic, Calculatorul Bucătărie, Pontajul, Anunțurile și Evenimentele din demo.';
     messages.insertAdjacentHTML('beforeend', `<div class="demo-assistant-message user">${escapeHtml(question)}</div><div class="demo-assistant-message assistant">${escapeHtml(answer)}</div>`);
     messages.scrollTop = messages.scrollHeight;
     input.value = '';
