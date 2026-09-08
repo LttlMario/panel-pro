@@ -1,4 +1,24 @@
 User-agent: *
 Allow: /
+
+# Nu indexa zonele private sau fișierele tehnice.
 Disallow: /supabase/
+Disallow: /panel-android/
+Disallow: /panel-ios/
+Disallow: /panel-project-versions/
+Disallow: /admin.html
+Disallow: /administrare-
+Disallow: /organizatii.html
+Disallow: /organizatie-
+Disallow: /contracte.html
+Disallow: /rapoarte.html
+Disallow: /pontaj.html
+Disallow: /cereri-
+Disallow: /logs.html
+Disallow: /setari-
+Disallow: /secrete-
+Disallow: /demo.html
+Disallow: /demo-ilegale.html
+
 Sitemap: https://panel-pro.ro/sitemap.xml
+Sitemap: https://bot.panel-pro.ro/sitemap.xml

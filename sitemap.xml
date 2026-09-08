@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://panel-pro.ro/</loc><priority>1.0</priority></url>
-  <url><loc>https://panel-pro.ro/login.html</loc><priority>0.8</priority></url>
-  <url><loc>https://panel-pro.ro/discord-configurare.html</loc><priority>0.8</priority></url>
-  <url><loc>https://panel-pro.ro/changelog.html</loc><priority>0.5</priority></url>
+  <url><loc>https://panel-pro.ro/prezentare-panel.html</loc><priority>0.9</priority></url>
+  <url><loc>https://panel-pro.ro/rate-panel.html</loc><priority>0.8</priority></url>
+  <url><loc>https://panel-pro.ro/descarca-android.html</loc><priority>0.7</priority></url>
+  <url><loc>https://panel-pro.ro/descarca-fivem-pure.html</loc><priority>0.7</priority></url>
+  <url><loc>https://panel-pro.ro/instalare-ios.html</loc><priority>0.7</priority></url>
+  <url><loc>https://panel-pro.ro/changelog.html</loc><priority>0.6</priority></url>
+  <url><loc>https://panel-pro.ro/suggestii.html</loc><priority>0.5</priority></url>
   <url><loc>https://panel-pro.ro/termeni-si-conditii.html</loc><priority>0.4</priority></url>
+  <url><loc>https://panel-pro.ro/politica-confidentialitate.html</loc><priority>0.4</priority></url>
+
+  <!-- Se păstrează aici doar dacă bot.panel-pro.ro servește o pagină publică. -->
+  <url><loc>https://bot.panel-pro.ro/</loc><priority>0.8</priority></url>
 </urlset>
