@@ -29,7 +29,7 @@
     ['mancare_somon', 'Mâncare de somon', { Champignon: 3, Salată: 1, Roșii: 2, Ceapă: 1, Cartofi: 1, 'Somon crud': 1 }],
     ['chifle', 'Chifle proaspete x2', { Aluat: 1 }],
     ['mancare_rechin', 'Mâncare de rechin', { 'Rechin crud': 1, Salată: 1, Roșii: 2, 'Condimente de lux': 1, Cartofi: 1, Ton: 1 }],
-    ['mancare_balena', 'Mâncare de balenă', { 'Balenă crudă': 1, Salată: 1, Champignon: 10, 'Condimente de lux': 1, Cartofi: 1, Ton: 1 }],
+    ['mancare_balena', 'Mâncare de balenă', { 'Balenă crudă': 1, Salată: 1, Champignon: 10, 'Condimente de lux': 1, Cartofi: 1, Somon: 1 }],
     ['fursex', 'Fursex x2', { Lapte: 2, Aluat: 1, Bomboane: 2 }]
   ].map(([id, name, base], index) => ({ id, name, base, image: `bucatarie-calc-${String(index + 1).padStart(2, '0')}.png` }));
 
