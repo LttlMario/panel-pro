@@ -12,6 +12,7 @@
     <script src="js/permissions.js?v=4.6.2"></script>
     <script src="js/panel-layout.js?v=4.28.9"></script>
     <script src="js/craft-mechanic-recipes.js?v=20260825-craft-calculator"></script>
+    <script src="js/kitchen-recipes.js?v=20260908-kitchen-calculator" defer></script>
     <style>
         :root {
             --bg-main: #030712;
@@ -750,6 +751,24 @@
                         </div>
                     </div>
 
+                    <!-- Categorie Calculator Bucătărie -->
+                    <div class="category-group" id="cat-bucatarie">
+                        <div class="category-header" onclick="toggleCategory('cat-bucatarie')">
+                            <span style="display:flex;align-items:center;gap:8px;"><span>🍳</span> Calculator Bucătărie</span>
+                        </div>
+                        <div class="category-content" id="kitchenForm">
+                            <div class="mecanic-gallery-view" id="kitchenGalleryView">
+                                <div class="mecanic-gallery-intro">Alege imaginea preparatului pentru a deschide calculatorul direct pe rețeta respectivă.</div>
+                                <div class="mecanic-gallery-grid" id="kitchenGalleryGrid" aria-label="Rețete Calculator Bucătărie"></div>
+                            </div>
+                            <div class="mecanic-selection-view" id="kitchenSelectionView" hidden>
+                                <button type="button" class="mecanic-selection-back" id="kitchenSelectionBack">← Înapoi la imagini</button>
+                                <div class="item-row" style="margin-bottom:8px;"><span class="item-name">Preparat / material</span><select id="kitchenItemSelect" style="width:100%;"></select></div>
+                                <div class="item-row"><span class="item-name">Cantitate</span><input type="number" id="kitchenQty" min="0" step="1" value="0" placeholder="0"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="btn-container">
                         <button type="button" class="btn-danger" onclick="resetCalculator()">Resetează Totul</button>
                         <button type="button" class="mobile-results-button" onclick="showMobileResults()">Vezi Rezultate</button>
@@ -836,6 +855,21 @@
                         <button type="button" class="croitorie-image-lightbox-close" onclick="closeCroitorieImagePreview()" aria-label="Închide imaginea mărită">✕</button>
                         <img id="croitorieImageLightboxImage" alt="">
                         <div class="croitorie-image-lightbox-title" id="croitorieImageLightboxTitle"></div>
+                    </div>
+
+                    <div class="result-box" id="kitchenResults" hidden>
+                        <div class="croitorie-result-layout">
+                            <div>
+                                <h3>Calculator Bucătărie · Necesar direct și materiale brute</h3>
+                                <p id="kitchenSelectedTitle" class="text-xs text-slate-400" style="margin:6px 0 12px;"></p>
+                                <div class="grid-results" id="kitchenDirectResults"></div>
+                                <h3 style="margin-top:16px;">Total materiale brute</h3>
+                                <div class="grid-results" id="kitchenRawResults"></div>
+                            </div>
+                            <aside class="croitorie-result-preview" aria-label="Imaginea rețetei selectate">
+                                <img id="kitchenSelectedImage" alt="Preparat selectat" loading="lazy">
+                            </aside>
+                        </div>
                     </div>
                 </div>
             </div>
