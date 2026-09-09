@@ -44,6 +44,12 @@ if (document.head && !document.head.querySelector('meta[http-equiv="Content-Secu
     panelCsp.content = "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https: data: blob:; connect-src 'self' http://127.0.0.1:8787 http://localhost:8787 ws://127.0.0.1:8787 ws://localhost:8787 https://vkvsabbbawyiurnaiugo.supabase.co wss://vkvsabbbawyiurnaiugo.supabase.co https://discord.com; font-src 'self' https: data:; form-action 'self'; manifest-src 'self'; worker-src 'self' blob:;";
     document.head.prepend(panelCsp);
 }
+if (document.head && !document.head.querySelector('meta[name="description"]')) {
+    const panelDescription = document.createElement('meta');
+    panelDescription.name = 'description';
+    panelDescription.content = `${document.title || 'Panel Pro'} — administrare organizație, pontaj și resurse într-un singur loc.`;
+    document.head.appendChild(panelDescription);
+}
 window.panelEscapeHtml = window.panelEscapeHtml || function panelEscapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (character) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
