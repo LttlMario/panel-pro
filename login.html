@@ -280,8 +280,6 @@
     <div data-panel-footer-host class="relative z-10 w-full"></div>
     <!-- Script de Autentificare și Sincronizare Supabase -->
     <script>
-        window.addEventListener('DOMContentLoaded', () => {
-        const initializeLogin = () => {
         const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
         const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -366,13 +364,6 @@
             confirm.onclick = () => finish(select.value);
             cancel.onclick = () => finish('');
         };
-        if ('requestIdleCallback' in window) {
-            window.requestIdleCallback(initializeLogin, { timeout: 1800 });
-        } else {
-            window.setTimeout(initializeLogin, 250);
-        }
-        });
-
         const chooseOrganization = (organizations) => new Promise((resolve) => {
             const picker = document.getElementById('organization-picker');
             const select = document.getElementById('organization-choice');
@@ -1052,7 +1043,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 clearPanelBrowserSession();
             }
         }
-        });
+    });
     </script>
     <script>
         [['email-login-password', 'password'], ['email-register-password', 'password'], ['email-register-password-confirm', 'password_confirmation']].forEach(([id, name]) => document.getElementById(id)?.setAttribute('name', name));
