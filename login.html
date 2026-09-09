@@ -281,6 +281,7 @@
     <!-- Script de Autentificare și Sincronizare Supabase -->
     <script>
         window.addEventListener('DOMContentLoaded', () => {
+        const initializeLogin = () => {
         const SUPABASE_URL = window.PANEL_SUPABASE_CONFIG.url;
         const SUPABASE_KEY = window.PANEL_SUPABASE_CONFIG.publishableKey;
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -364,6 +365,12 @@
             select.onchange = () => { confirm.disabled = !select.value; status.textContent = ''; };
             confirm.onclick = () => finish(select.value);
             cancel.onclick = () => finish('');
+        };
+        if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(initializeLogin, { timeout: 1800 });
+        } else {
+            window.setTimeout(initializeLogin, 250);
+        }
         });
 
         const chooseOrganization = (organizations) => new Promise((resolve) => {
