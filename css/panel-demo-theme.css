@@ -138,7 +138,7 @@ body.panel-global-shell main > .max-w-5xl {
 #panel-mobile-menu .nav-link > span:first-child {
     width: 19px;
     flex: 0 0 19px;
-    color: #7186a4 !important;
+    color: #9bb0c8 !important;
     font-size: 16px;
     text-align: center;
 }
@@ -221,7 +221,7 @@ body.panel-global-shell main > .max-w-5xl {
     letter-spacing: -.04em;
 }
 
-.panel-global-header p { color: #7186a4 !important; }
+.panel-global-header p { color: #9bb0c8 !important; }
 .panel-global-header .panel-global-search,
 .panel-global-header input[type="search"],
 #global-search {
@@ -261,7 +261,7 @@ body.panel-global-shell main textarea {
 }
 
 body.panel-global-shell main input::placeholder,
-body.panel-global-shell main textarea::placeholder { color: #60748e !important; }
+body.panel-global-shell main textarea::placeholder { color: #90a4bd !important; }
 
 body.panel-global-shell main input:focus,
 body.panel-global-shell main select:focus,
@@ -280,7 +280,7 @@ body.panel-global-shell main .text-slate-100,
 body.panel-global-shell main .text-slate-200 { color: #dbe8f4 !important; }
 body.panel-global-shell main .text-slate-300 { color: #b4c3d6 !important; }
 body.panel-global-shell main .text-slate-400,
-body.panel-global-shell main .text-slate-500 { color: #778aa4 !important; }
+body.panel-global-shell main .text-slate-500 { color: #9bb0c8 !important; }
 body.panel-global-shell main .text-emerald-400,
 body.panel-global-shell main .text-emerald-300 { color: var(--demo-green) !important; }
 
@@ -310,7 +310,7 @@ body.panel-global-shell main .danger { border-color: rgba(244, 114, 114, .35) !i
 body.panel-global-shell main button:disabled { opacity: .42; cursor: not-allowed; transform: none; }
 
 body.panel-global-shell main table { border-color: var(--demo-line); color: #c9d7e6; }
-body.panel-global-shell main th { color: #7186a4; background: #101b2d; font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
+body.panel-global-shell main th { color: #9bb0c8; background: #101b2d; font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
 body.panel-global-shell main td { border-color: #1d2c42; color: #b8c7d8; }
 
 /* Barele secundare, căutare și footer */
@@ -389,7 +389,7 @@ body.panel-global-shell main td { border-color: #1d2c42; color: #b8c7d8; }
 .gallery-card > div:first-child { height: 150px !important; background: #070b14 !important; }
 .gallery-card > div:last-child { padding: 13px !important; }
 .gallery-card .text-slate-100 { color: #dbe8f4 !important; }
-.gallery-card .text-slate-400 { color: #70839d !important; }
+.gallery-card .text-slate-400 { color: #9bb0c8 !important; }
 .zoom-btn { width: 31px !important; height: 31px !important; border-color: #31516a !important; background: rgba(10, 18, 32, .9) !important; color: var(--demo-cyan) !important; }
 
 /* Rapoarte, cereri și contracte */
