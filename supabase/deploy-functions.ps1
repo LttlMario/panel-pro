@@ -57,6 +57,7 @@ $functions = @(
     'discover-draft-roles',
     'save-draft-roles',
     'touch-panel-session',
+    'wheel-timer',
     'mark-tutorial-read',
     'link-discord-account',
     'link-email-discord-guild',
