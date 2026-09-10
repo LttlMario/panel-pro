@@ -157,7 +157,18 @@ Deno.serve(async (request) => {
     if (action === 'unarchive') {
       const { data, error } = await db.from('organization_events').update({ status: 'active', archived_at: null, updated_at: new Date().toISOString() }).eq('id', clean(body.id, 80)).eq('organization_id', session.organization_id).select(eventFields).single();
       if (error) throw error;
-      return reply(request, { ok: true, event: data });
+      const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', session.organization_id).maybeSingle();
+      if (settingsError) throw settingsError;
+      const notification = await sendAutomaticReminder(db, settings, data);
+      return reply(request, { ok: true, event: data, notification });
+    }
+    if (action === 'send_now') {
+      const { data: event, error: eventError } = await db.from('organization_events').select(eventFields).eq('id', clean(body.id, 80)).eq('organization_id', session.organization_id).eq('status', 'active').single();
+      if (eventError) throw eventError;
+      const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', session.organization_id).maybeSingle();
+      if (settingsError) throw settingsError;
+      const notification = await sendAutomaticReminder(db, settings, event);
+      return reply(request, { ok: true, event, notification });
     }
     if (action === 'delete') {
       const { data, error } = await db.from('organization_events').delete().eq('id', clean(body.id, 80)).eq('organization_id', session.organization_id).select('id').single();
