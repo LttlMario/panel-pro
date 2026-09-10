@@ -110,11 +110,6 @@
                         </div>
 
                         <div class="space-y-1.5">
-                            <label class="text-xs font-medium text-slate-400">Adresă de lucru</label>
-                            <input type="text" id="address" placeholder="Adresa sediului / locului de muncă" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
-                        </div>
-
-                        <div class="space-y-1.5">
                             <label class="text-xs font-medium text-slate-400">Manager * (Rol: Manager / Admin)</label>
                             <input type="text" id="manager" placeholder="Introduceți numele managerului" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-indigo-500">
                         </div>
@@ -663,7 +658,7 @@ Semnătură:`;
             // Recalculează numărul dacă pagina a rămas deschisă peste schimbarea zilei.
             loadOrInitContractNumber();
             const company = document.getElementById('company').value.trim();
-            const address = document.getElementById('address')?.value.trim() || String(window.getActiveOrganization?.()?.address || '').trim();
+            const address = String(contractTemplateDefaults.address || '').trim();
             const manager = document.getElementById('manager').value.trim();
             const employeeName = document.getElementById('employeeName').value.trim();
             const cnp = document.getElementById('cnp').value.trim();
