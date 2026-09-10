@@ -16,6 +16,9 @@ function displayDate(value: string) {
 function localDate(now = new Date()) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
 }
+function reminderStartDate(event: any) {
+  return event?.created_at ? localDate(new Date(event.created_at)) : String(event?.event_date || '');
+}
 
 async function claimRun(db: any, event: any, reminderDate: string, daysRemaining: number) {
   const { data: existing, error: readError } = await db.from('organization_event_reminder_runs').select('id,status,updated_at').eq('event_id', event.id).eq('reminder_date', reminderDate).maybeSingle();
@@ -66,7 +69,7 @@ Deno.serve(async (request) => {
     const organizationIds = (organizations || []).map((row: any) => row.id);
     if (!organizationIds.length) return reply({ ok: true, reminder_date: today, results: [] });
     const [{ data: events, error: eventError }, { data: settings, error: settingsError }] = await Promise.all([
-      db.from('organization_events').select('id,organization_id,title,event_type,event_date,details,evidence_url,status').eq('status', 'active').in('organization_id', organizationIds).gte('event_date', oldest).lte('event_date', today).order('event_date'),
+      db.from('organization_events').select('id,organization_id,title,event_type,event_date,created_at,details,evidence_url,status').eq('status', 'active').in('organization_id', organizationIds).gte('created_at', `${oldest}T00:00:00Z`).lte('created_at', `${today}T23:59:59Z`).order('created_at'),
       db.from('organization_settings').select('organization_id,discord_channel_routes').in('organization_id', organizationIds),
     ]);
     if (eventError) throw eventError;
@@ -74,7 +77,7 @@ Deno.serve(async (request) => {
     const settingsByOrg = new Map((settings || []).map((row: any) => [String(row.organization_id), row]));
     const results = [];
     for (const event of events || []) {
-      const eventUtc = new Date(`${event.event_date}T00:00:00Z`);
+      const eventUtc = new Date(`${reminderStartDate(event)}T00:00:00Z`);
       const elapsed = Math.floor((todayUtc.getTime() - eventUtc.getTime()) / DAY_MS);
       const reminderSetting = await db.from('app_settings').select('value').eq('organization_id', event.organization_id).eq('key', `discord_event_reminder_days:${event.id}`).maybeSingle();
       const maxDays = Math.max(1, Math.min(365, Number(reminderSetting.data?.value?.days || DEFAULT_MAX_DAYS) || DEFAULT_MAX_DAYS));

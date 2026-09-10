@@ -54,6 +54,7 @@ async function sendReminder(db: any, settings: any, event: any, daysRemaining: n
 }
 
 const localDate = (now = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+const reminderStartDate = (event:any) => event?.created_at ? localDate(new Date(event.created_at)) : String(event?.event_date || '');
 
 async function claimAutomaticReminder(db: any, event: any, reminderDate: string, daysRemaining: number) {
   const { data: existing, error: readError } = await db.from('organization_event_reminder_runs').select('id,status,updated_at').eq('event_id', event.id).eq('reminder_date', reminderDate).maybeSingle();
@@ -78,7 +79,7 @@ async function finishAutomaticReminder(db: any, id: string, status: string, erro
 
 async function sendAutomaticReminder(db: any, settings: any, event: any) {
   const today = localDate();
-  const eventDay = new Date(`${event.event_date}T00:00:00Z`);
+  const eventDay = new Date(`${reminderStartDate(event)}T00:00:00Z`);
   const todayDay = new Date(`${today}T00:00:00Z`);
   const elapsed = Math.floor((todayDay.getTime() - eventDay.getTime()) / 86400000);
   const startsInDays = elapsed < 0 ? Math.abs(elapsed) : 0;

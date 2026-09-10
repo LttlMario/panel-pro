@@ -4,7 +4,8 @@
   const LOCAL_KEY = 'panel_local_organization_events';
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-  const todayLocal = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest' }).format(new Date());
+  const todayLocal = (value = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest' }).format(value);
+  const reminderStartDate = (event) => event?.created_at ? todayLocal(new Date(event.created_at)) : String(event?.event_date || '');
   const dateValue = (value) => new Date(`${value}T00:00:00Z`);
   const daysElapsed = (value) => Math.floor((dateValue(todayLocal()).getTime() - dateValue(value).getTime()) / 86400000);
   const dateLabel = (value) => value ? new Intl.DateTimeFormat('ro-RO', { dateStyle: 'medium', timeZone: 'Europe/Bucharest' }).format(dateValue(value)) : '—';
@@ -16,14 +17,14 @@
 
   function state(event) {
     if (event.status === 'archived') return { key: 'archived', label: 'Arhivat', tone: 'slate', remaining: null };
-    const elapsed = daysElapsed(event.event_date);
+    const elapsed = daysElapsed(reminderStartDate(event));
     if (elapsed < 0) return { key: 'future', label: `Urmează în ${Math.abs(elapsed)} ${Math.abs(elapsed) === 1 ? 'zi' : 'zile'}`, tone: 'indigo', remaining: 14 };
     if (elapsed >= 14 || event.status === 'completed') return { key: 'completed', label: 'Perioada încheiată', tone: 'amber', remaining: 0 };
     return { key: 'active', label: `Mai sunt ${14 - elapsed} ${14 - elapsed === 1 ? 'zi' : 'zile'}`, tone: 'emerald', remaining: 14 - elapsed };
   }
   function statusClasses(tone) { return ({ emerald: 'border-emerald-700/60 bg-emerald-950/30 text-emerald-300', amber: 'border-amber-700/60 bg-amber-950/30 text-amber-200', indigo: 'border-indigo-700/60 bg-indigo-950/30 text-indigo-200', slate: 'border-slate-700 bg-slate-950 text-slate-400' })[tone] || 'border-slate-700 bg-slate-950 text-slate-400'; }
   function localReminders(event) {
-    const elapsed = daysElapsed(event.event_date);
+    const elapsed = daysElapsed(reminderStartDate(event));
     if (elapsed < 0 || elapsed > 14) return [];
     return [{ id: `local-${event.id}-${todayLocal()}`, event_id: event.id, reminder_date: todayLocal(), days_remaining: 14 - elapsed, status: 'preview', sent_at: null }];
   }
