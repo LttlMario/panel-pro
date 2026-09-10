@@ -9,6 +9,17 @@ const cors={'Access-Control-Allow-Origin':'https://panel-pro.ro','Access-Control
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
 const normalizeBlackMarketName=(value:unknown)=>String(value??'').replace(/^\s*\d{1,12}\s+/,'').replace(/^\s*\d{1,12}\s*[|:/#-]\s*/,'').replace(/\s*[|:/#-]\s*\d{1,12}\s*$/,'').replace(/\s+\d{1,12}\s*$/,'').replace(/\s*[[(]\s*\d{1,12}\s*[\])]\s*$/,'').replace(/\s{2,}/g,' ').trim();
 const allowedCommunityReactions=new Set(['✅','❌','👍','❤️','🤔']);
+const communityReactionChoices = ['✅', '❌', '👍', '❤️', '🤔'];
+const communityPostComponents = (post:any, options:string[] = []) => {
+    const audience = post.audience === 'departments' ? 'departments' : 'organization';
+    const rows:any[] = [{ type: 1, components: communityReactionChoices.map((reaction:string, index:number) => ({ type: 2, style: 2, label: reaction, custom_id: `panel:announcements:${audience}:react:${post.id}:${index}` })) }];
+    if (post.post_type === 'poll') {
+        const pollOptions = options.slice(0, 10);
+        for (let index = 0; index < pollOptions.length; index += 5) rows.push({ type: 1, components: pollOptions.slice(index, index + 5).map((option:string, optionIndex:number) => ({ type: 2, style: 1, label: option.slice(0, 80), custom_id: `panel:announcements:${audience}:vote:${post.id}:${index + optionIndex}` })) });
+    }
+    rows.push({ type: 1, components: [{ type: 2, style: 2, label: 'Editează', custom_id: `panel:announcements:${audience}:edit:${post.id}` }, { type: 2, style: 4, label: 'Șterge', custom_id: `panel:announcements:${audience}:delete:${post.id}` }] });
+    return rows.slice(0, 5);
+};
 const disciplineDiscordComponents=(scope:string,kind:'warning'|'sanction',id:string)=>[{type:1,components:kind==='warning'?[{type:2,style:3,label:'Marchează rezolvat',custom_id:`panel:discipline:${scope}:resolve:warning:${id}`},{type:2,style:4,label:'Șterge',custom_id:`panel:discipline:${scope}:delete:warning:${id}`}]:[{type:2,style:3,label:'Marchează achitată',custom_id:`panel:discipline:${scope}:resolve:sanction:${id}`},{type:2,style:2,label:'Anulează',custom_id:`panel:discipline:${scope}:cancel:sanction:${id}`},{type:2,style:4,label:'Șterge',custom_id:`panel:discipline:${scope}:delete:sanction:${id}`}]}];
 const actionDiscordComponents=(id:string)=>[{type:1,components:[{type:2,style:4,label:'Șterge acțiunea',custom_id:`panel:actions:organization:delete:${id}`}]}];
 Deno.serve(async(req)=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return reply({error:'Method not allowed'},405);let stage='request';try{
@@ -777,7 +788,6 @@ const own = async (id:string) => {
     try {
         stage='notify_discord_bot';
         discordMessageId = await notifyDiscord(post, body.options || [], post.audience);
-        await notifyCommunityLog(post, 'Postare nouă');
     } catch (error) {
         discordDeliveryWarning = error instanceof Error ? error.message : 'Canalul Discord al botului nu a putut fi contactat.';
         console.error('Postarea a fost salvată, dar livrarea Discord a eșuat:', discordDeliveryWarning);
@@ -910,17 +920,6 @@ if(body.action==='marketplace_delete'){
  if(body.action==='react'){const reaction=String(body.reaction||'');if(!allowedCommunityReactions.has(reaction))return reply({error:'Reacție invalidă.'},400);const key={organization_id:organizationId,post_id:body.post_id,user_discord_id:du.id,reaction};const {data}=await db.from('community_reactions').select('id').match(key).maybeSingle();const q=data?db.from('community_reactions').delete().eq('organization_id',organizationId).eq('id',data.id):db.from('community_reactions').insert(key);const {error}=await q;if(error)throw error;return reply({ok:true})}
  if(body.action==='vote'){const {data:option}=await db.from('community_poll_options').select('post_id').eq('organization_id',organizationId).eq('id',body.option_id).single();if(!option||option.post_id!==body.post_id)throw new Error('Opțiune invalidă.');const {error}=await db.from('community_poll_votes').upsert({organization_id:organizationId,post_id:body.post_id,option_id:body.option_id,user_discord_id:du.id},{onConflict:'post_id,user_discord_id'});if(error)throw error;await updateDiscordPoll(body.post_id);return reply({ok:true})}
  return reply({error:'Acțiune necunoscută.'},400);
-const communityReactionChoices = ['✅', '❌', '👍', '❤️', '🤔'];
-const communityPostComponents = (post:any, options:string[] = []) => {
-    const audience = post.audience === 'departments' ? 'departments' : 'organization';
-    const rows:any[] = [{ type: 1, components: communityReactionChoices.map((reaction:string, index:number) => ({ type: 2, style: 2, label: reaction, custom_id: `panel:announcements:${audience}:react:${post.id}:${index}` })) }];
-    if (post.post_type === 'poll') {
-        const pollOptions = options.slice(0, 10);
-        for (let index = 0; index < pollOptions.length; index += 5) rows.push({ type: 1, components: pollOptions.slice(index, index + 5).map((option:string, optionIndex:number) => ({ type: 2, style: 1, label: option.slice(0, 80), custom_id: `panel:announcements:${audience}:vote:${post.id}:${index + optionIndex}` })) });
-    }
-    rows.push({ type: 1, components: [{ type: 2, style: 2, label: 'Editează', custom_id: `panel:announcements:${audience}:edit:${post.id}` }, { type: 2, style: 4, label: 'Șterge', custom_id: `panel:announcements:${audience}:delete:${post.id}` }] });
-    return rows.slice(0, 5);
-};
 const notifyCommunityLog = async (post:any, action:string) => {
     const { data: settings } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
     const audience = post?.audience === 'departments' ? 'departments' : 'organization';
