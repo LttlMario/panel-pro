@@ -363,6 +363,7 @@
             select.onchange = () => { confirm.disabled = !select.value; status.textContent = ''; };
             confirm.onclick = () => finish(select.value);
             cancel.onclick = () => finish('');
+        });
         const chooseOrganization = (organizations) => new Promise((resolve) => {
             const picker = document.getElementById('organization-picker');
             const select = document.getElementById('organization-choice');
@@ -1042,7 +1043,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 clearPanelBrowserSession();
             }
         }
-    });
     </script>
     <script>
         [['email-login-password', 'password'], ['email-register-password', 'password'], ['email-register-password-confirm', 'password_confirmation']].forEach(([id, name]) => document.getElementById(id)?.setAttribute('name', name));
