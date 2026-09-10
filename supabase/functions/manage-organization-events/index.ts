@@ -154,6 +154,11 @@ Deno.serve(async (request) => {
       if (error) throw error;
       return reply(request, { ok: true, event: data });
     }
+    if (action === 'unarchive') {
+      const { data, error } = await db.from('organization_events').update({ status: 'active', archived_at: null, updated_at: new Date().toISOString() }).eq('id', clean(body.id, 80)).eq('organization_id', session.organization_id).select(eventFields).single();
+      if (error) throw error;
+      return reply(request, { ok: true, event: data });
+    }
     if (action === 'delete') {
       const { data, error } = await db.from('organization_events').delete().eq('id', clean(body.id, 80)).eq('organization_id', session.organization_id).select('id').single();
       if (error) throw error;
