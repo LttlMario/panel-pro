@@ -5,9 +5,20 @@
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   const todayLocal = (value = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest' }).format(value);
-  const reminderStartDate = (event) => event?.created_at ? todayLocal(new Date(event.created_at)) : String(event?.event_date || '');
+  const reminderStartDate = (event) => String(event?.event_date || '');
   const dateValue = (value) => new Date(`${value}T00:00:00Z`);
   const daysElapsed = (value) => Math.floor((dateValue(todayLocal()).getTime() - dateValue(value).getTime()) / 86400000);
+  const reminderDaysRemaining = (event, reminder) => Math.max(0, 14 - Math.max(0, Math.floor((dateValue(reminder.reminder_date).getTime() - dateValue(reminderStartDate(event)).getTime()) / 86400000)));
+  const countdownLabel = (event) => {
+    const difference = dateValue(event.event_date).getTime() - Date.now();
+    if (difference <= 0) return 'În desfășurare';
+    const totalSeconds = Math.floor(difference / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${days}z ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+  };
   const dateLabel = (value) => value ? new Intl.DateTimeFormat('ro-RO', { dateStyle: 'medium', timeZone: 'Europe/Bucharest' }).format(dateValue(value)) : '—';
   const EVENT_TYPES = Object.freeze({ car_meet: 'Car Meet', convoy: 'Convoy', race: 'Cursă / Race', party: 'Petrecere', community: 'Eveniment comunitar', roleplay: 'Eveniment RP', other: 'Alt eveniment' });
   const eventTypeLabel = (value) => EVENT_TYPES[String(value || 'other')] || EVENT_TYPES.other;
@@ -61,7 +72,7 @@
     $('stat-active').textContent = active.length;
     $('stat-history').textContent = events.length;
     const next = active.map((event) => ({ event, day: event.event_date })).sort((a, b) => a.day.localeCompare(b.day))[0];
-    $('stat-next').textContent = next ? `${dateLabel(next.day)} · ${next.event.title}` : 'Niciun reminder planificat';
+    $('stat-next').textContent = next ? `${dateLabel(next.day)} · ${next.event.title} · ${countdownLabel(next.event)}` : 'Niciun reminder planificat';
   }
   function render() {
     renderStats();
@@ -69,7 +80,7 @@
       const current = state(event);
       const log = (localMode ? localReminders(event) : reminders.filter((item) => String(item.event_id) === String(event.id))).sort((a, b) => String(b.reminder_date).localeCompare(String(a.reminder_date)));
       const actions = canWrite ? `<div class="flex flex-wrap gap-2"><button type="button" data-edit="${esc(event.id)}" class="rounded-lg border border-slate-700 px-3 py-2 text-[11px] font-bold text-slate-300 hover:bg-slate-800">Editează</button>${current.key !== 'archived' ? `<button type="button" data-archive="${esc(event.id)}" class="rounded-lg border border-amber-800/70 px-3 py-2 text-[11px] font-bold text-amber-200 hover:bg-amber-950/50">Arhivează</button>` : ''}<button type="button" data-delete="${esc(event.id)}" class="rounded-lg border border-rose-800/70 px-3 py-2 text-[11px] font-bold text-rose-200 hover:bg-rose-950/50">Șterge</button><button type="button" data-test="${esc(event.id)}" class="rounded-lg border border-cyan-700/70 px-3 py-2 text-[11px] font-bold text-cyan-200 hover:bg-cyan-950/50">${localMode ? 'Simulează reminderul' : 'Testează postarea botului'}</button></div>` : '';
-      return `<article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 md:p-5"><div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"><div class="min-w-0"><div class="flex flex-wrap items-center gap-2"><span class="rounded-full border border-cyan-700/60 bg-cyan-950/30 px-2.5 py-1 text-[10px] font-bold text-cyan-200">${esc(eventTypeLabel(event.event_type))}</span><span class="rounded-full border px-2.5 py-1 text-[10px] font-bold ${statusClasses(current.tone)}">${esc(current.label)}</span></div><h3 class="mt-3 text-base font-black text-white">${esc(event.title)}</h3><p class="mt-2 text-xs text-slate-400">📅 ${esc(dateLabel(event.event_date))}${current.remaining !== null ? ` · ${current.remaining === 0 ? 'Ziua 14' : `ziua ${14 - current.remaining} din 14`}` : ''}</p>${event.details ? `<p class="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-300">${esc(event.details)}</p>` : ''}${event.evidence_url ? `<a class="mt-3 inline-flex max-w-full items-center gap-2 truncate text-xs font-bold text-cyan-300 hover:text-cyan-200" href="${esc(event.evidence_url)}" target="_blank" rel="noopener noreferrer">🔗 Deschide dovada</a>` : ''}</div>${actions}</div><details class="mt-4 border-t border-slate-800 pt-3"><summary class="cursor-pointer text-xs font-bold text-slate-400">Jurnal remindere (${log.length})</summary><div class="mt-3 space-y-2">${log.length ? log.map((item) => `<div class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs"><span>${esc(dateLabel(item.reminder_date))} · ${item.days_remaining === 0 ? '0 zile rămase' : `${item.days_remaining} ${item.days_remaining === 1 ? 'zi' : 'zile'} rămase`}</span><span class="${item.status === 'sent' ? 'text-emerald-300' : item.status === 'failed' ? 'text-rose-300' : 'text-slate-400'}">${esc(item.status === 'sent' ? 'Trimis' : item.status === 'failed' ? 'Eșuat' : localMode ? 'Simulare locală' : item.status)}</span></div>`).join('') : '<p class="text-xs text-slate-500">Nu există încă remindere înregistrate.</p>'}</div></details></article>`;
+      return `<article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 md:p-5"><div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"><div class="min-w-0"><div class="flex flex-wrap items-center gap-2"><span class="rounded-full border border-cyan-700/60 bg-cyan-950/30 px-2.5 py-1 text-[10px] font-bold text-cyan-200">${esc(eventTypeLabel(event.event_type))}</span><span class="rounded-full border px-2.5 py-1 text-[10px] font-bold ${statusClasses(current.tone)}">${esc(current.label)}</span></div><h3 class="mt-3 text-base font-black text-white">${esc(event.title)}</h3><p class="mt-2 text-xs text-slate-400">📅 ${esc(dateLabel(event.event_date))}${current.remaining !== null ? ` · ${current.remaining === 0 ? 'Ziua 14' : `ziua ${14 - current.remaining} din 14`}` : ''}</p>${event.details ? `<p class="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-300">${esc(event.details)}</p>` : ''}${event.evidence_url ? `<a class="mt-3 inline-flex max-w-full items-center gap-2 truncate text-xs font-bold text-cyan-300 hover:text-cyan-200" href="${esc(event.evidence_url)}" target="_blank" rel="noopener noreferrer">🔗 Deschide dovada</a>` : ''}</div>${actions}</div><details class="mt-4 border-t border-slate-800 pt-3"><summary class="cursor-pointer text-xs font-bold text-slate-400">Jurnal remindere (${log.length})</summary><div class="mt-3 space-y-2">${log.length ? log.map((item) => { const remaining = reminderDaysRemaining(event, item); return `<div class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs"><span>${esc(dateLabel(item.reminder_date))} · ${remaining === 0 ? '0 zile rămase' : `${remaining} ${remaining === 1 ? 'zi' : 'zile'} rămase`}</span><span class="${item.status === 'sent' ? 'text-emerald-300' : item.status === 'failed' ? 'text-rose-300' : 'text-slate-400'}">${esc(item.status === 'sent' ? 'Trimis' : item.status === 'failed' ? 'Eșuat' : localMode ? 'Simulare locală' : item.status)}</span></div>`; }).join('') : '<p class="text-xs text-slate-500">Nu există încă remindere înregistrate.</p>'}</div></details></article>`;
     }).join('') : '<p class="rounded-xl border border-dashed border-slate-700 p-5 text-sm text-slate-400">Nu există încă evenimente. Adaugă primul eveniment pentru a începe istoricul.</p>';
   }
   function resetForm() { editingId = ''; $('event-form').reset(); $('event-type').value = ''; $('event-date').value = todayLocal(); $('form-title').textContent = 'Adaugă un eveniment'; $('save-event').textContent = 'Salvează evenimentul'; $('cancel-edit').classList.add('hidden'); }
@@ -93,6 +104,7 @@
     resetForm(); render();
   }
   $('event-form').addEventListener('submit', async (event) => { event.preventDefault(); $('save-event').disabled = true; $('form-status').textContent = 'Se salvează…'; try { await saveEvent(event); } catch (error) { $('form-status').textContent = error.message || 'Salvarea a eșuat.'; } finally { $('save-event').disabled = false; } });
+  window.setInterval(renderStats, 1000);
   $('cancel-edit').onclick = resetForm;
   $('refresh-events').onclick = load;
   $('events-list').addEventListener('click', async (event) => {

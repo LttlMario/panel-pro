@@ -17,7 +17,7 @@ function localDate(now = new Date()) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
 }
 function reminderStartDate(event: any) {
-  return event?.created_at ? localDate(new Date(event.created_at)) : String(event?.event_date || '');
+  return String(event?.event_date || '');
 }
 
 async function claimRun(db: any, event: any, reminderDate: string, daysRemaining: number) {
@@ -44,9 +44,9 @@ async function send(db: any, settings: any, event: any, daysRemaining: number, m
   const eventType = EVENT_TYPES[String(event.event_type || 'other')] || EVENT_TYPES.other;
   const ending = daysRemaining === 0 ? `Perioada de ${maxDays} zile se încheie astăzi.` : `Mai sunt **${daysRemaining} ${daysRemaining === 1 ? 'zi' : 'zile'}** până la împlinirea celor ${maxDays} zile.`;
   const payload = { allowed_mentions: { parse: [] }, embeds: [{ title: `🗓️ ${eventType} · ${event.title}`, description: `Evenimentul a fost înregistrat la data de **${displayDate(event.event_date)}**.\n\n${ending}${event.details ? `\n\n**Detalii:**\n${String(event.details).slice(0, 1800)}` : ''}`, color: daysRemaining <= 1 ? 15158332 : 16753920, fields: [{ name: 'Tip eveniment', value: eventType, inline: true }, { name: 'Progres', value: `${maxDays - daysRemaining} / ${maxDays} zile trecute`, inline: true }, ...(event.evidence_url ? [{ name: 'Dovadă', value: `[Deschide linkul](${event.evidence_url})`, inline: true }] : [])], footer: { text: 'Panel Pro · reminder automat zilnic' }, timestamp: new Date().toISOString() }] };
-  const candidates = routeCandidates(settings, 'event_reminders');
+  const candidates = routeCandidates(settings, 'log_event_reminders');
   if (!candidates.some((item) => item.candidates.length)) throw new Error('Nu există nicio destinație Discord configurată.');
-  const result = await deliverDiscordRoute(db, settings, 'event_reminders', JSON.stringify(payload), { postOnly: true });
+  const result = await deliverDiscordRoute(db, settings, 'log_event_reminders', JSON.stringify(payload), { postOnly: true });
   if (!result.results.length) throw new Error(result.failures.join(' | ') || 'Discord nu a acceptat notificarea.');
   return result;
 }
@@ -69,7 +69,7 @@ Deno.serve(async (request) => {
     const organizationIds = (organizations || []).map((row: any) => row.id);
     if (!organizationIds.length) return reply({ ok: true, reminder_date: today, results: [] });
     const [{ data: events, error: eventError }, { data: settings, error: settingsError }] = await Promise.all([
-      db.from('organization_events').select('id,organization_id,title,event_type,event_date,created_at,details,evidence_url,status').eq('status', 'active').in('organization_id', organizationIds).gte('created_at', `${oldest}T00:00:00Z`).lte('created_at', `${today}T23:59:59Z`).order('created_at'),
+      db.from('organization_events').select('id,organization_id,title,event_type,event_date,created_at,details,evidence_url,status').eq('status', 'active').in('organization_id', organizationIds).gte('event_date', oldest).lte('event_date', today).order('event_date'),
       db.from('organization_settings').select('organization_id,discord_channel_routes').in('organization_id', organizationIds),
     ]);
     if (eventError) throw eventError;
@@ -84,7 +84,7 @@ Deno.serve(async (request) => {
       if (elapsed > maxDays) continue;
       const daysRemaining = maxDays - elapsed;
       const eventSettings = settingsByOrg.get(String(event.organization_id));
-      const destinations = routeCandidates(eventSettings, 'event_reminders');
+      const destinations = routeCandidates(eventSettings, 'log_event_reminders');
       if (!destinations.some((item) => item.candidates.length)) { results.push({ event_id: event.id, status: 'skipped_no_destination', days_remaining: daysRemaining }); continue; }
       const runId = await claimRun(db, event, today, daysRemaining);
       if (!runId) { results.push({ event_id: event.id, status: 'already_processed', days_remaining: daysRemaining }); continue; }

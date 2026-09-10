@@ -48,13 +48,13 @@ async function sendReminder(db: any, settings: any, event: any, daysRemaining: n
   const eventType = EVENT_TYPES[String(event.event_type || 'other')] || EVENT_TYPES.other;
   const ending = startsInDays > 0 ? `Reminderul zilnic va începe peste **${startsInDays} ${startsInDays === 1 ? 'zi' : 'zile'}**, la data evenimentului.` : daysRemaining === 0 ? 'Perioada de 14 zile se încheie astăzi.' : `Mai sunt **${daysRemaining} ${daysRemaining === 1 ? 'zi' : 'zile'}** până la împlinirea celor 14 zile.`;
   const payload = { allowed_mentions: { parse: [] }, embeds: [{ title: `${test ? '🧪 Test · ' : ''}🗓️ ${eventType} · ${event.title}`, description: `Evenimentul a fost înregistrat la data de **${event.event_date}**.\n\n${ending}${event.details ? `\n\n**Detalii:**\n${event.details.slice(0, 1800)}` : ''}`, color: daysRemaining <= 1 ? 15158332 : 16753920, fields: [{ name: 'Tip eveniment', value: eventType, inline: true }, { name: 'Progres', value: `${MAX_DAYS - daysRemaining} / ${MAX_DAYS} zile trecute`, inline: true }, ...(event.evidence_url ? [{ name: 'Dovadă', value: `[Deschide linkul](${event.evidence_url})`, inline: true }] : [])], footer: { text: 'Panel Pro · remindere automate evenimente' }, timestamp: new Date().toISOString() }] };
-  const destinations = routeCandidates(settings, 'event_reminders');
+  const destinations = routeCandidates(settings, 'log_event_reminders');
   if (!destinations.some((item) => item.candidates.length)) throw new Error('Nu există nicio destinație Discord configurată pentru evenimente.');
-  return deliverDiscordRoute(db, settings, 'event_reminders', JSON.stringify(payload), { postOnly: true });
+  return deliverDiscordRoute(db, settings, 'log_event_reminders', JSON.stringify(payload), { postOnly: true });
 }
 
 const localDate = (now = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-const reminderStartDate = (event:any) => event?.created_at ? localDate(new Date(event.created_at)) : String(event?.event_date || '');
+const reminderStartDate = (event:any) => String(event?.event_date || '');
 
 async function claimAutomaticReminder(db: any, event: any, reminderDate: string, daysRemaining: number) {
   const { data: existing, error: readError } = await db.from('organization_event_reminder_runs').select('id,status,updated_at').eq('event_id', event.id).eq('reminder_date', reminderDate).maybeSingle();
@@ -85,7 +85,7 @@ async function sendAutomaticReminder(db: any, settings: any, event: any) {
   const startsInDays = elapsed < 0 ? Math.abs(elapsed) : 0;
   if (elapsed > MAX_DAYS) return { status: 'outside_window' };
   const daysRemaining = elapsed < 0 ? MAX_DAYS : Math.max(0, MAX_DAYS - elapsed);
-  const destinations = routeCandidates(settings, 'event_reminders');
+  const destinations = routeCandidates(settings, 'log_event_reminders');
   if (!destinations.some((item) => item.candidates.length)) return { status: 'not_sent', error: 'Nu există nicio destinație Discord configurată pentru evenimente.' };
   const runId = await claimAutomaticReminder(db, event, today, daysRemaining);
   if (!runId) return { status: 'already_sent' };
@@ -164,7 +164,7 @@ Deno.serve(async (request) => {
       if (eventError) throw eventError;
         const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', session.organization_id).maybeSingle();
       if (settingsError) throw settingsError;
-      if (!routeCandidates(settings, 'event_reminders').some((item) => item.candidates.length)) return reply(request, { error: 'Configurează întâi canalul Discord al botului pentru „Evenimente · remindere 14 zile”.' }, 400);
+      if (!routeCandidates(settings, 'log_event_reminders').some((item) => item.candidates.length)) return reply(request, { error: 'Configurează întâi canalul Discord al botului pentru „Log evenimente · remindere 14 zile”.' }, 400);
       const today = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
       const eventDay = new Date(`${event.event_date}T00:00:00Z`);
       const elapsed = Math.floor((today.getTime() - eventDay.getTime()) / 86400000);
