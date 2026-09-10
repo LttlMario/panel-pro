@@ -10,7 +10,7 @@ const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse
 const reply = (request: Request, data: unknown, status = 200) => {
   const origin = String(request.headers.get('origin') || '');
   const allowedOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || origin === 'https://panel-pro.ro' ? origin : 'https://panel-pro.ro';
-  return new Response(JSON.stringify(data), { status, headers: { 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Vary': 'Origin', 'Content-Type': 'application/json' } });
+  return new Response(status === 204 ? null : JSON.stringify(data), { status, headers: { 'Access-Control-Allow-Origin': allowedOrigin, 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Vary': 'Origin', 'Content-Type': 'application/json' } });
 };
 const clean = (value: unknown, max: number) => String(value ?? '').trim().slice(0, max);
 const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
