@@ -231,11 +231,15 @@ async function load(){
   async function withFeedback(button,promise){button.style.opacity='.55';button.style.pointerEvents='none';button.disabled=true;try{await promise}finally{button.style.opacity='';button.style.pointerEvents='';button.disabled=false}}
   const $$=s=>[...document.querySelectorAll(s)];async function act(action,payload){
     try{
-        await invoke({
+        const result = await invoke({
             action,
             organization_id: organizationId,
             ...payload
         });
+
+        if (action === 'create' && result?.discord_warning) {
+            throw new Error(`Anunțul a fost salvat în panel, dar nu a ajuns în Discord: ${result.discord_warning}`);
+        }
 
         await load();
 

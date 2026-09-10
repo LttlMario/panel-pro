@@ -954,7 +954,9 @@ async function notifyDiscord(post:any, options:string[], audience:string){
     // Panoul cu butoane rămâne pe ruta principală; postarea creată prin
     // buton se publică în ruta de log configurată pentru rezultate.
     const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
-    if (!routeCandidates(discordConfig, routeKey).some((item) => item.candidates.length)) return null;
+    if (!routeCandidates(discordConfig, routeKey).some((item) => item.candidates.length)) {
+        throw new Error(`Canalul „${routeKey === 'log_announcements_departments' ? 'Log anunțuri angajați' : 'Log anunțuri organizație'}” nu este selectat sau activ în organizatii.html.`);
+    }
 
     const site = (
         discordConfig?.panel_public_url ||
