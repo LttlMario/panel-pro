@@ -896,7 +896,7 @@ Semnătură:`;
 
                 formData.append('payload_json', JSON.stringify(payload));
 
-                let response = await sendPanelDiscord('contracts', formData, {
+                let response = await sendPanelDiscord('log_contracts', formData, {
                     postOnly: true,
                     channelRoutes: window.getDiscordChannelRoutes?.() || {}
                 });

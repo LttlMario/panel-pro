@@ -779,7 +779,7 @@
             formData.append('payload_json', JSON.stringify(payload));
 
             try {
-                const response = await sendPanelDiscord('illegal_marketplace', formData);
+                const response = await sendPanelDiscord('log_illegal_marketplace', formData);
 
                 if (!response.ok) {
                     const errText = await response.text();

@@ -604,7 +604,7 @@
             formData.append('payload_json', JSON.stringify(payload));
 
             try {
-                const response = await sendPanelDiscord('marketplace', formData);
+                const response = await sendPanelDiscord('log_marketplace', formData);
 
                 if (!response.ok) {
                     const errText = await response.text();
