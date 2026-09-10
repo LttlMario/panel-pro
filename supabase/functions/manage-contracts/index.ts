@@ -305,7 +305,7 @@ async function saveContractTemplate(db: any, session: any, body: any) {
   const unknown = [...template.matchAll(/{{[A-Z0-9_]+}}/g)].map((match) => match[0]).filter((value) => !allowed.includes(value));
   if (unknown.length) throw new Error(`Câmpuri necunoscute în contract: ${[...new Set(unknown)].join(', ')}`);
   const defaults = input.defaults && typeof input.defaults === 'object' ? input.defaults : {};
-  const value = { title, template, defaults: { company: clean(defaults.company, 200) || null, manager: clean(defaults.manager, 160) || null, position: clean(defaults.position, 120) || 'Angajat', salary: clean(defaults.salary, 120) || null, schedule: clean(defaults.schedule, 120) || '20:00-23:00', start_date: clean(defaults.start_date, 40) || null } };
+  const value = { title, template, defaults: { company: clean(defaults.company, 200) || null, address: clean(defaults.address, 300) || null, manager: clean(defaults.manager, 160) || null, position: clean(defaults.position, 120) || 'Angajat', salary: clean(defaults.salary, 120) || null, schedule: clean(defaults.schedule, 120) || '20:00-23:00', start_date: clean(defaults.start_date, 40) || null } };
   const { error } = await db.from('app_settings').upsert({ organization_id: session.organization_id, key: 'contract_template', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
   if (error) throw error;
   return { contract_template: value };
