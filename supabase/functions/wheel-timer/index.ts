@@ -31,14 +31,17 @@ async function notifyDiscord(db: any, discordId: string, content: string) {
   return messageResponse.ok;
 }
 
-async function processDueTimers(db: any) {
+async function processDueTimers(db: any, discordId?: string, organizationId?: string) {
   const now = new Date();
-  const { data: timers, error } = await db.from('wheel_timers')
+  let query = db.from('wheel_timers')
     .select('id,organization_id,discord_id,completes_at')
     .eq('status', 'active')
     .lte('completes_at', now.toISOString())
     .order('completes_at', { ascending: true })
     .limit(100);
+  if (discordId) query = query.eq('discord_id', discordId);
+  if (organizationId) query = query.eq('organization_id', organizationId);
+  const { data: timers, error } = await query;
   if (error) throw error;
   const results = [];
   for (const timer of timers || []) {
@@ -81,6 +84,11 @@ Deno.serve(async (request) => {
     }
     const session = await requirePanelSession(db, request);
     const action = String(body.action || 'status');
+    // Finalizează imediat timerul expirat al utilizatorului. Nu depindem de
+    // următoarea rulare cron pentru deblocarea butonului după cele 6 ore.
+    if (action === 'start' || action === 'status') {
+      await processDueTimers(db, session.discord_id, session.organization_id);
+    }
     if (action === 'start') {
       const { data: active, error: activeError } = await db.from('wheel_timers').select('*').eq('organization_id', session.organization_id).eq('discord_id', session.discord_id).eq('status', 'active').maybeSingle();
       if (activeError) throw activeError;
