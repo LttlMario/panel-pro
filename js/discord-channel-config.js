@@ -457,7 +457,7 @@
     individualPublishDefinitions().forEach((definition) => {
       const fieldset = grid.querySelector(`[data-discord-channel-route="${definition.key}"]`)?.closest('fieldset');
       if (!fieldset) return;
-      fieldset.insertAdjacentHTML('beforeend', `<div class="mt-3 flex flex-wrap items-center gap-2"><button type="button" data-publish-individual="${esc(definition.key)}" class="rounded-lg border border-cyan-700/70 bg-cyan-950/40 px-3 py-2 text-xs font-bold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-40">✏️ Publică / actualizează embedul</button><span data-publish-individual-status="${esc(definition.key)}" class="text-[11px] text-slate-400">Republicarea editează mesajul deja salvat.</span></div>`);
+      fieldset.insertAdjacentHTML('beforeend', `<div class="mt-3 flex flex-wrap items-center gap-2"><button type="button" data-publish-individual="${esc(definition.key)}" class="rounded-lg border border-cyan-700/70 bg-cyan-950/40 px-3 py-2 text-xs font-bold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-40">🔁 Retrimite / actualizează embedul cu butoane</button><span data-publish-individual-status="${esc(definition.key)}" class="text-[11px] text-slate-400">Editează embedul deja salvat, fără să creeze unul nou.</span></div>`);
     });
     grid.querySelectorAll('[data-discord-channel-route]').forEach((select) => { select.onchange = () => { const key = select.dataset.discordChannelRoute; setRoute(key, select.dataset.discordChannelTarget, select.value); syncBulkPublishState(); syncIndividualPublishState(key); }; });
     grid.querySelectorAll('[data-publish-individual]').forEach((button) => { const key = button.dataset.publishIndividual; button.onclick = () => publishIndividualPanel(key); syncIndividualPublishState(key); });
