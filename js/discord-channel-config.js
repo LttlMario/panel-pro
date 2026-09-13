@@ -9,7 +9,7 @@
   const detectedRouteKeys = [...root.querySelectorAll(isOwner ? '[data-owner-webhook]' : isDraft ? '[data-draft-webhook]' : '[id^="wh_primary_url_"]')]
     .map((input) => isOwner ? input.dataset.ownerWebhook : isDraft ? input.dataset.draftWebhook : input.id.replace(/^wh_primary_url_/, ''))
     .filter((key, index, list) => key && list.indexOf(key) === index);
-  const consolidatedContentRoutes = new Set(['fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'sanctions_organization', 'sanctions_departments', 'stash_requests', 'stash_donations', 'log_discipline_organization', 'log_discipline_departments', 'log_stash_requests', 'log_stash_donations']);
+  const consolidatedContentRoutes = new Set(['fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'sanctions_organization', 'sanctions_departments', 'log_discipline_organization', 'log_discipline_departments']);
   const routeKeys = [...detectedRouteKeys].filter((key, index, list) => list.indexOf(key) === index && !consolidatedContentRoutes.has(key));
   const pontajIndex = routeKeys.indexOf('pontaj');
   routeKeys.splice(pontajIndex >= 0 ? pontajIndex + 1 : routeKeys.length, 0, 'log_pontaj');
@@ -30,7 +30,11 @@
   insertSyntheticAfter('actions_organization', 'log_actions_organization');
   insertSyntheticAfter('log_announcements_organization', 'log_actions_organization');
   insertSyntheticAfter('stash', 'log_stash');
-  const preferredRouteOrder = ['organization', 'log_announcements_organization', 'departments', 'log_announcements_departments', 'pontaj', 'log_pontaj', 'requests_organization', 'log_requests_organization', 'requests_departments', 'log_requests_departments', 'contracts', 'log_contracts', 'marketplace', 'log_marketplace', 'illegal_marketplace', 'log_illegal_marketplace', 'illegal_locations', 'event_reminders', 'log_event_reminders', 'contract_identity_weekly', 'log_contract_identity_weekly', 'actions_organization', 'log_actions_organization', 'status_live', 'stash', 'log_stash'];
+  insertSyntheticAfter('stash', 'stash_requests');
+  insertSyntheticAfter('stash_requests', 'log_stash_requests');
+  insertSyntheticAfter('stash_requests', 'stash_donations');
+  insertSyntheticAfter('stash_donations', 'log_stash_donations');
+  const preferredRouteOrder = ['organization', 'log_announcements_organization', 'departments', 'log_announcements_departments', 'pontaj', 'log_pontaj', 'requests_organization', 'log_requests_organization', 'requests_departments', 'log_requests_departments', 'contracts', 'log_contracts', 'marketplace', 'log_marketplace', 'illegal_marketplace', 'log_illegal_marketplace', 'illegal_locations', 'event_reminders', 'log_event_reminders', 'contract_identity_weekly', 'log_contract_identity_weekly', 'actions_organization', 'log_actions_organization', 'status_live', 'stash', 'log_stash', 'stash_requests', 'log_stash_requests', 'stash_donations', 'log_stash_donations'];
   const preferredRoutes = preferredRouteOrder.filter((key) => routeKeys.includes(key));
   const remainingRoutes = routeKeys.filter((key) => !preferredRoutes.includes(key));
   routeKeys.splice(0, routeKeys.length, ...preferredRoutes, ...remainingRoutes);
@@ -53,6 +57,10 @@
       log_actions_organization: 'Log acțiuni organizație',
       stash: 'Stash · Embed cu butoane',
       log_stash: 'Log stash',
+      stash_requests: 'Cereri Stash · Embed cu butoane',
+      log_stash_requests: 'Log cereri Stash',
+      stash_donations: 'Donații Stash · Embed cu butoane',
+      log_stash_donations: 'Log donații Stash',
     };
     return [key, input?.closest('fieldset')?.querySelector('legend')?.textContent?.trim() || fallbackLabels[key] || key];
   }));
@@ -371,6 +379,8 @@
     { key: 'requests_departments', label: requestPanelDefinition('requests_departments').label, messageKey: 'requests-control', payload: () => buildRequestsPanelPayload('requests_departments') },
     { key: 'contracts', label: 'Contracte', messageKey: 'contracts-control', payload: buildContractsPanelPayload },
     { key: 'stash', label: 'Stash', messageKey: 'stash-control', payload: buildStashPanelPayload },
+    { key: 'stash_requests', label: 'Cereri Stash', messageKey: 'stash-requests-control', payload: () => ({ allowed_mentions: { parse: [] }, embeds: [{ title: '📨 Cereri Stash', description: 'Solicită articole și urmărește cererile trimise pentru aprobare.', color: 0x3b82f6, footer: { text: 'Panel Pro · Cereri Stash' } }], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Solicită articol', custom_id: 'panel:stash:request' }, { type: 2, style: 2, label: 'Cereri în așteptare', custom_id: 'panel:stash:pending_requests' }] }] }) },
+    { key: 'stash_donations', label: 'Donații Stash', messageKey: 'stash-donations-control', payload: () => ({ allowed_mentions: { parse: [] }, embeds: [{ title: '🎁 Donații Stash', description: 'Înregistrează donații și trimite-le spre aprobare administrativă.', color: 0x22c55e, footer: { text: 'Panel Pro · Donații Stash' } }], components: [{ type: 1, components: [{ type: 2, style: 3, label: 'Donează articol', custom_id: 'panel:stash:donate' }, { type: 2, style: 2, label: 'Donații în așteptare', custom_id: 'panel:stash:pending_donations' }] }] }) },
     ...['marketplace', 'illegal_marketplace', 'illegal_locations', 'event_reminders', 'contract_identity_weekly', 'actions_organization', 'status_live'].map((key) => ({ key, label: labels[key] || key, messageKey: `${key}-control`, payload: () => buildAdditionalPanelPayload(key) })).filter((definition) => definition.payload()),
   ].filter((definition) => routeKeys.includes(definition.key));
   const selectedBulkDefinitions = () => bulkPublishDefinitions().filter((definition) => selectedRouteTargets(definition.key).length);
