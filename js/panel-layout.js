@@ -1839,7 +1839,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const active = window.getActiveOrganization?.();
     const header = document.querySelector('header');
     if (!active || !header || header.querySelector('[data-organization-switcher]')) return;
-    document.title = `${document.title.split(' · ')[0]} · ${active.name}`;
+    // Resursele ilegale nu afișează numele legal al organizației în titlul paginii.
+    // Organizația rămâne activă în contextul aplicației pentru permisiuni și date.
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    if (currentPage !== 'comenzi.html') {
+        document.title = `${document.title.split(' · ')[0]} · ${active.name}`;
+    }
     const wrapper = document.createElement('div');
     wrapper.dataset.organizationSwitcher = 'true';
     wrapper.style.cssText = 'margin-left:auto;display:flex;align-items:center;gap:8px;padding-left:12px';
