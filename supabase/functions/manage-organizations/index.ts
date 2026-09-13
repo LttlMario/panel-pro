@@ -473,7 +473,8 @@ if (settingsError) {
     'organizatie-evenimente.html',
     'status-live.html',
     'asistent.html',
-    'stash.html'
+    'stash.html',
+    'comenzi.html'
   ]);
 
 
@@ -566,7 +567,9 @@ if(
     'stash.manage_requests',
     'stash.donate',
     'stash.approve_donation',
-    'stash.log'
+    'stash.log',
+    'orders.write',
+    'orders.approve'
   ]);
 
   const actionRules = Object.fromEntries(
@@ -896,7 +899,7 @@ if (Array.isArray(body.roles)) {
         }
       }
       if(code==='standard'){
-        const fullOnlyPages=new Set(['calculatorilegal.html','locatiiilegale.html','marketplace-ilegal.html','minigames.html','stash.html']);
+        const fullOnlyPages=new Set(['calculatorilegal.html','locatiiilegale.html','marketplace-ilegal.html','minigames.html','stash.html','comenzi.html']);
         for(const key of ['page_permissions','assistant_page_permissions']){
           const {data:existing}=await db.from('app_settings').select('value').eq('organization_id',organizationId).eq('key',key).maybeSingle();
           if(!existing||!existing.value||typeof existing.value!=='object')continue;

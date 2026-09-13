@@ -17,6 +17,7 @@ export const PACKAGE_FEATURES = Object.freeze({
   discipline_organization: { label: 'Avertismente și sancțiuni · Organizație', pages: ['anunturi.html', 'anunturi-organizatie.html'] },
   actions_organization: { label: 'Acțiuni · Organizație', pages: ['anunturi.html', 'anunturi-organizatie.html'] },
   stash: { label: 'Stash organizație', pages: ['stash.html'] },
+  illegal_orders: { label: 'Comenzi ilegale', pages: ['comenzi.html'] },
   illegal_calculator: { label: 'Calculator ilegal', pages: ['calculatorilegal.html'] },
   illegal_locations: { label: 'Locații ilegale', pages: ['locatiiilegale.html'] },
   illegal_marketplace: { label: 'Marketplace ilegal', pages: ['marketplace-ilegal.html'] },

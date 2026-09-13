@@ -1,5 +1,5 @@
 <!doctype html><html lang="ro" class="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Organizații · Platformă</title>
-<link rel="stylesheet" href="css/tailwind.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script><script src="js/supabase-config.js?v=20260820-session-date-fix"></script><script src="js/permissions.js?v=4.6.2"></script><script src="js/panel-layout.js?v=4.28.9"></script><link rel="stylesheet" href="css/global-footer.css">    <link rel="icon" href="img/favicon.ico">
+<link rel="stylesheet" href="css/tailwind.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script><script src="js/supabase-config.js?v=20260820-session-date-fix"></script><script src="js/permissions.js?v=4.6.2"></script><script src="js/panel-layout.js?v=4.28.10"></script><link rel="stylesheet" href="css/global-footer.css">    <link rel="icon" href="img/favicon.ico">
     <link rel="apple-touch-icon" href="img/logo-180.png">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
@@ -378,7 +378,7 @@ let organizations=[],
     periodOrganizationId='';
 const pagePermissionGroups=[
     {key:'dashboard',label:'Dashboard',mode:'all',pages:[['index.html','Dashboard']]},
-    {key:'illegal',label:'Ilegale',description:'Calculator ilegal, locații ilegale, marketplace ilegal, minigames și stash.',mode:'group',pages:[['calculatorilegal.html','Calculator ilegal'],['locatiiilegale.html','Locații ilegale'],['marketplace-ilegal.html','Marketplace ilegal'],['minigames.html','Minigames'],['stash.html','Stash organizație']]},
+    {key:'illegal',label:'Ilegale',description:'Calculator ilegal, locații ilegale, marketplace ilegal, minigames, stash și comenzi.',mode:'group',pages:[['calculatorilegal.html','Calculator ilegal'],['locatiiilegale.html','Locații ilegale'],['marketplace-ilegal.html','Marketplace ilegal'],['minigames.html','Minigames'],['stash.html','Stash organizație'],['comenzi.html','Comenzi']]},
     {key:'resources',label:'Resurse',description:'Marketplace, calculator cu Craft Mecanic integrat și bucătărie.',mode:'group',pages:[['marketplace.html','Marketplace'],['calculator.html','Calculator & Craft Mecanic'],['bucatarie.html','Bucătărie']]},
     {key:'management',label:'Management',description:'Contracte, evenimente și rapoarte.',mode:'group',pages:[['contracte.html','Contracte'],['organizatie-evenimente.html','Evenimente și remindere'],['rapoarte.html','Rapoarte']]},
     {key:'individual',label:'Pagini individuale',mode:'individual',pages:[['anunturi.html','Anunțuri și sondaje'],['pontaj.html','Pontaj'],['cereri.html','Cereri și absențe'],['asistent.html','Asistent']]}
@@ -387,7 +387,7 @@ const configurablePages=pagePermissionGroups.flatMap(group=>group.pages);
 const assistantPageGroups=[
     {key:'general',label:'Generale',pages:[['index.html','Dashboard'],['pontaj.html','Pontaj'],['cereri.html','Cereri și absențe'],['bucatarie.html','Bucătărie'],['asistent.html','Asistent']]},
     {key:'legal',label:'Legale',pages:[['anunturi.html','Anunțuri și sondaje'],['contracte.html','Contracte'],['marketplace.html','Marketplace legal'],['rapoarte.html','Rapoarte']]},
-    {key:'illegal',label:'Ilegale',pages:[['calculatorilegal.html','Calculator ilegal'],['locatiiilegale.html','Locații ilegale'],['marketplace-ilegal.html','Marketplace ilegal'],['minigames.html','Minigames'],['stash.html','Stash organizație']]}
+    {key:'illegal',label:'Ilegale',pages:[['calculatorilegal.html','Calculator ilegal'],['locatiiilegale.html','Locații ilegale'],['marketplace-ilegal.html','Marketplace ilegal'],['minigames.html','Minigames'],['stash.html','Stash organizație'],['comenzi.html','Comenzi']]}
 ];
 const webhookDefinitions={
     organization:{
@@ -449,6 +449,10 @@ const webhookDefinitions={
     stash:{
         label:'Stash organizație',
         help:'Articolele, cererile și donațiile gestionate în stash-ul organizației.'
+    },
+    comenzi:{
+        label:'Comenzi ilegale',
+        help:'Comenzi pe categorii, cu solicitantul preluat automat și aprobare separată.'
     },
     stash_requests:{
         label:'Cereri Stash',
@@ -1332,6 +1336,8 @@ function applyGlobalPermissions() {
    ['stash.write', 'stash.manage_requests', 'stash.donate', 'stash.approve_donation', 'stash.log'].forEach(key => {
         actionPermissions[key] = [...organizationWrite];
     });
+    if (!Array.isArray(actionPermissions['orders.write'])) actionPermissions['orders.write'] = [...organizationWrite];
+    if (!Array.isArray(actionPermissions['orders.approve'])) actionPermissions['orders.approve'] = [...organizationWrite];
     actionPermissions['stash.request'] = unique([...organizationWrite, ...departmentsWrite]);
 }
 
@@ -1433,7 +1439,8 @@ function renderActionPermissions() {
                 ${[['read', 'Citire', 'Poate consulta toate informațiile din zonă.'], ['write', 'Scriere și ștergere', 'Poate adăuga, modifica și șterge informațiile din zonă.']].map(([kind, label, help]) => `<div class="rounded-lg border border-slate-800 bg-slate-900 p-3"><b class="text-xs text-slate-200">${label}</b><p class="mt-1 text-[11px] text-slate-500">${help}</p><div class="mt-3 flex flex-wrap gap-2">${audienceRoles.map(role => `<label class="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-[11px] text-slate-300"><input type="checkbox" data-global-audience="${audience}" data-global-kind="${kind}" data-global-role="${role.id}" ${(globalPermissions[audience][kind] || []).map(String).includes(role.id) ? 'checked' : ''}><span>${esc(role.name)} <small class="text-slate-500">(${esc(role.panel)})</small></span></label>`).join('')}</div></div>`).join('')}
             </div>` : '<p class="mt-3 rounded-lg border border-dashed border-slate-700 p-3 text-xs text-slate-500">Nu există roluri configurate pentru acest Discord.</p>'}
         </section>`;
-    }).join('');
+    }).join('') + `<section class="mt-3 rounded-xl border border-amber-700/60 bg-amber-950/20 p-4"><div><h3 class="text-sm font-bold text-amber-100">Comenzi</h3><p class="mt-1 text-xs text-amber-200/70">Alege separat cine poate trimite comenzi și cine le poate accepta sau respinge.</p></div><div class="mt-4 grid gap-3 md:grid-cols-2">${[['write','Poate scrie comenzi'],['approve','Poate accepta / respinge']].map(([kind,label]) => `<div class="rounded-lg border border-slate-800 bg-slate-950 p-3"><b class="text-xs text-slate-200">${label}</b><div class="mt-3 flex flex-wrap gap-2">${rolesFor('organization').map(role => `<label class="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-[11px] text-slate-300"><input type="checkbox" data-orders-permission="${kind}" data-orders-role="${role.id}" ${(actionPermissions[`orders.${kind}`] || []).map(String).includes(role.id) ? 'checked' : ''}><span>${esc(role.name)}</span></label>`).join('')}</div></div>`).join('')}</div></section>`;
+    host.querySelectorAll('[data-orders-permission]').forEach(box => { box.onchange = () => { const key = `orders.${box.dataset.ordersPermission}`; const current = new Set((actionPermissions[key] || []).map(String)); box.checked ? current.add(String(box.dataset.ordersRole)) : current.delete(String(box.dataset.ordersRole)); actionPermissions[key] = [...current]; }; });
 
    host.querySelectorAll('[data-global-permission]').forEach(() => {});
    host.querySelectorAll('[data-global-audience]').forEach(box => {
