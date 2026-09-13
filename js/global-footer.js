@@ -130,12 +130,10 @@
     if (androidNative) {
       footer.querySelector('.pgf-android-badge')?.remove();
       footer.querySelector('.pgf-ios-badge')?.remove();
-      document.getElementById('dashboard-fivem-launcher')?.remove();
     } else if (androidDevice) {
       footer.querySelector('.pgf-ios-badge')?.remove();
     } else if (iosDevice) {
       footer.querySelector('.pgf-android-badge')?.remove();
-      document.getElementById('dashboard-fivem-launcher')?.remove();
     }
     if (standalone && iosDevice) footer.classList.add('pgf-ios-installed');
 
