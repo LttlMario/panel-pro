@@ -519,7 +519,7 @@ async function invoke(body){
         body.assistant_page_permissions=assistantPagePermissions;
         body.communication_permissions=communicationPermissions;
         body.discipline_permissions=disciplinePermissions;
-const title=$('contract-title').value.trim(),template=$('contract-template').value.trim();if(title||template)body.contract_template={title,template}}const r=await fetch(`${cfg.url}/functions/v1/manage-organizations`,{method:'POST',headers:{'Content-Type':'application/json',apikey:cfg.publishableKey,Authorization:`Bearer ${cfg.publishableKey}`},body:JSON.stringify(body)}),j=await r.json();if(!r.ok){const error=new Error(j.error||`HTTP ${r.status}`);error.status=r.status;throw error}return j}
+}const r=await fetch(`${cfg.url}/functions/v1/manage-organizations`,{method:'POST',headers:{'Content-Type':'application/json',apikey:cfg.publishableKey,Authorization:`Bearer ${cfg.publishableKey}`},body:JSON.stringify(body)}),j=await r.json();if(!r.ok){const error=new Error(j.error||`HTTP ${r.status}`);error.status=r.status;throw error}return j}
 let organizationListRecoveryAttempted=false;
 const setOrganizationListStatus=(message,kind='error')=>{const element=$('organization-list-status');if(!element)return;element.hidden=!message;element.textContent=message;element.className=`mt-3 rounded-lg border p-3 text-xs ${kind==='error'?'border-red-800/70 bg-red-950/30 text-red-200':'border-emerald-800/70 bg-emerald-950/30 text-emerald-200'}`;};
 async function recoverOrganizationAdminSession(){
@@ -1939,7 +1939,7 @@ renderRoles = () => {
     if (String(input).includes('/functions/v1/manage-organizations') && init?.body) {
       try {
         const body = JSON.parse(init.body);
-        if (body.action === 'save' && (salary.value.trim() || body.contract_template)) {
+        if (body.action === 'save' && body.contract_template && (body.contract_template.title?.trim() || body.contract_template.template?.trim())) {
           body.contract_template = { ...(body.contract_template || {}), defaults: { ...(body.contract_template?.defaults || {}), salary: salary.value.trim() } };
           init = { ...init, body: JSON.stringify(body) };
         }
