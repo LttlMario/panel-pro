@@ -22,24 +22,28 @@ Deno.serve(async (request) => {
     const organizationId = String(session.organization_id || '');
     const body = await request.json().catch(() => ({}));
     const action = text(body.action, 40) || 'load';
-    const [{ data: settings, error: settingsError }, { data: member, error: memberError }] = await Promise.all([
+    const [{ data: settings, error: settingsError }, { data: member, error: memberError }, { data: guilds, error: guildsError }, { data: mappings, error: mappingsError }] = await Promise.all([
       db.from('app_settings').select('key,value').eq('organization_id', organizationId).in('key', ['page_permissions', 'action_permissions', 'organization_package']),
       db.from('organization_members').select('panel_role').eq('organization_id', organizationId).eq('discord_id', session.discord_id).eq('active', true).maybeSingle(),
+      db.from('organization_guilds').select('guild_id,kind,enabled').eq('organization_id', organizationId),
+      db.from('organization_role_mappings').select('discord_role_id,guild_id,panel_role').eq('organization_id', organizationId).eq('enabled', true),
     ]);
-    if (settingsError || memberError) throw settingsError || memberError;
+    if (settingsError || memberError || guildsError || mappingsError) throw settingsError || memberError || guildsError || mappingsError;
     const values = Object.fromEntries((settings || []).map((row: any) => [row.key, row.value || {}]));
     if (!session.is_platform_admin && String(values.organization_package?.code || '').toLowerCase() !== 'full') return reply({ error: 'Comenzile sunt disponibile doar pentru organizațiile cu pachetul Full.' }, 403);
     const roleIds = new Set((session.discord_role_ids || []).map(String));
     if (member?.panel_role) {
-      const { data: mappings, error } = await db.from('organization_role_mappings').select('discord_role_id').eq('organization_id', organizationId).eq('panel_role', member.panel_role).eq('enabled', true);
-      if (error) throw error;
-      for (const row of mappings || []) roleIds.add(String(row.discord_role_id));
+      for (const row of (mappings || []).filter((item: any) => String(item.panel_role || '') === String(member.panel_role))) roleIds.add(String(row.discord_role_id));
     }
-    const has = (permission: string) => session.is_platform_admin || (Array.isArray(values.action_permissions?.[`orders.${permission}`]) && values.action_permissions[`orders.${permission}`].some((id: any) => roleIds.has(String(id))));
+    const primaryGuild = (guilds || []).find((guild: any) => guild.kind === 'primary' && guild.enabled !== false) || (guilds || []).find((guild: any) => guild.enabled !== false);
+    const secondaryGuild = (guilds || []).find((guild: any) => guild.kind === 'secondary' && guild.enabled !== false && String(guild.guild_id) !== String(primaryGuild?.guild_id || ''));
+    const organizationGuildId = String(secondaryGuild?.guild_id || primaryGuild?.guild_id || '');
+    const organizationRoleIds = new Set((mappings || []).filter((mapping: any) => String(mapping.guild_id || '') === organizationGuildId).map((mapping: any) => String(mapping.discord_role_id)));
     const owner = session.is_platform_admin || Number(session.permission_level || 0) >= 7;
     const canRead = session.is_platform_admin || owner || (Array.isArray(values.page_permissions?.['comenzi.html']) && values.page_permissions['comenzi.html'].some((id: any) => roleIds.has(String(id))));
-    const canWrite = session.is_platform_admin || values.action_permissions?.['orders.write_all'] === true || has('write');
-    const canApprove = has('approve');
+    const hasOrganization = (permission: string) => session.is_platform_admin || (Array.isArray(values.action_permissions?.[`orders.${permission}`]) && values.action_permissions[`orders.${permission}`].some((id: any) => organizationRoleIds.has(String(id)) && roleIds.has(String(id))));
+    const canWrite = session.is_platform_admin || (values.action_permissions?.['orders.write_all'] === true && [...roleIds].some((id) => organizationRoleIds.has(String(id)))) || hasOrganization('write');
+    const canApprove = hasOrganization('approve');
     if (!canRead && !canWrite && !canApprove) return reply({ error: 'Nu ai acces la pagina Comenzi.' }, 403);
     const name = await actorName(db, session.discord_id);
     if (action === 'load') {
