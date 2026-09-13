@@ -366,6 +366,7 @@
       contract_identity_weekly: { title: '📋 Raport săptămânal contracte', description: 'Generează exportul săptămânal cu numele și CNP-ul angajaților.', color: 0x14b8a6, buttons: [{ label: 'Generează raport', style: 1, id: 'panel:discovery:weekly_report' }, { label: 'Info raport', style: 2, id: 'panel:discovery:report_info' }] },
       actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
       status_live: { title: '📡 Status live · Panel Pro', description: 'Statusul este actualizat automat cu pontajele și pauzele active.', color: 0x06b6d4, buttons: [] },
+      comenzi: { title: '📦 Comenzi ilegale', description: 'Trimite comenzi pe categorii și urmărește aprobarea lor în Panel Pro.', color: 0xf97316, buttons: [{ label: 'Trimite comandă', style: 5, url: 'https://panel-pro.ro/comenzi.html' }, { label: 'Vezi comenzile', style: 5, url: 'https://panel-pro.ro/comenzi.html' }] },
     };
     const definition = definitions[key];
     if (!definition) return null;
@@ -381,7 +382,7 @@
     { key: 'stash', label: 'Stash', messageKey: 'stash-control', payload: buildStashPanelPayload },
     { key: 'stash_requests', label: 'Cereri Stash', messageKey: 'stash-requests-control', payload: () => ({ allowed_mentions: { parse: [] }, embeds: [{ title: '📨 Cereri Stash', description: 'Solicită articole și urmărește cererile trimise pentru aprobare.', color: 0x3b82f6, footer: { text: 'Panel Pro · Cereri Stash' } }], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Solicită articol', custom_id: 'panel:stash:request' }, { type: 2, style: 2, label: 'Cereri în așteptare', custom_id: 'panel:stash:pending_requests' }] }] }) },
     { key: 'stash_donations', label: 'Donații Stash', messageKey: 'stash-donations-control', payload: () => ({ allowed_mentions: { parse: [] }, embeds: [{ title: '🎁 Donații Stash', description: 'Înregistrează donații și trimite-le spre aprobare administrativă.', color: 0x22c55e, footer: { text: 'Panel Pro · Donații Stash' } }], components: [{ type: 1, components: [{ type: 2, style: 3, label: 'Donează articol', custom_id: 'panel:stash:donate' }, { type: 2, style: 2, label: 'Donații în așteptare', custom_id: 'panel:stash:pending_donations' }] }] }) },
-    ...['marketplace', 'illegal_marketplace', 'illegal_locations', 'event_reminders', 'contract_identity_weekly', 'actions_organization', 'status_live'].map((key) => ({ key, label: labels[key] || key, messageKey: `${key}-control`, payload: () => buildAdditionalPanelPayload(key) })).filter((definition) => definition.payload()),
+    ...['marketplace', 'illegal_marketplace', 'illegal_locations', 'event_reminders', 'contract_identity_weekly', 'actions_organization', 'status_live', 'comenzi'].map((key) => ({ key, label: labels[key] || key, messageKey: `${key}-control`, payload: () => buildAdditionalPanelPayload(key) })).filter((definition) => definition.payload()),
   ].filter((definition) => routeKeys.includes(definition.key));
   const selectedBulkDefinitions = () => bulkPublishDefinitions().filter((definition) => selectedRouteTargets(definition.key).length);
   const syncBulkPublishState = () => {
@@ -422,9 +423,42 @@
     }
     syncBulkPublishState();
   };
+  const individualPublishDefinitions = () => bulkPublishDefinitions();
+  const syncIndividualPublishState = (key) => {
+    const button = section.querySelector(`[data-publish-individual="${key}"]`);
+    if (button) button.disabled = !selectedRouteTargets(key).length;
+  };
+  const publishIndividualPanel = async (key) => {
+    const button = section.querySelector(`[data-publish-individual="${key}"]`);
+    const statusNode = section.querySelector(`[data-publish-individual-status="${key}"]`);
+    const definition = individualPublishDefinitions().find((item) => item.key === key);
+    if (!button || !statusNode || !definition) return;
+    const targets = selectedRouteTargets(key);
+    const selectedOrganizationId = String(organizationId() || '').trim();
+    const activeOrganizationId = String(window.getActiveOrganizationId?.() || '').trim();
+    if (!targets.length) { statusNode.textContent = 'Selectează cel puțin un canal pentru acest embed.'; return; }
+    if (!selectedOrganizationId || !activeOrganizationId || selectedOrganizationId !== activeOrganizationId) { statusNode.textContent = 'Intră mai întâi în organizația aleasă din „Administrare organizații”, folosind modul de test.'; return; }
+    if (typeof window.sendPanelDiscord !== 'function') { statusNode.textContent = 'Modulul de trimitere Discord nu este disponibil pe această pagină.'; return; }
+    button.disabled = true;
+    statusNode.textContent = 'Se publică / actualizează embedul...';
+    try {
+      const response = await window.sendPanelDiscord(key, definition.payload(), { messageKey: definition.messageKey, channelRoutes: window.getDiscordChannelRoutes?.() || {} });
+      const result = await response.clone().json().catch(() => ({}));
+      const delivered = Number(result.routes || targets.length);
+      const edited = result.messages?.some?.((item) => item.action === 'edited');
+      statusNode.textContent = `Embedul a fost ${edited ? 'actualizat' : 'publicat'} pe ${delivered} canal${delivered === 1 ? '' : 'e'}. Republicarea va edita mesajul salvat.`;
+    } catch (error) { statusNode.textContent = error.message || 'Embedul nu a putut fi publicat.'; }
+    finally { syncIndividualPublishState(key); }
+  };
   const render = () => {
     grid.innerHTML = routeKeys.map((key) => `<fieldset class="rounded-lg border border-emerald-900/70 bg-slate-950/50 p-3${key === 'actions_organization' ? ' md:col-span-2' : ''}"><legend class="px-1 text-xs font-bold text-slate-200">${esc(labels[key])}</legend>${['primary', 'secondary'].map((target) => `<label class="mt-2 block text-xs text-slate-400">${target === 'primary' ? 'Canal principal' : 'Canal secundar'}<select class="field mt-1" data-discord-channel-route="${esc(key)}" data-discord-channel-target="${target}">${options(selectedChannel(key, target))}</select></label>`).join('')}</fieldset>`).join('');
-    grid.querySelectorAll('[data-discord-channel-route]').forEach((select) => { select.onchange = () => { const key = select.dataset.discordChannelRoute; setRoute(key, select.dataset.discordChannelTarget, select.value); syncBulkPublishState(); }; });
+    individualPublishDefinitions().forEach((definition) => {
+      const fieldset = grid.querySelector(`[data-discord-channel-route="${definition.key}"]`)?.closest('fieldset');
+      if (!fieldset) return;
+      fieldset.insertAdjacentHTML('beforeend', `<div class="mt-3 flex flex-wrap items-center gap-2"><button type="button" data-publish-individual="${esc(definition.key)}" class="rounded-lg border border-cyan-700/70 bg-cyan-950/40 px-3 py-2 text-xs font-bold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-40">✏️ Publică / actualizează embedul</button><span data-publish-individual-status="${esc(definition.key)}" class="text-[11px] text-slate-400">Republicarea editează mesajul deja salvat.</span></div>`);
+    });
+    grid.querySelectorAll('[data-discord-channel-route]').forEach((select) => { select.onchange = () => { const key = select.dataset.discordChannelRoute; setRoute(key, select.dataset.discordChannelTarget, select.value); syncBulkPublishState(); syncIndividualPublishState(key); }; });
+    grid.querySelectorAll('[data-publish-individual]').forEach((button) => { const key = button.dataset.publishIndividual; button.onclick = () => publishIndividualPanel(key); syncIndividualPublishState(key); });
     const stashFieldset = grid.querySelector('[data-discord-channel-route="stash"]')?.closest('fieldset');
     grid.querySelector('[data-discord-channel-route="actions_organization"]')?.closest('fieldset')?.classList.remove('md:col-span-2');
     grid.querySelectorAll('[data-discord-channel-route]').forEach((select) => {

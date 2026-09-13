@@ -60,6 +60,7 @@ const levels: Record<string, number> = {
   log_stash_requests: 1,
   stash_donations: 1,
   log_stash_donations: 1,
+  comenzi: 1,
 };
 const channels = new Set(Object.keys(levels));
 const MESSAGE_REFS_KEY = 'discord_message_refs';
@@ -314,7 +315,7 @@ Deno.serve(async (request) => {
       throw new Error(`Canalul Discord pentru ${finalChannel} nu este configurat pentru organizația activă.`);
     }
 
-    const editExistingControlMessage = !requestedPostOnly && ['pontaj', 'requests_organization', 'requests_departments', 'organization', 'departments', 'contracts', 'stash', 'stash_requests', 'stash_donations'].includes(finalChannel);
+    const editExistingControlMessage = !requestedPostOnly && ['pontaj', 'requests_organization', 'requests_departments', 'organization', 'departments', 'contracts', 'stash', 'stash_requests', 'stash_donations', 'comenzi'].includes(finalChannel);
     const isPontajLog = finalChannel === 'log_pontaj';
     const isRequestsLog = ['log_requests_organization', 'log_requests_departments'].includes(finalChannel);
     const pontajMessageKey = requestedMessageKey || 'organization';
@@ -365,6 +366,11 @@ Deno.serve(async (request) => {
         const channelId = settings.discord_channel_routes?.[effectiveRouteKey]?.[item.target]?.channel_id
           || settings.discord_channel_routes?.[effectiveFallbackRouteKey]?.[item.target]?.channel_id;
         if (channelId && storedMessageRefs[String(channelId)]) messageIds[item.target] = storedMessageRefs[String(channelId)];
+        if (channelId && !messageIds[item.target]) {
+          const routeMessageId = settings.discord_channel_routes?.[effectiveRouteKey]?.[item.target]?.message_id
+            || settings.discord_channel_routes?.[effectiveFallbackRouteKey]?.[item.target]?.message_id;
+          if (routeMessageId) messageIds[item.target] = String(routeMessageId);
+        }
       }
     }
 
