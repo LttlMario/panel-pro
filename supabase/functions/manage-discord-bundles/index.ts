@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 import { isPlatformAdminAccount } from '../_shared/platform-admin.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
+import { discordPremiumButton, discordPremiumConfigured } from '../_shared/discord-premium.ts';
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
@@ -26,8 +27,8 @@ const routeNames: Record<string, string> = {
 };
 
 const definitions: Record<string, any> = {
-  organization: { title: '📢 Anunțuri · Organizație', description: 'Publică anunțuri, întrebări, sondaje, avertismente, amenzi și sancțiuni într-un singur canal.', color: 0x8b5cf6, buttons: [['Publică anunț', 1, 'panel:announcements:organization:create:announcement'], ['Pune întrebare', 2, 'panel:announcements:organization:create:question'], ['Creează sondaj', 3, 'panel:announcements:organization:create:poll'], ['Avertisment', 4, 'panel:discipline:organization:warning'], ['Amendă / sancțiune', 4, 'panel:discipline:organization:sanction']] },
-  departments: { title: '📢 Anunțuri · Angajați', description: 'Publică anunțuri, întrebări, sondaje, avertismente, amenzi și sancțiuni într-un singur canal.', color: 0x8b5cf6, buttons: [['Publică anunț', 1, 'panel:announcements:departments:create:announcement'], ['Pune întrebare', 2, 'panel:announcements:departments:create:question'], ['Creează sondaj', 3, 'panel:announcements:departments:create:poll'], ['Avertisment', 4, 'panel:discipline:departments:warning'], ['Amendă / sancțiune', 4, 'panel:discipline:departments:sanction']] },
+  organization: { title: '📢 Anunțuri · Organizație', description: 'Publică anunțuri, întrebări, sondaje și măsuri disciplinare pentru organizație.', color: 0x8b5cf6, buttons: [['Publică anunț', 1, 'panel:announcements:organization:create:announcement'], ['Pune întrebare', 2, 'panel:announcements:organization:create:question'], ['Creează sondaj', 3, 'panel:announcements:organization:create:poll'], ['Avertisment', 4, 'panel:discipline:organization:warning'], ['Amendă', 4, 'panel:discipline:organization:sanction']] },
+  departments: { title: '📢 Anunțuri · Angajați', description: 'Publică anunțuri, întrebări, sondaje și măsuri disciplinare pentru angajați.', color: 0x8b5cf6, buttons: [['Publică anunț', 1, 'panel:announcements:departments:create:announcement'], ['Pune întrebare', 2, 'panel:announcements:departments:create:question'], ['Creează sondaj', 3, 'panel:announcements:departments:create:poll'], ['Avertisment', 4, 'panel:discipline:departments:warning'], ['Amendă', 4, 'panel:discipline:departments:sanction']] },
   pontaj: { title: '🕒 Pontaj · Panel Pro', description: 'Alege tura și folosește butoanele pentru Start, Pauză și Stop.', color: 0x22c55e, buttons: [['Tura de zi', 1, 'panel:pontaj:shift_day'], ['Tura de noapte', 1, 'panel:pontaj:shift_night'], ['Start', 3, 'panel:pontaj:start'], ['Pauză', 2, 'panel:pontaj:pause'], ['Stop', 4, 'panel:pontaj:stop'], ['Pontajul meu', 1, 'panel:pontaj:my_stats']] },
   requests_organization: { title: '📝 Învoiri · Organizație', description: 'Trimite și consultă învoirile organizației.', color: 0xf59e0b, buttons: [['Trimite învoire', 1, 'panel:requests:organization:new'], ['Învoirile mele', 2, 'panel:requests:organization:mine']] },
   requests_departments: { title: '📝 Învoiri · Angajați', description: 'Trimite și consultă învoirile angajaților.', color: 0xf59e0b, buttons: [['Trimite învoire', 1, 'panel:requests:departments:new'], ['Învoirile mele', 2, 'panel:requests:departments:mine']] },
@@ -35,10 +36,10 @@ const definitions: Record<string, any> = {
   marketplace: { title: '🛒 Marketplace', description: 'Publică și consultă anunțuri pentru vehicule, bunuri și servicii.', color: 0x2563eb, buttons: [['Publică anunț', 1, 'panel:marketplace:legal:create'], ['Anunțurile mele', 2, 'panel:marketplace:legal:mine']] },
   illegal_marketplace: { title: '🚨 Marketplace · Ilegal', description: 'Publică și consultă anunțuri Black Market, cu acces controlat.', color: 0xef4444, buttons: [['Publică anunț', 4, 'panel:marketplace:illegal:create'], ['Anunțurile mele', 2, 'panel:marketplace:illegal:mine']] },
   illegal_locations: { title: '🗺️ Locații ilegale · Panel Pro', description: 'Catalog global informativ cu locații pentru Los Santos, Cayo Perico și Maldive. Consultă harta și detaliile direct în Panel Pro.', color: 0xef4444, buttons: [['Deschide locațiile', 5, '', 'https://panel-pro.ro/locatiiilegale.html'], ['Los Santos', 5, '', 'https://panel-pro.ro/locatiiilegale.html?map=ls'], ['Cayo Perico', 5, '', 'https://panel-pro.ro/locatiiilegale.html?map=cayo'], ['Maldive', 5, '', 'https://panel-pro.ro/locatiiilegale.html?map=maldive']] },
-  event_reminders: { title: '🗓️ Evenimente și remindere', description: 'Înregistrează evenimente și trimite remindere automate.', color: 0xf59e0b, buttons: [['Adaugă eveniment', 1, 'panel:discovery:reminder_create'], ['Info remindere', 2, 'panel:discovery:reminder_info']] },
+  event_reminders: { title: '🗓️ Evenimente și remindere', description: 'Înregistrează evenimente și trimite remindere automate pe durata aleasă.', color: 0xf59e0b, buttons: [['Adaugă eveniment', 1, 'panel:discovery:reminder_create'], ['Info remindere', 2, 'panel:discovery:reminder_info']] },
   contract_identity_weekly: { title: '📋 Raport săptămânal contracte', description: 'Generează exportul săptămânal cu numele și CNP-ul angajaților.', color: 0x14b8a6, buttons: [['Generează raport', 1, 'panel:discovery:weekly_report'], ['Info raport', 2, 'panel:discovery:report_info']] },
   actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [['Acțiune', 1, 'panel:actions:organization:create'], ['Clasament acțiuni', 2, 'panel:actions:organization:stats']] },
-  stash: { title: '📦 Stash · Administrare', description: 'Gestionează articolele, cererile și donațiile Stash într-un singur canal. Rezultatele merg în logul Stash.', color: 0x22c55e, buttons: [['Adaugă în Stash', 3, 'panel:stash:create'], ['Solicită articol', 1, 'panel:stash:request'], ['Donează articol', 3, 'panel:stash:donate'], ['Cereri în așteptare', 1, 'panel:stash:pending_requests'], ['Donații în așteptare', 1, 'panel:stash:pending_donations']] }
+  stash: { title: '📦 Stash · Administrare', description: 'Gestionează articolele, cererile și donațiile Stash.', color: 0x22c55e, buttons: [['Adaugă în Stash', 3, 'panel:stash:create'], ['Cereri în așteptare', 1, 'panel:stash:pending_requests'], ['Donații în așteptare', 1, 'panel:stash:pending_donations']] }
 };
 
 async function discord(path: string, token: string, init: RequestInit = {}) {
@@ -56,9 +57,9 @@ async function ensureChannel(guildId: string, token: string, channels: any[], na
 const payload = (routeKey: string) => {
   const definition = definitions[routeKey] || { title: `⚙️ ${routeLabels[routeKey] || 'Panel Pro'}`, description: `Embed Panel Pro pentru ${routeLabels[routeKey] || routeKey}.`, color: 0x5865f2, buttons: [] };
   const components: any[] = [];
-  // Discord permite maximum 5 butoane într-un action row și maximum 5 rânduri.
-  // Împărțim automat listele mai lungi (de exemplu Pontaj are 6 butoane).
-  for (let index = 0; index < definition.buttons.length && components.length < 5; index += 5) {
+  // Păstrăm aceeași structură ca embedurile publicate de Discovery: maximum
+  // 4 rânduri de componente, cu maximum 5 butoane pe rând.
+  for (let index = 0; index < definition.buttons.length && components.length < 4; index += 5) {
     components.push({
       type: 1,
       components: definition.buttons.slice(index, index + 5).map((button: any[]) => button[1] === 5
@@ -66,6 +67,8 @@ const payload = (routeKey: string) => {
         : { type: 2, style: button[1], label: button[0], custom_id: button[2] })
     });
   }
+  components.push({ type: 1, components: [{ type: 2, style: 5, label: 'Donează pentru dezvoltare', url: 'https://revolut.me/mariomihail' }] });
+  if (discordPremiumConfigured()) components.push(...discordPremiumButton());
   return { allowed_mentions: { parse: [] }, embeds: [{ title: definition.title, description: definition.description, color: definition.color, footer: { text: 'Panel Pro · configurat din Discord' } }], components };
 };
 const hasInteractiveDefinition = (routeKey: string) => Array.isArray(definitions[routeKey]?.buttons) && definitions[routeKey].buttons.length > 0;
