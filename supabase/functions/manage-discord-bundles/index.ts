@@ -23,12 +23,16 @@ const bundles: Record<string, string[]> = {
   illegal: ['illegal_marketplace', 'illegal_locations', 'actions_organization', 'actions_organization_weekly', 'event_reminders', 'status_live', 'stash', 'stash_requests', 'stash_donations', 'organization_expiration', 'log_illegal_marketplace', 'log_actions_organization', 'log_event_reminders', 'log_stash', 'log_stash_requests', 'log_stash_donations', 'contract_uploads']
 };
 routeLabels.comenzi = 'Comenzi ilegale';
+routeLabels.log_comenzi = 'Log comenzi';
 bundles.full.splice(bundles.full.indexOf('stash_donations') + 1, 0, 'comenzi');
 bundles.illegal.splice(bundles.illegal.indexOf('stash_donations') + 1, 0, 'comenzi');
+bundles.full.splice(bundles.full.indexOf('comenzi') + 1, 0, 'log_comenzi');
+bundles.illegal.splice(bundles.illegal.indexOf('comenzi') + 1, 0, 'log_comenzi');
 const routeNames: Record<string, string> = {
   organization: '📣・anunturi-organizatie', departments: '📣・anunturi-angajati', pontaj: '⏱️・pontaj', weekly_reports: '📊・rapoarte-saptamanale', requests: '📋・cereri', requests_organization: '📋・invoiri-organizatie', requests_departments: '📋・invoiri-angajati', contracts: '📄・contracte', contract_identity_weekly: '📄・raport-contracte-saptamanal', marketplace: '🛒・marketplace-legal', illegal_marketplace: '🚨・marketplace-ilegal', illegal_locations: '🗺️・locatii-ilegale', actions_organization: '🎯・actiuni-organizatie', actions_organization_weekly: '🏆・clasament-actiuni', event_reminders: '🗓️・evenimente', status_live: '📡・status-live', organization_expiration: '⏳・expirare-organizatie', stash: '📦・stash', stash_requests: '📨・cereri-stash', stash_donations: '🎁・donatii-stash', log_pontaj: '🧾・log-pontaj', log_requests_organization: '🧾・log-invoiri-organizatie', log_requests_departments: '🧾・log-invoiri-angajati', log_announcements_organization: '🧾・log-anunturi-organizatie', log_announcements_departments: '🧾・log-anunturi-angajati', log_contracts: '🧾・log-contracte', log_actions_organization: '🧾・log-actiuni', log_marketplace: '🧾・log-marketplace-legal', log_illegal_marketplace: '🧾・log-marketplace-ilegal', log_event_reminders: '🧾・log-evenimente', log_contract_identity_weekly: '🧾・log-raport-contracte', log_stash: '🧾・log-stash', log_stash_requests: '🧾・log-cereri-stash', log_stash_donations: '🧾・log-donatii-stash', contract_uploads: '🧾・upload-contracte'
 };
 routeNames.comenzi = '📦・comenzi';
+routeNames.log_comenzi = '🧾・log-comenzi';
 
 const definitions: Record<string, any> = {
   organization: { title: '📢 Anunțuri · Organizație', description: 'Publică anunțuri, întrebări, sondaje și măsuri disciplinare pentru organizație.', color: 0x8b5cf6, buttons: [['Publică anunț', 1, 'panel:announcements:organization:create:announcement'], ['Pune întrebare', 2, 'panel:announcements:organization:create:question'], ['Creează sondaj', 3, 'panel:announcements:organization:create:poll'], ['Avertisment', 4, 'panel:discipline:organization:warning'], ['Amendă', 4, 'panel:discipline:organization:sanction']] },

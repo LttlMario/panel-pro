@@ -34,7 +34,8 @@
   insertSyntheticAfter('stash_requests', 'log_stash_requests');
   insertSyntheticAfter('stash_requests', 'stash_donations');
   insertSyntheticAfter('stash_donations', 'log_stash_donations');
-  const preferredRouteOrder = ['organization', 'log_announcements_organization', 'departments', 'log_announcements_departments', 'pontaj', 'log_pontaj', 'requests_organization', 'log_requests_organization', 'requests_departments', 'log_requests_departments', 'contracts', 'log_contracts', 'marketplace', 'log_marketplace', 'illegal_marketplace', 'log_illegal_marketplace', 'illegal_locations', 'event_reminders', 'log_event_reminders', 'contract_identity_weekly', 'log_contract_identity_weekly', 'actions_organization', 'log_actions_organization', 'status_live', 'stash', 'log_stash', 'stash_requests', 'log_stash_requests', 'stash_donations', 'log_stash_donations'];
+  insertSyntheticAfter('comenzi', 'log_comenzi');
+  const preferredRouteOrder = ['organization', 'log_announcements_organization', 'departments', 'log_announcements_departments', 'pontaj', 'log_pontaj', 'requests_organization', 'log_requests_organization', 'requests_departments', 'log_requests_departments', 'contracts', 'log_contracts', 'marketplace', 'log_marketplace', 'illegal_marketplace', 'log_illegal_marketplace', 'illegal_locations', 'event_reminders', 'log_event_reminders', 'contract_identity_weekly', 'log_contract_identity_weekly', 'actions_organization', 'log_actions_organization', 'status_live', 'stash', 'log_stash', 'stash_requests', 'log_stash_requests', 'stash_donations', 'log_stash_donations', 'comenzi', 'log_comenzi'];
   const preferredRoutes = preferredRouteOrder.filter((key) => routeKeys.includes(key));
   const remainingRoutes = routeKeys.filter((key) => !preferredRoutes.includes(key));
   routeKeys.splice(0, routeKeys.length, ...preferredRoutes, ...remainingRoutes);
@@ -61,6 +62,7 @@
       log_stash_requests: 'Log cereri Stash',
       stash_donations: 'Donații Stash · Embed cu butoane',
       log_stash_donations: 'Log donații Stash',
+      log_comenzi: 'Log comenzi',
     };
     return [key, input?.closest('fieldset')?.querySelector('legend')?.textContent?.trim() || fallbackLabels[key] || key];
   }));

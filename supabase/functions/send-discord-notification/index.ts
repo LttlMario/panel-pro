@@ -61,6 +61,7 @@ const levels: Record<string, number> = {
   stash_donations: 1,
   log_stash_donations: 1,
   comenzi: 1,
+  log_comenzi: 1,
 };
 const channels = new Set(Object.keys(levels));
 const MESSAGE_REFS_KEY = 'discord_message_refs';

@@ -40,6 +40,27 @@ const orderDiscordPayload = (order: any) => ({
   }],
 });
 
+const orderStatusDiscordPayload = (order: any) => {
+  const approved = String(order.status) === 'approved';
+  return {
+    allowed_mentions: { parse: [] },
+    embeds: [{
+      title: approved ? '✅ Comandă acceptată' : '❌ Comandă respinsă',
+      description: approved ? 'Cererea de comandă a fost acceptată.' : 'Cererea de comandă a fost respinsă.',
+      color: approved ? 0x22c55e : 0xef4444,
+      fields: [
+        { name: 'Solicitat de', value: text(order.requested_by_name, 120), inline: true },
+        { name: 'Procesată de', value: text(order.reviewed_by_name, 120), inline: true },
+        { name: 'Tip comandă', value: text(order.order_type, 80), inline: true },
+        { name: 'Articol / model', value: text(order.item_name, 160), inline: false },
+        { name: 'Cantitate', value: text(order.quantity, 40), inline: true },
+      ],
+      footer: { text: 'Panel Pro · Log comenzi' },
+      timestamp: new Date().toISOString(),
+    }],
+  };
+};
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
@@ -95,13 +116,13 @@ Deno.serve(async (request) => {
         .eq('organization_id', organizationId)
         .maybeSingle();
       if (discordSettingsError) throw discordSettingsError;
-      if (!discordSettings || !routeCandidates(discordSettings, 'comenzi').some((item) => item.candidates.length)) {
-        throw new Error('Comanda a fost salvată, dar canalul Discord pentru Comenzi nu este configurat.');
+      if (!discordSettings || !routeCandidates(discordSettings, 'log_comenzi').some((item) => item.candidates.length)) {
+        throw new Error('Comanda a fost salvată, dar canalul Discord pentru Log comenzi nu este configurat.');
       }
       const delivery = await deliverDiscordRoute(
         db,
         discordSettings,
-        'comenzi',
+        'log_comenzi',
         JSON.stringify(orderDiscordPayload(data)),
         { headers: { 'Content-Type': 'application/json' }, postOnly: true },
       );
@@ -116,7 +137,25 @@ Deno.serve(async (request) => {
       const { data, error } = await db.from('organization_orders').update({ status, reviewed_by_discord_id: session.discord_id, reviewed_by_name: name, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', id).eq('status', 'pending').select('*').maybeSingle();
       if (error) throw error;
       if (!data) return reply({ error: 'Comanda nu mai este în așteptare.' }, 409);
-      return reply({ ok: true, order: data });
+      const { data: discordSettings, error: discordSettingsError } = await db
+        .from('organization_settings')
+        .select('discord_channel_routes')
+        .eq('organization_id', organizationId)
+        .maybeSingle();
+      if (discordSettingsError) throw discordSettingsError;
+      let discord = { results: [], failures: [] } as any;
+      if (discordSettings && routeCandidates(discordSettings, 'log_comenzi').some((item) => item.candidates.length)) {
+        discord = await deliverDiscordRoute(
+          db,
+          discordSettings,
+          'log_comenzi',
+          JSON.stringify(orderStatusDiscordPayload(data)),
+          { headers: { 'Content-Type': 'application/json' }, postOnly: true },
+        );
+      } else {
+        discord.failures = ['Canalul Discord pentru Log comenzi nu este configurat.'];
+      }
+      return reply({ ok: true, order: data, discord });
     }
     if (action === 'delete') {
       const id = text(body.id, 50);
