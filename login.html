@@ -502,6 +502,7 @@
             }
             const oauthState = crypto.randomUUID();
             sessionStorage.setItem('discord_oauth_state', oauthState);
+            localStorage.setItem('discord_oauth_state', oauthState);
             const authParams = new URLSearchParams({ client_id: CLIENT_ID, redirect_uri: REDIRECT_URI, response_type: 'token', scope: emailLink ? 'identify guilds' : DISCORD_SCOPES, state: oauthState });
             window.location.href = `https://discord.com/oauth2/authorize?${authParams.toString()}`;
         }
@@ -732,6 +733,7 @@
             }
             const oauthState = crypto.randomUUID();
             sessionStorage.setItem('discord_oauth_state', oauthState);
+            localStorage.setItem('discord_oauth_state', oauthState);
 
             const authParams = new URLSearchParams({
                 client_id: CLIENT_ID,
@@ -753,7 +755,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const params = new URLSearchParams(hash.substring(1));
         const accessToken = params.get('access_token');
         const returnedState = params.get('state');
-        const expectedState = sessionStorage.getItem('discord_oauth_state');
+        const expectedState = sessionStorage.getItem('discord_oauth_state') || localStorage.getItem('discord_oauth_state');
 
         if(accessToken){
             if (returnedState === 'panel_android') {
@@ -762,6 +764,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             window.history.replaceState({}, document.title, window.location.pathname);
             sessionStorage.removeItem('discord_oauth_state');
+            localStorage.removeItem('discord_oauth_state');
 
             if (!expectedState || returnedState !== expectedState) {
             setLoginStatus("Eroare autentificare: răspuns OAuth invalid.");
