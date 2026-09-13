@@ -157,7 +157,9 @@ Deno.serve(async (request) => {
       organizationIds.length
         ? db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','organization_package','page_permissions','communication_permissions','discipline_permissions','assistant_page_permissions','action_permissions'])
         : Promise.resolve({ data: [], error: null }),
-      db.from('organization_role_mappings').select('*').eq('enabled', true)
+      // Rolurile istorice pot avea enabled = NULL. Sunt active implicit;
+      // doar enabled = false trebuie să blocheze accesul.
+      db.from('organization_role_mappings').select('*').or('enabled.eq.true,enabled.is.null')
     ]);
     const { data: accessRows, error: accessError } = accessResult;
     if(accessError)throw accessError;
