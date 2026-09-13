@@ -81,6 +81,8 @@ const channelRoutes=new Set([
   'log_stash_requests',
   'stash_donations',
   'log_stash_donations',
+  'comenzi',
+  'log_comenzi',
   'log_actions_organization',
   'log_marketplace',
   'log_illegal_marketplace',
