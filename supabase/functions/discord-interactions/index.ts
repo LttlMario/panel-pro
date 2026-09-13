@@ -2589,7 +2589,7 @@ Deno.serve(async (request) => {
       let result;
       try {
         const context = await resolveManagementContext(db, interaction, audience, permission as 'write' | 'sanction', audience === 'organization' ? 'organization' : 'departments', audience === 'organization' ? 'discipline_organization' : 'discipline_departments', 'discipline_permissions', `${audience}.${permission}`);
-        result = await handleDisciplineSubmit(db, context, interaction, kind, modalValues(interaction), audience === 'departments' ? targetId : '');
+        result = await handleDisciplineSubmit(db, context, interaction, kind, modalValues(interaction), targetId);
       } catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(error instanceof Error ? error.message : 'Înregistrarea disciplinară nu a putut fi salvată.'); }
       const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
       if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
