@@ -41,7 +41,7 @@ const definitions: Record<string, any> = {
   actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [['Acțiune', 1, 'panel:actions:organization:create'], ['Clasament acțiuni', 2, 'panel:actions:organization:stats']] },
   stash_requests: { title: '📨 Cereri Stash', description: 'Solicită articole și urmărește cererile trimise pentru aprobare.', color: 0x3b82f6, buttons: [['Solicită articol', 1, 'panel:stash:request'], ['Cereri în așteptare', 2, 'panel:stash:pending_requests']] },
   stash_donations: { title: '🎁 Donații Stash', description: 'Înregistrează donații și trimite-le spre aprobare administrativă.', color: 0x22c55e, buttons: [['Donează articol', 3, 'panel:stash:donate'], ['Donații în așteptare', 2, 'panel:stash:pending_donations']] },
-  stash: { title: '📦 Stash · Administrare', description: 'Gestionează articolele, cererile și donațiile Stash.', color: 0x22c55e, buttons: [['Adaugă în Stash', 3, 'panel:stash:create'], ['Cereri în așteptare', 1, 'panel:stash:pending_requests'], ['Donații în așteptare', 1, 'panel:stash:pending_donations']] }
+  stash: { title: '📦 Stash · Administrare', description: 'Gestionează articolele disponibile în Stash. Cererile și donațiile au embeduri separate.', color: 0x22c55e, buttons: [['Adaugă în Stash', 3, 'panel:stash:create']] }
 };
 
 async function discord(path: string, token: string, init: RequestInit = {}) {
