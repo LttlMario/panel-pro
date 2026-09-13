@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
+import { deliverDiscordRoute, routeCandidates } from '../_shared/discord-delivery.ts';
 
 const headers = { 'Access-Control-Allow-Origin': 'https://panel-pro.ro', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Content-Type': 'application/json' };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
@@ -11,6 +12,33 @@ const actorName = async (db: any, discordId: string) => {
   const { data } = await db.from('users').select('display_name,username').eq('discord_id', discordId).maybeSingle();
   return text(data?.display_name || data?.username || discordId, 120);
 };
+
+const orderDiscordPayload = (order: any) => ({
+  allowed_mentions: { parse: [] },
+  embeds: [{
+    title: '📦 Cerere de comandă nouă',
+    description: 'O comandă nouă a fost trimisă și așteaptă aprobarea.',
+    color: 0xf97316,
+    fields: [
+      { name: 'Solicitat de', value: text(order.requested_by_name, 120), inline: true },
+      { name: 'Tip comandă', value: text(order.order_type, 80), inline: true },
+      { name: 'Articol / model', value: text(order.item_name, 160), inline: false },
+      { name: 'Cantitate', value: text(order.quantity, 40), inline: true },
+      ...(text(order.notes) ? [{ name: 'Detalii / observații', value: text(order.notes, 1024), inline: false }] : []),
+    ],
+    footer: { text: 'Panel Pro · Comenzi · În așteptare' },
+    timestamp: new Date().toISOString(),
+  }],
+  components: [{
+    type: 1,
+    components: [{
+      type: 2,
+      style: 5,
+      label: 'Vezi și aprobă comanda',
+      url: 'https://panel-pro.ro/comenzi.html',
+    }],
+  }],
+});
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
@@ -61,7 +89,24 @@ Deno.serve(async (request) => {
       if (!Number.isFinite(quantity) || quantity <= 0 || quantity > 100000) return reply({ error: 'Cantitatea nu este validă.' }, 400);
       const { data, error } = await db.from('organization_orders').insert({ organization_id: organizationId, order_type: orderType, item_name: itemName, quantity, notes: text(body.notes), requested_by_discord_id: session.discord_id, requested_by_name: name }).select('*').single();
       if (error) throw error;
-      return reply({ ok: true, order: data });
+      const { data: discordSettings, error: discordSettingsError } = await db
+        .from('organization_settings')
+        .select('discord_channel_routes')
+        .eq('organization_id', organizationId)
+        .maybeSingle();
+      if (discordSettingsError) throw discordSettingsError;
+      if (!discordSettings || !routeCandidates(discordSettings, 'comenzi').some((item) => item.candidates.length)) {
+        throw new Error('Comanda a fost salvată, dar canalul Discord pentru Comenzi nu este configurat.');
+      }
+      const delivery = await deliverDiscordRoute(
+        db,
+        discordSettings,
+        'comenzi',
+        JSON.stringify(orderDiscordPayload(data)),
+        { headers: { 'Content-Type': 'application/json' }, postOnly: true },
+      );
+      if (!delivery.results.length) throw new Error(delivery.failures.join(' | ') || 'Cererea nu a putut fi trimisă pe Discord.');
+      return reply({ ok: true, order: data, discord: delivery });
     }
     if (action === 'review') {
       if (!canApprove) return reply({ error: 'Nu ai permisiunea de a accepta sau respinge comenzi.' }, 403);
