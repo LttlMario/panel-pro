@@ -49,7 +49,7 @@ Deno.serve(async (request) => {
     if (action === 'load') {
       const { data, error } = await db.from('organization_orders').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(300);
       if (error) throw error;
-      return reply({ ok: true, orders: data || [], order_types: orderTypes, actor_name: name, access: { read: canRead || canWrite || canApprove, write: canWrite, approve: canApprove } });
+      return reply({ ok: true, orders: data || [], order_types: orderTypes, actor_name: name, actor_discord_id: session.discord_id, access: { read: canRead || canWrite || canApprove, write: canWrite, approve: canApprove, platform_admin: session.is_platform_admin === true } });
     }
     if (action === 'create') {
       if (!canWrite) return reply({ error: 'Nu ai permisiunea de a scrie comenzi.' }, 403);
@@ -72,6 +72,18 @@ Deno.serve(async (request) => {
       if (error) throw error;
       if (!data) return reply({ error: 'Comanda nu mai este în așteptare.' }, 409);
       return reply({ ok: true, order: data });
+    }
+    if (action === 'delete') {
+      const id = text(body.id, 50);
+      if (!validUuid(id)) return reply({ error: 'Comanda este invalidă.' }, 400);
+      const { data: order, error: orderError } = await db.from('organization_orders').select('id,requested_by_discord_id').eq('organization_id', organizationId).eq('id', id).maybeSingle();
+      if (orderError) throw orderError;
+      if (!order) return reply({ error: 'Comanda nu există sau a fost deja ștearsă.' }, 404);
+      const canDelete = session.is_platform_admin || canApprove || String(order.requested_by_discord_id) === String(session.discord_id);
+      if (!canDelete) return reply({ error: 'Nu ai permisiunea de a șterge această comandă.' }, 403);
+      const { error } = await db.from('organization_orders').delete().eq('organization_id', organizationId).eq('id', id);
+      if (error) throw error;
+      return reply({ ok: true, deleted_id: id });
     }
     return reply({ error: 'Acțiune necunoscută.' }, 400);
   } catch (error) { return reply({ error: error instanceof Error ? error.message : 'Operația nu a putut fi finalizată.' }, 400); }
