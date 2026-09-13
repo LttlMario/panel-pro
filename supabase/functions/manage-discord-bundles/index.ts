@@ -103,10 +103,15 @@ Deno.serve(async (request) => {
       if (publishEmbeds && !routeKey.startsWith('log_') && routeKey !== 'contract_uploads' && hasInteractiveDefinition(routeKey)) {
         const existingSettings = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
         const oldMessage = existingSettings.data?.discord_channel_routes?.[routeKey]?.[target]?.message_id || '';
-        let response = await fetch(`${api}/channels/${channel.row.id}/messages${id(oldMessage) ? `/${oldMessage}` : ''}`, { method: id(oldMessage) ? 'PATCH' : 'POST', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload(routeKey)) });
-        if (!response.ok && id(oldMessage)) response = await fetch(`${api}/channels/${channel.row.id}/messages`, { method: 'POST', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload(routeKey)) });
-        if (!response.ok) throw new Error(`Embedul pentru ${routeLabels[routeKey] || routeKey} nu a putut fi publicat.`);
-        const message = await response.json().catch(() => ({})); messageId = String(message?.id || oldMessage); if (!oldMessage) createdMessages += 1;
+        // Republicarea editează strict mesajul botului deja înregistrat.
+        // Nu mai facem POST fallback, pentru a evita duplicatele în Discord.
+        if (!id(oldMessage)) {
+          installed.push({ route: routeKey, label: routeLabels[routeKey] || routeKey, channel_id: String(channel.row.id), message_id: null, buttons: definitions[routeKey]?.buttons?.length || 0, skipped: 'Nu există un embed existent salvat pentru editare.' });
+          continue;
+        }
+        const response = await fetch(`${api}/channels/${channel.row.id}/messages/${oldMessage}`, { method: 'PATCH', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload(routeKey)) });
+        if (!response.ok) throw new Error(`Embedul existent pentru ${routeLabels[routeKey] || routeKey} nu a putut fi editat; nu a fost creat un embed nou.`);
+        const message = await response.json().catch(() => ({})); messageId = String(message?.id || oldMessage);
       } else if (publishEmbeds && !routeKey.startsWith('log_') && routeKey !== 'contract_uploads') {
         // Template-ul nu mai publică embeduri informative fără acțiuni. Dacă o
         // instalare veche a lăsat un astfel de mesaj, îl eliminăm doar dacă
