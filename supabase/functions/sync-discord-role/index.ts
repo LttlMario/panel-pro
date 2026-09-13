@@ -213,7 +213,9 @@ Deno.serve(async (request) => {
       if (!memberResponse.ok) { console.warn('Guild indisponibil', guild.guild_id, memberResponse.status); continue; }
       const member = snapshot.member;
       liveRoles.set(String(guild.guild_id), snapshot.roles);
-      const roleIds = new Set<string>(Array.isArray(member.roles) ? member.roles.map(normalizeId) : []);
+        const roleIds = new Set<string>(Array.isArray(member.roles) ? member.roles.map(normalizeId) : []);
+        const roleNameById = liveRoles.get(String(guild.guild_id)) || new Map();
+        const normalizedRoleNames = new Set([...roleIds].map((roleId) => String(roleNameById.get(roleId)?.name || '').trim().toLocaleLowerCase()).filter(Boolean));
       const highestDiscordRole = [...roleIds]
         .map((roleId) => liveRoles.get(String(guild.guild_id))?.get(roleId))
         .filter(Boolean)
@@ -221,7 +223,8 @@ Deno.serve(async (request) => {
         const matchedMappings = (mappings || [])
           .filter((item: any) =>
             String(item.organization_id).trim() === String(guild.organization_id).trim() &&
-            roleIds.has(String(item.discord_role_id).trim())
+            (roleIds.has(String(item.discord_role_id).trim()) ||
+              (String(item.guild_id).trim() === String(guild.guild_id).trim() && normalizedRoleNames.has(String(item.discord_role_name || '').trim().toLocaleLowerCase())))
           );
 
         const mappedFallback = [...matchedMappings].sort((a: any, b: any) => {
