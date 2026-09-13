@@ -1839,6 +1839,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const active = window.getActiveOrganization?.();
     const header = document.querySelector('header');
     if (!active || !header || header.querySelector('[data-organization-switcher]')) return;
+    // Schimbarea organizației și lista organizațiilor sunt disponibile numai
+    // administratorului global; membrii văd doar organizația deja activă.
+    if (typeof isPlatformAdmin !== 'function' || !isPlatformAdmin()) return;
     // Resursele ilegale nu afișează numele legal al organizației în titlul paginii.
     // Organizația rămâne activă în contextul aplicației pentru permisiuni și date.
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';

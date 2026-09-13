@@ -38,7 +38,7 @@ Deno.serve(async (request) => {
     const has = (permission: string) => session.is_platform_admin || (Array.isArray(values.action_permissions?.[`orders.${permission}`]) && values.action_permissions[`orders.${permission}`].some((id: any) => roleIds.has(String(id))));
     const owner = session.is_platform_admin || Number(session.permission_level || 0) >= 7;
     const canRead = session.is_platform_admin || owner || (Array.isArray(values.page_permissions?.['comenzi.html']) && values.page_permissions['comenzi.html'].some((id: any) => roleIds.has(String(id))));
-    const canWrite = has('write');
+    const canWrite = session.is_platform_admin || values.action_permissions?.['orders.write_all'] === true || has('write');
     const canApprove = has('approve');
     if (!canRead && !canWrite && !canApprove) return reply({ error: 'Nu ai acces la pagina Comenzi.' }, 403);
     const name = await actorName(db, session.discord_id);

@@ -569,7 +569,8 @@ if(
     'stash.approve_donation',
     'stash.log',
     'orders.write',
-    'orders.approve'
+    'orders.approve',
+    'orders.write_all'
   ]);
 
   const actionRules = Object.fromEntries(
@@ -577,7 +578,7 @@ if(
       .filter(([action]) => allowedActions.has(action))
       .map(([action, ids]: any) => [
         action,
-        [
+        action === 'orders.write_all' ? ids === true : [
           ...new Set(
             (Array.isArray(ids) ? ids : [])
               .map(String)
@@ -585,7 +586,7 @@ if(
           )
         ]
       ])
-  );
+  ) as Record<string, any>;
   if (!policyPackageFeatures.includes('actions_organization')) {
     actionRules['actions.organization.read'] = [];
     actionRules['actions.organization.write'] = [];
