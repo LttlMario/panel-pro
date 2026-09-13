@@ -72,8 +72,6 @@ const consolidatedContentRoutes: Record<string, string> = {
   fines_departments: 'departments',
   warnings_departments: 'departments',
   sanctions_departments: 'departments',
-  stash_requests: 'stash',
-  stash_donations: 'stash',
 };
 
 Deno.serve(async (request) => {
@@ -271,9 +269,9 @@ Deno.serve(async (request) => {
         : finalChannel === 'stash'
           ? 'log_stash'
         : finalChannel === 'stash_requests'
-          ? 'log_stash'
+          ? 'log_stash_requests'
         : finalChannel === 'stash_donations'
-          ? 'log_stash'
+          ? 'log_stash_donations'
         : '';
     const selectedLogRoute = linkedLogRouteKey ? requestedChannelRoutes?.[linkedLogRouteKey] : null;
     if (selectedRoute && typeof selectedRoute === 'object') {
