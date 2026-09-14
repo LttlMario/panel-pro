@@ -13,13 +13,13 @@
   <script src="js/project-version.js?v=3.13.0"></script>
   <style>
     .custom-page-shell { max-width: 1100px; margin: 0 auto; padding: 30px 32px 52px; }
-    .custom-page-hero, .custom-page-block { border: 1px solid #26364d; border-radius: 18px; background: linear-gradient(145deg,#101c31,#091222); padding: 22px; }
+    .custom-page-hero, .custom-page-block { border: 1px solid #26364d; border: 1px solid color-mix(in srgb,var(--custom-page-accent,#26364d) 35%,#26364d); border-radius: var(--custom-page-radius,18px); background: linear-gradient(145deg,#101c31,#091222); padding: 22px; }
     .custom-page-hero h1 { margin-top: 5px; font-size: clamp(24px,3vw,36px); font-weight: 950; }
-    .custom-page-block { margin-top: 14px; }
+    .custom-page-block { margin-top: var(--custom-page-gap,14px); }
     .custom-page-block h2 { font-size: 18px; font-weight: 900; }
     .custom-page-block p { white-space: pre-wrap; color: #b8c6d8; line-height: 1.65; margin-top: 8px; }
     .custom-page-block ul { margin-top: 9px; padding-left: 20px; color: #b8c6d8; line-height: 1.8; }
-    .custom-page-block a { color: #67e8f9; }
+    .custom-page-block a { color: var(--custom-page-accent,#67e8f9); }
     .custom-page-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
     .custom-page-cards article { border:1px solid #263b58; border-radius:14px; padding:16px; background:#07101f; }
     .custom-page-cards article h2 { margin-bottom:4px; }

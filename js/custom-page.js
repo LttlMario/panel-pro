@@ -4,6 +4,7 @@
   const slug = new URLSearchParams(location.search).get('page') || '';
   const esc = (value) => String(value ?? '').replace(/[&<>'"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[c]));
   const safeHref = (value) => { const href=String(value||'').trim(); return href === '#' || /^[a-z][a-z0-9-]{1,79}\.html(?:[?#].*)?$/i.test(href) ? href : '#'; };
+  const visualStyle = (settings) => { const visual=settings?.visual||{}; const accents={cyan:'#22d3ee',violet:'#a78bfa',emerald:'#34d399',amber:'#fbbf24',rose:'#fb7185'}; const fonts={system:'ui-sans-serif,system-ui,sans-serif',mono:'ui-monospace,SFMono-Regular,monospace',serif:'ui-serif,Georgia,serif'}; const spacing={compact:'14px',comfortable:'22px',spacious:'30px'}; const radius={small:'10px',medium:'18px',large:'28px'}; const accent=accents[visual.accent]||accents.cyan; const font=fonts[visual.font]||fonts.system; const gap=spacing[visual.spacing]||spacing.comfortable; const rounded=radius[visual.radius]||radius.medium; return `--custom-page-accent:${accent};--custom-page-gap:${gap};--custom-page-radius:${rounded};font-family:${font};`; };
   const scheduleActive = (settings) => { const now=Date.now(); const publishAt=settings?.publish_at?Date.parse(settings.publish_at):NaN; const expiresAt=settings?.expires_at?Date.parse(settings.expires_at):NaN; return (!Number.isFinite(publishAt)||publishAt<=now)&&(!Number.isFinite(expiresAt)||expiresAt>now); };
   const render = (page) => {
     const settings=page.content?.settings||{}; const blocks=Array.isArray(page.content?.blocks)?page.content.blocks:[]; const layout=settings.layout==='wide'?'custom-page-wide':settings.layout==='two-column'?'custom-page-two-column':'';
@@ -26,6 +27,7 @@
       if(block.type==='divider')return '<hr class="custom-page-divider">';
       return `<section class="custom-page-block ${block.type==='callout'?'border-cyan-400/40':''}"><p>${esc(block.text)}</p></section>`;
     };
+    host.setAttribute('style',visualStyle(settings));
     host.innerHTML=`<section class="custom-page-hero ${layout}"><p class="eyebrow">Panel Pro · ${esc(settings.access||'global_admin')}</p><h1>${esc(page.icon||'📄')} ${esc(page.title)}</h1><p class="muted mt-2">${esc(page.description||'')}</p></section><div class="${layout}">${blocks.map(renderBlock).join('')}</div>`;
     host.querySelectorAll('[data-form-demo]').forEach((button)=>button.addEventListener('click',()=>{const form=button.closest('[data-page-form]');if(!form?.reportValidity())return;form.querySelector('[data-form-status]').textContent='Formularul este completat și pregătit pentru trimitere.';}));
     host.querySelectorAll('[data-calculator-field]').forEach((field)=>field.addEventListener('input',()=>{const values=[...host.querySelectorAll('[data-calculator-field]')].map((input)=>Number(input.value)||0);const total=values.reduce((sum,value)=>sum+value,0);host.querySelector('[data-calculator-result]').textContent=`Total: ${total}`;}));
