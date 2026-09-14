@@ -10,6 +10,8 @@
 6. Reordonează sau duplică blocurile din editorul vizual.
 7. Salvează un draft sau apasă **Publică pagina**.
 
+Programarea poate fi unică, zilnică, săptămânală sau lunară. Pentru repetări, data publicării este ancora ciclului, iar „Repetare până la” oprește automat ciclurile după termen. Dacă există și „Expiră la”, durata dintre publicare și expirare devine fereastra activă a fiecărui ciclu.
+
 Asistentul reține local ultimele preferințe de categorie, acces, layout și temă. Pentru cereri neclare oferă acțiuni rapide, iar intenții precum creare, publicare, editare, duplicare sau gestionare sunt detectate automat. Poți cere direct o pagină cu formular, galerie, cronologie/timeline sau calculator; blocurile apar atât în previzualizare, cât și în editorul vizual.
 
 În panoul **Permisiuni pe acțiuni** poți folosi preseturi sau identificatori expliciți: `role:ID`, `user:ID` și `org:UUID`. Regulile pot fi separate pentru citire, scriere, editare, aprobare, publicare, arhivare și ștergere și pot avea o dată de expirare.
@@ -27,6 +29,7 @@ Pentru verificarea unui draft fără publicare, deschide **Preview privat**, gen
 - managerul permite filtrare, căutare, sortare, paginare, export/import, duplicare și acțiuni în lot pentru publicare sau arhivare;
 - editorul acceptă blocuri de formular, galerie, timeline și calculator, pe lângă carduri, FAQ, statistici, tabele și liste.
 - paginile pot fi limitate la audiențe și reguli de citire individuale, iar backend-ul filtrează aceste reguli înainte de livrare.
+- managerul afișează lângă fiecare pagină dacă este programată, expirată sau repetitivă; verificarea „Stare” arată și termenul repetării.
 
 ## Siguranță și compatibilitate
 
