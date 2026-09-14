@@ -41,6 +41,8 @@ $functions = @(
     'manage-platform-settings',
     'manage-platform-pages',
     'manage-panel-modules',
+    'manage-platform-sponsorships',
+    'manage-platform-media',
     'manage-discord-bundles',
     'sync-discord-commands',
     'manage-organizations',

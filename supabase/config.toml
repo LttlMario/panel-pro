@@ -19,6 +19,12 @@ verify_jwt = false
 [functions.manage-panel-modules]
 verify_jwt = false
 
+[functions.manage-platform-sponsorships]
+verify_jwt = false
+
+[functions.manage-platform-media]
+verify_jwt = false
+
 [functions.manage-discord-bundles]
 verify_jwt = false
 
