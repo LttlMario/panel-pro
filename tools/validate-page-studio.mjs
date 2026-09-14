@@ -48,6 +48,7 @@ const checks = [
   ['supabase/functions/manage-platform-pages/index.ts', 'cleanPreviewToken', 'backendul validează tokenul de preview'],
   ['supabase/functions/manage-platform-pages/index.ts', "action === 'health'", 'backendul expune starea paginii'],
   ['js/platform-assistant-workbench.js', 'data-page-health', 'managerul afișează starea paginii'],
+  ['js/platform-assistant-workbench.js', 'historyEnhancer', 'managerul afișează istoricul versiunilor'],
   ['administrare-module.html', 'publication-test', 'constructorul Discord are testare de configurare'],
   ['js/administrare-module.js', "action:'test'", 'testarea Discord este conectată'],
   ['supabase/functions/manage-panel-modules/index.ts', "action === 'test'", 'backendul Discord are testare dry-run'],
