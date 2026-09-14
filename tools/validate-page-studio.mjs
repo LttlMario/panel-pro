@@ -23,6 +23,8 @@ const checks = [
   ['supabase/functions/manage-platform-pages/index.ts', 'publish_at', 'backendul filtrează publicarea programată'],
   ['js/platform-assistant-workbench.js', 'link invalid la blocul', 'verificarea pre-publicare validează conținutul'],
   ['js/platform-assistant-workbench.js', 'previewAudience', 'preview-ul poate simula audiențe'],
+  ['js/platform-assistant-workbench.js', 'Formular valid în preview', 'preview-ul poate testa formularele fără trimitere'],
+  ['js/platform-assistant-workbench.js', 'querySelectorAll(\'input[type="number"]\')', 'preview-ul poate testa calculatoarele'],
   ['js/custom-page.js', 'data-calculator-field', 'pagina publicată redă calculatorul'],
   ['js/custom-page.js', 'data-page-form', 'pagina publicată redă formularele'],
   ['js/custom-page.js', "action:'submit_form'", 'formularele publicate trimit cereri reale'],
