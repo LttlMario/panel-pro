@@ -15,12 +15,12 @@
         box.querySelector('a').addEventListener('click', () => call({action:'track',id:item.id,metric:'click'}).catch(()=>{}));
         if (item.placement === 'sidebar') {
           let rail = document.getElementById('panel-sponsorship-rail');
-          if (!rail) { rail = document.createElement('aside'); rail.id = 'panel-sponsorship-rail'; rail.setAttribute('aria-label','Sponsorizări'); document.body.append(rail); }
+          if (!rail) { rail = document.createElement('aside'); rail.id = 'panel-sponsorship-rail'; rail.setAttribute('aria-label','Zonă de publicitate'); rail.innerHTML = '<div class="panel-sponsorship-label">Zonă de publicitate</div>'; document.body.append(rail); }
           rail.append(box);
         }
         else {
           let stack = document.getElementById('panel-sponsorship-stack');
-          if (!stack) { stack = document.createElement('section'); stack.id = 'panel-sponsorship-stack'; stack.setAttribute('aria-label','Sponsorizări'); (document.getElementById('panel-global-footer') || document.body).before(stack); }
+          if (!stack) { stack = document.createElement('section'); stack.id = 'panel-sponsorship-stack'; stack.setAttribute('aria-label','Zonă de publicitate'); stack.innerHTML = '<div class="panel-sponsorship-label">Zonă de publicitate</div>'; (document.getElementById('panel-global-footer') || document.body).before(stack); }
           stack.append(box);
         }
         call({action:'track',id:item.id,metric:'impression'}).catch(()=>{});
