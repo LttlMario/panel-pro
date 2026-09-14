@@ -53,6 +53,17 @@ function cleanPageSeo(value: unknown) {
   return { title: String(source.title || '').trim().slice(0, 120), description: String(source.description || '').trim().slice(0, 160), noindex: source.noindex === true };
 }
 
+function pagePermissionAllows(page: any, action: string, session: any) {
+  if (session?.is_platform_admin) return true;
+  const rule = page?.content?.settings?.permissions?.[action];
+  if (!rule || typeof rule !== 'object') return false;
+  if (rule.expires_at && Date.parse(String(rule.expires_at)) <= Date.now()) return false;
+  const organization = String(session?.organization_id || '');
+  const discordId = String(session?.discord_id || '');
+  const roleIds = Array.isArray(session?.discord_role_ids) ? session.discord_role_ids.map(String) : [];
+  return (Array.isArray(rule.organization_ids) && rule.organization_ids.map(String).includes(organization)) || (Array.isArray(rule.user_ids) && rule.user_ids.map(String).includes(discordId)) || (Array.isArray(rule.role_ids) && roleIds.some((role: string) => rule.role_ids.map(String).includes(role)));
+}
+
 function cleanBlocks(value: unknown) {
   if (!Array.isArray(value)) throw new Error('Conținutul paginii trebuie să fie o listă de blocuri.');
   if (value.length > 40) throw new Error('Pagina poate avea maximum 40 de blocuri.');
@@ -191,7 +202,15 @@ Deno.serve(async (request) => {
       return reply({ pages });
     }
     const session = await requirePanelSession(db, request, 0, true);
-    if (!(session.is_platform_admin || await isPlatformAdminAccount(db, session.discord_id))) return reply({ error: 'Acces permis doar administratorului global.' }, 403);
+    const isGlobalAdmin = session.is_platform_admin || await isPlatformAdminAccount(db, session.discord_id);
+    if (!isGlobalAdmin) {
+      const permissionAction = action === 'save_page' ? 'edit' : action === 'delete_page' ? 'delete' : action === 'set_page_enabled' ? 'archive' : action === 'set_page_state' ? (body.approve === true ? 'approve' : body.publication === 'published' ? 'publish' : 'archive') : action === 'restore_page' ? 'edit' : action === 'history' ? 'read' : null;
+      const permissionSlug = String(body.slug || body.content_key || '').trim().replace(/\.html$/i, '');
+      if (!permissionAction || !permissionSlug) return reply({ error: 'Acces permis doar administratorului global sau utilizatorului autorizat pentru această acțiune.' }, 403);
+      const { data: protectedPage, error: permissionError } = await db.from('platform_custom_pages').select('content').eq('slug', `${permissionSlug}.html`).maybeSingle();
+      if (permissionError) throw permissionError;
+      if (!protectedPage || !pagePermissionAllows(protectedPage, permissionAction, session)) return reply({ error: 'Nu ai permisiunea necesară pentru această acțiune.' }, 403);
+    }
     if (action === 'list') {
       const [{ data: pages, error: pagesError }, { data: modules, error: modulesError }] = await Promise.all([
         db.from('platform_custom_pages').select('slug,title,description,icon,sidebar_section,sort_order,content,enabled,updated_at').order('sidebar_section').order('sort_order').order('title'),
