@@ -104,6 +104,8 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'Importul va înlocui', 'importul cere confirmare pentru conflictele existente'],
   ['supabase/functions/manage-platform-pages/index.ts', 'audienceSession', 'paginile pot filtra audiența pe sesiune'],
   ['js/custom-page.js', 'x-panel-device', 'pagina publică trimite dispozitivul pentru filtrare'],
+  ['js/panel-layout.js', 'x-panel-device', 'meniul public trimite dispozitivul pentru pagini custom'],
+  ['organizatii.html', 'x-panel-device', 'selectorii din organizații respectă audiența pe dispozitiv'],
   ['supabase/functions/manage-platform-pages/index.ts', 'audienceSession.discord_id', 'paginile pot filtra utilizatori individuali'],
   ['js/platform-assistant-workbench.js', 'platform-page-users', 'editorul are țintire pe utilizatori'],
   ['js/platform-assistant-workbench.js', 'permissionActions', 'editorul are permisiuni separate pe acțiuni'],

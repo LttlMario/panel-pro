@@ -1973,7 +1973,8 @@ renderRoles = () => {
 window.refreshCustomOrganizationPages = async () => {
   try {
     if (typeof window.panelRequestJson !== 'function' || !Array.isArray(pagePermissionGroups)) return;
-    const result = await window.panelRequestJson('manage-platform-pages', { method: 'POST', body: JSON.stringify({ action: 'public_list' }), timeoutMs: 10000, retry: true, retryPost: true });
+    const device = window.matchMedia?.('(max-width: 767px)').matches ? 'mobile' : 'desktop';
+    const result = await window.panelRequestJson('manage-platform-pages', { method: 'POST', body: JSON.stringify({ action: 'public_list' }), timeoutMs: 10000, retry: true, retryPost: true, headers: { 'x-panel-device': device } });
     const pages = (result.pages || []).filter((page) => /^[a-z][a-z0-9-]{1,79}\.html$/.test(String(page.slug || '')));
     if (!pages.length) return;
     let group = pagePermissionGroups.find((item) => item.key === 'custom');
