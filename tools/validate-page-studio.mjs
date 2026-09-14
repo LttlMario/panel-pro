@@ -11,6 +11,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'data-block-index', 'editorul de blocuri există'],
   ['js/platform-assistant-workbench.js', 'intentFrom', 'asistentul detectează intenția'],
   ['js/platform-assistant-workbench.js', 'data-studio-suggestions', 'asistentul oferă sugestii rapide după generare'],
+  ['js/platform-assistant-workbench.js', 'data-full-accessibility-audit', 'constructorul are audit accesibilitate complet'],
   ['js/platform-assistant-workbench.js', 'preferencesKey', 'preferințele asistentului sunt memorate'],
   ['js/platform-assistant-workbench.js', 'memoryTtl', 'drafturile locale au expirare și versiune de memorie'],
   ['js/platform-assistant-workbench.js', 'new BroadcastChannel(\'panel-pro-pages\')', 'managerul se sincronizează live între taburi'],
