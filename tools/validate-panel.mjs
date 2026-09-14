@@ -20,7 +20,8 @@ for (const file of walk(root, file => file.endsWith('.html'))) {
     .map(match => match[1].trim())
     .filter(Boolean);
   for (const script of scripts) {
-    const temp = path.join(root, '.inline-script-check.tmp.mjs');
+    const tempDir = fs.mkdtempSync(path.join(root, '.inline-script-check-'));
+    const temp = path.join(tempDir, 'script.mjs');
     fs.writeFileSync(temp, script, 'utf8');
     try {
       execFileSync(process.execPath, ['--check', temp], { stdio: 'pipe' });
@@ -30,6 +31,7 @@ for (const file of walk(root, file => file.endsWith('.html'))) {
       process.exitCode = 1;
     } finally {
       fs.rmSync(temp, { force: true });
+      fs.rmSync(tempDir, { recursive: true, force: true });
     }
   }
 }
