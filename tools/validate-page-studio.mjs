@@ -85,6 +85,8 @@ const checks = [
   ['administrare-module.html', 'value="midnight"', 'constructorul oferă preseturi vizuale suplimentare'],
   ['js/custom-page.js', 'pageTheme', 'pagina publicată aplică tema aleasă'],
   ['supabase/functions/manage-platform-pages/index.ts', 'themeValue', 'backendul validează tema paginii'],
+  ['js/platform-assistant-workbench.js', 'platform-page-responsive', 'constructorul permite controlul responsive'],
+  ['js/custom-page.js', 'dataset.responsive', 'pagina publicată aplică setarea responsive'],
   ['js/platform-assistant-workbench.js', 'selectedPages', 'managerul păstrează selecția multiplă a paginilor'],
   ['js/platform-assistant-workbench.js', 'enhanceBlockSelection', 'editorul suportă selecție multiplă'],
   ['js/platform-assistant-workbench.js', "event.key.toLowerCase()==='z'", 'shortcut-ul undo există'],
