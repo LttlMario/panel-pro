@@ -67,6 +67,9 @@ function pagePermissionAllows(page: any, action: string, session: any) {
 function cleanBlocks(value: unknown) {
   if (!Array.isArray(value)) throw new Error('Conținutul paginii trebuie să fie o listă de blocuri.');
   if (value.length > 40) throw new Error('Pagina poate avea maximum 40 de blocuri.');
+  const serialized = JSON.stringify(value);
+  if (serialized.length > 220_000) throw new Error('Conținutul paginii este prea mare. Redu textul sau numărul de imagini.');
+  if (/<\/?script\b|javascript\s*:|on[a-z]+\s*=|data:text\/html/i.test(serialized)) throw new Error('Conținutul conține markup sau cod nesigur.');
   return value.map((block: any, index) => {
     const type = String(block?.type || 'text');
     if (!['hero', 'heading', 'text', 'callout', 'list', 'link', 'cards', 'stats', 'faq', 'table', 'button', 'divider', 'form', 'gallery', 'timeline', 'calculator', 'accordion', 'banner', 'group'].includes(type)) throw new Error(`Tip de bloc invalid la poziția ${index + 1}.`);
