@@ -24,7 +24,7 @@ Pentru verificarea unui draft fără publicare, deschide **Preview privat**, gen
 - pagina este acceptată în `page_permissions` la salvarea organizației;
 - se păstrează versiunea anterioară și se scrie auditul administratorului;
 - pagina poate fi depublicată, arhivată, restaurată sau ștearsă din manager.
-- managerul permite filtrare, căutare, export/import și acțiuni rapide pentru istoric, deschidere și copierea linkului;
+- managerul permite filtrare, căutare, sortare, paginare, export/import, duplicare și acțiuni în lot pentru publicare sau arhivare;
 - editorul acceptă blocuri de formular, galerie, timeline și calculator, pe lângă carduri, FAQ, statistici, tabele și liste.
 - paginile pot fi limitate la audiențe și reguli de citire individuale, iar backend-ul filtrează aceste reguli înainte de livrare.
 
