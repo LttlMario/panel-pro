@@ -142,6 +142,26 @@ function cleanBlocks(value: unknown) {
   });
 }
 
+function cleanSubmissionValues(value: unknown) {
+  const source = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  const result: Record<string, string> = {};
+  Object.entries(source).slice(0, 15).forEach(([key, raw]) => {
+    const fieldKey = String(key || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 80);
+    if (!fieldKey) return;
+    result[fieldKey] = String(raw ?? '').trim().slice(0, 4000);
+  });
+  if (JSON.stringify(result).length > 45_000) throw new Error('Formularul este prea mare. Redu textul introdus.');
+  return result;
+}
+
+function findFormBlock(page: any, blockIndex: unknown) {
+  const index = Number(blockIndex);
+  if (!Number.isInteger(index) || index < 0 || index > 39) throw new Error('Formularul nu este valid.');
+  const block = Array.isArray(page?.content?.blocks) ? page.content.blocks[index] : null;
+  if (!block || block.type !== 'form' || !Array.isArray(block.fields)) throw new Error('Formularul nu mai este disponibil.');
+  return { index, block };
+}
+
 function cleanModuleDefinition(value: unknown) {
   const source = value && typeof value === 'object' ? value as any : {};
   const allowedActions = new Set(['open_form', 'save_submission', 'send_log', 'approve', 'reject', 'report', 'update_message', 'notify_submitter']);
@@ -210,6 +230,37 @@ Deno.serve(async (request) => {
         return active && (privatePreview || (permissionActive && permissionAllowed && audienceAllowed && (String(settings.access || 'global_admin') === 'public' || (authenticated && String(settings.access || '') === 'authenticated'))));
       });
       return reply({ pages });
+    }
+    if (action === 'submit_form') {
+      const slug = cleanSlug(body.slug);
+      const { data: page, error: pageError } = await db.from('platform_custom_pages').select('slug,enabled,content').eq('slug', slug).maybeSingle();
+      if (pageError) throw pageError;
+      if (!page || page.enabled === false) return reply({ error: 'Pagina nu este disponibilă.' }, 404);
+      const settings = page.content?.settings && typeof page.content.settings === 'object' ? page.content.settings : {};
+      const now = Date.now();
+      const publishAt = settings.publish_at ? Date.parse(String(settings.publish_at)) : NaN;
+      const expiresAt = settings.expires_at ? Date.parse(String(settings.expires_at)) : NaN;
+      const approvalAllowed = settings.approval_required !== true || settings.approval_status === 'approved';
+      if (settings.publication === 'draft' || !approvalAllowed || (Number.isFinite(publishAt) && publishAt > now) || (Number.isFinite(expiresAt) && expiresAt <= now)) return reply({ error: 'Pagina nu acceptă formulare în acest moment.' }, 403);
+      const access = String(settings.access || 'global_admin');
+      let submitter: any = null;
+      if (request.headers.get('x-panel-session')) {
+        try { submitter = await requirePanelSession(db, request, 0, true); } catch (_) {}
+      }
+      if (access === 'authenticated' && !submitter) return reply({ error: 'Autentifică-te pentru a trimite acest formular.' }, 401);
+      if (access === 'global_admin') return reply({ error: 'Această pagină nu acceptă trimiteri publice.' }, 403);
+      const { index, block } = findFormBlock(page, body.block_index);
+      const values = cleanSubmissionValues(body.values);
+      (block.fields as any[]).forEach((field, fieldIndex) => {
+        const key = `field_${fieldIndex}`;
+        const value = String(values[key] || '').trim();
+        if (field.required !== false && !value) throw new Error(`Câmpul „${String(field.label || `#${fieldIndex + 1}`)}” este obligatoriu.`);
+        if (String(field.type) === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) throw new Error(`Adresa de email din „${String(field.label || `#${fieldIndex + 1}`)}” nu este validă.`);
+      });
+      const { data: inserted, error: insertError } = await db.from('platform_page_submissions').insert({ page_slug: slug, block_index: index, values, submitter_discord_id: submitter?.discord_id || null, submitter_organization_id: submitter?.organization_id || null }).select('id,created_at').single();
+      if (insertError) throw insertError;
+      if (submitter?.organization_id) await db.from('admin_audit_log').insert({ organization_id: submitter.organization_id, actor_discord_id: submitter.discord_id || null, action: 'platform_page_form_submitted', target_type: 'platform_custom_page', target_id: slug, details: { submission_id: inserted.id, block_index: index } });
+      return reply({ ok: true, submission_id: inserted.id, created_at: inserted.created_at });
     }
     const session = await requirePanelSession(db, request, 0, true);
     const isGlobalAdmin = session.is_platform_admin || await isPlatformAdminAccount(db, session.discord_id);
@@ -329,6 +380,13 @@ Deno.serve(async (request) => {
       const publishAt = settings.publish_at ? Date.parse(String(settings.publish_at)) : NaN;
       const expiresAt = settings.expires_at ? Date.parse(String(settings.expires_at)) : NaN;
       return reply({ health: { slug: page.slug, title: page.title, enabled: page.enabled !== false, publication: settings.publication || 'published', approval_status: settings.approval_status || 'approved', scheduled: Number.isFinite(publishAt) && publishAt > now, expired: Number.isFinite(expiresAt) && expiresAt <= now, private_preview: Boolean(settings.preview_token), versions: versionCount || 0, updated_at: page.updated_at } });
+    }
+    if (action === 'list_submissions') {
+      const slug = cleanSlug(body.slug || body.content_key);
+      const limit = Math.max(1, Math.min(100, Number(body.limit) || 50));
+      const { data, error } = await db.from('platform_page_submissions').select('id,page_slug,block_index,values,submitter_discord_id,submitter_organization_id,status,created_at,updated_at').eq('page_slug', slug).order('created_at', { ascending: false }).limit(limit);
+      if (error) throw error;
+      return reply({ submissions: data || [] });
     }
     if (action === 'restore_page') {
       const slug = cleanSlug(body.slug);
