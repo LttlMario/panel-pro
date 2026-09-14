@@ -17,6 +17,19 @@ const rateBuckets = new Map<string, number[]>();
 const formRateBuckets = new Map<string, number[]>();
 const allowRequest = (identity: string) => { const now = Date.now(); const windowStart = now - 60_000; const recent = (rateBuckets.get(identity) || []).filter((timestamp) => timestamp > windowStart); if (recent.length >= 120) return false; recent.push(now); rateBuckets.set(identity, recent); if (rateBuckets.size > 2000) { for (const [key, values] of rateBuckets) if (!values.some((timestamp) => timestamp > windowStart)) rateBuckets.delete(key); } return true; };
 const allowFormRequest = (identity: string) => { const now = Date.now(); const windowStart = now - 600_000; const recent = (formRateBuckets.get(identity) || []).filter((timestamp) => timestamp > windowStart); if (recent.length >= 8) return false; recent.push(now); formRateBuckets.set(identity, recent); if (formRateBuckets.size > 2000) { for (const [key, values] of formRateBuckets) if (!values.some((timestamp) => timestamp > windowStart)) formRateBuckets.delete(key); } return true; };
+const recurrenceStepMs = (recurrence: unknown) => recurrence === 'daily' ? 86_400_000 : recurrence === 'weekly' ? 604_800_000 : recurrence === 'monthly' ? 2_592_000_000 : 0;
+function recurrenceActive(publishAt: number, expiresAt: number, recurrence: unknown, recurrenceUntil: number, now: number) {
+  if (Number.isFinite(publishAt) && publishAt > now) return false;
+  const step = recurrenceStepMs(recurrence);
+  if (!step) return !Number.isFinite(expiresAt) || expiresAt > now;
+  if (Number.isFinite(recurrenceUntil) && now >= recurrenceUntil) return false;
+  if (!Number.isFinite(publishAt)) return false;
+  const cycleStart = publishAt + Math.floor(Math.max(0, now - publishAt) / step) * step;
+  if (Number.isFinite(recurrenceUntil) && cycleStart >= recurrenceUntil) return false;
+  if (!Number.isFinite(expiresAt)) return true;
+  const windowLength = Math.max(0, expiresAt - publishAt);
+  return now < cycleStart + windowLength;
+}
 
 function cleanSlug(value: unknown) {
   const raw = String(value || '').trim().toLowerCase().replace(/\.html$/, '').replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
@@ -234,7 +247,7 @@ Deno.serve(async (request) => {
         const permissionAllowed = (!readPermission.organization_ids?.length || (audienceSession && readPermission.organization_ids.includes(String(audienceSession.organization_id)))) && (!readPermission.role_ids?.length || (audienceSession && audienceSession.discord_role_ids.some((role: string) => readPermission.role_ids.includes(String(role))))) && (!readPermission.user_ids?.length || (audienceSession && readPermission.user_ids.includes(String(audienceSession.discord_id))));
         const approvalAllowed = settings.approval_required !== true || settings.approval_status === 'approved';
         const privatePreview = Boolean(previewToken && settings.preview_token === previewToken);
-        const active = privatePreview || (settings.publication !== 'draft' && approvalAllowed && (!Number.isFinite(publishAt) || publishAt <= now) && (!Number.isFinite(expiresAt) || expiresAt > now) && (!Number.isFinite(recurrenceUntil) || recurrenceUntil > now));
+        const active = privatePreview || (settings.publication !== 'draft' && approvalAllowed && recurrenceActive(publishAt, expiresAt, settings.recurrence, recurrenceUntil, now));
         return active && (privatePreview || (permissionActive && permissionAllowed && audienceAllowed && (String(settings.access || 'global_admin') === 'public' || (authenticated && String(settings.access || '') === 'authenticated'))));
       });
       return reply({ pages });
@@ -252,7 +265,8 @@ Deno.serve(async (request) => {
       const publishAt = settings.publish_at ? Date.parse(String(settings.publish_at)) : NaN;
       const expiresAt = settings.expires_at ? Date.parse(String(settings.expires_at)) : NaN;
       const approvalAllowed = settings.approval_required !== true || settings.approval_status === 'approved';
-      if (settings.publication === 'draft' || !approvalAllowed || (Number.isFinite(publishAt) && publishAt > now) || (Number.isFinite(expiresAt) && expiresAt <= now)) return reply({ error: 'Pagina nu acceptă formulare în acest moment.' }, 403);
+      const recurrenceUntil = settings.recurrence_until ? Date.parse(String(settings.recurrence_until)) : NaN;
+      if (settings.publication === 'draft' || !approvalAllowed || !recurrenceActive(publishAt, expiresAt, settings.recurrence, recurrenceUntil, now)) return reply({ error: 'Pagina nu acceptă formulare în acest moment.' }, 403);
       const access = String(settings.access || 'global_admin');
       let submitter: any = null;
       if (request.headers.get('x-panel-session')) {
