@@ -40,6 +40,7 @@ const checks = [
   ['supabase/functions/manage-platform-pages/index.ts', 'allowRequest', 'endpointul constructorului are rate-limit'],
   ['supabase/functions/manage-platform-pages/index.ts', 'pagePermissionAllows', 'backendul aplică permisiuni pe acțiunile de administrare'],
   ['supabase/functions/manage-platform-pages/index.ts', 'Conținutul conține markup sau cod nesigur', 'backendul scanează conținutul importat'],
+  ['supabase/functions/manage-platform-pages/index.ts', "action === 'audit'", 'backendul expune auditul paginii'],
   ['supabase/functions/manage-platform-pages/index.ts', 'cleanPageHref', 'linkurile cardurilor sunt curățate server-side'],
   ['js/platform-assistant-workbench.js', 'platform-page-pager', 'managerul are paginare'],
   ['js/platform-assistant-workbench.js', 'platform-page-sort', 'managerul are sortare'],

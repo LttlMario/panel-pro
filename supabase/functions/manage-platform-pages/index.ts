@@ -301,6 +301,12 @@ Deno.serve(async (request) => {
       if (error) throw error;
       return reply({ versions: data || [] });
     }
+    if (action === 'audit') {
+      const contentKey = cleanSlug(body.slug || body.content_key);
+      const { data, error } = await db.from('admin_audit_log').select('id,actor_discord_id,action,target_type,target_id,details,created_at').eq('target_type', 'platform_custom_page').eq('target_id', contentKey).order('created_at', { ascending: false }).limit(50);
+      if (error) throw error;
+      return reply({ entries: data || [] });
+    }
     if (action === 'restore_page') {
       const slug = cleanSlug(body.slug);
       const versionId = Number(body.version_id);
