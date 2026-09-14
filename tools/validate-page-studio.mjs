@@ -17,6 +17,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', "type:'calculator'", 'constructorul poate genera calculatoare'],
   ['js/platform-assistant-workbench.js', 'const undo', 'editorul are undo'],
   ['js/platform-assistant-workbench.js', 'const redo', 'editorul are redo'],
+  ['js/platform-assistant-workbench.js', 'reusableKey', 'blocurile reutilizabile sunt memorate'],
   ['supabase/functions/manage-platform-pages/index.ts', "'accordion'", 'backendul acceptă blocuri avansate'],
   ['js/platform-assistant-workbench.js', 'platform-page-publish-at', 'editorul are programare și expirare'],
   ['supabase/functions/manage-platform-pages/index.ts', 'publish_at', 'backendul filtrează publicarea programată'],
