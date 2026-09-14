@@ -417,7 +417,10 @@ Deno.serve(async (request) => {
       const now = Date.now();
       const publishAt = settings.publish_at ? Date.parse(String(settings.publish_at)) : NaN;
       const expiresAt = settings.expires_at ? Date.parse(String(settings.expires_at)) : NaN;
-      return reply({ health: { slug: page.slug, title: page.title, enabled: page.enabled !== false, publication: settings.publication || 'published', approval_status: settings.approval_status || 'approved', scheduled: Number.isFinite(publishAt) && publishAt > now, expired: Number.isFinite(expiresAt) && expiresAt <= now, private_preview: Boolean(settings.preview_token), versions: versionCount || 0, updated_at: page.updated_at } });
+      const recurrenceUntil = settings.recurrence_until ? Date.parse(String(settings.recurrence_until)) : NaN;
+      const scheduled = Number.isFinite(publishAt) && publishAt > now;
+      const active = recurrenceActive(publishAt, expiresAt, settings.recurrence, recurrenceUntil, now);
+      return reply({ health: { slug: page.slug, title: page.title, enabled: page.enabled !== false, publication: settings.publication || 'published', approval_status: settings.approval_status || 'approved', scheduled, expired: !scheduled && !active, recurring: recurrenceStepMs(settings.recurrence) > 0, recurrence: settings.recurrence || 'none', recurrence_until: settings.recurrence_until || null, private_preview: Boolean(settings.preview_token), versions: versionCount || 0, updated_at: page.updated_at } });
     }
     if (action === 'list_submissions') {
       const slug = cleanSlug(body.slug || body.content_key);
