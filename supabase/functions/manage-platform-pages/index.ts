@@ -157,11 +157,12 @@ function cleanSubmissionValues(value: unknown) {
 }
 
 function findFormBlock(page: any, blockIndex: unknown) {
-  const index = Number(blockIndex);
-  if (!Number.isInteger(index) || index < 0 || index > 39) throw new Error('Formularul nu este valid.');
-  const block = Array.isArray(page?.content?.blocks) ? page.content.blocks[index] : null;
+  const path = Array.isArray(blockIndex) ? blockIndex.map(Number) : [Number(blockIndex)];
+  if (!path.length || path.some((value) => !Number.isInteger(value) || value < 0 || value > 39)) throw new Error('Formularul nu este valid.');
+  let block = Array.isArray(page?.content?.blocks) ? page.content.blocks[path[0]] : null;
+  for (const index of path.slice(1)) block = block?.type === 'group' && Array.isArray(block.blocks) ? block.blocks[index] : null;
   if (!block || block.type !== 'form' || !Array.isArray(block.fields)) throw new Error('Formularul nu mai este disponibil.');
-  return { index, block };
+  return { index: path[0], path, block };
 }
 
 function cleanModuleDefinition(value: unknown) {
@@ -254,7 +255,7 @@ Deno.serve(async (request) => {
       }
       if (access === 'authenticated' && !submitter) return reply({ error: 'Autentifică-te pentru a trimite acest formular.' }, 401);
       if (access === 'global_admin') return reply({ error: 'Această pagină nu acceptă trimiteri publice.' }, 403);
-      const { index, block } = findFormBlock(page, body.block_index);
+      const { index, path, block } = findFormBlock(page, body.block_path ?? body.block_index);
       const values = cleanSubmissionValues(body.values);
       (block.fields as any[]).forEach((field, fieldIndex) => {
         const key = `field_${fieldIndex}`;
@@ -264,7 +265,7 @@ Deno.serve(async (request) => {
       });
       const { data: inserted, error: insertError } = await db.from('platform_page_submissions').insert({ page_slug: slug, block_index: index, values, submitter_discord_id: submitter?.discord_id || null, submitter_organization_id: submitter?.organization_id || null }).select('id,created_at').single();
       if (insertError) throw insertError;
-      if (submitter?.organization_id) await db.from('admin_audit_log').insert({ organization_id: submitter.organization_id, actor_discord_id: submitter.discord_id || null, action: 'platform_page_form_submitted', target_type: 'platform_custom_page', target_id: slug, details: { submission_id: inserted.id, block_index: index } });
+      if (submitter?.organization_id) await db.from('admin_audit_log').insert({ organization_id: submitter.organization_id, actor_discord_id: submitter.discord_id || null, action: 'platform_page_form_submitted', target_type: 'platform_custom_page', target_id: slug, details: { submission_id: inserted.id, block_path: path } });
       return reply({ ok: true, submission_id: inserted.id, created_at: inserted.created_at });
     }
     const session = await requirePanelSession(db, request, 0, true);
