@@ -80,7 +80,7 @@ function cleanBlocks(value: unknown, depth = 0) {
   if (/<\/?script\b|javascript\s*:|on[a-z]+\s*=|data:text\/html/i.test(serialized)) throw new Error('Conținutul conține markup sau cod nesigur.');
   return value.map((block: any, index) => {
     const type = String(block?.type || 'text');
-    if (!['hero', 'heading', 'text', 'callout', 'list', 'link', 'cards', 'stats', 'faq', 'table', 'button', 'divider', 'form', 'gallery', 'timeline', 'calculator', 'accordion', 'banner', 'group'].includes(type)) throw new Error(`Tip de bloc invalid la poziția ${index + 1}.`);
+    if (!['hero', 'heading', 'text', 'callout', 'list', 'link', 'cards', 'stats', 'faq', 'table', 'button', 'divider', 'form', 'gallery', 'timeline', 'calculator', 'accordion', 'tabs', 'banner', 'group'].includes(type)) throw new Error(`Tip de bloc invalid la poziția ${index + 1}.`);
     const result: any = { type };
     if (type === 'list') {
       const items = Array.isArray(block.items) ? block.items.map((item: any) => String(item || '').trim()).filter(Boolean).slice(0, 30) : [];
@@ -122,6 +122,10 @@ function cleanBlocks(value: unknown, depth = 0) {
     } else if (type === 'accordion') {
       const items = Array.isArray(block.items) ? block.items.slice(0, 20).map((item: any) => ({ title: String(item?.title || 'Secțiune').trim().slice(0, 160), text: String(item?.text || '').trim().slice(0, 1200) })).filter((item: any) => item.title && item.text) : [];
       if (!items.length) throw new Error(`Acordeonul de la poziția ${index + 1} este gol.`);
+      result.items = items;
+    } else if (type === 'tabs') {
+      const items = Array.isArray(block.items) ? block.items.slice(0, 12).map((item: any) => ({ title: String(item?.title || 'Tab').trim().slice(0, 120), text: String(item?.text || '').trim().slice(0, 1600) })).filter((item: any) => item.title && item.text) : [];
+      if (!items.length) throw new Error(`Taburile de la poziția ${index + 1} sunt goale.`);
       result.items = items;
     } else if (type === 'group') {
       const blocks = Array.isArray(block.blocks) ? cleanBlocks(block.blocks, depth + 1).slice(0, 12) : [];
