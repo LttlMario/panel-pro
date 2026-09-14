@@ -38,6 +38,8 @@ const checks = [
   ['custom-page.html', 'custom-page-timeline li', 'timeline-ul publicat are stil responsive'],
   ['custom-page.html', 'custom-page-calculator output', 'calculatorul publicat are stil dedicat'],
   ['custom-page.html', 'viewport-fit=cover', 'pagina customă este pregătită pentru WebView și safe-area'],
+  ['custom-page.html', 'prefers-reduced-motion', 'pagina publicată respectă preferința reduced motion'],
+  ['administrare-module.html', 'prefers-reduced-motion', 'constructorul respectă preferința reduced motion'],
   ['custom-page.html', 'custom-page-honeypot', 'protecția anti-bot este ascunsă vizual'],
   ['js/platform-assistant-workbench.js', 'platform-page-accent', 'constructorul permite accent vizual'],
   ['js/platform-assistant-workbench.js', 'platform-page-spacing', 'constructorul permite spațiere vizuală'],
