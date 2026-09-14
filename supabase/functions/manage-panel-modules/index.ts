@@ -67,11 +67,13 @@ Deno.serve(async (request) => {
     }
     if (action === 'save_publication' || action === 'publish' || action === 'repair') {
       let messageId = String(body.message_id || '').trim();
+      const { data: existingPublication } = await db.from('platform_module_publications').select('message_id,embed_channel_id').eq('module_key', moduleKey).eq('organization_id', organizationId).eq('target', target).maybeSingle();
+      if (existingPublication?.message_id && String(existingPublication.embed_channel_id || '') === embedChannelId) messageId = String(existingPublication.message_id);
       const botToken = await getPlatformSecret(db, 'discord_bot_token'); if (!botToken) return reply({ error: 'DISCORD_BOT_TOKEN lipsește din Supabase.' }, 500);
       const bodyJson = JSON.stringify(payload(module));
       if (action !== 'save_publication') {
         const response = await requestDiscordTarget(db, { target, transport: 'bot', channel_id: embedChannelId }, bodyJson, id(messageId) ? { method: 'PATCH', messageId } : { method: 'POST' });
-        if (!response.ok && id(messageId)) {
+        if (!response.ok && id(messageId) && response.status === 404) {
           const fallback = await requestDiscordTarget(db, { target, transport: 'bot', channel_id: embedChannelId }, bodyJson, { method: 'POST' });
           if (!fallback.ok) throw new Error(`Embedul nu a putut fi publicat (HTTP ${fallback.status}).`);
           const sent = await fallback.json().catch(() => ({})); messageId = String(sent?.id || '');

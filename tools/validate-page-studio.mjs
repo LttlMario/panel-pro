@@ -60,6 +60,8 @@ const checks = [
   ['administrare-module.html', 'publication-test', 'constructorul Discord are testare de configurare'],
   ['js/administrare-module.js', "action:'test'", 'testarea Discord este conectată'],
   ['supabase/functions/manage-panel-modules/index.ts', "action === 'test'", 'backendul Discord are testare dry-run'],
+  ['supabase/functions/manage-panel-modules/index.ts', 'existingPublication?.message_id', 'publicarea Discord reutilizează mesajul existent'],
+  ['supabase/functions/manage-panel-modules/index.ts', 'response.status === 404', 'republicarea creează mesaj nou doar după 404'],
   ['supabase/functions/manage-platform-pages/index.ts', 'cleanPageHref', 'linkurile cardurilor sunt curățate server-side'],
   ['js/platform-assistant-workbench.js', 'platform-page-pager', 'managerul are paginare'],
   ['js/platform-assistant-workbench.js', 'platform-page-sort', 'managerul are sortare'],
