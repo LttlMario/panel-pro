@@ -193,7 +193,7 @@ window.panelRequest = async function panelRequest(functionName, options = {}) {
     const config = window.PANEL_SUPABASE_CONFIG;
     const method = String(options.method || 'GET').toUpperCase();
     const timeoutMs = Number(options.timeoutMs || 15000);
-    const canRetry = options.retry === true && ['GET', 'HEAD', 'OPTIONS'].includes(method);
+    const canRetry = options.retry === true && (['GET', 'HEAD', 'OPTIONS'].includes(method) || options.retryPost === true);
     const attempts = canRetry ? 2 : 1;
     const endpoint = String(functionName || '').replace(/^\/+/, '');
 

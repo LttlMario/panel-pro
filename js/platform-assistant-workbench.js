@@ -8,7 +8,7 @@
   const state = { mode: 'page', step: 'request', draft: null, previewMode: 'desktop', catalog: { pages: [], modules: [] } };
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   const norm = (value) => String(value || '').toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const call = (body) => window.panelRequestJson('manage-platform-pages', { method: 'POST', body: JSON.stringify(body), timeoutMs: 15000, retry: true });
+  const call = (body) => window.panelRequestJson('manage-platform-pages', { method: 'POST', body: JSON.stringify(body), timeoutMs: 15000, retry: ['list','history','public_list'].includes(body.action), retryPost: ['list','history','public_list'].includes(body.action) });
   const say = (message, user = false) => { const row = document.createElement('div'); row.className = `mb-2 leading-relaxed ${user ? 'text-emerald-200' : 'text-slate-300'}`; row.innerHTML = `<strong class="${user ? 'text-emerald-300' : 'text-violet-300'}">${user ? 'Tu' : 'Asistent'}:</strong> ${message}`; log.appendChild(row); log.scrollTop = log.scrollHeight; };
   const setStatus = (message, error = false) => { status.textContent = message; status.className = `status ${error ? 'error' : 'ok'}`; };
   const clearActions = () => actions.replaceChildren();

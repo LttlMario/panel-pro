@@ -100,7 +100,9 @@ Deno.serve(async (request) => {
     if (action === 'public_list') {
       const { data, error } = await db.from('platform_custom_pages').select('slug,title,description,icon,sidebar_section,sort_order,content,enabled,updated_at').eq('enabled', true).order('sidebar_section').order('sort_order').order('title');
       if (error) throw error;
-      const pages = (data || []).filter((page: any) => page?.content?.settings?.publication !== 'draft' && ['public', 'authenticated'].includes(String(page?.content?.settings?.access || 'global_admin')));
+      let authenticated = false;
+      if (request.headers.get('x-panel-session')) { try { await requirePanelSession(db, request, 0, true); authenticated = true; } catch (_) {} }
+      const pages = (data || []).filter((page: any) => page?.content?.settings?.publication !== 'draft' && (String(page?.content?.settings?.access || 'global_admin') === 'public' || (authenticated && String(page?.content?.settings?.access || '') === 'authenticated')));
       return reply({ pages });
     }
     const session = await requirePanelSession(db, request, 0, true);
