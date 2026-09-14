@@ -207,7 +207,7 @@ Deno.serve(async (request) => {
     const session = await requirePanelSession(db, request, 0, true);
     const isGlobalAdmin = session.is_platform_admin || await isPlatformAdminAccount(db, session.discord_id);
     if (!isGlobalAdmin) {
-      const permissionAction = action === 'save_page' ? 'edit' : action === 'delete_page' ? 'delete' : action === 'set_page_enabled' ? 'archive' : action === 'set_page_state' ? (body.approve === true ? 'approve' : body.publication === 'published' ? 'publish' : 'archive') : action === 'restore_page' ? 'edit' : action === 'history' ? 'read' : null;
+      const permissionAction = action === 'save_page' ? (body.publish === true ? 'publish' : 'edit') : action === 'delete_page' ? 'delete' : action === 'set_page_enabled' ? 'archive' : action === 'set_page_state' ? ((body.approve === true || body.reject === true) ? 'approve' : body.publication === 'published' ? 'publish' : 'archive') : action === 'restore_page' ? 'edit' : action === 'history' ? 'read' : null;
       const permissionSlug = String(body.slug || body.content_key || '').trim().replace(/\.html$/i, '');
       if (!permissionAction || !permissionSlug) return reply({ error: 'Acces permis doar administratorului global sau utilizatorului autorizat pentru această acțiune.' }, 403);
       const { data: protectedPage, error: permissionError } = await db.from('platform_custom_pages').select('content').eq('slug', `${permissionSlug}.html`).maybeSingle();
