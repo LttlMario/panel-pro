@@ -25,6 +25,22 @@ function cleanPageHref(value: unknown) {
   return href === '#' || /^[a-z][a-z0-9-]{1,79}\.html(?:[?#].*)?$/i.test(href) ? href : '#';
 }
 
+function cleanPagePermissions(value: unknown) {
+  const source = value && typeof value === 'object' ? value as any : {};
+  const cleanIds = (input: unknown, pattern: RegExp) => Array.isArray(input) ? input.map((item) => String(item || '').trim()).filter((item) => pattern.test(item)).slice(0, 50) : [];
+  const cleanAction = (input: unknown) => {
+    const item = input && typeof input === 'object' ? input as any : {};
+    const expiresAt = item.expires_at ? Date.parse(String(item.expires_at)) : NaN;
+    return { organization_ids: cleanIds(item.organization_ids, UUID_RE), role_ids: cleanIds(item.role_ids, /^\d{15,22}$/), user_ids: cleanIds(item.user_ids, /^\d{15,22}$/), expires_at: Number.isFinite(expiresAt) ? new Date(expiresAt).toISOString() : null };
+  };
+  const actions = ['read', 'write', 'edit', 'approve', 'publish', 'archive', 'delete'];
+  const result: any = { expires_at: null };
+  actions.forEach((action) => { result[action] = cleanAction(source[action]); });
+  const globalExpires = source.expires_at ? Date.parse(String(source.expires_at)) : NaN;
+  if (Number.isFinite(globalExpires)) result.expires_at = new Date(globalExpires).toISOString();
+  return result;
+}
+
 function cleanBlocks(value: unknown) {
   if (!Array.isArray(value)) throw new Error('Conținutul paginii trebuie să fie o listă de blocuri.');
   if (value.length > 40) throw new Error('Pagina poate avea maximum 40 de blocuri.');
@@ -134,7 +150,8 @@ Deno.serve(async (request) => {
       if (error) throw error;
       let authenticated = false;
       let audienceSession: any = null;
-      if (request.headers.get('x-panel-session')) { try { audienceSession = await requirePanelSession(db, request, 0, true); authenticated = true; } catch (_) {} }
+      const needsSession = (data || []).some((page: any) => { const permissions = page?.content?.settings?.permissions?.read; return permissions && (permissions.organization_ids?.length || permissions.role_ids?.length || permissions.user_ids?.length); });
+      if (request.headers.get('x-panel-session') || needsSession) { try { audienceSession = await requirePanelSession(db, request, 0, true); authenticated = true; } catch (_) {} }
       const now = Date.now();
       const pages = (data || []).filter((page: any) => {
         const settings = page?.content?.settings || {};
@@ -148,9 +165,14 @@ Deno.serve(async (request) => {
         const device = String(audience.device || 'all');
         const requestDevice = String(request.headers.get('x-panel-device') || 'all');
         const audienceAllowed = (!organizations.length || (audienceSession && organizations.includes(String(audienceSession.organization_id)))) && (!roles.length || (audienceSession && audienceSession.discord_role_ids.some((role: string) => roles.includes(String(role))))) && (!users.length || (audienceSession && users.includes(String(audienceSession.discord_id)))) && (device === 'all' || requestDevice === 'all' || device === requestDevice);
+        const permissions = settings.permissions && typeof settings.permissions === 'object' ? settings.permissions : {};
+        const readPermission = permissions.read && typeof permissions.read === 'object' ? permissions.read : {};
+        const permissionExpiry = readPermission.expires_at || permissions.expires_at;
+        const permissionActive = !permissionExpiry || Date.parse(String(permissionExpiry)) > now;
+        const permissionAllowed = (!readPermission.organization_ids?.length || (audienceSession && readPermission.organization_ids.includes(String(audienceSession.organization_id)))) && (!readPermission.role_ids?.length || (audienceSession && audienceSession.discord_role_ids.some((role: string) => readPermission.role_ids.includes(String(role))))) && (!readPermission.user_ids?.length || (audienceSession && readPermission.user_ids.includes(String(audienceSession.discord_id))));
         const approvalAllowed = settings.approval_required !== true || settings.approval_status === 'approved';
         const active = settings.publication !== 'draft' && approvalAllowed && (!Number.isFinite(publishAt) || publishAt <= now) && (!Number.isFinite(expiresAt) || expiresAt > now) && (!Number.isFinite(recurrenceUntil) || recurrenceUntil > now);
-        return active && audienceAllowed && (String(settings.access || 'global_admin') === 'public' || (authenticated && String(settings.access || '') === 'authenticated'));
+        return active && permissionActive && permissionAllowed && audienceAllowed && (String(settings.access || 'global_admin') === 'public' || (authenticated && String(settings.access || '') === 'authenticated'));
       });
       return reply({ pages });
     }
@@ -188,9 +210,10 @@ Deno.serve(async (request) => {
       if (publishAt && recurrenceUntil && Date.parse(recurrenceUntil) <= Date.parse(publishAt)) throw new Error('Finalul repetării trebuie să fie după momentul publicării.');
       const audienceSource = sourceSettings.audience && typeof sourceSettings.audience === 'object' ? sourceSettings.audience : {};
       const audience = { organization_ids: Array.isArray(audienceSource.organization_ids) ? audienceSource.organization_ids.map(String).filter((value: string) => UUID_RE.test(value)).slice(0, 50) : [], role_ids: Array.isArray(audienceSource.role_ids) ? audienceSource.role_ids.map(String).filter((value: string) => /^\d{15,22}$/.test(value)).slice(0, 50) : [], user_ids: Array.isArray(audienceSource.user_ids) ? audienceSource.user_ids.map(String).filter((value: string) => /^\d{15,22}$/.test(value)).slice(0, 50) : [], device: ['all', 'desktop', 'mobile'].includes(String(audienceSource.device)) ? String(audienceSource.device) : 'all' };
+      const permissions = cleanPagePermissions(sourceSettings.permissions);
       const approvalRequired = sourceSettings.approval_required === true;
       const approvalStatus = approvalRequired ? (['pending', 'approved', 'rejected'].includes(String(sourceSettings.approval_status)) ? String(sourceSettings.approval_status) : 'pending') : 'approved';
-      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, publish_at: publishAt, expires_at: expiresAt, recurrence, recurrence_until: recurrenceUntil, audience, approval_required: approvalRequired, approval_status: approvalStatus, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
+      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, publish_at: publishAt, expires_at: expiresAt, recurrence, recurrence_until: recurrenceUntil, audience, permissions, approval_required: approvalRequired, approval_status: approvalStatus, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
       const row = { slug, title, description, icon, sidebar_section: section, sort_order: Math.max(0, Math.min(9999, Number(body.sort_order) || 100)), content, enabled: body.enabled !== false, updated_by_discord_id: session.discord_id };
       const { data: existingPage } = await db.from('platform_custom_pages').select('*').eq('slug', slug).maybeSingle();
       if (existingPage) await db.from('platform_content_versions').insert({ content_type: 'page', content_key: slug, snapshot: existingPage, changed_by_discord_id: session.discord_id, change_type: 'before_save' });
