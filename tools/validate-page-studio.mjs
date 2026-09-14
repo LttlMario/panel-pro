@@ -73,6 +73,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', "event.key.toLowerCase()==='z'", 'shortcut-ul undo există'],
   ['js/platform-assistant-workbench.js', "['calculator','🧮 Calculator'", 'șabloanele rapide avansate există'],
   ['js/platform-assistant-workbench.js', 'blockPresets.tabs', 'editorul are blocuri de tip tab'],
+  ['js/platform-assistant-workbench.js', 'preview-live-tabs', 'preview-ul redă taburile'],
   ['js/custom-page.js', "block.type==='tabs'", 'pagina publicată redă taburile'],
   ['supabase/functions/manage-platform-pages/index.ts', "type === 'tabs'", 'backendul validează blocurile de tip tab'],
   ['js/platform-assistant-workbench.js', 'previewBlocks', 'preview-ul suportă date demo'],
