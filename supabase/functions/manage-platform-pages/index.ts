@@ -24,7 +24,7 @@ function cleanBlocks(value: unknown) {
   if (value.length > 40) throw new Error('Pagina poate avea maximum 40 de blocuri.');
   return value.map((block: any, index) => {
     const type = String(block?.type || 'text');
-    if (!['hero', 'heading', 'text', 'callout', 'list', 'link', 'cards', 'stats', 'faq', 'table', 'button', 'divider'].includes(type)) throw new Error(`Tip de bloc invalid la poziția ${index + 1}.`);
+    if (!['hero', 'heading', 'text', 'callout', 'list', 'link', 'cards', 'stats', 'faq', 'table', 'button', 'divider', 'form', 'gallery', 'timeline', 'calculator', 'accordion', 'banner', 'group'].includes(type)) throw new Error(`Tip de bloc invalid la poziția ${index + 1}.`);
     const result: any = { type };
     if (type === 'list') {
       const items = Array.isArray(block.items) ? block.items.map((item: any) => String(item || '').trim()).filter(Boolean).slice(0, 30) : [];
@@ -47,6 +47,32 @@ function cleanBlocks(value: unknown) {
       const rows = Array.isArray(block.rows) ? block.rows.slice(0, 20).map((row: any) => Array.isArray(row) ? row.map((cell: any) => String(cell || '').trim().slice(0, 200)).slice(0, 8) : []).filter((row: any[]) => row.length) : [];
       if (!headers.length || !rows.length) throw new Error(`Tabelul de la poziția ${index + 1} nu are date.`);
       result.headers = headers; result.rows = rows;
+    } else if (type === 'form') {
+      const fields = Array.isArray(block.fields) ? block.fields.slice(0, 15).map((field: any) => ({ label: String(field?.label || 'Câmp').trim().slice(0, 120), type: ['text', 'textarea', 'number', 'email'].includes(String(field?.type)) ? String(field.type) : 'text', required: field?.required !== false })).filter((field: any) => field.label) : [];
+      if (!fields.length) throw new Error(`Formularul de la poziția ${index + 1} nu are câmpuri.`);
+      result.fields = fields;
+    } else if (type === 'gallery') {
+      const items = Array.isArray(block.items) ? block.items.slice(0, 20).map((item: any) => ({ title: String(item?.title || 'Imagine').trim().slice(0, 120), text: String(item?.text || '').trim().slice(0, 500), src: String(item?.src || '').trim().slice(0, 500) })).filter((item: any) => item.title) : [];
+      if (!items.length) throw new Error(`Galeria de la poziția ${index + 1} este goală.`);
+      result.items = items;
+    } else if (type === 'timeline') {
+      const items = Array.isArray(block.items) ? block.items.slice(0, 30).map((item: any) => ({ date: String(item?.date || 'Moment').trim().slice(0, 80), text: String(item?.text || '').trim().slice(0, 800) })).filter((item: any) => item.text) : [];
+      if (!items.length) throw new Error(`Timeline-ul de la poziția ${index + 1} este gol.`);
+      result.items = items;
+    } else if (type === 'calculator') {
+      const fields = Array.isArray(block.fields) ? block.fields.slice(0, 10).map((field: any) => ({ label: String(field?.label || 'Valoare').trim().slice(0, 120), type: 'number', value: Number.isFinite(Number(field?.value)) ? Number(field.value) : 0 })) : [];
+      if (!fields.length) throw new Error(`Calculatorul de la poziția ${index + 1} nu are câmpuri.`);
+      result.fields = fields; result.result = String(block.result || 'Total: 0').trim().slice(0, 200);
+    } else if (type === 'accordion') {
+      const items = Array.isArray(block.items) ? block.items.slice(0, 20).map((item: any) => ({ title: String(item?.title || 'Secțiune').trim().slice(0, 160), text: String(item?.text || '').trim().slice(0, 1200) })).filter((item: any) => item.title && item.text) : [];
+      if (!items.length) throw new Error(`Acordeonul de la poziția ${index + 1} este gol.`);
+      result.items = items;
+    } else if (type === 'group') {
+      const blocks = Array.isArray(block.blocks) ? cleanBlocks(block.blocks).slice(0, 12) : [];
+      if (!blocks.length) throw new Error(`Grupul de la poziția ${index + 1} este gol.`);
+      result.title = String(block.title || 'Grup').trim().slice(0, 120); result.blocks = blocks;
+    } else if (type === 'banner') {
+      result.text = String(block.text || 'Banner informativ').trim().slice(0, 500); result.tone = ['info', 'success', 'warning', 'danger'].includes(String(block.tone)) ? String(block.tone) : 'info';
     } else if (type === 'button') {
       result.text = String(block.text || 'Deschide pagina').trim().slice(0, 120);
       result.href = String(block.href || 'index.html').trim().slice(0, 160);
