@@ -32,6 +32,10 @@ Pentru verificarea unui draft fără publicare, deschide **Preview privat**, gen
 
 Paginile publice pot fi citite fără sesiune. Paginile pentru utilizatori autentificați necesită sesiune Panel Pro, iar paginile administratorului global nu sunt livrate prin lista publică. Conținutul este curățat server-side înainte de salvare. Constructorul Discord rămâne separat și nu schimbă fluxurile modulelor existente.
 
+Formularele paginilor sunt validate din nou în Supabase la trimitere, inclusiv accesul publicului țintă și calea blocului din grupuri. Cererile sunt salvate în `platform_page_submissions`, pot fi consultate din manager și marcate ca gestionate; limita de trimitere și câmpul honeypot se aplică înainte de inserare.
+
+Pentru modulele Discord, testarea configurației este fără publicare. La publicare, publicația existentă este reutilizată când modulul, organizația, ținta și canalul embed coincid, iar mesajul este editat. Un mesaj nou este creat doar dacă mesajul vechi nu mai există în Discord; schimbarea canalului este raportată separat și nu suprascrie mesajul din canalul anterior.
+
 ## Verificare înainte de deploy
 
 ```text
