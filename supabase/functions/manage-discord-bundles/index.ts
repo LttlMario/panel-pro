@@ -135,11 +135,14 @@ Deno.serve(async (request) => {
       let messageId = '';
       if (publishEmbeds && !routeKey.startsWith('log_') && routeKey !== 'contract_uploads' && hasInteractiveDefinition(routeKey)) {
         const existingSettings = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
-        const oldMessage = existingSettings.data?.discord_channel_routes?.[routeKey]?.[target]?.message_id || '';
+        const oldRoute = existingSettings.data?.discord_channel_routes?.[routeKey]?.[target] || {};
+        const oldMessage = oldRoute.message_id || '';
+        const oldChannel = oldRoute.channel_id || '';
+        const canEditExisting = id(oldMessage) && String(oldChannel) === String(channel.row.id);
         // Republicarea editează strict mesajul botului deja înregistrat.
         // La prima activare, activatorul poate cere inițializarea mesajului;
         // ulterior se păstrează regula fără duplicate și se face doar PATCH.
-        if (!id(oldMessage)) {
+        if (!canEditExisting) {
           if (body.initialize_embeds === true) {
             const message = await discord(`/channels/${channel.row.id}/messages`, token, { method: 'POST', body: JSON.stringify(payload(routeKey)) });
             messageId = String(message?.id || '');
@@ -149,7 +152,7 @@ Deno.serve(async (request) => {
           continue;
           }
         }
-        if (id(oldMessage)) {
+        if (canEditExisting) {
           const response = await fetch(`${api}/channels/${channel.row.id}/messages/${oldMessage}`, { method: 'PATCH', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload(routeKey)) });
           if (!response.ok) throw new Error(`Embedul existent pentru ${routeLabels[routeKey] || routeKey} nu a putut fi editat; nu a fost creat un embed nou.`);
           const message = await response.json().catch(() => ({})); messageId = String(message?.id || oldMessage);
@@ -159,8 +162,9 @@ Deno.serve(async (request) => {
         // instalare veche a lăsat un astfel de mesaj, îl eliminăm doar dacă
         // este mesajul botului salvat în configurație.
         const existingSettings = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
-        const oldMessage = existingSettings.data?.discord_channel_routes?.[routeKey]?.[target]?.message_id || '';
-        if (id(oldMessage)) {
+        const oldRoute = existingSettings.data?.discord_channel_routes?.[routeKey]?.[target] || {};
+        const oldMessage = oldRoute.message_id || '';
+        if (id(oldMessage) && String(oldRoute.channel_id || '') === String(channel.row.id)) {
           const deleted = await fetch(`${api}/channels/${channel.row.id}/messages/${oldMessage}`, { method: 'DELETE', headers: { Authorization: `Bot ${token}` } });
           if (!deleted.ok && deleted.status !== 404) throw new Error(`Embedul vechi pentru ${routeLabels[routeKey] || routeKey} nu a putut fi șters.`);
         }
