@@ -62,8 +62,11 @@ Deno.serve(async (request) => {
     const { data: guild } = await db.from('organization_guilds').select('guild_id,kind').eq('organization_id', organizationId).eq('guild_id', guildId).eq('enabled', true).maybeSingle();
     if (!guild || String(guild.kind || 'primary') !== target) return reply({ error: 'Guild-ul nu aparține organizației sau țintei selectate.' }, 400);
     if (action === 'test') {
-      const { data: current } = await db.from('platform_module_publications').select('message_id,status').eq('module_key', moduleKey).eq('organization_id', organizationId).eq('target', target).maybeSingle();
-      return reply({ ok: true, test: { module_key: moduleKey, guild_id: guildId, target, embed_channel_id: embedChannelId, result_channel_id: resultChannelId || null, has_buttons: Array.isArray(module.definition?.buttons) && module.definition.buttons.length > 0, will_edit_existing: Boolean(current?.message_id), current_status: current?.status || 'nepublicat', payload_ready: Boolean(payload(module)) } });
+      const { data: current } = await db.from('platform_module_publications').select('message_id,status,embed_channel_id,result_channel_id').eq('module_key', moduleKey).eq('organization_id', organizationId).eq('target', target).maybeSingle();
+      const hasMessage = Boolean(current?.message_id);
+      const channelChanged = Boolean(hasMessage && String(current?.embed_channel_id || '') !== embedChannelId);
+      const resultChannelChanged = Boolean(current?.result_channel_id && String(current.result_channel_id) !== String(resultChannelId || ''));
+      return reply({ ok: true, test: { module_key: moduleKey, guild_id: guildId, target, embed_channel_id: embedChannelId, result_channel_id: resultChannelId || null, has_buttons: Array.isArray(module.definition?.buttons) && module.definition.buttons.length > 0, will_edit_existing: hasMessage && !channelChanged, channel_changed: channelChanged, result_channel_changed: resultChannelChanged, current_message_id: current?.message_id || null, current_embed_channel_id: current?.embed_channel_id || null, current_result_channel_id: current?.result_channel_id || null, current_status: current?.status || 'nepublicat', payload_ready: Boolean(payload(module)) } });
     }
     if (action === 'save_publication' || action === 'publish' || action === 'repair') {
       let messageId = String(body.message_id || '').trim();
