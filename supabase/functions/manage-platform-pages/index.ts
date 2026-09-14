@@ -154,6 +154,19 @@ Deno.serve(async (request) => {
       await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: enabled ? 'platform_custom_page_enabled' : 'platform_custom_page_disabled', target_type: 'platform_custom_page', target_id: slug, details: { enabled } });
       return reply({ ok: true, page: data });
     }
+    if (action === 'set_page_state') {
+      const slug = cleanSlug(body.slug);
+      const publication = ['draft', 'published', 'archived'].includes(String(body.publication)) ? String(body.publication) : 'draft';
+      const { data: current, error: currentError } = await db.from('platform_custom_pages').select('content').eq('slug', slug).maybeSingle();
+      if (currentError) throw currentError;
+      if (!current) return reply({ error: 'Pagina nu există.' }, 404);
+      const content = current.content && typeof current.content === 'object' ? current.content : {};
+      const settings = content.settings && typeof content.settings === 'object' ? content.settings : {};
+      const { data, error } = await db.from('platform_custom_pages').update({ content: { ...content, settings: { ...settings, publication } }, enabled: publication !== 'archived', updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() }).eq('slug', slug).select('slug,enabled,content').maybeSingle();
+      if (error) throw error;
+      await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: `platform_custom_page_${publication}`, target_type: 'platform_custom_page', target_id: slug, details: { publication } });
+      return reply({ ok: true, page: data });
+    }
     if (action === 'history') {
       const contentType = body.content_type === 'module' ? 'module' : 'page';
       const contentKey = String(body.content_key || '').trim();
