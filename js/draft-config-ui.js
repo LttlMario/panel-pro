@@ -40,9 +40,9 @@
   const fullOnlyWebhookKeys = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
   const specializedPages = new Set(['calculatorilegal.html', 'locatiiilegale.html', 'marketplace-ilegal.html', 'minigames.html']);
   const standardWebhookKeys = new Set(['departments', 'pontaj', 'weekly_reports', 'event_reminders', 'contracts', 'contract_identity_weekly', 'marketplace', 'fines_departments', 'warnings_departments', 'sanctions_departments', 'status_live', 'organization_expiration']);
-  const operationsWebhookKeys = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'actions_organization', 'event_reminders', 'illegal_marketplace', 'organization_expiration']);
+  const operationsWebhookKeys = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'actions_organization', 'illegal_marketplace']);
   const standardPages = new Set(['index.html', 'anunturi.html', 'pontaj.html', 'bucatarie.html', 'contracte.html', 'marketplace.html', 'calculator.html', 'rapoarte.html']);
-  const operationsPages = new Set(['index.html', 'anunturi.html', 'pontaj.html', 'cereri.html', 'organizatie-evenimente.html', 'calculatorilegal.html', 'locatiiilegale.html', 'marketplace-ilegal.html', 'minigames.html', 'rapoarte.html']);
+  const operationsPages = new Set(['index.html', 'anunturi.html', 'anunturi-organizatie.html', 'cereri.html', 'cereri-organizatie.html', 'calculatorilegal.html', 'locatiiilegale.html', 'marketplace-ilegal.html', 'minigames.html']);
   const defaultTemplate = `CONTRACT INDIVIDUAL\n\nAngajator: {{COMPANY}}, reprezentată de {{MANAGER}}.\nAdresă: {{ADDRESS}}.\nAngajat: {{EMPLOYEE_NAME}}, CNP {{CNP}}, telefon {{PHONE}}.\nFuncție: {{POSITION}}.\nSalariu: {{SALARY}}.\nProgram: {{PROGRAM}}.\nData începerii: {{START_DATE}}.\nNumăr contract: {{CONTRACT_NUMBER}}.`;
 
   const box = document.createElement('section');

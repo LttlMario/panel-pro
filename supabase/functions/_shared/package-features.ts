@@ -31,8 +31,8 @@ export const STANDARD_PACKAGE_FEATURES = Object.freeze([
 
 export const FULL_PACKAGE_FEATURES = Object.freeze(Object.keys(PACKAGE_FEATURES));
 export const OPERATIONS_PACKAGE_FEATURES = Object.freeze([
-  'core', 'announcements_organization', 'requests_organization', 'reports', 'discipline_organization',
-  'actions_organization', 'event_reminders',
+  'announcements_organization', 'requests_organization', 'discipline_organization',
+  'actions_organization',
   'illegal_calculator', 'illegal_locations', 'illegal_marketplace', 'illegal_minigames'
 ]);
 
@@ -54,7 +54,7 @@ export function packageLabel(packageValue: any = {}) {
 
 export function packageAllowsPage(page: string, packageValue: any = {}) {
   if (packageValue?.code === 'discord') return false;
-  if (page === 'index.html' || page === 'pontaj.html') return true;
+  if (page === 'index.html') return true;
   const enabledFeatures = resolvePackageFeatures(packageValue);
   const pageFeatures = Object.entries(PACKAGE_FEATURES)
     .filter(([, config]: any) => config.pages.includes(page))

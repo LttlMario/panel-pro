@@ -22,6 +22,7 @@ const bundles: Record<string, string[]> = {
   legal_management: ['organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization', 'requests_departments', 'contracts', 'contract_identity_weekly', 'marketplace', 'actions_organization', 'actions_organization_weekly', 'event_reminders', 'status_live', 'organization_expiration', 'log_pontaj', 'log_requests_organization', 'log_requests_departments', 'log_announcements_organization', 'log_announcements_departments', 'log_contracts', 'log_actions_organization', 'log_marketplace', 'log_event_reminders', 'log_contract_identity_weekly', 'contract_uploads'],
   illegal: ['illegal_marketplace', 'illegal_locations', 'actions_organization', 'actions_organization_weekly', 'event_reminders', 'status_live', 'stash', 'stash_requests', 'stash_donations', 'organization_expiration', 'log_illegal_marketplace', 'log_actions_organization', 'log_event_reminders', 'log_stash', 'log_stash_requests', 'log_stash_donations', 'contract_uploads']
 };
+bundles.operations = ['organization', 'requests_organization', 'actions_organization', 'illegal_marketplace', 'illegal_locations', 'log_announcements_organization', 'log_requests_organization', 'log_actions_organization', 'log_illegal_marketplace'];
 routeLabels.comenzi = 'Comenzi ilegale';
 routeLabels.log_comenzi = 'Log comenzi';
 bundles.full.splice(bundles.full.indexOf('stash_donations') + 1, 0, 'comenzi');
