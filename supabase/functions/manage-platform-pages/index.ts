@@ -388,6 +388,16 @@ Deno.serve(async (request) => {
       if (error) throw error;
       return reply({ submissions: data || [] });
     }
+    if (action === 'update_submission_status') {
+      const id = String(body.submission_id || '').trim();
+      const status = ['new', 'read', 'handled', 'archived'].includes(String(body.status)) ? String(body.status) : '';
+      if (!UUID_RE.test(id) || !status) throw new Error('Cererea sau starea este invalidă.');
+      const { data, error } = await db.from('platform_page_submissions').update({ status, updated_at: new Date().toISOString() }).eq('id', id).select('id,status,updated_at').maybeSingle();
+      if (error) throw error;
+      if (!data) return reply({ error: 'Cererea nu există.' }, 404);
+      await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: 'platform_page_submission_status_updated', target_type: 'platform_page_submission', target_id: id, details: { status } });
+      return reply({ ok: true, submission: data });
+    }
     if (action === 'restore_page') {
       const slug = cleanSlug(body.slug);
       const versionId = Number(body.version_id);
