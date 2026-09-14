@@ -39,7 +39,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'platform-page-users', 'editorul are țintire pe utilizatori'],
   ['supabase/functions/manage-platform-pages/index.ts', 'approval_status', 'publicarea poate necesita aprobare'],
   ['js/platform-assistant-workbench.js', 'data-page-approve', 'managerul poate aproba pagini'],
-  ['js/platform-assistant-workbench.js', 'data-page-reject', 'managerul poate respinge pagini'],
+  ['js/platform-assistant-workbench.js', 'pageReject', 'managerul poate respinge pagini'],
   ['js/platform-assistant-workbench.js', 'previewMode', 'preview desktop/mobil există'],
   ['administrare-module.html', 'preview-live-frame.tablet', 'preview tabletă există'],
   ['js/platform-assistant-workbench.js', 'panel_custom_page_published', 'sincronizarea între taburi există'],
