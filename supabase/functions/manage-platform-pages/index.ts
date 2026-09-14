@@ -46,6 +46,11 @@ function cleanPageVisual(value: unknown) {
   return { accent: ['cyan', 'violet', 'emerald', 'amber', 'rose'].includes(String(source.accent)) ? String(source.accent) : 'cyan', font: ['system', 'mono', 'serif'].includes(String(source.font)) ? String(source.font) : 'system', spacing: ['compact', 'comfortable', 'spacious'].includes(String(source.spacing)) ? String(source.spacing) : 'comfortable', radius: ['small', 'medium', 'large'].includes(String(source.radius)) ? String(source.radius) : 'medium' };
 }
 
+function cleanPageSeo(value: unknown) {
+  const source = value && typeof value === 'object' ? value as any : {};
+  return { title: String(source.title || '').trim().slice(0, 120), description: String(source.description || '').trim().slice(0, 160), noindex: source.noindex === true };
+}
+
 function cleanBlocks(value: unknown) {
   if (!Array.isArray(value)) throw new Error('Conținutul paginii trebuie să fie o listă de blocuri.');
   if (value.length > 40) throw new Error('Pagina poate avea maximum 40 de blocuri.');
@@ -217,9 +222,10 @@ Deno.serve(async (request) => {
       const audience = { organization_ids: Array.isArray(audienceSource.organization_ids) ? audienceSource.organization_ids.map(String).filter((value: string) => UUID_RE.test(value)).slice(0, 50) : [], role_ids: Array.isArray(audienceSource.role_ids) ? audienceSource.role_ids.map(String).filter((value: string) => /^\d{15,22}$/.test(value)).slice(0, 50) : [], user_ids: Array.isArray(audienceSource.user_ids) ? audienceSource.user_ids.map(String).filter((value: string) => /^\d{15,22}$/.test(value)).slice(0, 50) : [], device: ['all', 'desktop', 'mobile'].includes(String(audienceSource.device)) ? String(audienceSource.device) : 'all' };
       const permissions = cleanPagePermissions(sourceSettings.permissions);
       const visual = cleanPageVisual(sourceSettings.visual);
+      const seo = cleanPageSeo(sourceSettings.seo);
       const approvalRequired = sourceSettings.approval_required === true;
       const approvalStatus = approvalRequired ? (['pending', 'approved', 'rejected'].includes(String(sourceSettings.approval_status)) ? String(sourceSettings.approval_status) : 'pending') : 'approved';
-      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, publish_at: publishAt, expires_at: expiresAt, recurrence, recurrence_until: recurrenceUntil, audience, permissions, visual, approval_required: approvalRequired, approval_status: approvalStatus, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
+      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, publish_at: publishAt, expires_at: expiresAt, recurrence, recurrence_until: recurrenceUntil, audience, permissions, visual, seo, approval_required: approvalRequired, approval_status: approvalStatus, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
       const row = { slug, title, description, icon, sidebar_section: section, sort_order: Math.max(0, Math.min(9999, Number(body.sort_order) || 100)), content, enabled: body.enabled !== false, updated_by_discord_id: session.discord_id };
       const { data: existingPage } = await db.from('platform_custom_pages').select('*').eq('slug', slug).maybeSingle();
       if (existingPage) await db.from('platform_content_versions').insert({ content_type: 'page', content_key: slug, snapshot: existingPage, changed_by_discord_id: session.discord_id, change_type: 'before_save' });
