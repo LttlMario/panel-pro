@@ -82,6 +82,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'data-page-export-one', 'managerul permite exportul individual al paginii'],
   ['js/platform-assistant-workbench.js', 'platform-page-bulk-publish', 'managerul permite publicarea în lot'],
   ['js/platform-assistant-workbench.js', 'platform-page-select-visible', 'managerul poate selecta rapid paginile vizibile'],
+  ['js/platform-assistant-workbench.js', "node.closest('article')?.hidden", 'selectarea în lot ignoră paginile ascunse de paginare'],
   ['js/platform-assistant-workbench.js', "state.step='clarify'", 'asistentul cere clarificări pentru cereri generice'],
   ['js/platform-assistant-workbench.js', 'Ce tip de pagină vrei să pregătesc?', 'asistentul oferă opțiuni pentru clarificarea tipului de pagină'],
   ['js/platform-assistant-workbench.js', 'themeFrom', 'asistentul înțelege temele din limbaj natural'],
