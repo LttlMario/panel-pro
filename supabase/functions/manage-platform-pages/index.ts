@@ -108,7 +108,7 @@ function cleanBlocks(value: unknown, depth = 0) {
       if (!fields.length) throw new Error(`Formularul de la poziția ${index + 1} nu are câmpuri.`);
       result.fields = fields;
     } else if (type === 'gallery') {
-      const items = Array.isArray(block.items) ? block.items.slice(0, 20).map((item: any) => ({ title: String(item?.title || 'Imagine').trim().slice(0, 120), text: String(item?.text || '').trim().slice(0, 500), src: String(item?.src || '').trim().slice(0, 500) })).filter((item: any) => item.title && (!item.src || /^(https?:\/\/|\/|\.\/)/i.test(item.src))) : [];
+      const items = Array.isArray(block.items) ? block.items.slice(0, 20).map((item: any) => ({ title: String(item?.title || 'Imagine').trim().slice(0, 120), text: String(item?.text || '').trim().slice(0, 500), src: String(item?.src || '').trim().slice(0, 500) })).filter((item: any) => item.title && (!item.src || /^(https?:\/\/|\/(?!\/)|\.\/)/i.test(item.src))) : [];
       if (!items.length) throw new Error(`Galeria de la poziția ${index + 1} este goală.`);
       result.items = items;
     } else if (type === 'timeline') {

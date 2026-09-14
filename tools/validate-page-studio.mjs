@@ -73,6 +73,7 @@ const checks = [
   ['supabase/functions/manage-panel-modules/index.ts', 'existingPublication?.message_id', 'publicarea Discord reutilizează mesajul existent'],
   ['supabase/functions/manage-panel-modules/index.ts', 'response.status === 404', 'republicarea creează mesaj nou doar după 404'],
   ['supabase/functions/manage-platform-pages/index.ts', 'cleanPageHref', 'linkurile cardurilor sunt curățate server-side'],
+  ['supabase/functions/manage-platform-pages/index.ts', '(?!\\/)', 'sursele galeriei resping URL-urile protocol-relative'],
   ['js/platform-assistant-workbench.js', 'platform-page-pager', 'managerul are paginare'],
   ['js/platform-assistant-workbench.js', 'platform-page-sort', 'managerul are sortare'],
   ['js/platform-assistant-workbench.js', 'platform-page-category-filter', 'managerul poate filtra paginile după categorie'],
