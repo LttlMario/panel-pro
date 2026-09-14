@@ -336,6 +336,7 @@ Deno.serve(async (request) => {
       const expiresAt = parseDate(sourceSettings.expires_at);
       const recurrence = ['none', 'daily', 'weekly', 'monthly'].includes(String(sourceSettings.recurrence)) ? String(sourceSettings.recurrence) : 'none';
       const recurrenceUntil = parseDate(sourceSettings.recurrence_until);
+      if (recurrence !== 'none' && !publishAt) throw new Error('Publicarea recurentă are nevoie de o dată de început.');
       if (publishAt && expiresAt && Date.parse(expiresAt) <= Date.parse(publishAt)) throw new Error('Expirarea trebuie să fie după momentul publicării.');
       if (publishAt && recurrenceUntil && Date.parse(recurrenceUntil) <= Date.parse(publishAt)) throw new Error('Finalul repetării trebuie să fie după momentul publicării.');
       const audienceSource = sourceSettings.audience && typeof sourceSettings.audience === 'object' ? sourceSettings.audience : {};

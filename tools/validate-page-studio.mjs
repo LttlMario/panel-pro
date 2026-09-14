@@ -129,6 +129,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'repetarea are nevoie de data publicării', 'editorul validează data pentru publicarea recurentă'],
   ['supabase/functions/manage-platform-pages/index.ts', 'recurrence_until', 'backendul gestionează finalul repetării'],
   ['supabase/functions/manage-platform-pages/index.ts', 'function recurrenceActive', 'backendul calculează fereastra fiecărui ciclu'],
+  ['supabase/functions/manage-platform-pages/index.ts', 'Publicarea recurentă are nevoie de o dată de început', 'backendul refuză repetările fără ancoră'],
   ['supabase/functions/manage-platform-pages/index.ts', 'recurring:', 'health-ul paginii expune starea recurenței'],
   ['js/platform-assistant-workbench.js', 'health.recurring', 'managerul afișează starea recurenței'],
   ['js/custom-page.js', 'recurrenceStepMs', 'pagina publică respectă ferestrele recurente'],
