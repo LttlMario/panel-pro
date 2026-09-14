@@ -28,6 +28,8 @@ const checks = [
   ['supabase/functions/manage-platform-pages/index.ts', 'cleanPageHref', 'linkurile cardurilor sunt curățate server-side'],
   ['js/platform-assistant-workbench.js', 'platform-page-pager', 'managerul are paginare'],
   ['js/platform-assistant-workbench.js', 'platform-page-sort', 'managerul are sortare'],
+  ['js/platform-assistant-workbench.js', 'enhanceBlockSelection', 'editorul suportă selecție multiplă'],
+  ['js/platform-assistant-workbench.js', "event.key.toLowerCase()==='z'", 'shortcut-ul undo există'],
   ['js/platform-assistant-workbench.js', 'previewMode', 'preview desktop/mobil există'],
   ['administrare-module.html', 'preview-live-frame.tablet', 'preview tabletă există'],
   ['js/platform-assistant-workbench.js', 'panel_custom_page_published', 'sincronizarea între taburi există'],
