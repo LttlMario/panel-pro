@@ -61,6 +61,10 @@ Deno.serve(async (request) => {
     if (['publish', 'repair'].includes(action) && Array.isArray(module.definition?.buttons) && module.definition.buttons.length && !resultChannelId) return reply({ error: 'Pentru un modul cu butoane este obligatoriu canalul de rezultate.' }, 400);
     const { data: guild } = await db.from('organization_guilds').select('guild_id,kind').eq('organization_id', organizationId).eq('guild_id', guildId).eq('enabled', true).maybeSingle();
     if (!guild || String(guild.kind || 'primary') !== target) return reply({ error: 'Guild-ul nu aparține organizației sau țintei selectate.' }, 400);
+    if (action === 'test') {
+      const { data: current } = await db.from('platform_module_publications').select('message_id,status').eq('module_key', moduleKey).eq('organization_id', organizationId).eq('target', target).maybeSingle();
+      return reply({ ok: true, test: { module_key: moduleKey, guild_id: guildId, target, embed_channel_id: embedChannelId, result_channel_id: resultChannelId || null, has_buttons: Array.isArray(module.definition?.buttons) && module.definition.buttons.length > 0, will_edit_existing: Boolean(current?.message_id), current_status: current?.status || 'nepublicat', payload_ready: Boolean(payload(module)) } });
+    }
     if (action === 'save_publication' || action === 'publish' || action === 'repair') {
       let messageId = String(body.message_id || '').trim();
       const botToken = await getPlatformSecret(db, 'discord_bot_token'); if (!botToken) return reply({ error: 'DISCORD_BOT_TOKEN lipsește din Supabase.' }, 500);
