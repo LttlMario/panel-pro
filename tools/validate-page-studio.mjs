@@ -79,6 +79,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'data-page-clone', 'managerul permite duplicarea rapidă a paginilor'],
   ['js/platform-assistant-workbench.js', 'data-page-export-one', 'managerul permite exportul individual al paginii'],
   ['js/platform-assistant-workbench.js', 'platform-page-bulk-publish', 'managerul permite publicarea în lot'],
+  ['js/platform-assistant-workbench.js', 'platform-page-select-visible', 'managerul poate selecta rapid paginile vizibile'],
   ['js/platform-assistant-workbench.js', 'selectedPages', 'managerul păstrează selecția multiplă a paginilor'],
   ['js/platform-assistant-workbench.js', 'enhanceBlockSelection', 'editorul suportă selecție multiplă'],
   ['js/platform-assistant-workbench.js', "event.key.toLowerCase()==='z'", 'shortcut-ul undo există'],
