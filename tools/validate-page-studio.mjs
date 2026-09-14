@@ -46,6 +46,7 @@ const checks = [
   ['supabase/functions/manage-platform-pages/index.ts', 'allowRequest', 'endpointul constructorului are rate-limit'],
   ['supabase/functions/manage-platform-pages/index.ts', 'pagePermissionAllows', 'backendul aplică permisiuni pe acțiunile de administrare'],
   ['supabase/functions/manage-platform-pages/index.ts', 'Conținutul conține markup sau cod nesigur', 'backendul scanează conținutul importat'],
+  ['supabase/functions/manage-platform-pages/index.ts', 'Structura grupurilor este prea adâncă', 'backendul limitează adâncimea grupurilor'],
   ['supabase/functions/manage-platform-pages/index.ts', "action === 'audit'", 'backendul expune auditul paginii'],
   ['js/platform-assistant-workbench.js', 'data-page-audit', 'managerul afișează auditul paginii'],
   ['supabase/functions/manage-platform-pages/index.ts', "body.publish === true ? 'publish'", 'publicarea folosește permisiunea publish'],

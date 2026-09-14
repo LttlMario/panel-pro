@@ -71,8 +71,9 @@ function pagePermissionAllows(page: any, action: string, session: any) {
   return (Array.isArray(rule.organization_ids) && rule.organization_ids.map(String).includes(organization)) || (Array.isArray(rule.user_ids) && rule.user_ids.map(String).includes(discordId)) || (Array.isArray(rule.role_ids) && roleIds.some((role: string) => rule.role_ids.map(String).includes(role)));
 }
 
-function cleanBlocks(value: unknown) {
+function cleanBlocks(value: unknown, depth = 0) {
   if (!Array.isArray(value)) throw new Error('Conținutul paginii trebuie să fie o listă de blocuri.');
+  if (depth > 3) throw new Error('Structura grupurilor este prea adâncă.');
   if (value.length > 40) throw new Error('Pagina poate avea maximum 40 de blocuri.');
   const serialized = JSON.stringify(value);
   if (serialized.length > 220_000) throw new Error('Conținutul paginii este prea mare. Redu textul sau numărul de imagini.');
@@ -123,7 +124,7 @@ function cleanBlocks(value: unknown) {
       if (!items.length) throw new Error(`Acordeonul de la poziția ${index + 1} este gol.`);
       result.items = items;
     } else if (type === 'group') {
-      const blocks = Array.isArray(block.blocks) ? cleanBlocks(block.blocks).slice(0, 12) : [];
+      const blocks = Array.isArray(block.blocks) ? cleanBlocks(block.blocks, depth + 1).slice(0, 12) : [];
       if (!blocks.length) throw new Error(`Grupul de la poziția ${index + 1} este gol.`);
       result.title = String(block.title || 'Grup').trim().slice(0, 120); result.blocks = blocks;
     } else if (type === 'banner') {
