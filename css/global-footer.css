@@ -306,7 +306,7 @@ body:has(#panel-global-footer) > [data-panel-footer-host] {
 .panel-sponsorship span { position:absolute; margin-top:150px; font-size:.65rem; opacity:.75; }
 .panel-sponsorship-small { max-width:360px; }.panel-sponsorship-medium { max-width:620px; }.panel-sponsorship-large { max-width:900px; }.panel-sponsorship-wide,.panel-sponsorship-leaderboard { max-width:1100px; }
 .panel-sponsorship-top { margin-top:0; }.panel-sponsorship-sidebar { width:100%; }
-#panel-sponsorship-rail { position:fixed; top:6.5rem; right:1rem; width:clamp(190px,18vw,300px); max-height:calc(100vh - 8rem); overflow-y:auto; display:flex; flex-direction:column; gap:.75rem; z-index:30; pointer-events:none; }
+#panel-sponsorship-rail { position:fixed; top:6.5rem; right:1rem; width:clamp(190px,18vw,300px); max-height:none; overflow:visible; display:flex; flex-direction:column; gap:.75rem; z-index:30; pointer-events:none; }
 #panel-sponsorship-rail .panel-sponsorship { pointer-events:auto; width:100%; }
 @media (max-width:1100px){#panel-sponsorship-rail{position:relative;top:auto;right:auto;width:min(100% - 2rem,700px);max-height:none;margin:1rem auto;pointer-events:auto}#panel-sponsorship-rail .panel-sponsorship{width:100%}}
 @media (max-width:767px){.panel-sponsorship img{max-height:130px}.panel-sponsorship span{margin-top:100px}}
