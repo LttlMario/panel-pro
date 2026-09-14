@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sponsorizări și bannere · Panel Pro</title>
+  <link rel="stylesheet" href="css/tailwind.css"><link rel="stylesheet" href="css/global-footer.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js?v=20260820-session-date-fix"></script>
+  <script src="js/permissions.js?v=20260914-sponsorships"></script><script src="js/panel-layout.js?v=20260914-sponsorships"></script>
+  <script src="js/project-version.js?v=3.13.0"></script><script src="js/global-footer.js?v=20260914-sponsorships"></script>
+  <style>
+    .field{width:100%;border:1px solid #334155;background:#020617;color:#e2e8f0;border-radius:.75rem;padding:.7rem .8rem}.label{display:block;color:#94a3b8;font-size:.75rem;font-weight:700;margin-bottom:.35rem}.card{border:1px solid #1e293b;background:#0f172a;border-radius:1rem;padding:1.25rem}.button{border-radius:.75rem;padding:.7rem 1rem;font-weight:800;font-size:.8rem}.primary{background:#06b6d4;color:#082f49}.muted{color:#94a3b8;font-size:.75rem}.banner-preview{border:1px dashed #475569;border-radius:.9rem;padding:.5rem;background:#020617}.banner-preview img{max-height:150px;width:100%;object-fit:cover;border-radius:.6rem}
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <main class="max-w-7xl mx-auto px-4 py-8 space-y-6">
+    <section class="card"><p class="text-cyan-300 text-xs font-black uppercase tracking-widest">Administrator global</p><h1 class="text-3xl font-black mt-2">📣 Sponsorizări și bannere</h1><p class="muted mt-2">Creează reclame directe care apar automat în paginile web selectate. Dacă nu există una activă, paginile rămân neschimbate.</p></section>
+    <div class="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6">
+      <section class="card space-y-4"><div class="flex items-center justify-between"><div><h2 class="text-xl font-black">Banner nou</h2><p class="muted">Completează datele sponsorului și perioada.</p></div><button id="new-button" class="button border border-slate-700">Curăță</button></div>
+        <input id="sponsor-id" type="hidden"><label><span class="label">Nume sponsor</span><input id="sponsor-name" class="field" placeholder="Ex: FiveM Hosting"></label>
+        <label><span class="label">Titlu reclamă</span><input id="sponsor-title" class="field" placeholder="Ex: Servere FiveM rapide"></label>
+        <label><span class="label">Imagine / banner (URL)</span><input id="image-url" type="url" class="field" placeholder="https://.../banner.png"></label>
+        <label><span class="label">Link la clic</span><input id="target-url" type="url" class="field" placeholder="https://..." value="https://"></label>
+        <div class="grid sm:grid-cols-2 gap-3"><label><span class="label">Dimensiune</span><select id="size" class="field"><option value="small">Mic</option><option value="medium" selected>Mediu</option><option value="large">Mare</option><option value="wide">Lat</option><option value="leaderboard">Leaderboard</option></select></label><label><span class="label">Poziție</span><select id="placement" class="field"><option value="sidebar" selected>Partea dreaptă, bară laterală</option><option value="footer">Zona de jos, înainte de footer</option><option value="dashboard">Zona de sponsorizări</option><option value="top">Zona de sus</option></select></label></div>
+        <label><span class="label">Pagini unde apare</span><input id="pages" class="field" value="*" placeholder="* sau index.html, marketplace.html"></label><p class="muted">Folosește <b>*</b> pentru toate paginile care încarcă footerul sau separă paginile prin virgulă.</p>
+        <div class="grid sm:grid-cols-2 gap-3"><label><span class="label">Începe la</span><input id="starts-at" type="datetime-local" class="field"></label><label><span class="label">Expiră la (opțional)</span><input id="ends-at" type="datetime-local" class="field"></label></div>
+        <div class="grid sm:grid-cols-2 gap-3"><label><span class="label">Prioritate</span><input id="priority" type="number" min="0" max="9999" class="field" value="100"></label><label class="flex items-center gap-2 pt-6"><input id="active" type="checkbox" checked><span class="text-sm">Activ imediat</span></label></div>
+        <button id="save-button" class="button primary w-full">Salvează sponsorizarea</button><p id="status" class="muted"></p>
+      </section>
+      <section class="card"><div class="flex items-center justify-between mb-4"><div><h2 class="text-xl font-black">Sponsorizări existente</h2><p class="muted">Activează, editează sau elimină bannerele.</p></div><button id="refresh-button" class="button border border-slate-700">Reîncarcă</button></div><div id="list" class="space-y-3"><p class="muted">Se încarcă...</p></div></section>
+    </div>
+  </main>
+  <script src="js/platform-sponsorship-admin.js?v=20260914"></script>
+</body>
+</html>

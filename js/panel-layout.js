@@ -1387,6 +1387,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 ['administrare-organizatii-platforma.html', '🗂️', 'Administrare organizații'],
                 ['activator-organizatie.html', '⚡', 'Activator organizație'],
                 ['administrare-module.html', '🧩', 'Constructor module Panel Pro'],
+                ['sponsorizari.html', '📣', 'Sponsorizări și bannere'],
                 ['secrete-platforma.html', '🔐', 'Secrete platformă'],
                 ['setari-platforma.html', '🔧', 'Setări platformă'],
                 ['developer.html', '🛠️', 'Developer'],

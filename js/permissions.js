@@ -21,6 +21,7 @@ const AdministrativePages = new Set([
     'secrete-platforma.html',
     'setari-platforma.html'
     ,'administrare-module.html'
+    ,'sponsorizari.html'
     ,'custom-page.html'
 ]);
 

@@ -274,6 +274,9 @@
     createFooter();
     createDialog();
     bindEvents();
+    const sponsorshipScript = document.createElement('script');
+    sponsorshipScript.src = 'js/platform-sponsorships.js?v=20260914';
+    document.head.appendChild(sponsorshipScript);
   }
 
   if (document.readyState === "loading") {
