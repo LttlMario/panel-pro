@@ -12,6 +12,8 @@
 
 Asistentul reține local ultimele preferințe de categorie, acces, layout și temă. Pentru cereri neclare oferă acțiuni rapide, iar intenții precum creare, publicare, editare, duplicare sau gestionare sunt detectate automat. Poți cere direct o pagină cu formular, galerie, cronologie/timeline sau calculator; blocurile apar atât în previzualizare, cât și în editorul vizual.
 
+În panoul **Permisiuni pe acțiuni** poți folosi preseturi sau identificatori expliciți: `role:ID`, `user:ID` și `org:UUID`. Regulile pot fi separate pentru citire, scriere, editare, aprobare, publicare, arhivare și ștergere și pot avea o dată de expirare.
+
 ## Ce se întâmplă la publicare
 
 - pagina este salvată cu starea `published`;
@@ -22,6 +24,7 @@ Asistentul reține local ultimele preferințe de categorie, acces, layout și te
 - pagina poate fi depublicată, arhivată, restaurată sau ștearsă din manager.
 - managerul permite filtrare, căutare, export/import și acțiuni rapide pentru istoric, deschidere și copierea linkului;
 - editorul acceptă blocuri de formular, galerie, timeline și calculator, pe lângă carduri, FAQ, statistici, tabele și liste.
+- paginile pot fi limitate la audiențe și reguli de citire individuale, iar backend-ul filtrează aceste reguli înainte de livrare.
 
 ## Siguranță și compatibilitate
 

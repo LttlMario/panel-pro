@@ -45,6 +45,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'platform-page-permission-preset', 'permisiunile au preseturi rapide'],
   ['supabase/functions/manage-platform-pages/index.ts', 'cleanPagePermissions', 'backendul curăță permisiunile paginilor'],
   ['supabase/functions/manage-platform-pages/index.ts', 'permissionAllowed', 'citirea paginii verifică permisiunile configurate'],
+  ['docs/page-constructor.md', 'Permisiuni pe acțiuni', 'documentația descrie permisiunile pe acțiuni'],
   ['supabase/functions/manage-platform-pages/index.ts', 'approval_status', 'publicarea poate necesita aprobare'],
   ['js/platform-assistant-workbench.js', 'galerie goală la blocul', 'verificarea validează galeriile'],
   ['js/platform-assistant-workbench.js', 'data-page-approve', 'managerul poate aproba pagini'],
