@@ -79,6 +79,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'platform-page-users', 'editorul are țintire pe utilizatori'],
   ['js/platform-assistant-workbench.js', 'permissionActions', 'editorul are permisiuni separate pe acțiuni'],
   ['js/platform-assistant-workbench.js', 'platform-page-permission-preset', 'permisiunile au preseturi rapide'],
+  ['js/platform-assistant-workbench.js', 'data-copy-page-permissions', 'constructorul poate copia permisiunile unei pagini existente'],
   ['supabase/functions/manage-platform-pages/index.ts', 'cleanPagePermissions', 'backendul curăță permisiunile paginilor'],
   ['supabase/functions/manage-platform-pages/index.ts', 'permissionAllowed', 'citirea paginii verifică permisiunile configurate'],
   ['docs/page-constructor.md', 'Permisiuni pe acțiuni', 'documentația descrie permisiunile pe acțiuni'],
