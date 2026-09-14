@@ -316,7 +316,27 @@ Deno.serve(async (request) => {
       throw new Error(`Canalul Discord pentru ${finalChannel} nu este configurat pentru organizația activă.`);
     }
 
-    const editExistingControlMessage = !requestedPostOnly && ['pontaj', 'requests_organization', 'requests_departments', 'organization', 'departments', 'contracts', 'stash', 'stash_requests', 'stash_donations', 'comenzi'].includes(finalChannel);
+    // Toate panourile publicate din configurarea web sunt panouri persistente:
+    // dacă există deja mesajul salvat pentru ruta respectivă, îl actualizăm;
+    // nu publicăm un al doilea embed la fiecare modificare.
+    const editExistingControlMessage = !requestedPostOnly && [
+      'pontaj',
+      'requests_organization',
+      'requests_departments',
+      'organization',
+      'departments',
+      'contracts',
+      'stash',
+      'stash_requests',
+      'stash_donations',
+      'marketplace',
+      'illegal_marketplace',
+      'illegal_locations',
+      'event_reminders',
+      'contract_identity_weekly',
+      'actions_organization',
+      'comenzi',
+    ].includes(finalChannel);
     const isPontajLog = finalChannel === 'log_pontaj';
     const isRequestsLog = ['log_requests_organization', 'log_requests_departments'].includes(finalChannel);
     const pontajMessageKey = requestedMessageKey || 'organization';
