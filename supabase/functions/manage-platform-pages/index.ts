@@ -53,6 +53,11 @@ function cleanPageSeo(value: unknown) {
   return { title: String(source.title || '').trim().slice(0, 120), description: String(source.description || '').trim().slice(0, 160), noindex: source.noindex === true };
 }
 
+function cleanPreviewToken(value: unknown) {
+  const token = String(value || '').trim();
+  return /^[A-Za-z0-9_-]{20,120}$/.test(token) ? token : null;
+}
+
 function pagePermissionAllows(page: any, action: string, session: any) {
   if (session?.is_platform_admin) return true;
   const rule = page?.content?.settings?.permissions?.[action];
@@ -170,7 +175,7 @@ Deno.serve(async (request) => {
     if (!key) return reply({ error: 'Cheia serverului lipsește.' }, 500);
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
     const body = await request.json().catch(() => ({}));
-    const action = String(body.action || 'list').trim();
+      const action = String(body.action || 'list').trim();
     const identity = request.headers.get('x-panel-session') || request.headers.get('authorization') || request.headers.get('cf-connecting-ip') || 'anonymous';
     if (!allowRequest(identity.slice(0, 180))) return reply({ error: 'Prea multe solicitări. Încearcă din nou peste un minut.' }, 429);
     if (action === 'public_list') {
@@ -181,6 +186,7 @@ Deno.serve(async (request) => {
       const needsSession = (data || []).some((page: any) => { const permissions = page?.content?.settings?.permissions?.read; return permissions && (permissions.organization_ids?.length || permissions.role_ids?.length || permissions.user_ids?.length); });
       if (request.headers.get('x-panel-session') || needsSession) { try { audienceSession = await requirePanelSession(db, request, 0, true); authenticated = true; } catch (_) {} }
       const now = Date.now();
+      const previewToken = cleanPreviewToken(body.preview_token);
       const pages = (data || []).filter((page: any) => {
         const settings = page?.content?.settings || {};
         const publishAt = settings.publish_at ? Date.parse(String(settings.publish_at)) : NaN;
@@ -199,8 +205,9 @@ Deno.serve(async (request) => {
         const permissionActive = !permissionExpiry || Date.parse(String(permissionExpiry)) > now;
         const permissionAllowed = (!readPermission.organization_ids?.length || (audienceSession && readPermission.organization_ids.includes(String(audienceSession.organization_id)))) && (!readPermission.role_ids?.length || (audienceSession && audienceSession.discord_role_ids.some((role: string) => readPermission.role_ids.includes(String(role))))) && (!readPermission.user_ids?.length || (audienceSession && readPermission.user_ids.includes(String(audienceSession.discord_id))));
         const approvalAllowed = settings.approval_required !== true || settings.approval_status === 'approved';
-        const active = settings.publication !== 'draft' && approvalAllowed && (!Number.isFinite(publishAt) || publishAt <= now) && (!Number.isFinite(expiresAt) || expiresAt > now) && (!Number.isFinite(recurrenceUntil) || recurrenceUntil > now);
-        return active && permissionActive && permissionAllowed && audienceAllowed && (String(settings.access || 'global_admin') === 'public' || (authenticated && String(settings.access || '') === 'authenticated'));
+        const privatePreview = Boolean(previewToken && settings.preview_token === previewToken);
+        const active = privatePreview || (settings.publication !== 'draft' && approvalAllowed && (!Number.isFinite(publishAt) || publishAt <= now) && (!Number.isFinite(expiresAt) || expiresAt > now) && (!Number.isFinite(recurrenceUntil) || recurrenceUntil > now));
+        return active && (privatePreview || (permissionActive && permissionAllowed && audienceAllowed && (String(settings.access || 'global_admin') === 'public' || (authenticated && String(settings.access || '') === 'authenticated'))));
       });
       return reply({ pages });
     }
@@ -249,9 +256,10 @@ Deno.serve(async (request) => {
       const permissions = cleanPagePermissions(sourceSettings.permissions);
       const visual = cleanPageVisual(sourceSettings.visual);
       const seo = cleanPageSeo(sourceSettings.seo);
+      const previewToken = cleanPreviewToken(sourceSettings.preview_token);
       const approvalRequired = sourceSettings.approval_required === true;
       const approvalStatus = approvalRequired ? (['pending', 'approved', 'rejected'].includes(String(sourceSettings.approval_status)) ? String(sourceSettings.approval_status) : 'pending') : 'approved';
-      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, publish_at: publishAt, expires_at: expiresAt, recurrence, recurrence_until: recurrenceUntil, audience, permissions, visual, seo, approval_required: approvalRequired, approval_status: approvalStatus, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
+      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, publish_at: publishAt, expires_at: expiresAt, recurrence, recurrence_until: recurrenceUntil, audience, permissions, visual, seo, preview_token: previewToken, approval_required: approvalRequired, approval_status: approvalStatus, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
       const row = { slug, title, description, icon, sidebar_section: section, sort_order: Math.max(0, Math.min(9999, Number(body.sort_order) || 100)), content, enabled: body.enabled !== false, updated_by_discord_id: session.discord_id };
       const { data: existingPage } = await db.from('platform_custom_pages').select('*').eq('slug', slug).maybeSingle();
       if (existingPage) await db.from('platform_content_versions').insert({ content_type: 'page', content_key: slug, snapshot: existingPage, changed_by_discord_id: session.discord_id, change_type: 'before_save' });
