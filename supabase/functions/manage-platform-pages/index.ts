@@ -82,7 +82,7 @@ function cleanBlocks(value: unknown) {
     }
     if (type === 'link' || type === 'button') {
       const href = String(block.href || '').trim();
-      if (!/^[a-z0-9][a-z0-9-]{1,79}\.html(?:[?#].*)?$/i.test(href)) throw new Error('Legăturile paginilor custom pot indica doar pagini Panel Pro.');
+      if (href !== '#' && !/^[a-z0-9][a-z0-9-]{1,79}\.html(?:[?#].*)?$/i.test(href)) throw new Error('Legăturile paginilor custom pot indica doar pagini Panel Pro sau ancora # pentru acțiuni locale.');
       result.href = href;
     }
     return result;
