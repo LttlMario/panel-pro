@@ -95,10 +95,16 @@ Deno.serve(async (request) => {
     const key = secretKey();
     if (!key) return reply({ error: 'Cheia serverului lipsește.' }, 500);
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
-    const session = await requirePanelSession(db, request, 0, true);
-    if (!(session.is_platform_admin || await isPlatformAdminAccount(db, session.discord_id))) return reply({ error: 'Acces permis doar administratorului global.' }, 403);
     const body = await request.json().catch(() => ({}));
     const action = String(body.action || 'list').trim();
+    if (action === 'public_list') {
+      const { data, error } = await db.from('platform_custom_pages').select('slug,title,description,icon,sidebar_section,sort_order,content,enabled,updated_at').eq('enabled', true).order('sidebar_section').order('sort_order').order('title');
+      if (error) throw error;
+      const pages = (data || []).filter((page: any) => page?.content?.settings?.publication !== 'draft' && ['public', 'authenticated'].includes(String(page?.content?.settings?.access || 'global_admin')));
+      return reply({ pages });
+    }
+    const session = await requirePanelSession(db, request, 0, true);
+    if (!(session.is_platform_admin || await isPlatformAdminAccount(db, session.discord_id))) return reply({ error: 'Acces permis doar administratorului global.' }, 403);
     if (action === 'list') {
       const [{ data: pages, error: pagesError }, { data: modules, error: modulesError }] = await Promise.all([
         db.from('platform_custom_pages').select('slug,title,description,icon,sidebar_section,sort_order,content,enabled,updated_at').order('sidebar_section').order('sort_order').order('title'),
@@ -120,7 +126,9 @@ Deno.serve(async (request) => {
       const sourceSettings = body.content?.settings && typeof body.content.settings === 'object' ? body.content.settings : {};
       const access = ['public', 'authenticated', 'global_admin'].includes(String(sourceSettings.access)) ? String(sourceSettings.access) : 'global_admin';
       const layout = ['single', 'wide', 'two-column'].includes(String(sourceSettings.layout)) ? String(sourceSettings.layout) : 'single';
-      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'panel-pro').slice(0, 40), responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
+      const category = ['legal', 'illegal', 'both'].includes(String(sourceSettings.category)) ? String(sourceSettings.category) : 'both';
+      const publication = body.publish === true ? 'published' : body.publish === false ? 'draft' : (sourceSettings.publication === 'draft' ? 'draft' : 'published');
+      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
       const row = { slug, title, description, icon, sidebar_section: section, sort_order: Math.max(0, Math.min(9999, Number(body.sort_order) || 100)), content, enabled: body.enabled !== false, updated_by_discord_id: session.discord_id };
       const { data: existingPage } = await db.from('platform_custom_pages').select('*').eq('slug', slug).maybeSingle();
       if (existingPage) await db.from('platform_content_versions').insert({ content_type: 'page', content_key: slug, snapshot: existingPage, changed_by_discord_id: session.discord_id, change_type: 'before_save' });

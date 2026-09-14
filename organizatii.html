@@ -1968,6 +1968,20 @@ renderRoles = () => {
     salary.value = organization?.platform_settings?.contract_template?.defaults?.salary || '';
   };
 })();
+</script><script>
+// Pagini custom publicate de constructor: apar automat și în selectorul de permisiuni.
+(async () => {
+  try {
+    if (typeof window.panelRequestJson !== 'function' || !Array.isArray(pagePermissionGroups)) return;
+    const result = await window.panelRequestJson('manage-platform-pages', { method: 'POST', body: JSON.stringify({ action: 'public_list' }), timeoutMs: 10000, retry: true });
+    const pages = (result.pages || []).filter((page) => /^[a-z][a-z0-9-]{1,79}\.html$/.test(String(page.slug || '')));
+    if (!pages.length) return;
+    let group = pagePermissionGroups.find((item) => item.key === 'custom');
+    if (!group) { group = { key: 'custom', label: 'Pagini create cu asistentul', mode: 'individual', pages: [] }; pagePermissionGroups.push(group); }
+    pages.forEach((page) => { if (!group.pages.some(([slug]) => slug === page.slug)) group.pages.push([page.slug, `${page.icon || '📄'} ${page.title || page.slug}`]); });
+    renderPagePermissions();
+  } catch (_) { /* paginile custom rămân opționale dacă funcția nu este disponibilă */ }
+})();
 </script><script src="js/organization-packages.js?v=3.10.0"></script><script src="js/organization-webhook-extension.js?v=3.10.0"></script><script src="js/discord-notifications.js?v=20260902-live-channel-routes"></script><script src="js/discord-channel-config.js?v=20260913-orders-embed-v2"></script><script src="js/global-footer.js?v=3.10.0"></script></body></html>
 
 

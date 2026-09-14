@@ -478,6 +478,8 @@ if (settingsError) {
     'stash.html',
     'comenzi.html'
   ]);
+  const { data: customPages } = await db.from('platform_custom_pages').select('slug').eq('enabled', true);
+  (customPages || []).forEach((page:any) => { if (/^[a-z][a-z0-9-]{1,79}\.html$/.test(String(page.slug || ''))) allowedPages.add(String(page.slug)); });
 
 
 

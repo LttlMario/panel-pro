@@ -1438,10 +1438,10 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
     }
 
     async function loadPlatformCustomNavigation(navigation, currentPage) {
-        if (!navigation || typeof isPlatformAdmin !== 'function' || !isPlatformAdmin() || typeof window.panelRequestJson !== 'function') return;
+        if (!navigation || typeof window.panelRequestJson !== 'function') return;
         try {
-            const result = await window.panelRequestJson('manage-platform-pages', { method: 'POST', body: JSON.stringify({ action: 'list' }), timeoutMs: 10000, retry: true });
-            const pages = Array.isArray(result?.pages) ? result.pages.filter((page) => page?.enabled !== false && /^[a-z][a-z0-9-]{1,79}\.html$/.test(String(page.slug || ''))) : [];
+            const result = await window.panelRequestJson('manage-platform-pages', { method: 'POST', body: JSON.stringify({ action: typeof isPlatformAdmin === 'function' && isPlatformAdmin() ? 'list' : 'public_list' }), timeoutMs: 10000, retry: true });
+            const pages = Array.isArray(result?.pages) ? result.pages.filter((page) => page?.enabled !== false && page?.content?.settings?.publication !== 'draft' && /^[a-z][a-z0-9-]{1,79}\.html$/.test(String(page.slug || ''))) : [];
             const groups = new Map();
             pages.forEach((page) => {
                 const section = navigation.querySelector(`[data-nav-section="${CSS.escape(String(page.sidebar_section || 'administratie'))}"] .panel-nav-section-links`);
