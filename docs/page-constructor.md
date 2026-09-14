@@ -14,6 +14,8 @@ Asistentul reține local ultimele preferințe de categorie, acces, layout și te
 
 În panoul **Permisiuni pe acțiuni** poți folosi preseturi sau identificatori expliciți: `role:ID`, `user:ID` și `org:UUID`. Regulile pot fi separate pentru citire, scriere, editare, aprobare, publicare, arhivare și ștergere și pot avea o dată de expirare.
 
+Pentru verificarea unui draft fără publicare, deschide **Preview privat**, generează tokenul, salvează pagina și copiază linkul. Tokenul este verificat de funcția Supabase și nu schimbă vizibilitatea publică a paginii.
+
 ## Ce se întâmplă la publicare
 
 - pagina este salvată cu starea `published`;
