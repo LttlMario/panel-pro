@@ -71,7 +71,17 @@
     .muted { color: #94a3b8; }
     @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
   </style>
-</head>
+  <style>
+    #custom-page[data-page-theme="light"] { color:#0f172a; background:#f8fafc; }
+    #custom-page[data-page-theme="light"] .custom-page-hero, #custom-page[data-page-theme="light"] .custom-page-block { background:linear-gradient(145deg,#fff,#f1f5f9); border-color:#cbd5e1; }
+    #custom-page[data-page-theme="light"] .custom-page-block p, #custom-page[data-page-theme="light"] .custom-page-block ul, #custom-page[data-page-theme="light"] .custom-page-faq summary { color:#475569; }
+    #custom-page[data-page-theme="light"] .custom-page-cards article, #custom-page[data-page-theme="light"] .custom-page-stats article, #custom-page[data-page-theme="light"] .custom-page-tabs details, #custom-page[data-page-theme="light"] .custom-page-gallery figure { background:#fff; border-color:#cbd5e1; }
+    #custom-page[data-page-theme="contrast"] { color:#fff; background:#000; }
+    #custom-page[data-page-theme="contrast"] .custom-page-hero, #custom-page[data-page-theme="contrast"] .custom-page-block { background:#050505; border-color:#facc15; }
+    #custom-page[data-page-theme="contrast"] .custom-page-block p, #custom-page[data-page-theme="contrast"] .custom-page-block ul { color:#fef08a; }
+    #custom-page[data-page-theme="midnight"] .custom-page-hero, #custom-page[data-page-theme="midnight"] .custom-page-block { background:linear-gradient(145deg,#020617,#000); border-color:#334155; }
+  </style>
+  </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
   <main>
     <div id="panel-header-host"></div>
