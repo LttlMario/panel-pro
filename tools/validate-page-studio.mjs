@@ -36,6 +36,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'platform-page-seo-title', 'constructorul permite setări SEO'],
   ['js/custom-page.js', 'applySeo', 'pagina publicată aplică meta SEO'],
   ['supabase/functions/manage-platform-pages/index.ts', 'cleanPageSeo', 'backendul validează setările SEO'],
+  ['supabase/functions/manage-platform-pages/index.ts', 'allowRequest', 'endpointul constructorului are rate-limit'],
   ['supabase/functions/manage-platform-pages/index.ts', 'cleanPageHref', 'linkurile cardurilor sunt curățate server-side'],
   ['js/platform-assistant-workbench.js', 'platform-page-pager', 'managerul are paginare'],
   ['js/platform-assistant-workbench.js', 'platform-page-sort', 'managerul are sortare'],
