@@ -77,6 +77,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'platform-page-sort', 'managerul are sortare'],
   ['js/platform-assistant-workbench.js', 'platform-page-category-filter', 'managerul poate filtra paginile după categorie'],
   ['js/platform-assistant-workbench.js', 'data-page-clone', 'managerul permite duplicarea rapidă a paginilor'],
+  ['js/platform-assistant-workbench.js', 'uniquePageSlug', 'duplicarea generează sluguri unice'],
   ['js/platform-assistant-workbench.js', 'data-page-export-one', 'managerul permite exportul individual al paginii'],
   ['js/platform-assistant-workbench.js', 'platform-page-bulk-publish', 'managerul permite publicarea în lot'],
   ['js/platform-assistant-workbench.js', 'platform-page-select-visible', 'managerul poate selecta rapid paginile vizibile'],
