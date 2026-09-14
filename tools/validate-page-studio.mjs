@@ -86,6 +86,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'Ce tip de pagină vrei să pregătesc?', 'asistentul oferă opțiuni pentru clarificarea tipului de pagină'],
   ['js/platform-assistant-workbench.js', 'themeFrom', 'asistentul înțelege temele din limbaj natural'],
   ['js/platform-assistant-workbench.js', 'deviceFrom', 'asistentul înțelege audiența pe dispozitiv'],
+  ['js/platform-assistant-workbench.js', 'device:state.draft.content.settings.audience?.device', 'preferințele memorează dispozitivul ales'],
   ['administrare-module.html', 'value="midnight"', 'constructorul oferă preseturi vizuale suplimentare'],
   ['js/custom-page.js', 'pageTheme', 'pagina publicată aplică tema aleasă'],
   ['supabase/functions/manage-platform-pages/index.ts', 'themeValue', 'backendul validează tema paginii'],
