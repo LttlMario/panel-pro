@@ -11,6 +11,7 @@ const headers = {
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const secretKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
 const sections = new Set(['management', 'resurse', 'ilegal', 'administratie', 'feedback']);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const icons = /^[\p{Extended_Pictographic}\p{Emoji_Presentation}\w\s-]{1,8}$/u;
 
 function cleanSlug(value: unknown) {
@@ -132,14 +133,21 @@ Deno.serve(async (request) => {
       const { data, error } = await db.from('platform_custom_pages').select('slug,title,description,icon,sidebar_section,sort_order,content,enabled,updated_at').eq('enabled', true).order('sidebar_section').order('sort_order').order('title');
       if (error) throw error;
       let authenticated = false;
-      if (request.headers.get('x-panel-session')) { try { await requirePanelSession(db, request, 0, true); authenticated = true; } catch (_) {} }
+      let audienceSession: any = null;
+      if (request.headers.get('x-panel-session')) { try { audienceSession = await requirePanelSession(db, request, 0, true); authenticated = true; } catch (_) {} }
       const now = Date.now();
       const pages = (data || []).filter((page: any) => {
         const settings = page?.content?.settings || {};
         const publishAt = settings.publish_at ? Date.parse(String(settings.publish_at)) : NaN;
         const expiresAt = settings.expires_at ? Date.parse(String(settings.expires_at)) : NaN;
+        const audience = settings.audience && typeof settings.audience === 'object' ? settings.audience : {};
+        const organizations = Array.isArray(audience.organization_ids) ? audience.organization_ids.map(String) : [];
+        const roles = Array.isArray(audience.role_ids) ? audience.role_ids.map(String) : [];
+        const device = String(audience.device || 'all');
+        const requestDevice = String(request.headers.get('x-panel-device') || 'all');
+        const audienceAllowed = (!organizations.length || (audienceSession && organizations.includes(String(audienceSession.organization_id)))) && (!roles.length || (audienceSession && audienceSession.discord_role_ids.some((role: string) => roles.includes(String(role))))) && (device === 'all' || requestDevice === 'all' || device === requestDevice);
         const active = settings.publication !== 'draft' && (!Number.isFinite(publishAt) || publishAt <= now) && (!Number.isFinite(expiresAt) || expiresAt > now);
-        return active && (String(settings.access || 'global_admin') === 'public' || (authenticated && String(settings.access || '') === 'authenticated'));
+        return active && audienceAllowed && (String(settings.access || 'global_admin') === 'public' || (authenticated && String(settings.access || '') === 'authenticated'));
       });
       return reply({ pages });
     }
@@ -172,7 +180,9 @@ Deno.serve(async (request) => {
       const publishAt = parseDate(sourceSettings.publish_at);
       const expiresAt = parseDate(sourceSettings.expires_at);
       if (publishAt && expiresAt && Date.parse(expiresAt) <= Date.parse(publishAt)) throw new Error('Expirarea trebuie să fie după momentul publicării.');
-      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, publish_at: publishAt, expires_at: expiresAt, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
+      const audienceSource = sourceSettings.audience && typeof sourceSettings.audience === 'object' ? sourceSettings.audience : {};
+      const audience = { organization_ids: Array.isArray(audienceSource.organization_ids) ? audienceSource.organization_ids.map(String).filter((value: string) => UUID_RE.test(value)).slice(0, 50) : [], role_ids: Array.isArray(audienceSource.role_ids) ? audienceSource.role_ids.map(String).filter((value: string) => /^\d{15,22}$/.test(value)).slice(0, 50) : [], device: ['all', 'desktop', 'mobile'].includes(String(audienceSource.device)) ? String(audienceSource.device) : 'all' };
+      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, publish_at: publishAt, expires_at: expiresAt, audience, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
       const row = { slug, title, description, icon, sidebar_section: section, sort_order: Math.max(0, Math.min(9999, Number(body.sort_order) || 100)), content, enabled: body.enabled !== false, updated_by_discord_id: session.discord_id };
       const { data: existingPage } = await db.from('platform_custom_pages').select('*').eq('slug', slug).maybeSingle();
       if (existingPage) await db.from('platform_content_versions').insert({ content_type: 'page', content_key: slug, snapshot: existingPage, changed_by_discord_id: session.discord_id, change_type: 'before_save' });
