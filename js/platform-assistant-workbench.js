@@ -139,6 +139,8 @@
   const refreshFromPublication = (event) => { if (event?.data?.type !== 'published' && event?.key !== 'panel_custom_page_published') return; loadCatalog(); if (state.mode === 'manage') setStatus('Lista paginilor a fost actualizată din altă fereastră.'); };
   pageSync?.addEventListener('message', refreshFromPublication);
   window.addEventListener('storage', refreshFromPublication);
+  const catalogRefreshTimer = window.setInterval(() => { if (state.mode === 'manage' && document.visibilityState === 'visible') loadCatalog(); }, 60_000);
   window.addEventListener('beforeunload', () => pageSync?.close(), { once: true });
+  window.addEventListener('beforeunload', () => window.clearInterval(catalogRefreshTimer), { once: true });
   ensureScheduleControls();ensureAudienceControls();ensurePermissionControls();ensurePermissionCopyControls();ensureDesignControls();ensureSeoControls();ensurePreviewControls();ensureHelpButton();bindPermissionControls();bindDesignControls();bindSeoControls();bindPreviewControls();watchPermissionEditing();['platform-page-orgs','platform-page-roles','platform-page-users','platform-page-device','platform-page-approval','platform-page-recurrence','platform-page-recurrence-until'].forEach((id)=>$(id)?.addEventListener('change',applyPageOptions));
 })();
