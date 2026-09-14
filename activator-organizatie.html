@@ -16,16 +16,14 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
   <main><div id="panel-header-host"></div><section class="shell">
-    <section class="hero"><p class="eyebrow">Administrație globală · Panel Pro Web</p><h1>⚡ Activator organizație</h1><p class="muted">Activează o organizație în câțiva pași: pachet, durată, server Discord și modulele Panel Pro. Operațiile sunt validate pe server și apar în audit.</p></section>
+    <section class="hero"><p class="eyebrow">Administrație globală · Panel Pro Web</p><h1>⚡ Activator organizație</h1><p class="muted">Alege organizația, pachetul și durata. Restul configurării se face automat.</p></section>
     <p id="activator-status" class="status">Se încarcă organizațiile și serverele Discord…</p>
     <section class="layout">
-      <section class="card"><h2>1. Organizație și acces</h2><p class="muted text-xs mt-1">Alege organizația existentă pe care vrei să o activezi.</p>
+      <section class="card"><h2>Activare rapidă</h2><p class="muted text-xs mt-1">Un singur buton configurează accesul, Discordul, logurile și embedurile.</p>
         <label class="field">Organizație<select id="organization-select"><option value="">Se încarcă…</option></select></label>
         <div class="grid gap-3 sm:grid-cols-2"><label class="field">Pachet web<select id="package-select"><option value="standard">Standard</option><option value="operations">Operations</option><option value="full">Full</option></select></label><label class="field">Durată<select id="duration-select"><option value="7">7 zile</option><option value="30" selected>30 zile</option><option value="90">90 zile</option><option value="365">1 an</option><option value="unlimited">Nelimitat</option></select></label></div>
-        <div class="checks"><label class="check"><input id="discord-install" type="checkbox" checked><span><strong>Configurează Discord</strong><small>Creează sau reutilizează categoria și canalele presetului ales.</small></span></label><label class="check"><input id="publish-embeds" type="checkbox" checked><span><strong>Publică embedurile cu butoane</strong><small>Trimite panourile interactive în canalele modulelor. Logurile sunt configurate automat.</small></span></label></div>
-        <label class="field">Preset Discord<select id="bundle-select"><option value="full">Full · toate modulele</option><option value="legal_management">Legale + Management</option><option value="illegal">Ilegale · operațiuni și sancțiuni</option></select></label>
-        <label class="field">Server Discord<select id="guild-select"><option value="">Alege organizația mai întâi…</option></select></label>
-        <div class="notice">Nu se creează roluri noi. Botul Panel Pro Web primește acces la canalele create sau reutilizate. Botul Discovery nu este modificat.</div>
+        <div id="guild-field" class="field" hidden><span>Server Discord</span><select id="guild-select"><option value="">Alege organizația mai întâi…</option></select><small id="guild-help" class="muted">Alege serverul pe care vrei configurarea.</small></div>
+        <div class="notice">Discordul, canalele, logurile și embedurile se configurează automat. Dacă organizația are două servere, vei alege aici unde se aplică setările.</div>
         <div class="actions"><button id="activate-button" class="button primary" type="button">⚡ Activează organizația</button><button id="refresh-button" class="button" type="button">↻ Reîncarcă</button></div>
       </section>
       <aside class="card"><h2>2. Previzualizare</h2><p class="muted text-xs mt-1">Rezumatul se actualizează automat înainte de activare.</p><div id="summary" class="summary"></div><div id="feature-list" class="feature-list"></div></aside>
