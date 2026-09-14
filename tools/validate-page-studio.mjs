@@ -22,6 +22,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'platform-page-publish-at', 'editorul are programare și expirare'],
   ['supabase/functions/manage-platform-pages/index.ts', 'publish_at', 'backendul filtrează publicarea programată'],
   ['js/platform-assistant-workbench.js', 'link invalid la blocul', 'verificarea pre-publicare validează conținutul'],
+  ['js/platform-assistant-workbench.js', 'previewAudience', 'preview-ul poate simula audiențe'],
   ['js/platform-assistant-workbench.js', 'previewMode', 'preview desktop/mobil există'],
   ['administrare-module.html', 'preview-live-frame.tablet', 'preview tabletă există'],
   ['js/platform-assistant-workbench.js', 'panel_custom_page_published', 'sincronizarea între taburi există'],
