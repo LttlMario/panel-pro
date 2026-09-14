@@ -10,6 +10,8 @@
 6. Reordonează sau duplică blocurile din editorul vizual.
 7. Salvează un draft sau apasă **Publică pagina**.
 
+Asistentul reține local ultimele preferințe de categorie, acces, layout și temă. Pentru cereri neclare oferă acțiuni rapide, iar intenții precum creare, publicare, editare, duplicare sau gestionare sunt detectate automat. Poți cere direct o pagină cu formular, galerie, cronologie/timeline sau calculator; blocurile apar atât în previzualizare, cât și în editorul vizual.
+
 ## Ce se întâmplă la publicare
 
 - pagina este salvată cu starea `published`;
@@ -18,6 +20,8 @@
 - pagina este acceptată în `page_permissions` la salvarea organizației;
 - se păstrează versiunea anterioară și se scrie auditul administratorului;
 - pagina poate fi depublicată, arhivată, restaurată sau ștearsă din manager.
+- managerul permite filtrare, căutare, export/import și acțiuni rapide pentru istoric, deschidere și copierea linkului;
+- editorul acceptă blocuri de formular, galerie, timeline și calculator, pe lângă carduri, FAQ, statistici, tabele și liste.
 
 ## Siguranță și compatibilitate
 
