@@ -16,6 +16,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', "type:'timeline'", 'constructorul poate genera timeline'],
   ['js/platform-assistant-workbench.js', "type:'calculator'", 'constructorul poate genera calculatoare'],
   ['js/platform-assistant-workbench.js', 'previewMode', 'preview desktop/mobil există'],
+  ['administrare-module.html', 'preview-live-frame.tablet', 'preview tabletă există'],
   ['js/platform-assistant-workbench.js', 'panel_custom_page_published', 'sincronizarea între taburi există'],
   ['js/custom-page.js', 'action:listAction', 'pagina publicată folosește ruta de citire corectă'],
   ['organizatii.html', 'refreshCustomOrganizationPages', 'organizatii.html poate reîncărca selectorii'],
