@@ -14,7 +14,9 @@ const sections = new Set(['management', 'resurse', 'ilegal', 'administratie', 'f
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const icons = /^[\p{Extended_Pictographic}\p{Emoji_Presentation}\w\s-]{1,8}$/u;
 const rateBuckets = new Map<string, number[]>();
+const formRateBuckets = new Map<string, number[]>();
 const allowRequest = (identity: string) => { const now = Date.now(); const windowStart = now - 60_000; const recent = (rateBuckets.get(identity) || []).filter((timestamp) => timestamp > windowStart); if (recent.length >= 120) return false; recent.push(now); rateBuckets.set(identity, recent); if (rateBuckets.size > 2000) { for (const [key, values] of rateBuckets) if (!values.some((timestamp) => timestamp > windowStart)) rateBuckets.delete(key); } return true; };
+const allowFormRequest = (identity: string) => { const now = Date.now(); const windowStart = now - 600_000; const recent = (formRateBuckets.get(identity) || []).filter((timestamp) => timestamp > windowStart); if (recent.length >= 8) return false; recent.push(now); formRateBuckets.set(identity, recent); if (formRateBuckets.size > 2000) { for (const [key, values] of formRateBuckets) if (!values.some((timestamp) => timestamp > windowStart)) formRateBuckets.delete(key); } return true; };
 
 function cleanSlug(value: unknown) {
   const raw = String(value || '').trim().toLowerCase().replace(/\.html$/, '').replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
@@ -232,6 +234,9 @@ Deno.serve(async (request) => {
       return reply({ pages });
     }
     if (action === 'submit_form') {
+      const formIdentity = request.headers.get('x-panel-session') || request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'anonymous-form';
+      if (!allowFormRequest(formIdentity.slice(0, 180))) return reply({ error: 'Ai trimis prea multe cereri. Încearcă din nou mai târziu.' }, 429);
+      if (String(body.website || '').trim()) return reply({ ok: true, accepted: true });
       const slug = cleanSlug(body.slug);
       const { data: page, error: pageError } = await db.from('platform_custom_pages').select('slug,enabled,content').eq('slug', slug).maybeSingle();
       if (pageError) throw pageError;
