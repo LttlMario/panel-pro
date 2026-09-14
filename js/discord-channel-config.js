@@ -213,7 +213,7 @@
       ],
       footer: { text: 'Panel Pro · Contracte' },
     }],
-    components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Creează contract', custom_id: 'panel:contracts:create' }] }],
+    components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Creează contract', custom_id: 'panel:contracts:create' }, { type: 2, style: 2, label: 'Setează contractul', custom_id: 'panel:contracts:settings' }, { type: 2, style: 1, label: 'Info contract', custom_id: 'panel:contracts:info' }] }],
   });
   const syncContractsPublishState = (resetStatus = true) => {
     const button = section.querySelector('#discord-contracts-publish');
