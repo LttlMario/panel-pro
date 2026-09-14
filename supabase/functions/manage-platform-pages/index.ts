@@ -315,6 +315,21 @@ Deno.serve(async (request) => {
       if (error) throw error;
       return reply({ entries: data || [] });
     }
+    if (action === 'health') {
+      const contentKey = cleanSlug(body.slug || body.content_key);
+      const [{ data: page, error: pageError }, { count: versionCount, error: versionError }] = await Promise.all([
+        db.from('platform_custom_pages').select('slug,title,enabled,content,updated_at').eq('slug', contentKey).maybeSingle(),
+        db.from('platform_content_versions').select('id', { count: 'exact', head: true }).eq('content_type', 'page').eq('content_key', contentKey),
+      ]);
+      if (pageError) throw pageError;
+      if (versionError) throw versionError;
+      if (!page) return reply({ error: 'Pagina nu există.' }, 404);
+      const settings = page.content?.settings || {};
+      const now = Date.now();
+      const publishAt = settings.publish_at ? Date.parse(String(settings.publish_at)) : NaN;
+      const expiresAt = settings.expires_at ? Date.parse(String(settings.expires_at)) : NaN;
+      return reply({ health: { slug: page.slug, title: page.title, enabled: page.enabled !== false, publication: settings.publication || 'published', approval_status: settings.approval_status || 'approved', scheduled: Number.isFinite(publishAt) && publishAt > now, expired: Number.isFinite(expiresAt) && expiresAt <= now, private_preview: Boolean(settings.preview_token), versions: versionCount || 0, updated_at: page.updated_at } });
+    }
     if (action === 'restore_page') {
       const slug = cleanSlug(body.slug);
       const versionId = Number(body.version_id);

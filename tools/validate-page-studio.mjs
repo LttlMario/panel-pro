@@ -46,6 +46,8 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'data-preview-token-generate', 'constructorul poate genera preview privat'],
   ['js/custom-page.js', 'preview_token', 'pagina publicată poate încărca preview privat'],
   ['supabase/functions/manage-platform-pages/index.ts', 'cleanPreviewToken', 'backendul validează tokenul de preview'],
+  ['supabase/functions/manage-platform-pages/index.ts', "action === 'health'", 'backendul expune starea paginii'],
+  ['js/platform-assistant-workbench.js', 'data-page-health', 'managerul afișează starea paginii'],
   ['supabase/functions/manage-platform-pages/index.ts', 'cleanPageHref', 'linkurile cardurilor sunt curățate server-side'],
   ['js/platform-assistant-workbench.js', 'platform-page-pager', 'managerul are paginare'],
   ['js/platform-assistant-workbench.js', 'platform-page-sort', 'managerul are sortare'],
