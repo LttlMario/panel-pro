@@ -100,6 +100,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'previewBlocks', 'preview-ul suportă date demo'],
   ['js/platform-assistant-workbench.js', '2*1024*1024', 'importul are limită de siguranță'],
   ['js/platform-assistant-workbench.js', 'Ruta duplicată în import', 'importul respinge rutele duplicate și fișierele prea mari'],
+  ['js/platform-assistant-workbench.js', 'Importul va înlocui', 'importul cere confirmare pentru conflictele existente'],
   ['supabase/functions/manage-platform-pages/index.ts', 'audienceSession', 'paginile pot filtra audiența pe sesiune'],
   ['js/custom-page.js', 'x-panel-device', 'pagina publică trimite dispozitivul pentru filtrare'],
   ['supabase/functions/manage-platform-pages/index.ts', 'audienceSession.discord_id', 'paginile pot filtra utilizatori individuali'],
