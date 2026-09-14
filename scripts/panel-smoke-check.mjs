@@ -12,6 +12,8 @@ for (const group of [
   ['js/craft-mechanic-recipes.js', 'panel-ios/js/craft-mechanic-recipes.js', 'panel-android/web-src/js/craft-mechanic-recipes.js'],
   ['calculator.html', 'panel-ios/calculator.html', 'panel-android/web-src/calculator.html'],
   ['calculatorilegal.html', 'panel-ios/calculatorilegal.html', 'panel-android/web-src/calculatorilegal.html'],
+  ['custom-page.html', 'panel-ios/custom-page.html', 'panel-android/web-src/custom-page.html'],
+  ['js/custom-page.js', 'panel-ios/js/custom-page.js', 'panel-android/web-src/js/custom-page.js'],
 ]) {
   const contents = await Promise.all(group.map(read));
   if (!contents.every((value) => value === contents[0])) fail(`Paritate ruptă: ${group.join(' | ')}`);

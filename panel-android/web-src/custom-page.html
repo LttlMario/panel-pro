@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Panel Pro</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="stylesheet" href="css/global-footer.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+  <script src="js/supabase-config.js?v=20260914-page-studio3"></script>
+  <script src="js/permissions.js?v=20260906-pages2"></script>
+  <script src="js/panel-layout.js?v=20260914-page-studio2"></script>
+  <script src="js/project-version.js?v=3.13.0"></script>
+  <style>
+    .custom-page-shell { max-width: 1100px; margin: 0 auto; padding: max(30px,env(safe-area-inset-top)) max(32px,env(safe-area-inset-left)) max(52px,env(safe-area-inset-bottom)); }
+    .custom-page-hero, .custom-page-block { border: 1px solid #26364d; border: 1px solid color-mix(in srgb,var(--custom-page-accent,#26364d) 35%,#26364d); border-radius: var(--custom-page-radius,18px); background: linear-gradient(145deg,#101c31,#091222); padding: 22px; }
+    .custom-page-hero h1 { margin-top: 5px; font-size: clamp(24px,3vw,36px); font-weight: 950; }
+    .custom-page-block { margin-top: var(--custom-page-gap,14px); }
+    .custom-page-block h2 { font-size: 18px; font-weight: 900; }
+    .custom-page-block p { white-space: pre-wrap; color: #b8c6d8; line-height: 1.65; margin-top: 8px; }
+    .custom-page-block ul { margin-top: 9px; padding-left: 20px; color: #b8c6d8; line-height: 1.8; }
+    .custom-page-block a { color: var(--custom-page-accent,#67e8f9); }
+    .custom-page-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+    .custom-page-cards article { border:1px solid #263b58; border-radius:14px; padding:16px; background:#07101f; }
+    .custom-page-cards article h2 { margin-bottom:4px; }
+    .custom-page-cards img { display:block; width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:10px; margin-bottom:12px; background:#0b1729; }
+    .custom-page-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
+    .custom-page-stats article { border:1px solid #263b58; border-radius:14px; padding:15px; background:#07101f; display:grid; gap:4px; }
+    .custom-page-stats strong { font-size:26px; color:#f8fafc; }
+    .custom-page-stats span { color:#67e8f9; font-weight:800; }
+    .custom-page-stats small { color:#94a3b8; }
+    .custom-page-faq details { border-bottom:1px solid #26364d; padding:12px 0; }
+    .custom-page-faq summary { cursor:pointer; font-weight:800; color:#e2e8f0; }
+    .custom-page-tabs { display:grid; gap:8px; }
+    .custom-page-tabs details { border:1px solid #263b58; border-radius:12px; padding:12px; background:#0a1628; }
+    .custom-page-tabs details[open] { border-color:var(--custom-page-accent,#22d3ee); }
+    .custom-page-tabs [role=tabpanel] { margin-top:10px; }
+    .custom-page-button { display:inline-block; border:1px solid #22d3ee; border-radius:10px; padding:10px 14px; background:#0e3545; color:#ecfeff !important; font-weight:800; }
+    .custom-page-divider { border:0; border-top:1px solid #26364d; margin:22px 0; }
+    .custom-page-block table { width:100%; border-collapse:collapse; color:#cbd5e1; }
+    .custom-page-block th,.custom-page-block td { border:1px solid #263b58; padding:9px 10px; text-align:left; }
+    .custom-page-block th { color:#f8fafc; background:#0b1729; }
+    .custom-page-two-column { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .custom-page-wide { max-width:1280px !important; }
+    .custom-page-form, .custom-page-calculator { display:grid; gap:12px; }
+    .custom-page-honeypot { position:absolute !important; left:-10000px !important; width:1px !important; height:1px !important; overflow:hidden !important; opacity:0 !important; }
+    .custom-page-form label, .custom-page-calculator label { display:grid; gap:6px; color:#cbd5e1; font-size:13px; font-weight:700; }
+    .custom-page-form input, .custom-page-form textarea, .custom-page-calculator input { width:100%; min-height:42px; border:1px solid #29415f; border-radius:10px; background:#07101f; color:#f8fafc; padding:10px 12px; font:inherit; }
+    .custom-page-form textarea { min-height:100px; resize:vertical; }
+    .custom-page-form input:focus-visible, .custom-page-form textarea:focus-visible, .custom-page-calculator input:focus-visible, .custom-page-button:focus-visible { outline:2px solid #67e8f9; outline-offset:2px; }
+    .custom-page-form button, .custom-page-calculator button { width:max-content; border:1px solid #22d3ee; border-radius:10px; padding:10px 14px; background:#0e3545; color:#ecfeff; font-weight:800; cursor:pointer; }
+    .custom-page-gallery { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .custom-page-gallery figure { margin:0; border:1px solid #263b58; border-radius:14px; padding:10px; background:#07101f; }
+    .custom-page-gallery img, .custom-page-gallery-placeholder { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:9px; background:#0b1729; }
+    .custom-page-gallery figcaption { color:#94a3b8; font-size:12px; line-height:1.45; margin-top:8px; }
+    .custom-page-gallery-placeholder { display:grid; place-items:center; color:#94a3b8; text-align:center; padding:12px; }
+    .custom-page-timeline { display:grid; gap:12px; list-style:none; padding:0; margin:0; }
+    .custom-page-timeline li { border-left:3px solid #22d3ee; border-radius:0 10px 10px 0; padding:12px 14px; background:#07101f; }
+    .custom-page-timeline strong { display:block; color:#f8fafc; margin-bottom:4px; }
+    .custom-page-timeline span { color:#b8c6d8; line-height:1.55; white-space:pre-wrap; }
+    .custom-page-calculator { max-width:520px; }
+    .custom-page-calculator output { display:block; border:1px solid #263b58; border-radius:10px; padding:12px; color:#67e8f9; font-size:20px; font-weight:900; background:#07101f; }
+    .custom-page-banner { border-color:#22d3ee; background:linear-gradient(145deg,#123247,#091222); }
+    @media(max-width:700px){
+      .custom-page-shell { padding:max(20px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-left)) max(40px,env(safe-area-inset-bottom)); }
+      .custom-page-hero, .custom-page-block { padding:16px; border-radius:14px; }
+      .custom-page-two-column, .custom-page-cards { grid-template-columns:1fr; }
+      .custom-page-block table { display:block; overflow-x:auto; white-space:nowrap; }
+    }
+    .eyebrow { color: #67e8f9; font-size: 10px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+    .muted { color: #94a3b8; }
+    @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <main>
+    <div id="panel-header-host"></div>
+    <section id="custom-page" class="custom-page-shell"><p class="muted">Se încarcă pagina…</p></section>
+  </main>
+  <script src="js/global-footer.js"></script>
+  <script src="js/custom-page.js?v=20260914-page-studio4"></script>
+</body>
+</html>
