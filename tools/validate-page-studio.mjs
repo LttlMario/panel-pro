@@ -31,6 +31,7 @@ const checks = [
   ['custom-page.html', 'custom-page-calculator output', 'calculatorul publicat are stil dedicat'],
   ['js/platform-assistant-workbench.js', 'platform-page-accent', 'constructorul permite accent vizual'],
   ['js/platform-assistant-workbench.js', 'platform-page-spacing', 'constructorul permite spațiere vizuală'],
+  ['js/platform-assistant-workbench.js', 'applyPreviewVisual', 'preview-ul aplică stilul vizual ales'],
   ['js/custom-page.js', 'visualStyle', 'pagina publicată aplică stilul vizual'],
   ['supabase/functions/manage-platform-pages/index.ts', 'cleanPageVisual', 'backendul validează stilul vizual'],
   ['js/platform-assistant-workbench.js', 'platform-page-seo-title', 'constructorul permite setări SEO'],
