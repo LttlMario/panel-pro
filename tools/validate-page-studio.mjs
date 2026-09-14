@@ -13,6 +13,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'data-studio-suggestions', 'asistentul oferă sugestii rapide după generare'],
   ['js/platform-assistant-workbench.js', 'preferencesKey', 'preferințele asistentului sunt memorate'],
   ['js/platform-assistant-workbench.js', 'memoryTtl', 'drafturile locale au expirare și versiune de memorie'],
+  ['js/platform-assistant-workbench.js', 'new BroadcastChannel(\'panel-pro-pages\')', 'managerul se sincronizează live între taburi'],
   ['js/platform-assistant-workbench.js', "type:'form'", 'constructorul poate genera formulare'],
   ['js/platform-assistant-workbench.js', "type:'gallery'", 'constructorul poate genera galerii'],
   ['js/platform-assistant-workbench.js', "type:'timeline'", 'constructorul poate genera timeline'],
