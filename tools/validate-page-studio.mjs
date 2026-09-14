@@ -35,6 +35,8 @@ const checks = [
   ['js/platform-assistant-workbench.js', '2*1024*1024', 'importul are limită de siguranță'],
   ['supabase/functions/manage-platform-pages/index.ts', 'audienceSession', 'paginile pot filtra audiența pe sesiune'],
   ['js/custom-page.js', 'x-panel-device', 'pagina publică trimite dispozitivul pentru filtrare'],
+  ['supabase/functions/manage-platform-pages/index.ts', 'audienceSession.discord_id', 'paginile pot filtra utilizatori individuali'],
+  ['js/platform-assistant-workbench.js', 'platform-page-users', 'editorul are țintire pe utilizatori'],
   ['js/platform-assistant-workbench.js', 'previewMode', 'preview desktop/mobil există'],
   ['administrare-module.html', 'preview-live-frame.tablet', 'preview tabletă există'],
   ['js/platform-assistant-workbench.js', 'panel_custom_page_published', 'sincronizarea între taburi există'],

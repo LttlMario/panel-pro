@@ -143,9 +143,10 @@ Deno.serve(async (request) => {
         const audience = settings.audience && typeof settings.audience === 'object' ? settings.audience : {};
         const organizations = Array.isArray(audience.organization_ids) ? audience.organization_ids.map(String) : [];
         const roles = Array.isArray(audience.role_ids) ? audience.role_ids.map(String) : [];
+        const users = Array.isArray(audience.user_ids) ? audience.user_ids.map(String) : [];
         const device = String(audience.device || 'all');
         const requestDevice = String(request.headers.get('x-panel-device') || 'all');
-        const audienceAllowed = (!organizations.length || (audienceSession && organizations.includes(String(audienceSession.organization_id)))) && (!roles.length || (audienceSession && audienceSession.discord_role_ids.some((role: string) => roles.includes(String(role))))) && (device === 'all' || requestDevice === 'all' || device === requestDevice);
+        const audienceAllowed = (!organizations.length || (audienceSession && organizations.includes(String(audienceSession.organization_id)))) && (!roles.length || (audienceSession && audienceSession.discord_role_ids.some((role: string) => roles.includes(String(role))))) && (!users.length || (audienceSession && users.includes(String(audienceSession.discord_id)))) && (device === 'all' || requestDevice === 'all' || device === requestDevice);
         const active = settings.publication !== 'draft' && (!Number.isFinite(publishAt) || publishAt <= now) && (!Number.isFinite(expiresAt) || expiresAt > now);
         return active && audienceAllowed && (String(settings.access || 'global_admin') === 'public' || (authenticated && String(settings.access || '') === 'authenticated'));
       });
@@ -181,7 +182,7 @@ Deno.serve(async (request) => {
       const expiresAt = parseDate(sourceSettings.expires_at);
       if (publishAt && expiresAt && Date.parse(expiresAt) <= Date.parse(publishAt)) throw new Error('Expirarea trebuie să fie după momentul publicării.');
       const audienceSource = sourceSettings.audience && typeof sourceSettings.audience === 'object' ? sourceSettings.audience : {};
-      const audience = { organization_ids: Array.isArray(audienceSource.organization_ids) ? audienceSource.organization_ids.map(String).filter((value: string) => UUID_RE.test(value)).slice(0, 50) : [], role_ids: Array.isArray(audienceSource.role_ids) ? audienceSource.role_ids.map(String).filter((value: string) => /^\d{15,22}$/.test(value)).slice(0, 50) : [], device: ['all', 'desktop', 'mobile'].includes(String(audienceSource.device)) ? String(audienceSource.device) : 'all' };
+      const audience = { organization_ids: Array.isArray(audienceSource.organization_ids) ? audienceSource.organization_ids.map(String).filter((value: string) => UUID_RE.test(value)).slice(0, 50) : [], role_ids: Array.isArray(audienceSource.role_ids) ? audienceSource.role_ids.map(String).filter((value: string) => /^\d{15,22}$/.test(value)).slice(0, 50) : [], user_ids: Array.isArray(audienceSource.user_ids) ? audienceSource.user_ids.map(String).filter((value: string) => /^\d{15,22}$/.test(value)).slice(0, 50) : [], device: ['all', 'desktop', 'mobile'].includes(String(audienceSource.device)) ? String(audienceSource.device) : 'all' };
       const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, publish_at: publishAt, expires_at: expiresAt, audience, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
       const row = { slug, title, description, icon, sidebar_section: section, sort_order: Math.max(0, Math.min(9999, Number(body.sort_order) || 100)), content, enabled: body.enabled !== false, updated_by_discord_id: session.discord_id };
       const { data: existingPage } = await db.from('platform_custom_pages').select('*').eq('slug', slug).maybeSingle();
