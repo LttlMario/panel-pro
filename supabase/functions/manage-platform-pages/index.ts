@@ -19,6 +19,11 @@ function cleanSlug(value: unknown) {
   return `${raw}.html`;
 }
 
+function cleanPageHref(value: unknown) {
+  const href = String(value || '').trim();
+  return href === '#' || /^[a-z][a-z0-9-]{1,79}\.html(?:[?#].*)?$/i.test(href) ? href : '#';
+}
+
 function cleanBlocks(value: unknown) {
   if (!Array.isArray(value)) throw new Error('Conținutul paginii trebuie să fie o listă de blocuri.');
   if (value.length > 40) throw new Error('Pagina poate avea maximum 40 de blocuri.');
@@ -31,7 +36,7 @@ function cleanBlocks(value: unknown) {
       if (!items.length) throw new Error(`Lista de la poziția ${index + 1} este goală.`);
       result.items = items;
     } else if (type === 'cards') {
-      const cards = Array.isArray(block.cards) ? block.cards.slice(0, 8).map((card: any) => ({ title: String(card?.title || '').trim().slice(0, 120), text: String(card?.text || '').trim().slice(0, 500), href: String(card?.href || '').trim().slice(0, 160) })).filter((card: any) => card.title && card.text) : [];
+      const cards = Array.isArray(block.cards) ? block.cards.slice(0, 8).map((card: any) => ({ title: String(card?.title || '').trim().slice(0, 120), text: String(card?.text || '').trim().slice(0, 500), href: cleanPageHref(card?.href) })).filter((card: any) => card.title && card.text) : [];
       if (!cards.length) throw new Error(`Cardurile de la poziția ${index + 1} sunt goale.`);
       result.cards = cards;
     } else if (type === 'faq') {
@@ -52,7 +57,7 @@ function cleanBlocks(value: unknown) {
       if (!fields.length) throw new Error(`Formularul de la poziția ${index + 1} nu are câmpuri.`);
       result.fields = fields;
     } else if (type === 'gallery') {
-      const items = Array.isArray(block.items) ? block.items.slice(0, 20).map((item: any) => ({ title: String(item?.title || 'Imagine').trim().slice(0, 120), text: String(item?.text || '').trim().slice(0, 500), src: String(item?.src || '').trim().slice(0, 500) })).filter((item: any) => item.title) : [];
+      const items = Array.isArray(block.items) ? block.items.slice(0, 20).map((item: any) => ({ title: String(item?.title || 'Imagine').trim().slice(0, 120), text: String(item?.text || '').trim().slice(0, 500), src: String(item?.src || '').trim().slice(0, 500) })).filter((item: any) => item.title && (!item.src || /^(https?:\/\/|\/|\.\/)/i.test(item.src))) : [];
       if (!items.length) throw new Error(`Galeria de la poziția ${index + 1} este goală.`);
       result.items = items;
     } else if (type === 'timeline') {
