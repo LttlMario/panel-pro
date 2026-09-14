@@ -2,7 +2,7 @@
 <html lang="ro" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Panel Pro</title>
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="stylesheet" href="css/global-footer.css">
@@ -12,7 +12,7 @@
   <script src="js/panel-layout.js?v=20260914-page-studio2"></script>
   <script src="js/project-version.js?v=3.13.0"></script>
   <style>
-    .custom-page-shell { max-width: 1100px; margin: 0 auto; padding: 30px 32px 52px; }
+    .custom-page-shell { max-width: 1100px; margin: 0 auto; padding: max(30px,env(safe-area-inset-top)) max(32px,env(safe-area-inset-left)) max(52px,env(safe-area-inset-bottom)); }
     .custom-page-hero, .custom-page-block { border: 1px solid #26364d; border: 1px solid color-mix(in srgb,var(--custom-page-accent,#26364d) 35%,#26364d); border-radius: var(--custom-page-radius,18px); background: linear-gradient(145deg,#101c31,#091222); padding: 22px; }
     .custom-page-hero h1 { margin-top: 5px; font-size: clamp(24px,3vw,36px); font-weight: 950; }
     .custom-page-block { margin-top: var(--custom-page-gap,14px); }
@@ -62,7 +62,7 @@
     .custom-page-calculator output { display:block; border:1px solid #263b58; border-radius:10px; padding:12px; color:#67e8f9; font-size:20px; font-weight:900; background:#07101f; }
     .custom-page-banner { border-color:#22d3ee; background:linear-gradient(145deg,#123247,#091222); }
     @media(max-width:700px){
-      .custom-page-shell { padding:20px 14px 40px; }
+      .custom-page-shell { padding:max(20px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-left)) max(40px,env(safe-area-inset-bottom)); }
       .custom-page-hero, .custom-page-block { padding:16px; border-radius:14px; }
       .custom-page-two-column, .custom-page-cards { grid-template-columns:1fr; }
       .custom-page-block table { display:block; overflow-x:auto; white-space:nowrap; }
