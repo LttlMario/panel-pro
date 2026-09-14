@@ -35,6 +35,17 @@ const routeNames: Record<string, string> = {
 routeNames.comenzi = '📦・comenzi';
 routeNames.log_comenzi = '🧾・log-comenzi';
 
+const logCategoryForRoute: Record<string, string> = {
+  log_announcements_organization: 'organization', log_announcements_departments: 'departments',
+  log_requests_organization: 'requests_organization', log_requests_departments: 'requests_departments',
+  log_contracts: 'contracts', log_contract_identity_weekly: 'contract_identity_weekly',
+  log_marketplace: 'marketplace', log_illegal_marketplace: 'illegal_marketplace',
+  log_event_reminders: 'event_reminders', log_actions_organization: 'actions_organization',
+  log_stash: 'stash', log_stash_requests: 'stash_requests', log_stash_donations: 'stash_donations',
+  log_comenzi: 'comenzi', log_pontaj: 'pontaj'
+};
+const categoryForRoute = (routeKey: string) => logCategoryForRoute[routeKey] || routeKey;
+
 const definitions: Record<string, any> = {
   organization: { title: '📢 Anunțuri · Organizație', description: 'Publică anunțuri, întrebări, sondaje și măsuri disciplinare pentru organizație.', color: 0x8b5cf6, buttons: [['Publică anunț', 1, 'panel:announcements:organization:create:announcement'], ['Pune întrebare', 2, 'panel:announcements:organization:create:question'], ['Creează sondaj', 3, 'panel:announcements:organization:create:poll'], ['Avertisment', 4, 'panel:discipline:organization:warning'], ['Amendă', 4, 'panel:discipline:organization:sanction']] },
   departments: { title: '📢 Anunțuri · Angajați', description: 'Publică anunțuri, întrebări, sondaje și măsuri disciplinare pentru angajați.', color: 0x8b5cf6, buttons: [['Publică anunț', 1, 'panel:announcements:departments:create:announcement'], ['Pune întrebare', 2, 'panel:announcements:departments:create:question'], ['Creează sondaj', 3, 'panel:announcements:departments:create:poll'], ['Avertisment', 4, 'panel:discipline:departments:warning'], ['Amendă', 4, 'panel:discipline:departments:sanction']] },
@@ -105,12 +116,19 @@ Deno.serve(async (request) => {
     const publishEmbeds = body.publish_embeds !== false;
     const [guildInfo, channels, bot] = await Promise.all([discord(`/guilds/${guildId}`, token), discord(`/guilds/${guildId}/channels`, token), discord('/users/@me', token)]);
     const botOverwrite = [{ id: String(bot.id), type: 1, allow: allow(VIEW, SEND, EMBED, HISTORY, MANAGE_MESSAGES), deny: '0' }];
-    const category = await ensureChannel(guildId, token, channels, `PANEL PRO · ${String(body.bundle_key || '').toUpperCase()}`, 4, '', botOverwrite);
-    let createdChannels = Number(category.created), createdMessages = 0;
+    const categories: Record<string, any> = {};
+    let createdChannels = 0, createdMessages = 0;
     const routes: Record<string, any> = {};
     const installed: any[] = [];
     const target = String(guild.kind || 'primary') === 'secondary' ? 'secondary' : 'primary';
     for (const routeKey of routeKeys) {
+      const categoryKey = categoryForRoute(routeKey);
+      if (!categories[categoryKey]) {
+        const categoryName = `PANEL PRO · ${String(routeLabels[categoryKey] || categoryKey).toUpperCase()}`;
+        categories[categoryKey] = await ensureChannel(guildId, token, channels, categoryName, 4, '', botOverwrite);
+        createdChannels += Number(categories[categoryKey].created);
+      }
+      const category = categories[categoryKey];
       const channelName = routeNames[routeKey] || `⚙️・${routeKey.replace(/_/g, '-')}`;
       const channel = await ensureChannel(guildId, token, channels, channelName, 0, String(category.row.id), botOverwrite);
       createdChannels += Number(channel.created);
@@ -127,7 +145,7 @@ Deno.serve(async (request) => {
             messageId = String(message?.id || '');
             createdMessages += Number(Boolean(messageId));
           } else {
-          installed.push({ route: routeKey, label: routeLabels[routeKey] || routeKey, channel_id: String(channel.row.id), message_id: null, buttons: definitions[routeKey]?.buttons?.length || 0, skipped: 'Nu există un embed existent salvat pentru editare.' });
+          installed.push({ route: routeKey, label: routeLabels[routeKey] || routeKey, category_id: String(category.row.id), channel_id: String(channel.row.id), message_id: null, buttons: definitions[routeKey]?.buttons?.length || 0, skipped: 'Nu există un embed existent salvat pentru editare.' });
           continue;
           }
         }
@@ -148,7 +166,7 @@ Deno.serve(async (request) => {
         }
       }
       routes[routeKey] = { primary: { enabled: true, channel_id: String(channel.row.id), guild_id: guildId, ...(messageId ? { message_id: messageId } : {}) } };
-      installed.push({ route: routeKey, label: routeLabels[routeKey] || routeKey, channel_id: String(channel.row.id), message_id: messageId || null, buttons: definitions[routeKey]?.buttons?.length || 0 });
+      installed.push({ route: routeKey, label: routeLabels[routeKey] || routeKey, category_id: String(category.row.id), channel_id: String(channel.row.id), message_id: messageId || null, buttons: definitions[routeKey]?.buttons?.length || 0 });
     }
     const { data: currentSettings } = await db.from('organization_settings').select('discord_client_id,panel_public_url,discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
     const mergedRoutes = { ...(currentSettings?.discord_channel_routes || {}) };
@@ -156,6 +174,7 @@ Deno.serve(async (request) => {
     const { error: settingsError } = await db.from('organization_settings').upsert({ organization_id: organizationId, discord_client_id: currentSettings?.discord_client_id || '0', panel_public_url: currentSettings?.panel_public_url || '', discord_channel_routes: mergedRoutes, updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
     if (settingsError) throw settingsError;
     await db.from('admin_audit_log').insert({ organization_id: organizationId, actor_discord_id: session.discord_id, action: 'discord_real_routes_installed', target_type: 'discord_guild', target_id: guildId, details: { bundle: body.bundle_key, category_id: category.row.id, route_count: installed.length, message_count: createdMessages, publish_embeds: publishEmbeds } });
-    return reply({ ok: true, guild: { id: guildInfo.id, name: guildInfo.name }, category: { id: category.row.id, name: category.row.name }, created: { channels: createdChannels, roles: 0, messages: createdMessages }, routes: installed, route_count: installed.length, uses_real_panel_routes: true });
+    const categoryList = Object.values(categories).map((item: any) => ({ id: String(item.row.id), name: String(item.row.name), created: Boolean(item.created) }));
+    return reply({ ok: true, guild: { id: guildInfo.id, name: guildInfo.name }, category: categoryList[0] || null, categories: categoryList, created: { channels: createdChannels, categories: categoryList.filter((item: any) => item.created).length, roles: 0, messages: createdMessages }, routes: installed, route_count: installed.length, uses_real_panel_routes: true });
   } catch (error) { return reply({ error: error instanceof Error ? error.message : 'Instalarea pachetului a eșuat.' }, 400); }
 });
