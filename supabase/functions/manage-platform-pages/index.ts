@@ -164,6 +164,7 @@ Deno.serve(async (request) => {
       if (!current) return reply({ error: 'Pagina nu există.' }, 404);
       const content = current.content && typeof current.content === 'object' ? current.content : {};
       const settings = content.settings && typeof content.settings === 'object' ? content.settings : {};
+      await db.from('platform_content_versions').insert({ content_type: 'page', content_key: slug, snapshot: current, changed_by_discord_id: session.discord_id, change_type: `before_${publication}` });
       const { data, error } = await db.from('platform_custom_pages').update({ content: { ...content, settings: { ...settings, publication } }, enabled: publication !== 'archived', updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() }).eq('slug', slug).select('slug,enabled,content').maybeSingle();
       if (error) throw error;
       await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: `platform_custom_page_${publication}`, target_type: 'platform_custom_page', target_id: slug, details: { publication } });
