@@ -61,6 +61,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'historyEnhancer', 'managerul afișează istoricul versiunilor'],
   ['administrare-module.html', 'publication-test', 'constructorul Discord are testare de configurare'],
   ['js/administrare-module.js', "action:'test'", 'testarea Discord este conectată'],
+  ['js/administrare-module.js', 'renderPublicationTestStatus', 'interfața afișează rezultatul testului Discord'],
   ['supabase/functions/manage-panel-modules/index.ts', "action === 'test'", 'backendul Discord are testare dry-run'],
   ['supabase/functions/manage-panel-modules/index.ts', 'channel_changed', 'testarea Discord detectează schimbarea canalului fără să promită editarea mesajului vechi'],
   ['supabase/functions/manage-panel-modules/index.ts', 'existingPublication?.message_id', 'publicarea Discord reutilizează mesajul existent'],
