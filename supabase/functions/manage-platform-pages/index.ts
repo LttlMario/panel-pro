@@ -147,7 +147,8 @@ Deno.serve(async (request) => {
         const device = String(audience.device || 'all');
         const requestDevice = String(request.headers.get('x-panel-device') || 'all');
         const audienceAllowed = (!organizations.length || (audienceSession && organizations.includes(String(audienceSession.organization_id)))) && (!roles.length || (audienceSession && audienceSession.discord_role_ids.some((role: string) => roles.includes(String(role))))) && (!users.length || (audienceSession && users.includes(String(audienceSession.discord_id)))) && (device === 'all' || requestDevice === 'all' || device === requestDevice);
-        const active = settings.publication !== 'draft' && (!Number.isFinite(publishAt) || publishAt <= now) && (!Number.isFinite(expiresAt) || expiresAt > now);
+        const approvalAllowed = settings.approval_required !== true || settings.approval_status === 'approved';
+        const active = settings.publication !== 'draft' && approvalAllowed && (!Number.isFinite(publishAt) || publishAt <= now) && (!Number.isFinite(expiresAt) || expiresAt > now);
         return active && audienceAllowed && (String(settings.access || 'global_admin') === 'public' || (authenticated && String(settings.access || '') === 'authenticated'));
       });
       return reply({ pages });
@@ -183,7 +184,9 @@ Deno.serve(async (request) => {
       if (publishAt && expiresAt && Date.parse(expiresAt) <= Date.parse(publishAt)) throw new Error('Expirarea trebuie să fie după momentul publicării.');
       const audienceSource = sourceSettings.audience && typeof sourceSettings.audience === 'object' ? sourceSettings.audience : {};
       const audience = { organization_ids: Array.isArray(audienceSource.organization_ids) ? audienceSource.organization_ids.map(String).filter((value: string) => UUID_RE.test(value)).slice(0, 50) : [], role_ids: Array.isArray(audienceSource.role_ids) ? audienceSource.role_ids.map(String).filter((value: string) => /^\d{15,22}$/.test(value)).slice(0, 50) : [], user_ids: Array.isArray(audienceSource.user_ids) ? audienceSource.user_ids.map(String).filter((value: string) => /^\d{15,22}$/.test(value)).slice(0, 50) : [], device: ['all', 'desktop', 'mobile'].includes(String(audienceSource.device)) ? String(audienceSource.device) : 'all' };
-      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, publish_at: publishAt, expires_at: expiresAt, audience, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
+      const approvalRequired = sourceSettings.approval_required === true;
+      const approvalStatus = approvalRequired ? (['pending', 'approved', 'rejected'].includes(String(sourceSettings.approval_status)) ? String(sourceSettings.approval_status) : 'pending') : 'approved';
+      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, publish_at: publishAt, expires_at: expiresAt, audience, approval_required: approvalRequired, approval_status: approvalStatus, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
       const row = { slug, title, description, icon, sidebar_section: section, sort_order: Math.max(0, Math.min(9999, Number(body.sort_order) || 100)), content, enabled: body.enabled !== false, updated_by_discord_id: session.discord_id };
       const { data: existingPage } = await db.from('platform_custom_pages').select('*').eq('slug', slug).maybeSingle();
       if (existingPage) await db.from('platform_content_versions').insert({ content_type: 'page', content_key: slug, snapshot: existingPage, changed_by_discord_id: session.discord_id, change_type: 'before_save' });
@@ -212,13 +215,15 @@ Deno.serve(async (request) => {
     if (action === 'set_page_state') {
       const slug = cleanSlug(body.slug);
       const publication = ['draft', 'published', 'archived'].includes(String(body.publication)) ? String(body.publication) : 'draft';
+      const approvalStatus = body.approve === true ? 'approved' : body.reject === true ? 'rejected' : null;
       const { data: current, error: currentError } = await db.from('platform_custom_pages').select('content').eq('slug', slug).maybeSingle();
       if (currentError) throw currentError;
       if (!current) return reply({ error: 'Pagina nu există.' }, 404);
       const content = current.content && typeof current.content === 'object' ? current.content : {};
       const settings = content.settings && typeof content.settings === 'object' ? content.settings : {};
       await db.from('platform_content_versions').insert({ content_type: 'page', content_key: slug, snapshot: current, changed_by_discord_id: session.discord_id, change_type: `before_${publication}` });
-      const { data, error } = await db.from('platform_custom_pages').update({ content: { ...content, settings: { ...settings, publication } }, enabled: publication !== 'archived', updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() }).eq('slug', slug).select('slug,enabled,content').maybeSingle();
+      const nextSettings = { ...settings, publication, ...(approvalStatus ? { approval_status: approvalStatus, approval_required: true } : {}) };
+      const { data, error } = await db.from('platform_custom_pages').update({ content: { ...content, settings: nextSettings }, enabled: publication !== 'archived', updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() }).eq('slug', slug).select('slug,enabled,content').maybeSingle();
       if (error) throw error;
       await db.from('admin_audit_log').insert({ organization_id: session.organization_id, actor_discord_id: session.discord_id, action: `platform_custom_page_${publication}`, target_type: 'platform_custom_page', target_id: slug, details: { publication } });
       return reply({ ok: true, page: data });
