@@ -124,6 +124,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'comparePageVersions', 'managerul poate compara versiuni'],
   ['js/platform-assistant-workbench.js', 'platform-assistant-help', 'centrul de ajutor este disponibil'],
   ['js/platform-assistant-workbench.js', 'platform-page-recurrence', 'editorul suportă publicare recurentă'],
+  ['js/platform-assistant-workbench.js', 'pageScheduleLabel', 'managerul afișează programarea și repetarea paginilor'],
   ['js/platform-assistant-workbench.js', 'repetarea are nevoie de data publicării', 'editorul validează data pentru publicarea recurentă'],
   ['supabase/functions/manage-platform-pages/index.ts', 'recurrence_until', 'backendul gestionează finalul repetării'],
   ['supabase/functions/manage-platform-pages/index.ts', 'function recurrenceActive', 'backendul calculează fereastra fiecărui ciclu'],
