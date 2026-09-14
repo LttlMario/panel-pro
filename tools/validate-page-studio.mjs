@@ -32,6 +32,7 @@ const checks = [
   ['js/platform-assistant-workbench.js', "event.key.toLowerCase()==='z'", 'shortcut-ul undo există'],
   ['js/platform-assistant-workbench.js', "['calculator','🧮 Calculator'", 'șabloanele rapide avansate există'],
   ['js/platform-assistant-workbench.js', 'previewBlocks', 'preview-ul suportă date demo'],
+  ['js/platform-assistant-workbench.js', '2*1024*1024', 'importul are limită de siguranță'],
   ['js/platform-assistant-workbench.js', 'previewMode', 'preview desktop/mobil există'],
   ['administrare-module.html', 'preview-live-frame.tablet', 'preview tabletă există'],
   ['js/platform-assistant-workbench.js', 'panel_custom_page_published', 'sincronizarea între taburi există'],
