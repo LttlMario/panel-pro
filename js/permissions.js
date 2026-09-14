@@ -22,6 +22,7 @@ const AdministrativePages = new Set([
     'setari-platforma.html'
     ,'administrare-module.html'
     ,'sponsorizari.html'
+    ,'biblioteca-media.html'
     ,'custom-page.html'
 ]);
 
