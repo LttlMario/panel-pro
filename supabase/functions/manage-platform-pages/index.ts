@@ -256,6 +256,17 @@ Deno.serve(async (request) => {
       }
       if (access === 'authenticated' && !submitter) return reply({ error: 'Autentifică-te pentru a trimite acest formular.' }, 401);
       if (access === 'global_admin') return reply({ error: 'Această pagină nu acceptă trimiteri publice.' }, 403);
+      const audience = settings.audience && typeof settings.audience === 'object' ? settings.audience : {};
+      const audienceOrganizations = Array.isArray(audience.organization_ids) ? audience.organization_ids.map(String) : [];
+      const audienceRoles = Array.isArray(audience.role_ids) ? audience.role_ids.map(String) : [];
+      const audienceUsers = Array.isArray(audience.user_ids) ? audience.user_ids.map(String) : [];
+      const submitterRoles = Array.isArray(submitter?.discord_role_ids) ? submitter.discord_role_ids.map(String) : [];
+      if ((audienceOrganizations.length || audienceRoles.length || audienceUsers.length) && !submitter) return reply({ error: 'Autentifică-te pentru a trimite acest formular.' }, 401);
+      if ((audienceOrganizations.length && !audienceOrganizations.includes(String(submitter?.organization_id))) || (audienceRoles.length && !submitterRoles.some((role: string) => audienceRoles.includes(role))) || (audienceUsers.length && !audienceUsers.includes(String(submitter?.discord_id)))) return reply({ error: 'Nu ai acces la această pagină.' }, 403);
+      const readPermission = settings.permissions?.read && typeof settings.permissions.read === 'object' ? settings.permissions.read : {};
+      const permissionRestricted = readPermission.organization_ids?.length || readPermission.role_ids?.length || readPermission.user_ids?.length;
+      if (permissionRestricted && !submitter) return reply({ error: 'Autentifică-te pentru a trimite acest formular.' }, 401);
+      if ((readPermission.organization_ids?.length && !readPermission.organization_ids.map(String).includes(String(submitter?.organization_id))) || (readPermission.role_ids?.length && !submitterRoles.some((role: string) => readPermission.role_ids.map(String).includes(role))) || (readPermission.user_ids?.length && !readPermission.user_ids.map(String).includes(String(submitter?.discord_id)))) return reply({ error: 'Nu ai permisiunea necesară pentru această pagină.' }, 403);
       const { index, path, block } = findFormBlock(page, body.block_path ?? body.block_index);
       const values = cleanSubmissionValues(body.values);
       (block.fields as any[]).forEach((field, fieldIndex) => {

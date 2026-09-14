@@ -93,6 +93,7 @@ const checks = [
   ['supabase/functions/manage-platform-pages/index.ts', "action === 'submit_form'", 'backendul primește formulare publicate'],
   ['supabase/functions/manage-platform-pages/index.ts', 'cleanSubmissionValues', 'backendul curăță datele formularelor'],
   ['supabase/functions/manage-platform-pages/index.ts', 'block_path', 'backendul acceptă formulare din grupuri'],
+  ['supabase/functions/manage-platform-pages/index.ts', 'audienceOrganizations', 'trimiterea formularului revalidează audiența'],
   ['supabase/functions/manage-platform-pages/index.ts', 'allowFormRequest', 'trimiterea formularelor are limită separată'],
   ['supabase/functions/manage-platform-pages/index.ts', "action === 'list_submissions'", 'administratorul poate lista cererile'],
   ['supabase/functions/manage-platform-pages/index.ts', "action === 'update_submission_status'", 'administratorul poate actualiza starea cererilor'],
