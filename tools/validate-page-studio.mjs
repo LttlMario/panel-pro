@@ -18,6 +18,8 @@ const checks = [
   ['js/platform-assistant-workbench.js', 'const undo', 'editorul are undo'],
   ['js/platform-assistant-workbench.js', 'const redo', 'editorul are redo'],
   ['supabase/functions/manage-platform-pages/index.ts', "'accordion'", 'backendul acceptă blocuri avansate'],
+  ['js/platform-assistant-workbench.js', 'platform-page-publish-at', 'editorul are programare și expirare'],
+  ['supabase/functions/manage-platform-pages/index.ts', 'publish_at', 'backendul filtrează publicarea programată'],
   ['js/platform-assistant-workbench.js', 'previewMode', 'preview desktop/mobil există'],
   ['administrare-module.html', 'preview-live-frame.tablet', 'preview tabletă există'],
   ['js/platform-assistant-workbench.js', 'panel_custom_page_published', 'sincronizarea între taburi există'],

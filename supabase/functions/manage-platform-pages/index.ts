@@ -128,7 +128,14 @@ Deno.serve(async (request) => {
       if (error) throw error;
       let authenticated = false;
       if (request.headers.get('x-panel-session')) { try { await requirePanelSession(db, request, 0, true); authenticated = true; } catch (_) {} }
-      const pages = (data || []).filter((page: any) => page?.content?.settings?.publication !== 'draft' && (String(page?.content?.settings?.access || 'global_admin') === 'public' || (authenticated && String(page?.content?.settings?.access || '') === 'authenticated')));
+      const now = Date.now();
+      const pages = (data || []).filter((page: any) => {
+        const settings = page?.content?.settings || {};
+        const publishAt = settings.publish_at ? Date.parse(String(settings.publish_at)) : NaN;
+        const expiresAt = settings.expires_at ? Date.parse(String(settings.expires_at)) : NaN;
+        const active = settings.publication !== 'draft' && (!Number.isFinite(publishAt) || publishAt <= now) && (!Number.isFinite(expiresAt) || expiresAt > now);
+        return active && (String(settings.access || 'global_admin') === 'public' || (authenticated && String(settings.access || '') === 'authenticated'));
+      });
       return reply({ pages });
     }
     const session = await requirePanelSession(db, request, 0, true);
@@ -156,7 +163,11 @@ Deno.serve(async (request) => {
       const layout = ['single', 'wide', 'two-column'].includes(String(sourceSettings.layout)) ? String(sourceSettings.layout) : 'single';
       const category = ['legal', 'illegal', 'both'].includes(String(sourceSettings.category)) ? String(sourceSettings.category) : 'both';
       const publication = body.publish === true ? 'published' : body.publish === false ? 'draft' : (sourceSettings.publication === 'draft' ? 'draft' : 'published');
-      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
+      const parseDate = (value: unknown) => { if (!value) return null; const timestamp = Date.parse(String(value)); return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null; };
+      const publishAt = parseDate(sourceSettings.publish_at);
+      const expiresAt = parseDate(sourceSettings.expires_at);
+      if (publishAt && expiresAt && Date.parse(expiresAt) <= Date.parse(publishAt)) throw new Error('Expirarea trebuie să fie după momentul publicării.');
+      const content = { settings: { access, layout, theme: String(sourceSettings.theme || 'inherit').slice(0, 40), category, publication, publish_at: publishAt, expires_at: expiresAt, responsive: sourceSettings.responsive !== false }, blocks: cleanBlocks(body.content?.blocks ?? body.blocks ?? []) };
       const row = { slug, title, description, icon, sidebar_section: section, sort_order: Math.max(0, Math.min(9999, Number(body.sort_order) || 100)), content, enabled: body.enabled !== false, updated_by_discord_id: session.discord_id };
       const { data: existingPage } = await db.from('platform_custom_pages').select('*').eq('slug', slug).maybeSingle();
       if (existingPage) await db.from('platform_content_versions').insert({ content_type: 'page', content_key: slug, snapshot: existingPage, changed_by_discord_id: session.discord_id, change_type: 'before_save' });
