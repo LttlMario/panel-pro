@@ -1,0 +1,11 @@
+name: Panel Pro CodeQL
+
+# The Android wrapper is a separate Capacitor build and is published from its
+# own release pipeline. Keeping it out of the web repository's default CodeQL
+# run prevents Gradle/Android SDK dependency warnings from being reported as
+# web-project quality issues.
+paths-ignore:
+  - panel-android/android/**
+  - panel-android/node_modules/**
+  - panel-ios/**
+  - node_modules/**
