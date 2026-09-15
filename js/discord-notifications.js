@@ -68,6 +68,7 @@
                 channel: resolvedChannel,
                 payload,
                 message_key: options?.messageKey ? String(options.messageKey) : '',
+                post_only: options?.postOnly === true,
                 channel_routes: options?.channelRoutes && typeof options.channelRoutes === 'object' ? options.channelRoutes : undefined,
                 organization_id: organizationId
             });

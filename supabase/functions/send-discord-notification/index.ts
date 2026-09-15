@@ -115,6 +115,7 @@ Deno.serve(async (request) => {
       channel = String(body.channel || '');
       requestedOrganizationId = String(body.organization_id || '');
       requestedMessageKey = String(body.message_key || '').trim().slice(0, 120);
+      requestedPostOnly = body.post_only === true || String(body.post_only || '') === '1';
       requestedChannelRoutes = body.channel_routes && typeof body.channel_routes === 'object' ? body.channel_routes : null;
       payload = body.payload;
       forwardBody = JSON.stringify(payload);

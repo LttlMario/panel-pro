@@ -477,6 +477,23 @@
     if (canPublishDiscordPanels && !section.querySelector('#discord-publish-all')) section.insertAdjacentHTML('beforeend', '<div class="mt-4 rounded-lg border border-cyan-800/70 bg-cyan-950/20 p-3"><div class="flex flex-wrap items-center gap-3"><button id="discord-publish-all" type="button" disabled class="rounded-xl bg-cyan-500 px-5 py-3 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">📌 Publică toate embedurile selectate</button><span id="discord-publish-all-status" class="text-xs text-slate-300">Selectează canalele, apoi publică toate embedurile dintr-o singură apăsare.</span></div></div>');
     const bulkPublishButton = section.querySelector('#discord-publish-all');
     if (bulkPublishButton) bulkPublishButton.onclick = publishAllPanels;
+    if (canPublishDiscordPanels && !section.querySelector('#discord-route-test')) {
+      section.insertAdjacentHTML('beforeend', `<div class="mt-3 rounded-lg border border-amber-800/70 bg-amber-950/20 p-3"><div class="flex flex-wrap items-center gap-2"><select id="discord-route-test-key" class="field max-w-xs">${routeKeys.map((key) => `<option value="${esc(key)}">${esc(labels[key])}</option>`).join('')}</select><button id="discord-route-test" type="button" class="rounded-xl border border-amber-600 bg-amber-900/40 px-4 py-2 text-xs font-black text-amber-100">🧪 Trimite mesaj de test</button><span id="discord-route-test-status" class="text-xs text-slate-300">Trimite un mesaj temporar pentru verificarea botului și a canalului selectat.</span></div></div>`);
+      section.querySelector('#discord-route-test').onclick = async () => {
+        const button = section.querySelector('#discord-route-test');
+        const statusNode = section.querySelector('#discord-route-test-status');
+        const key = section.querySelector('#discord-route-test-key')?.value || '';
+        const targets = selectedRouteTargets(key);
+        if (!targets.length) { statusNode.textContent = 'Selectează cel puțin un canal pentru ruta aleasă.'; return; }
+        button.disabled = true; statusNode.textContent = 'Se trimite mesajul de test…';
+        try {
+          const response = await window.sendPanelDiscord(key, { allowed_mentions: { parse: [] }, content: `✅ Test Panel Pro · ruta ${labels[key]} · ${new Date().toLocaleString('ro-RO')}` }, { messageKey: `panel-test-${Date.now()}`, postOnly: true, channelRoutes: window.getDiscordChannelRoutes?.() || {} });
+          const result = await response.clone().json().catch(() => ({}));
+          statusNode.textContent = `Mesaj de test trimis cu succes pe ${Number(result.routes || targets.length)} canal${Number(result.routes || targets.length) === 1 ? '' : 'e'}.`;
+        } catch (error) { statusNode.textContent = error.message || 'Mesajul de test nu a putut fi trimis.'; }
+        finally { button.disabled = false; }
+      };
+    }
     syncBulkPublishState();
   };
   const discover = async () => {
