@@ -92,7 +92,7 @@
     bindRenderedCards: (root = document) => bindActionDeletes(root),
     openComposer: openModal
   };
-  function show() { state.open = true; $('feed').hidden = true; $('discipline-panel').hidden = true; $('actions-panel').hidden = false; document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active')); document.querySelector('[data-actions-filter]')?.classList.add('active'); render(); load(); }
+  async function show() { state.open = true; $('feed').hidden = true; $('discipline-panel').hidden = true; $('actions-panel').hidden = false; document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active')); document.querySelector('[data-actions-filter]')?.classList.add('active'); render(); await load(); }
   function hide() { state.open = false; $('actions-panel').hidden = true; $('feed').hidden = false; }
   document.addEventListener('DOMContentLoaded', () => {
     if (!$('actions-panel')) return;
@@ -111,7 +111,7 @@
       const type = $('actions-type').value, label = type === 'Personalizat' ? $('actions-custom-label').value.trim() : type;
       if (!label) { notice('Introdu denumirea acțiunii.', true); return; }
       const button = $('actions-form').querySelector('button[type="submit"]'); if (button) button.disabled = true;
-      try { const result = await call({ action: 'actions_create', action_type: type, action_label: label, guild_id: $('actions-guild').value, participant_ids: selected, description: $('actions-description').value.trim(), notes: $('actions-notes').value.trim() }); closeModal(); show(); notice(result.discord_delivery === 'sent' ? 'Acțiunea a fost salvată și trimisă pe Discord.' : `Acțiunea a fost salvată, dar nu a fost trimisă pe Discord: ${result.discord_warning || 'verifică ruta și permisiunile botului.'}`, result.discord_delivery !== 'sent'); }
+      try { const result = await call({ action: 'actions_create', action_type: type, action_label: label, guild_id: $('actions-guild').value, participant_ids: selected, description: $('actions-description').value.trim(), notes: $('actions-notes').value.trim() }); closeModal(); await show(); notice(result.discord_delivery === 'sent' ? 'Acțiunea a fost salvată și trimisă pe Discord.' : `Acțiunea a fost salvată, dar nu a fost trimisă pe Discord: ${result.discord_warning || 'verifică ruta și permisiunile botului.'}`, result.discord_delivery !== 'sent'); }
       catch (error) { notice(error.message, true); }
       finally { if (button) button.disabled = false; }
     });
