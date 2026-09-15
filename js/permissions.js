@@ -31,7 +31,8 @@ const AdministrativePages = new Set([
 // configurat pentru paginile organizației.
 const GlobalPublicPages = new Set([
     'suggestii.html',
-    'rate-panel.html'
+    'rate-panel.html',
+    'descarca-fivem-pure.html'
 ]);
 
 const OrganizationHubPages = new Set([
@@ -780,7 +781,8 @@ function applyRoleBasedVisibility() {
         if (
             href === 'login.html' ||
             href === '403.html' ||
-            href === 'guest.html'
+            href === 'guest.html' ||
+            GlobalPublicPages.has(href)
         ) {
             return;
         }
