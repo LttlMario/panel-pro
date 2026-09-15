@@ -299,11 +299,11 @@ const loadDisciplineTargets = async (scope:string) => {
 };
 const notifyActionDiscord = async (record:any) => {
     const { data: settings } = await db.from('organization_settings').select('discord_channel_routes,panel_public_url').eq('organization_id', organizationId).maybeSingle();
-    const routeKey = 'actions_organization';
-    if (!routeCandidates(settings, routeKey).some((item) => item.candidates.length)) return null;
+    const routeKey = 'log_actions_organization';
+    if (!routeCandidates(settings, routeKey, 'actions_organization').some((item) => item.candidates.length)) return null;
     const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
     const participants = Array.isArray(record.participants) ? record.participants : [];
-    const delivery = await deliverDiscordRoute(db, settings, routeKey, JSON.stringify({ embeds: [{ title: `✅ Acțiune nouă: ${record.action_label}`, description: record.description || 'A fost înregistrată o acțiune a organizației.', color: 5763719, url: `${site}/anunturi.html?actions=${record.id}`, fields: [{ name: 'Tip', value: record.action_type || record.action_label, inline: true }, { name: 'Participanți', value: participants.length ? participants.map((item:any) => `• ${item.name}`).join('\n').slice(0, 1024) : 'Nespecificați' }, ...(record.notes ? [{ name: 'Note', value: String(record.notes).slice(0, 1024) }] : [])], footer: { text: `Panel Pro · ${record.created_by_name || record.created_by_discord_id}` } }], components: actionDiscordComponents(String(record.id)) }));
+    const delivery = await deliverDiscordRoute(db, settings, routeKey, JSON.stringify({ embeds: [{ title: `✅ Acțiune nouă: ${record.action_label}`, description: record.description || 'A fost înregistrată o acțiune a organizației.', color: 5763719, url: `${site}/anunturi.html?actions=${record.id}`, fields: [{ name: 'Tip', value: record.action_type || record.action_label, inline: true }, { name: 'Participanți', value: participants.length ? participants.map((item:any) => `• ${item.name}`).join('\n').slice(0, 1024) : 'Nespecificați' }, ...(record.notes ? [{ name: 'Note', value: String(record.notes).slice(0, 1024) }] : [])], footer: { text: `Panel Pro · ${record.created_by_name || record.created_by_discord_id}` } }], components: actionDiscordComponents(String(record.id)) }), { fallbackRouteKey: 'actions_organization' });
     return delivery.results[0]?.id || null;
 };
 if (String(body.action || '').startsWith('actions_')) {
@@ -383,7 +383,7 @@ if (String(body.action || '').startsWith('actions_')) {
         if (loadError) throw loadError;
         if (!row) return reply({ error: 'Acțiunea nu există.' }, 404);
         const { data: settings } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
-        const candidate = routeCandidates(settings, 'actions_organization').flatMap((item) => item.candidates)[0];
+        const candidate = routeCandidates(settings, 'log_actions_organization', 'actions_organization').flatMap((item) => item.candidates)[0];
         if (row.discord_message_id && candidate) await requestDiscordTarget(db, candidate, null, { method: 'DELETE', messageId: String(row.discord_message_id) }).catch(() => null);
         const { error } = await db.from('organization_actions').delete().eq('organization_id', organizationId).eq('id', id);
         if (error) throw error;
