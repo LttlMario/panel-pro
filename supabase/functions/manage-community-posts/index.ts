@@ -4,7 +4,7 @@ import {isPlatformAdminAccount} from '../_shared/platform-admin.ts';
 import {resolvePackageFeatures} from '../_shared/package-features.ts';
 import {getPlatformSecret} from '../_shared/platform-secrets.ts';
 import {deliverDiscordRoute, routeCandidates, requestDiscordTarget} from '../_shared/discord-delivery.ts';
-const cors={'Access-Control-Allow-Origin':'https://panel-pro.ro','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
+const cors={'Access-Control-Allow-Origin':'https://panel-pro.ro','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session,x-panel-device','Access-Control-Max-Age':'86400','Content-Type':'application/json'};
 
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:cors});
 const normalizeBlackMarketName=(value:unknown)=>String(value??'').replace(/^\s*\d{1,12}\s+/,'').replace(/^\s*\d{1,12}\s*[|:/#-]\s*/,'').replace(/\s*[|:/#-]\s*\d{1,12}\s*$/,'').replace(/\s+\d{1,12}\s*$/,'').replace(/\s*[[(]\s*\d{1,12}\s*[\])]\s*$/,'').replace(/\s{2,}/g,' ').trim();
@@ -299,7 +299,7 @@ const loadDisciplineTargets = async (scope:string) => {
 };
 const notifyActionDiscord = async (record:any) => {
     const { data: settings } = await db.from('organization_settings').select('discord_channel_routes,panel_public_url').eq('organization_id', organizationId).maybeSingle();
-    const routeKey = 'log_actions_organization';
+    const routeKey = 'actions_organization';
     if (!routeCandidates(settings, routeKey).some((item) => item.candidates.length)) return null;
     const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
     const participants = Array.isArray(record.participants) ? record.participants : [];
@@ -383,7 +383,7 @@ if (String(body.action || '').startsWith('actions_')) {
         if (loadError) throw loadError;
         if (!row) return reply({ error: 'Acțiunea nu există.' }, 404);
         const { data: settings } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
-        const candidate = routeCandidates(settings, 'log_announcements_organization').flatMap((item) => item.candidates)[0];
+        const candidate = routeCandidates(settings, 'actions_organization').flatMap((item) => item.candidates)[0];
         if (row.discord_message_id && candidate) await requestDiscordTarget(db, candidate, null, { method: 'DELETE', messageId: String(row.discord_message_id) }).catch(() => null);
         const { error } = await db.from('organization_actions').delete().eq('organization_id', organizationId).eq('id', id);
         if (error) throw error;

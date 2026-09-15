@@ -4,7 +4,7 @@ import { isPlatformAdminAccount } from '../_shared/platform-admin.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session',
+  'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session,x-panel-device',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json',
 };
