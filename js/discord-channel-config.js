@@ -520,10 +520,12 @@
       } catch (error) { state.guildAvailability[target] = false; status.textContent = error.message || 'Canalele nu au putut fi încărcate.'; }
     }
     render();
+    window.dispatchEvent(new CustomEvent('panel:discord-channels-updated'));
     if (loaded && targets.some((item) => item.target === 'secondary') && state.guildAvailability.secondary === false) status.textContent = `${loaded} canale text disponibile doar pe Discord principal. Botul nu este prezent pe Discord secundar; selectorul secundar rămâne dezactivat.`;
     else if (loaded) status.textContent = `${loaded} canale text disponibile. Selectează destinațiile și salvează configurația.`;
   };
   window.getDiscordChannelRoutes = () => JSON.parse(JSON.stringify(state.routes || {}));
+  window.getDiscordDiscoveredChannels = () => JSON.parse(JSON.stringify(allChannels()));
   window.setDiscordChannelRoutes = (routes) => { state.routes = routes && typeof routes === 'object' ? JSON.parse(JSON.stringify(routes)) : {}; render(); };
   state.routes = window.discordChannelRoutesInitial && typeof window.discordChannelRoutesInitial === 'object' ? window.discordChannelRoutesInitial : {};
   section.querySelector('#discord-channel-discover').onclick = discover;
