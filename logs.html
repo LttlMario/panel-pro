@@ -18,7 +18,7 @@
 <body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen text-sm">
         <main class="w-full min-w-0">
             <div class="p-8 space-y-8 max-w-7xl mx-auto w-full">
-            <section class="panel-action-bar"><div><button onclick="loadLogs()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl text-xs font-semibold">↻ Reîmprospătează</button></div></section>
+            <section class="panel-action-bar"><div class="flex flex-wrap gap-2"><button onclick="loadLogs()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl text-xs font-semibold">↻ Reîmprospătează</button><button onclick="exportLogs('csv')" class="bg-indigo-700 hover:bg-indigo-600 border border-indigo-500/40 px-3 py-2 rounded-xl text-xs font-semibold">Descarcă CSV</button><button onclick="exportLogs('json')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl text-xs font-semibold">Descarcă JSON</button></div></section>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5"><p class="text-[10px] uppercase tracking-wider text-slate-500">Evenimente afișate</p><p id="count-all" class="text-3xl font-black mt-1">0</p></div>
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5"><p class="text-[10px] uppercase tracking-wider text-slate-500">Pontaje active</p><p id="count-active" class="text-3xl font-black mt-1 text-emerald-400">0</p></div>
@@ -70,6 +70,26 @@
             const colors={pontaj:'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',absenta:'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',marketplace:'text-amber-400 bg-amber-500/10 border-amber-500/20',marketplace_ilegal:'text-rose-400 bg-rose-500/10 border-rose-500/20',admin:'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'};
             document.getElementById('visible-count').textContent=`${filtered.length} rezultate`;
             document.getElementById('logs-list').innerHTML=filtered.length?filtered.map(item=>`<article class="p-4 md:px-5 flex gap-4 hover:bg-slate-800/30"><span class="w-9 h-9 flex-none grid place-items-center rounded-xl border ${colors[item.type]}">${icons[item.type]}</span><div class="min-w-0 flex-1"><div class="flex flex-col sm:flex-row sm:justify-between gap-1"><p class="font-semibold text-slate-100">${escapeHtml(item.title)}</p><time class="text-[11px] text-slate-500 whitespace-nowrap">${dateText(item.at)}</time></div><p class="text-xs text-emerald-400 mt-1">${escapeHtml(item.person)}</p><p class="text-xs text-slate-400 mt-1 break-words">${escapeHtml(item.detail)}</p></div></article>`).join(''):'<p class="p-8 text-center text-slate-500">Nu există loguri pentru filtrele alese.</p>';
+        }
+
+        function filteredLogsForExport() {
+            const query=document.getElementById('search').value.toLowerCase().trim(), type=document.getElementById('type-filter').value, period=document.getElementById('period-filter').value;
+            const now=Date.now(), maxAge=period==='today'?new Date().setHours(0,0,0,0):period==='all'?0:now-Number(period)*86400000;
+            return events.filter(item=>(type==='all'||item.type===type)&&(!maxAge||new Date(item.at)>=maxAge)&&(`${item.person} ${item.title} ${item.detail}`).toLowerCase().includes(query));
+        }
+
+        function downloadFile(name, content, type) {
+            const blob=new Blob([content],{type}); const url=URL.createObjectURL(blob); const link=document.createElement('a'); link.href=url; link.download=name; document.body.appendChild(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+        }
+
+        function exportLogs(format) {
+            const rows=filteredLogsForExport();
+            if(!rows.length){ alert('Nu există evenimente pentru filtrele selectate.'); return; }
+            const stamp=new Date().toISOString().slice(0,10);
+            if(format==='json') { downloadFile(`panel-pro-loguri-${stamp}.json`, JSON.stringify(rows,null,2), 'application/json;charset=utf-8'); return; }
+            const csvRows=[['Tip','Data','Persoană','Titlu','Detalii','Stare'],...rows.map(item=>[item.type,item.at,item.person,item.title,item.detail,item.state])];
+            const csv=csvRows.map(row=>row.map(value=>`"${String(value??'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+            downloadFile(`panel-pro-loguri-${stamp}.csv`, '\ufeff'+csv, 'text/csv;charset=utf-8');
         }
     </script>
     <script src="js/global-footer.js"></script>
