@@ -303,13 +303,13 @@ const notifyActionDiscord = async (record:any) => {
     if (!routeCandidates(settings, routeKey).some((item) => item.candidates.length)) return null;
     const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
     const participants = Array.isArray(record.participants) ? record.participants : [];
-    const delivery = await deliverDiscordRoute(db, settings, routeKey, JSON.stringify({ embeds: [{ title: `✅ Acțiune nouă: ${record.action_label}`, description: record.description || 'A fost înregistrată o acțiune a organizației.', color: 5763719, url: `${site}/anunturi.html?actions=${record.id}`, fields: [{ name: 'Tip', value: record.action_type || record.action_label, inline: true }, { name: 'Participanți', value: participants.length ? participants.map((item:any) => `• ${item.name}`).join('\n').slice(0, 1024) : 'Nespecificați' }, ...(record.notes ? [{ name: 'Note', value: String(record.notes).slice(0, 1024) }] : [])], footer: { text: `Panel Pro · ${record.created_by_name || record.created_by_discord_id}` } }], components: actionDiscordComponents(String(record.id)) }));
+    const delivery = await deliverDiscordRoute(db, settings, routeKey, JSON.stringify({ embeds: [{ title: `✅ Acțiune nouă: ${record.action_label}`, description: record.description || 'A fost înregistrată o acțiune a organizației.', color: 5763719, url: `${site}/anunturi.html?actions=${record.id}`, fields: [{ name: 'Tip', value: record.action_type || record.action_label, inline: true }, { name: 'Participanți', value: participants.length ? participants.map((item:any) => `• ${item.name}`).join('\n').slice(0, 1024) : 'Nespecificați' }, ...(record.notes ? [{ name: 'Note', value: String(record.notes).slice(0, 1024) }] : [])], footer: { text: `Panel Pro · ${record.created_by_name || record.created_by_discord_id}` } }], components: actionDiscordComponents(String(record.id)) }), record.discord_message_id ? { messageIds: { primary: String(record.discord_message_id) } } : {});
     return delivery.results[0]?.id || null;
 };
 if (String(body.action || '').startsWith('actions_')) {
     if (!hasActionsFeature) return reply({ error: 'Modulul Acțiuni este disponibil în pachetul Operations sau Full.' }, 403);
     if (body.action === 'actions_access') return reply({ enabled: true, read: canAction('read'), write: canAction('write'), delete: canAction('delete'), platform_admin: isPlatformAdmin, package_code: String(packageSetting?.value?.code || 'standard') });
-    const requiredPermission = body.action === 'actions_create' || body.action === 'actions_members' || body.action === 'actions_guilds' ? 'write' : body.action === 'actions_delete' ? 'delete' : 'read';
+    const requiredPermission = body.action === 'actions_create' || body.action === 'actions_members' || body.action === 'actions_guilds' || body.action === 'actions_republish' ? 'write' : body.action === 'actions_delete' ? 'delete' : 'read';
     if (!canAction(requiredPermission as any)) return reply({ error: 'Nu ai permisiunea necesară pentru modulul Acțiuni.' }, 403);
     if (body.action === 'actions_guilds') return reply({ guilds: await configuredActionGuilds() });
     if (body.action === 'actions_members') {
@@ -383,6 +383,16 @@ if (String(body.action || '').startsWith('actions_')) {
         }
         if (discordMessageId) await db.from('organization_actions').update({ discord_message_id: discordMessageId }).eq('id', actionRow.id).eq('organization_id', organizationId);
         return reply({ ok: true, action: { ...actionRow, discord_message_id: discordMessageId }, discord_delivery: discordMessageId ? 'sent' : 'unavailable', discord_warning: discordDeliveryWarning || null });
+    }
+    if (body.action === 'actions_republish') {
+        const id = String(body.id || '').trim();
+        if (!id) return reply({ error: 'Acțiunea lipsește.' }, 400);
+        const { data: actionRow, error: actionError } = await db.from('organization_actions').select('*').eq('organization_id', organizationId).eq('id', id).maybeSingle();
+        if (actionError) throw actionError;
+        if (!actionRow) return reply({ error: 'Acțiunea nu există.' }, 404);
+        const discordMessageId = await notifyActionDiscord(actionRow);
+        if (discordMessageId) await db.from('organization_actions').update({ discord_message_id: discordMessageId }).eq('id', actionRow.id).eq('organization_id', organizationId);
+        return reply({ ok: Boolean(discordMessageId), discord_delivery: discordMessageId ? 'updated' : 'unavailable', discord_warning: discordMessageId ? null : 'Canalul Log anunțuri organizație nu este configurat.' });
     }
     if (body.action === 'actions_delete') {
         const id = String(body.id || '').trim();

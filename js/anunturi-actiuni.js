@@ -31,10 +31,27 @@
     if (!host) return;
     host.innerHTML = state.actions.length ? state.actions.map(actionCard).join('') : '<div class="empty">Nu există acțiuni înregistrate.</div>';
     bindActionDeletes(host);
+    bindActionRepublish(host);
   }
 
   function actionCard(row) {
-    return `<article class="discipline-card is-active"><div class="discipline-card-head"><div><span class="badge organization">${esc(typeLabel(row))}</span><span class="badge">${esc(row.guild_name || row.guild_id || 'Guild Discord')}</span></div><span class="discipline-status">${new Date(row.created_at).toLocaleDateString('ro-RO')}</span></div><h4>${esc(row.action_label)}</h4>${row.description ? `<p class="discipline-reason">${esc(row.description)}</p>` : ''}<p class="discipline-notes"><b>Participanți:</b> ${row.participants?.length ? row.participants.map((item) => esc(item.name)).join(', ') : 'Nespecificați'}</p>${row.notes ? `<p class="discipline-notes">${esc(row.notes)}</p>` : ''}<div class="meta">Înregistrată de ${esc(row.created_by_name || row.created_by_discord_id)} · ${new Date(row.created_at).toLocaleString('ro-RO')}</div>${state.access.delete ? `<div class="owner-actions"><button class="text-action danger" data-actions-delete="${esc(row.id)}">Șterge</button></div>` : ''}</article>`;
+    return `<article class="discipline-card is-active"><div class="discipline-card-head"><div><span class="badge organization">${esc(typeLabel(row))}</span><span class="badge">${esc(row.guild_name || row.guild_id || 'Guild Discord')}</span></div><span class="discipline-status">${new Date(row.created_at).toLocaleDateString('ro-RO')}</span></div><h4>${esc(row.action_label)}</h4>${row.description ? `<p class="discipline-reason">${esc(row.description)}</p>` : ''}<p class="discipline-notes"><b>Participanți:</b> ${row.participants?.length ? row.participants.map((item) => esc(item.name)).join(', ') : 'Nespecificați'}</p>${row.notes ? `<p class="discipline-notes">${esc(row.notes)}</p>` : ''}<div class="meta">Înregistrată de ${esc(row.created_by_name || row.created_by_discord_id)} · ${new Date(row.created_at).toLocaleString('ro-RO')}</div><div class="owner-actions">${state.access.write ? `<button class="text-action" data-actions-republish="${esc(row.id)}">Retrimite / actualizează Discord</button>` : ''}${state.access.delete ? `<button class="text-action danger" data-actions-delete="${esc(row.id)}">Șterge</button>` : ''}</div></article>`;
+  }
+
+  function bindActionRepublish(root = document) {
+    root.querySelectorAll('[data-actions-republish]').forEach((button) => button.addEventListener('click', async () => {
+      button.disabled = true;
+      button.textContent = 'Se actualizează…';
+      try {
+        const result = await call({ action: 'actions_republish', id: button.dataset.actionsRepublish });
+        await load();
+        notice(result.discord_delivery === 'updated' ? 'Embedul din Log anunțuri organizație a fost actualizat.' : (result.discord_warning || 'Embedul nu a putut fi publicat.'), result.discord_delivery !== 'updated');
+      } catch (error) {
+        notice(error.message, true);
+        button.disabled = false;
+        button.textContent = 'Retrimite / actualizează Discord';
+      }
+    }));
   }
 
   function bindActionDeletes(root = document) {
