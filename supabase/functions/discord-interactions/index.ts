@@ -1355,9 +1355,9 @@ async function publishActionRecord(db: any, context: any, record: any) {
   // Panoul de control rămâne în canalul de anunțuri, dar rezultatul acțiunii
   // se publică separat pe ruta configurată pentru „Acțiuni organizație”.
   const routeKey = 'log_announcements_organization';
-  const destinations = routeCandidates(context.settings, routeKey, 'organization');
-  if (!destinations.some((item: any) => item.candidates.length)) return interactionMessage('Acțiunea a fost salvată în Supabase, dar nici canalul „Log anunțuri organizație”, nici canalul „Anunțuri organizație” nu este configurat.');
-  const delivery = await deliverDiscordRoute(db, context.settings, routeKey, JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [actionEmbed(record, context)], components: actionComponents(String(record.id)) }), { fallbackRouteKey: 'organization' });
+  const destinations = routeCandidates(context.settings, routeKey);
+  if (!destinations.some((item: any) => item.candidates.length)) return interactionMessage('Acțiunea a fost salvată în Supabase, dar canalul „Log anunțuri organizație” nu este configurat.');
+  const delivery = await deliverDiscordRoute(db, context.settings, routeKey, JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [actionEmbed(record, context)], components: actionComponents(String(record.id)) }));
   const messageId = delivery.results?.[0]?.id || null;
   if (messageId) await db.from('organization_actions').update({ discord_message_id: messageId }).eq('organization_id', context.organization.id).eq('id', record.id);
   return interactionMessage(`Acțiunea a fost salvată și publicată în ${delivery.results.length || 0} canal Discord.`);
