@@ -4,15 +4,19 @@
 
 1. Intră în `administrare-module.html` ca administrator global.
 2. Alege **Constructor pagini**, nu Constructor Discord.
-3. Scrie ce vrei să creezi sau selectează un șablon.
-4. Verifică categoria, accesul, layout-ul și tema.
-5. Folosește previzualizarea Desktop/Mobil.
-6. Reordonează sau duplică blocurile din editorul vizual.
-7. Salvează un draft sau apasă **Publică pagina**.
+3. Folosește **Creare rapidă** pentru un punct de pornire sau scrie ce vrei să creezi.
+4. Dacă repeți tipul de pagină, salvează draftul ca **șablon personalizat**; va apărea ulterior în „Șabloanele mele”.
+5. Verifică categoria, accesul, layout-ul și tema.
+6. Urmează pașii afișați: descriere, ajustare, verificare și publicare.
+7. Folosește previzualizarea Desktop/Mobil.
+8. Reordonează sau duplică blocurile din editorul vizual.
+9. Salvează un draft sau apasă **Publică pagina**.
 
 Programarea poate fi unică, zilnică, săptămânală sau lunară. Pentru repetări, data publicării este ancora ciclului, iar „Repetare până la” oprește automat ciclurile după termen. Dacă există și „Expiră la”, durata dintre publicare și expirare devine fereastra activă a fiecărui ciclu.
 
 Asistentul reține local ultimele preferințe de categorie, acces, layout și temă. Pentru cereri neclare oferă acțiuni rapide, iar intenții precum creare, publicare, editare, duplicare sau gestionare sunt detectate automat. Poți cere direct o pagină cu formular, galerie, cronologie/timeline sau calculator; blocurile apar atât în previzualizare, cât și în editorul vizual.
+
+Zona **Creare rapidă** include profiluri pentru pagini legale, ilegale sau mixte, precum și tipuri uzuale precum recrutare, anunțuri, dashboard, FAQ, galerie, formular și tutorial. Înainte de salvare sau publicare este afișat un rezumat al verificărilor, inclusiv detectarea rutelor deja folosite.
 
 În panoul **Permisiuni pe acțiuni** poți folosi preseturi sau identificatori expliciți: `role:ID`, `user:ID` și `org:UUID`. Regulile pot fi separate pentru citire, scriere, editare, aprobare, publicare, arhivare și ștergere și pot avea o dată de expirare.
 
