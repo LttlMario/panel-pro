@@ -373,9 +373,16 @@ if (String(body.action || '').startsWith('actions_')) {
         const { data: actionRow, error } = await db.from('organization_actions').insert({ organization_id: organizationId, action_type: type, action_label: label, description: String(body.description || '').trim().slice(0, 4000), notes: String(body.notes || '').trim().slice(0, 4000), guild_id: guildId, guild_name: String(guild.guild_name || guildId), participants, created_by_discord_id: du.id, created_by_name: author?.display_name || author?.username || du.id }).select('*').single();
         if (error) throw error;
         let discordMessageId = null;
-        try { discordMessageId = await notifyActionDiscord(actionRow); } catch (error) { console.error('Acțiunea a fost salvată, dar mesajul botului a eșuat:', error); }
+        let discordDeliveryWarning = '';
+        try {
+            discordMessageId = await notifyActionDiscord(actionRow);
+            if (!discordMessageId) discordDeliveryWarning = 'Nu este configurat nici canalul Log acțiuni organizație, nici canalul Acțiuni organizație.';
+        } catch (error) {
+            discordDeliveryWarning = error instanceof Error ? error.message : 'Livrarea pe Discord a eșuat.';
+            console.error('Acțiunea a fost salvată, dar mesajul botului a eșuat:', discordDeliveryWarning);
+        }
         if (discordMessageId) await db.from('organization_actions').update({ discord_message_id: discordMessageId }).eq('id', actionRow.id).eq('organization_id', organizationId);
-        return reply({ ok: true, action: { ...actionRow, discord_message_id: discordMessageId } });
+        return reply({ ok: true, action: { ...actionRow, discord_message_id: discordMessageId }, discord_delivery: discordMessageId ? 'sent' : 'unavailable', discord_warning: discordDeliveryWarning || null });
     }
     if (body.action === 'actions_delete') {
         const id = String(body.id || '').trim();

@@ -111,7 +111,7 @@
       const type = $('actions-type').value, label = type === 'Personalizat' ? $('actions-custom-label').value.trim() : type;
       if (!label) { notice('Introdu denumirea acțiunii.', true); return; }
       const button = $('actions-form').querySelector('button[type="submit"]'); if (button) button.disabled = true;
-      try { await call({ action: 'actions_create', action_type: type, action_label: label, guild_id: $('actions-guild').value, participant_ids: selected, description: $('actions-description').value.trim(), notes: $('actions-notes').value.trim() }); closeModal(); show(); notice('Acțiunea a fost salvată și clasamentul a fost actualizat.'); }
+      try { const result = await call({ action: 'actions_create', action_type: type, action_label: label, guild_id: $('actions-guild').value, participant_ids: selected, description: $('actions-description').value.trim(), notes: $('actions-notes').value.trim() }); closeModal(); show(); notice(result.discord_delivery === 'sent' ? 'Acțiunea a fost salvată și trimisă pe Discord.' : `Acțiunea a fost salvată, dar nu a fost trimisă pe Discord: ${result.discord_warning || 'verifică ruta și permisiunile botului.'}`, result.discord_delivery !== 'sent'); }
       catch (error) { notice(error.message, true); }
       finally { if (button) button.disabled = false; }
     });
