@@ -380,6 +380,7 @@ if (String(body.action || '').startsWith('actions_')) {
         } catch (error) {
             discordDeliveryWarning = error instanceof Error ? error.message : 'Livrarea pe Discord a eșuat.';
             console.error('Acțiunea a fost salvată, dar mesajul botului a eșuat:', discordDeliveryWarning);
+            await db.from('panel_notifications').insert({ organization_id: organizationId, title: 'Livrare Discord eșuată', message: `Acțiunea „${actionRow.action_label}” a fost salvată în panel, dar nu a putut fi trimisă în Log anunțuri organizație. ${discordDeliveryWarning}`.slice(0, 2000), level: 'error', notification_type: 'discord_delivery', required_page: 'anunturi-organizatie.html', link: 'anunturi-organizatie.html' }).then(() => null).catch((notificationError: any) => console.error('Notificarea de livrare nu a putut fi salvată:', notificationError));
         }
         if (discordMessageId) await db.from('organization_actions').update({ discord_message_id: discordMessageId }).eq('id', actionRow.id).eq('organization_id', organizationId);
         return reply({ ok: true, action: { ...actionRow, discord_message_id: discordMessageId }, discord_delivery: discordMessageId ? 'sent' : 'unavailable', discord_warning: discordDeliveryWarning || null });
