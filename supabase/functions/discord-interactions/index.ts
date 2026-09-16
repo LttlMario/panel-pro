@@ -4,6 +4,7 @@ import { resolvePackageFeatures } from '../_shared/package-features.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 import { deliverDiscordRoute, requestDiscordTarget, routeCandidates } from '../_shared/discord-delivery.ts';
 import { discordPremiumAccess, discordPremiumButton, discordPremiumConfigured, discordPremiumMessage, discordPremiumModule } from '../_shared/discord-premium.ts';
+import { allCategories, calculateRecipe, findCategory, findRecipe } from '../_shared/discord-calculators.ts';
 
 const DISCORD_API = 'https://discord.com/api/v10';
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
@@ -30,6 +31,7 @@ const PANEL_ROUTE_LABELS: Record<string, string> = {
   contracts: 'Contracte', log_contracts: 'Log contracte', log_discipline_organization: 'Log avertismente și amenzi organizație', log_discipline_departments: 'Log avertismente și amenzi angajați', log_actions_organization: 'Log acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
   stash: 'Stash', log_stash: 'Log Stash', stash_requests: 'Cereri Stash', log_stash_requests: 'Log cereri Stash', stash_donations: 'Donații Stash', log_stash_donations: 'Log donații Stash',
   marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
+  calculator: 'Calculator legal', illegal_calculator: 'Calculator ilegal',
 };
 const panelRouteKeys = Object.keys(PANEL_ROUTE_LABELS);
 const PANEL_LOG_ROUTES: Record<string, string> = {
@@ -117,6 +119,8 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
       stash_donations: { title: '🎁 Donații Stash', description: 'Înregistrează donații și trimite-le spre aprobare administrativă.', color: 0x22c55e, buttons: [{ label: 'Donează articol', style: 3, id: 'panel:stash:donate' }, { label: 'Donații în așteptare', style: 2, id: 'panel:stash:pending_donations' }] },
     stash: { title: '📦 Stash · Administrare', description: 'Gestionează articolele, cererile și donațiile Stash.', color: 0x22c55e, buttons: [{ label: 'Adaugă în Stash', style: 3, id: 'panel:stash:create' }, { label: 'Cereri în așteptare', style: 1, id: 'panel:stash:pending_requests' }, { label: 'Donații în așteptare', style: 1, id: 'panel:stash:pending_donations' }] },
     actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
+    calculator: { title: '🧮 Calculator legal · Panel Pro', description: 'Alege categoria, articolul și cantitatea. Primești instant materialele directe și materialele brute necesare.', color: 0x22c55e, buttons: [{ label: 'Începe calculul', style: 1, id: 'panel:calculator:legal:start' }] },
+    illegal_calculator: { title: '🚨 Calculator ilegal · Panel Pro', description: 'Calculează arme, muniție, topitorie și resurse ilegale direct din Discord.', color: 0xef4444, buttons: [{ label: 'Începe calculul', style: 4, id: 'panel:calculator:illegal:start' }] },
   };
   const definition = definitions[routeKey] || { title: `⚙️ ${PANEL_ROUTE_LABELS[routeKey] || 'Panel Pro'}`, description: 'Embed de administrare Panel Pro.', color: 0x5865f2, buttons: [] };
     const components: any[] = [];
@@ -126,6 +130,37 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
   if (includeDonation) components.push({ type: 1, components: [{ type: 2, style: 5, label: 'Donează pentru dezvoltare', url: 'https://revolut.me/mariomihail' }] });
   if (discordPremiumConfigured()) components.push(...discordPremiumButton());
   return { allowed_mentions: { parse: [] }, embeds: [{ title: definition.title, description: [definition.description, trialText].filter(Boolean).join('\n\n'), color: definition.color, footer: { text: 'Panel Pro · configurat din Discord' } }], components };
+};
+
+const calculatorKind = (value: unknown): 'legal' | 'illegal' | '' => value === 'illegal' ? 'illegal' : value === 'legal' ? 'legal' : '';
+const calculatorId = (value: unknown) => String(value || '').replace(/[^a-z0-9_-]/gi, '_').slice(0, 40);
+const calculatorRows = (kind: 'legal' | 'illegal', categoryId = '', page = 0) => {
+  const categories = allCategories(kind);
+  if (!categoryId) {
+    return [{ type: 1, components: [{ type: 3, custom_id: `panel:calculator:${kind}:category`, placeholder: 'Alege categoria calculatorului', min_values: 1, max_values: 1, options: categories.map((category) => ({ label: category.label.slice(0, 100), value: category.id, description: `${category.recipes.length} articole disponibile`.slice(0, 100) })) }] }];
+  }
+  const category = findCategory(kind, categoryId);
+  if (!category) return calculatorRows(kind);
+  const pageSize = 25;
+  const pageCount = Math.max(1, Math.ceil(category.recipes.length / pageSize));
+  const safePage = Math.max(0, Math.min(pageCount - 1, page));
+  const options = category.recipes.slice(safePage * pageSize, (safePage + 1) * pageSize).map((item) => ({ label: item.name.slice(0, 100), value: item.id, description: `1 craft = ${item.produces || 1} produs(e)`.slice(0, 100) }));
+  const rows: any[] = [{ type: 1, components: [{ type: 3, custom_id: `panel:calculator:${kind}:item:${calculatorId(category.id)}:${safePage}`, placeholder: `${category.label} · alege articolul`, min_values: 1, max_values: 1, options }] }];
+  const navigation: any[] = [{ type: 2, style: 2, label: 'Categorii', custom_id: `panel:calculator:${kind}:categories` }];
+  if (safePage > 0) navigation.push({ type: 2, style: 2, label: '‹ Înapoi', custom_id: `panel:calculator:${kind}:page:${calculatorId(category.id)}:${safePage - 1}` });
+  if (safePage < pageCount - 1) navigation.push({ type: 2, style: 2, label: 'Înainte ›', custom_id: `panel:calculator:${kind}:page:${calculatorId(category.id)}:${safePage + 1}` });
+  rows.push({ type: 1, components: navigation });
+  return rows;
+};
+const calculatorStartMessage = (kind: 'legal' | 'illegal') => interactionMessage('', { embeds: [{ title: kind === 'legal' ? '🧮 Calculator legal' : '🚨 Calculator ilegal', description: 'Selectează întâi categoria. După articol poți introduce cantitatea dorită, iar rezultatul va apărea doar pentru tine.', color: kind === 'legal' ? 0x22c55e : 0xef4444, footer: { text: 'Panel Pro · calcul interactiv Discord' } }], components: calculatorRows(kind) });
+const calculatorQuantityModal = (kind: 'legal' | 'illegal', categoryId: string, recipeId: string) => ({ type: 9, data: { custom_id: `panel:calculator:${kind}:quantity:${calculatorId(categoryId)}:${calculatorId(recipeId)}`, title: 'Cantitate de calculat', components: [{ type: 1, components: [{ type: 4, custom_id: 'quantity', label: 'Cantitate dorită', style: 1, required: true, value: '1', placeholder: 'Ex: 10', min_length: 1, max_length: 8 }] }] } });
+const calculatorResultMessage = (kind: 'legal' | 'illegal', categoryId: string, recipeId: string, quantity: number) => {
+  const item = findRecipe(kind, categoryId, recipeId);
+  if (!item) return interactionMessage('Articolul selectat nu mai există în calculator.');
+  const result = calculateRecipe(item, quantity, allCategories(kind));
+  const list = (values: Record<string, number>) => Object.entries(values).filter(([, amount]) => amount > 0).map(([name, amount]) => `• ${name}: **${amount}**`).join('\n') || '—';
+  const embed = { title: `${kind === 'legal' ? '🧮' : '🚨'} Rezultat calculator · ${item.name}`, description: `Ai ales **${quantity}** bucăți. Sunt necesare **${result.crafts}** craft-uri pentru rețeta selectată.`, color: kind === 'legal' ? 0x22c55e : 0xef4444, fields: [{ name: 'Materiale necesare direct', value: list(result.direct).slice(0, 1024), inline: false }, { name: 'Materiale brute totale', value: list(result.raw).slice(0, 1024), inline: false }], footer: { text: 'Panel Pro · rezultatul este vizibil doar pentru tine' } };
+  return interactionMessage('', { embeds: [embed], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Schimbă articolul', custom_id: `panel:calculator:${kind}:categories` }, { type: 2, style: 2, label: 'Schimbă cantitatea', custom_id: `panel:calculator:${kind}:quantity_again:${calculatorId(categoryId)}:${calculatorId(recipeId)}` }] }] });
 };
 
 const customModuleKey = (value: unknown) => /^custom_[a-z0-9_]{2,60}$/.test(String(value || '').trim()) ? String(value).trim() : '';
@@ -2132,6 +2167,7 @@ Deno.serve(async (request) => {
   const isStash = customId.startsWith('panel:stash:');
   const isMarketplace = customId.startsWith('panel:marketplace:');
   const isDiscovery = customId.startsWith('panel:discovery:');
+  const isCalculator = customId.startsWith('panel:calculator:');
   const isCustomModule = customId.startsWith('panel:custom:');
   if (isCommand) {
     const commandKey = customModuleKey(interaction?.data?.name);
@@ -2148,7 +2184,42 @@ Deno.serve(async (request) => {
     return reply(interactionMessage('Comanda Panel Pro nu este disponibilă.'));
   }
   if (!isComponent && !isModalSubmit) return reply(interactionMessage('Acest tip de interacțiune nu este disponibil.'));
-  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+
+  if (isCalculator) {
+    const parts = customId.split(':');
+    const kind = calculatorKind(parts[2]);
+    if (!kind) return reply(interactionMessage('Tipul calculatorului nu este valid.'));
+    const routeKey = kind === 'illegal' ? 'illegal_calculator' : 'calculator';
+    const feature = kind === 'illegal' ? 'illegal_calculator' : 'legal_tools';
+    const secret = serviceKey();
+    if (!secret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, secret);
+    try { await resolveUniversalModuleContext(db, interaction, routeKey, feature); }
+    catch (error) { return reply(interactionMessage(readableError(error, 'Calculatorul nu este disponibil pe acest canal.'))); }
+    if (parts[3] === 'start' || parts[3] === 'categories') return reply(calculatorStartMessage(kind));
+    if (parts[3] === 'category' && isSelect) {
+      const categoryId = String(interaction.data?.values?.[0] || '');
+      if (!findCategory(kind, categoryId)) return reply(interactionMessage('Categoria selectată nu este validă.'));
+      return reply(interactionMessage('', { content: 'Alege articolul pentru calcul:', components: calculatorRows(kind, categoryId, 0) }));
+    }
+    if (parts[3] === 'page') return reply(interactionMessage('', { content: 'Alege articolul pentru calcul:', components: calculatorRows(kind, parts[4], Math.max(0, Number(parts[5]) || 0)) }));
+    if (parts[3] === 'item' && isSelect) {
+      const categoryId = String(parts[4] || '');
+      const recipeId = String(interaction.data?.values?.[0] || '');
+      if (!findRecipe(kind, categoryId, recipeId)) return reply(interactionMessage('Articolul selectat nu este valid.'));
+      return reply(calculatorQuantityModal(kind, categoryId, recipeId));
+    }
+    if (parts[3] === 'quantity_again' && isButton) return reply(calculatorQuantityModal(kind, String(parts[4] || ''), String(parts[5] || '')));
+    if (parts[3] === 'quantity' && isModalSubmit) {
+      const categoryId = String(parts[4] || '');
+      const recipeId = String(parts[5] || '');
+      const quantity = Math.floor(Number(modalValues(interaction).quantity || 0));
+      if (!findRecipe(kind, categoryId, recipeId) || !Number.isFinite(quantity) || quantity < 1 || quantity > 100000) return reply(interactionMessage('Introdu o cantitate între 1 și 100.000.'));
+      return reply(calculatorResultMessage(kind, categoryId, recipeId, quantity));
+    }
+    return reply(calculatorStartMessage(kind));
+  }
 
   if (isCustomModule) {
     const key = customModuleKey(customId.split(':')[2]);
