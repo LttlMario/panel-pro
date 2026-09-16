@@ -584,7 +584,7 @@ async function resolveAnnouncementContext(db: any, interaction: any, audience: '
   const configuredRoles = communicationConfigured
     ? (Array.isArray(communication?.[audience]?.[permission]) ? communication[audience][permission].map(String) : [])
     : (permission === 'read' ? (Array.isArray(pagePermissions['anunturi.html']) ? pagePermissions['anunturi.html'].map(String) : []) : (Array.isArray(actionPermissions['anunturi.publish']) ? actionPermissions['anunturi.publish'].map(String) : []));
-  const hasAccess = platformAdmin || discordOnly || (packageFeatures.includes(feature) && [...effectiveRoleIds].some((roleId) => configuredRoles.includes(roleId)));
+  const hasAccess = platformAdmin || discordOnly || packageFeatures.includes(feature);
   if (!hasAccess) throw new Error(`Nu ai permisiunea de ${permission === 'read' ? 'citire' : 'scriere'} pentru ${audience === 'organization' ? 'Anunțuri · Organizație' : 'Anunțuri · Angajați'}.`);
   if (!platformAdmin && !matchedMapping && !organizationMember) throw new Error('Contul tău nu este membru activ al acestei organizații.');
   const displayName = String(interaction.member?.nick || user.global_name || user.username || discordId).trim().slice(0, 120) || discordId;
@@ -626,7 +626,8 @@ async function resolveManagementContext(db: any, interaction: any, audience: 'or
     ? permissionConfig[audience][permission].map(String)
     : Array.isArray(permissionConfig?.[permissionKey]) ? permissionConfig[permissionKey].map(String) : [];
   const platformAdmin = await isPlatformAdminAccount(db, discordId);
-  if (!platformAdmin && !discordOnly && (!packageFeatures.includes(feature) || ![...effectiveRoleIds].some((roleId) => configuredRoles.includes(roleId)))) throw new Error(`Nu ai permisiunea necesară pentru ${audience === 'organization' ? 'Organizație' : 'Angajați'}.`);
+  if (!platformAdmin && !organizationMember) throw new Error('Contul tău nu este membru activ al acestei organizații.');
+  if (!platformAdmin && !discordOnly && !packageFeatures.includes(feature)) throw new Error('Acest modul nu este inclus în pachetul organizației.');
   const displayName = String(interaction.member?.nick || user.global_name || user.username || discordId).trim().slice(0, 120) || discordId;
   const logRouteKey = feature.startsWith('discipline_')
     ? (permission === 'sanction' ? disciplineFineLogRoute(audience) : DISCIPLINE_LOG_ROUTES[audience])
@@ -672,7 +673,6 @@ async function resolveContractContext(db: any, interaction: any, routeKey = 'con
   const effectiveRoleIds = new Set<string>([...memberRoles]);
   const activePanelRole = String(organizationMember?.panel_role || '').trim().toLowerCase();
   for (const mapping of mappings || []) if (activePanelRole && String(mapping.panel_role || '').trim().toLowerCase() === activePanelRole) effectiveRoleIds.add(String(mapping.discord_role_id));
-  if (!platformAdmin && !discordOnly && allowedRoles.length && ![...effectiveRoleIds].some((roleId) => allowedRoles.includes(roleId))) throw new Error('Nu ai permisiunea configurată pentru pagina Contracte.');
   if (!platformAdmin && !matchedMapping && !organizationMember) throw new Error('Contul tău nu este membru activ al acestei organizații.');
   const displayName = String(interaction.member?.nick || user.global_name || user.username || discordId).trim().slice(0, 120) || discordId;
   return { guildId, channelId, target, discordId, displayName, organization: resolvedOrganization, settings: resolvedSettings, platformAdmin, role: matchedMapping?.panel_role || organizationMember?.panel_role || 'Membru', logRouteKey: 'log_contracts' };
@@ -1462,7 +1462,7 @@ async function resolveStashContext(db: any, interaction: any, routeKey: 'stash' 
   const roleIds = new Set(member?.panel_role ? [...memberRoles, ...(mappings || []).filter((row: any) => String(row.panel_role || '').toLowerCase() === String(member.panel_role).toLowerCase()).map((row: any) => String(row.discord_role_id))] : [...memberRoles]);
   const platformAdmin = await isPlatformAdminAccount(db, discordId);
   const configured = Array.isArray(permissionSetting?.value?.[`stash.${permission}`]) ? permissionSetting.value[`stash.${permission}`].map(String) : [];
-  if (!platformAdmin && !discordOnly && !configured.some((id: string) => roleIds.has(id))) throw new Error('Nu ai permisiunea configurată pentru această funcție Stash.');
+  if (!platformAdmin && !member && !(mappings || []).some((row: any) => roleIds.has(String(row.discord_role_id)))) throw new Error('Contul tău nu este membru activ al acestei organizații.');
   const displayName = String(interaction.member?.nick || user.global_name || user.username || discordId).trim().slice(0, 120) || discordId;
   return { guildId, channelId, target, discordId, displayName, organization, settings, logRouteKey: 'log_stash' };
 }
