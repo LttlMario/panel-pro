@@ -685,13 +685,13 @@ fetchAbsences();
                 return;
             }
             try {
-            let { data: absences, error } = await supabaseClient
+            let absencesQuery = supabaseClient
                 .from('absences')
                 .select('*')
                 .eq('organization_id', activeOrganization.id)
-                .eq('discord_id', currentUser.discord_id)
-                .eq('request_audience', getRequestAudience())
-                .order('created_at', { ascending: false });
+                .eq('discord_id', currentUser.discord_id);
+            if (requestPageAudience) absencesQuery = absencesQuery.eq('request_audience', requestPageAudience);
+            const { data: absences, error } = await absencesQuery.order('created_at', { ascending: false });
 
                 if (error) throw error;
 
