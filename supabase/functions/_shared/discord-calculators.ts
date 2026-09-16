@@ -3,6 +3,7 @@ export type CalculatorRecipe = {
   name: string;
   base: Record<string, number>;
   produces?: number;
+  ratio?: boolean;
 };
 
 export type CalculatorCategory = {
@@ -11,7 +12,7 @@ export type CalculatorCategory = {
   recipes: CalculatorRecipe[];
 };
 
-const recipe = (id: string, name: string, base: Record<string, number>, produces = 1): CalculatorRecipe => ({ id, name, base, produces });
+const recipe = (id: string, name: string, base: Record<string, number>, produces = 1, ratio = false): CalculatorRecipe => ({ id, name, base, produces, ratio });
 
 const legalCategories: CalculatorCategory[] = [
   {
@@ -122,9 +123,20 @@ const illegalCategories: CalculatorCategory[] = [
     recipe('otel', 'Oțel', { Fier: 1, Cărbune: 1 }), recipe('arc', 'Arc', { Aluminiu: 1 }),
     recipe('tava_x2', 'Tavă x2', { Oțel: 1 }, 2), recipe('janta_aluminiu', 'Jantă aluminiu', { Aluminiu: 10 }),
   ] },
-  { id: 'plicuri', label: '💊 Plicuri', recipes: [recipe('plicuri_goale', 'Plicuri goale x100', { Plastic: 10 }, 100), recipe('plicuri_facute', 'Plicuri făcute x100', { Frunze: 1000, Tăvi: 50, Ape: 50, Brichete: 50, 'Plicuri goale': 100 }, 100)] },
-  { id: 'marijuana', label: '🌿 Marijuana', recipes: [recipe('jointuri', 'Jointuri', { Frunze: 20, 'Foițe': 1 }, 1)] },
-  { id: 'ciuperci', label: '🍄 Ciuperci', recipes: [recipe('red_fire_x3', 'Red Fire x3', { Acetonă: 1, 'Pink Light': 3, 'Oyster roșu': 3, 'Amanita roșie': 3, 'Plicuri goale': 3 }, 1), recipe('green_haze', 'Green Haze x3', { Acetonă: 1, 'Blue Light': 3, 'Oyster galben': 3, 'Amanita verde': 3, 'Plicuri goale': 3 }, 1), recipe('blue_current_x3', 'Blue Current x3', { Acetonă: 1, 'Purple Light': 3, 'Oyster albastru': 3, Psilocybe: 3, 'Plicuri goale': 3 }, 1)] },
+  { id: 'plicuri', label: '💊 Plicuri Cocaină', recipes: [
+    recipe('plicuri_frunze', 'Frunze', { Frunze: 1, Tăvi: 0.05, Ape: 0.05, Brichete: 0.05, 'Plicuri goale': 0.1, 'Plicuri făcute': 0.1 }, 1, true),
+    recipe('plicuri_tavi', 'Tăvi', { Frunze: 20, Tăvi: 1, Ape: 1, Brichete: 1, 'Plicuri goale': 2, 'Plicuri făcute': 2 }, 1, true),
+    recipe('plicuri_ape', 'Ape (Sticle)', { Frunze: 20, Tăvi: 1, Ape: 1, Brichete: 1, 'Plicuri goale': 2, 'Plicuri făcute': 2 }, 1, true),
+    recipe('plicuri_brichete', 'Brichete', { Frunze: 20, Tăvi: 1, Ape: 1, Brichete: 1, 'Plicuri goale': 2, 'Plicuri făcute': 2 }, 1, true),
+    recipe('plicuri_goale', 'Plicuri Goale', { Frunze: 10, Tăvi: 0.5, Ape: 0.5, Brichete: 0.5, 'Plicuri goale': 1, 'Plicuri făcute': 1 }, 1, true),
+    recipe('plicuri_facute', 'Plicuri Făcute', { Frunze: 10, Tăvi: 0.5, Ape: 0.5, Brichete: 0.5, 'Plicuri goale': 1, 'Plicuri făcute': 1 }, 1, true),
+  ] },
+  { id: 'marijuana', label: '🌿 Marijuana (Joint-uri)', recipes: [
+    recipe('marijuana_frunze', 'Frunze', { Frunze: 1, 'Foițe': 0.05, 'Joint-uri': 0.05 }, 1, true),
+    recipe('marijuana_foite', 'Foițe', { Frunze: 20, 'Foițe': 1, 'Joint-uri': 1 }, 1, true),
+    recipe('jointuri', 'Joint-uri', { Frunze: 20, 'Foițe': 1, 'Joint-uri': 1 }, 1, true),
+  ] },
+  { id: 'ciuperci', label: '🍄 Plicuri Ciuperci', recipes: [recipe('red_fire_x3', 'Red Fire x3', { Acetonă: 1, 'Pink Light': 3, 'Oyster roșu': 3, 'Amanita roșie': 3, 'Plicuri goale': 3 }), recipe('green_haze', 'Green Haze x3', { Acetonă: 1, 'Blue Light': 3, 'Oyster galben': 3, 'Amanita verde': 3, 'Plicuri goale': 3 }), recipe('blue_current_x3', 'Blue Current x3', { Acetonă: 1, 'Purple Light': 3, 'Oyster albastru': 3, Psilocybe: 3, 'Plicuri goale': 3 })] },
 ];
 
 const allCategories = (kind: 'legal' | 'illegal') => kind === 'legal' ? legalCategories : illegalCategories;
@@ -158,11 +170,11 @@ function calculateRecipe(recipeItem: CalculatorRecipe, quantity: number, categor
   const resolve = (name: string, amount: number, seen = new Set<string>()) => {
     const nested = byName(name);
     if (!nested || seen.has(nested.id)) { add(raw, name, amount); return; }
-    const crafts = Math.ceil(amount / Math.max(1, nested.produces || 1));
+    const crafts = nested.ratio ? amount : Math.ceil(amount / Math.max(1, nested.produces || 1));
     const next = new Set(seen); next.add(nested.id);
     Object.entries(nested.base).forEach(([material, needed]) => resolve(material, needed * crafts, next));
   };
-  const crafts = Math.ceil(quantity / Math.max(1, recipeItem.produces || 1));
+  const crafts = recipeItem.ratio ? quantity : Math.ceil(quantity / Math.max(1, recipeItem.produces || 1));
   Object.entries(recipeItem.base).forEach(([material, needed]) => { add(direct, material, needed * crafts); resolve(material, needed * crafts); });
   return { crafts, direct, raw };
 }
