@@ -116,15 +116,6 @@ const sanitizeDiscordChannelRoutes=(routes:any)=>Object.fromEntries(Object.entri
   };
   return [channel,{primary:target('primary'),secondary:target('secondary')}];
 }));
-const sanitizeDiscordMessagePrefixChannels=(value:any,allowedGuildIds:Set<string>)=>{
-  const entries=(Array.isArray(value)?value:[]).map((item:any)=>{
-    const guildId=String(item?.guild_id||'').trim();
-    const channelId=String(item?.channel_id||'').trim();
-    if(!validDiscordChannelId(guildId)||!validDiscordChannelId(channelId)||!allowedGuildIds.has(guildId))return null;
-    return [channelId,{guild_id:guildId,channel_id:channelId,channel_name:String(item?.channel_name||channelId).trim().slice(0,120),guild_name:String(item?.guild_name||guildId).trim().slice(0,120),enabled:item?.enabled!==false}] as const;
-  }).filter((entry:any):entry is readonly [string,any]=>Boolean(entry));
-  return [...new Map(entries).values()].filter((item:any)=>item.enabled!==false);
-};
 const summarizeBotChannels=(routes:any)=>{
   const source=routes&&typeof routes==='object'?routes:{};
   const channels=[...channelRoutes];
@@ -246,7 +237,7 @@ Deno.serve(async request=>{
       const [{data:guildRows,error:guildError},{data:roleRows,error:roleError},{data:settingsRows,error:settingsError},{data:appRows,error:appError},{data:installations,error:installationsError}]=await Promise.all([
         ids.length?db.from('organization_guilds').select('organization_id,guild_id,guild_name,kind,enabled').in('organization_id',ids):Promise.resolve({data:[],error:null}),
         ids.length?db.from('organization_role_mappings').select('organization_id,guild_id,discord_role_id,discord_role_name,panel_role,enabled').in('organization_id',ids):Promise.resolve({data:[],error:null}),
-        ids.length?db.from('organization_settings').select('organization_id,discord_client_id,panel_public_url,discord_channel_routes,discord_message_prefix_channels,updated_at').in('organization_id',ids):Promise.resolve({data:[],error:null}),
+        ids.length?db.from('organization_settings').select('organization_id,discord_client_id,panel_public_url,discord_channel_routes,updated_at').in('organization_id',ids):Promise.resolve({data:[],error:null}),
         ids.length?db.from('app_settings').select('organization_id,key,value,updated_at').in('organization_id',ids).in('key',['organization_access','organization_package','organization_theme','page_permissions','assistant_page_permissions','action_permissions','global_permissions','communication_permissions','discipline_permissions']):Promise.resolve({data:[],error:null}),
         db.from('discord_bot_installations').select('guild_id,guild_name,authorized_by_discord_id,organization_id,integration_type,status,installed_at,removed_at,last_event_at').order('last_event_at',{ascending:false})
       ]);
@@ -332,7 +323,7 @@ Deno.serve(async request=>{
         db.from('organizations').select('id,name,active,lifecycle_status,updated_at').eq('id',organizationId).maybeSingle(),
         db.from('organization_guilds').select('guild_id,guild_name,kind,enabled').eq('organization_id',organizationId),
         db.from('organization_role_mappings').select('guild_id,discord_role_id,discord_role_name,enabled').eq('organization_id',organizationId),
-        db.from('organization_settings').select('discord_client_id,panel_public_url,discord_channel_routes,discord_message_prefix_channels,updated_at').eq('organization_id',organizationId).maybeSingle(),
+        db.from('organization_settings').select('discord_client_id,panel_public_url,discord_channel_routes,updated_at').eq('organization_id',organizationId).maybeSingle(),
         db.from('app_settings').select('key,value').eq('organization_id',organizationId).in('key',['organization_access','organization_package','page_permissions'])
       ]);
       if(organizationError||guildError||roleError||settingsError||appsError)throw organizationError||guildError||roleError||settingsError||appsError;
@@ -433,7 +424,7 @@ Deno.serve(async request=>{
 const { data: currentOrganizationSettings, error: currentOrganizationSettingsError } =
   await db
     .from('organization_settings')
-    .select('discord_channel_routes,discord_message_prefix_channels')
+    .select('discord_channel_routes')
     .eq('organization_id', organizationId)
     .maybeSingle();
 
@@ -446,10 +437,6 @@ const existingChannelRoutes = currentOrganizationSettings?.discord_channel_route
 const discord_channel_routes = settings.discord_channel_routes === undefined
   ? existingChannelRoutes
   : sanitizeDiscordChannelRoutes(rawChannelRoutes);
-const configuredGuildIds=new Set(guilds.map((guild:any)=>String(guild.guild_id||'').trim()).filter(validDiscordChannelId));
-const discord_message_prefix_channels=settings.discord_message_prefix_channels===undefined
-  ? (currentOrganizationSettings?.discord_message_prefix_channels||[])
-  : sanitizeDiscordMessagePrefixChannels(settings.discord_message_prefix_channels,configuredGuildIds);
 const { error: settingsError } =
   await db
     .from('organization_settings')
@@ -458,7 +445,6 @@ const { error: settingsError } =
       discord_client_id: clientId,
       panel_public_url: publicUrl,
       discord_channel_routes,
-      discord_message_prefix_channels,
       updated_by_discord_id: session.discord_id,
       updated_at: new Date().toISOString()
     }, {
