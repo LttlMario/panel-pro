@@ -159,7 +159,7 @@ const calculatorResultMessage = (kind: 'legal' | 'illegal', categoryId: string, 
   if (!item) return interactionMessage('Articolul selectat nu mai există în calculator.');
   const result = calculateRecipe(item, quantity, allCategories(kind));
   const list = (values: Record<string, number>) => Object.entries(values).filter(([, amount]) => amount > 0).map(([name, amount]) => `• ${name}: **${amount}**`).join('\n') || '—';
-  const embed = { title: `${kind === 'legal' ? '🧮' : '🚨'} Rezultat calculator · ${item.name}`, description: `Ai ales **${quantity}** bucăți. Sunt necesare **${result.crafts}** craft-uri pentru rețeta selectată.`, color: kind === 'legal' ? 0x22c55e : 0xef4444, fields: [{ name: 'Materiale necesare direct', value: list(result.direct).slice(0, 1024), inline: false }, { name: 'Materiale brute totale', value: list(result.raw).slice(0, 1024), inline: false }], footer: { text: 'Panel Pro · rezultatul este vizibil doar pentru tine' } };
+  const embed = { title: `${kind === 'legal' ? '🧮' : '🚨'} Rezultat calculator · ${item.name}`, description: `Ai ales **${quantity}** bucăți. Sunt necesare **${result.crafts}** craft-uri pentru rețeta selectată.`, color: kind === 'legal' ? 0x22c55e : 0xef4444, fields: [{ name: 'Materiale necesare', value: list(result.direct).slice(0, 1024), inline: false }], footer: { text: 'Panel Pro · rezultatul este vizibil doar pentru tine' } };
   return interactionMessage('', { embeds: [embed], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Schimbă articolul', custom_id: `panel:calculator:${kind}:categories` }, { type: 2, style: 2, label: 'Schimbă cantitatea', custom_id: `panel:calculator:${kind}:quantity_again:${calculatorId(categoryId)}:${calculatorId(recipeId)}` }] }] });
 };
 
