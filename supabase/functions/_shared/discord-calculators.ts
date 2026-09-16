@@ -124,17 +124,10 @@ const illegalCategories: CalculatorCategory[] = [
     recipe('tava_x2', 'Tavă x2', { Oțel: 1 }, 2), recipe('janta_aluminiu', 'Jantă aluminiu', { Aluminiu: 10 }),
   ] },
   { id: 'plicuri', label: '💊 Plicuri Cocaină', recipes: [
-    recipe('plicuri_frunze', 'Frunze', { Frunze: 1, Tăvi: 0.05, Ape: 0.05, Brichete: 0.05, 'Plicuri goale': 0.1, 'Plicuri făcute': 0.1 }, 1, true),
-    recipe('plicuri_tavi', 'Tăvi', { Frunze: 20, Tăvi: 1, Ape: 1, Brichete: 1, 'Plicuri goale': 2, 'Plicuri făcute': 2 }, 1, true),
-    recipe('plicuri_ape', 'Ape (Sticle)', { Frunze: 20, Tăvi: 1, Ape: 1, Brichete: 1, 'Plicuri goale': 2, 'Plicuri făcute': 2 }, 1, true),
-    recipe('plicuri_brichete', 'Brichete', { Frunze: 20, Tăvi: 1, Ape: 1, Brichete: 1, 'Plicuri goale': 2, 'Plicuri făcute': 2 }, 1, true),
-    recipe('plicuri_goale', 'Plicuri Goale', { Frunze: 10, Tăvi: 0.5, Ape: 0.5, Brichete: 0.5, 'Plicuri goale': 1, 'Plicuri făcute': 1 }, 1, true),
-    recipe('plicuri_facute', 'Plicuri Făcute', { Frunze: 10, Tăvi: 0.5, Ape: 0.5, Brichete: 0.5, 'Plicuri goale': 1, 'Plicuri făcute': 1 }, 1, true),
+    recipe('plicuri_facute', 'Plicuri Coca', { Frunze: 1000, Tăvi: 50, Ape: 50, Brichete: 50, 'Plicuri goale': 100 }, 100),
   ] },
   { id: 'marijuana', label: '🌿 Marijuana (Joint-uri)', recipes: [
-    recipe('marijuana_frunze', 'Frunze', { Frunze: 1, 'Foițe': 0.05, 'Joint-uri': 0.05 }, 1, true),
-    recipe('marijuana_foite', 'Foițe', { Frunze: 20, 'Foițe': 1, 'Joint-uri': 1 }, 1, true),
-    recipe('jointuri', 'Joint-uri', { Frunze: 20, 'Foițe': 1, 'Joint-uri': 1 }, 1, true),
+    recipe('jointuri', 'Joint-uri', { Frunze: 20, 'Foițe': 1 }, 1),
   ] },
   { id: 'ciuperci', label: '🍄 Plicuri Ciuperci', recipes: [recipe('red_fire_x3', 'Red Fire x3', { Acetonă: 1, 'Pink Light': 3, 'Oyster roșu': 3, 'Amanita roșie': 3, 'Plicuri goale': 3 }), recipe('green_haze', 'Green Haze x3', { Acetonă: 1, 'Blue Light': 3, 'Oyster galben': 3, 'Amanita verde': 3, 'Plicuri goale': 3 }), recipe('blue_current_x3', 'Blue Current x3', { Acetonă: 1, 'Purple Light': 3, 'Oyster albastru': 3, Psilocybe: 3, 'Plicuri goale': 3 })] },
 ];
