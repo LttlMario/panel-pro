@@ -24,6 +24,13 @@
 
     <div id="page-permissions" class="mt-4 space-y-3"></div>
 </details>
+<details class="rounded-xl border border-violet-700/60 bg-violet-950/20 p-4" open>
+    <summary class="font-bold cursor-pointer">Profil cu acces limitat la module</summary>
+    <p class="mt-2 text-xs text-slate-400">
+        Rolurile bifate aici pot folosi doar Marketplace, Calculator, Calculator ilegal, Locații ilegale, Black Market, Minigames și paginile publice. Nu primesc acces la anunțuri, cereri de învoiri, contracte, rapoarte, evenimente, Stash, comenzi sau pontaj. Administratorul platformei nu este afectat.
+    </p>
+    <div id="limited-module-roles" class="mt-4 space-y-2"></div>
+</details>
 <details class="rounded-xl border border-amber-700/60 bg-amber-950/20 p-4" open>
 
     <summary class="font-bold cursor-pointer">
@@ -367,6 +374,7 @@ let organizations=[],
    discordRoles=[],
     roleGuildAvailability={},
     roleRows=[],
+    limitedModuleRoles=[],
     pagePermissions={},
     actionPermissions={},
     globalPermissions={organization:{read:[],write:[]},departments:{read:[],write:[]}},
@@ -384,6 +392,15 @@ const pagePermissionGroups=[
     {key:'individual',label:'Pagini individuale',mode:'individual',pages:[['anunturi.html','Anunțuri și sondaje'],['pontaj.html','Pontaj'],['cereri.html','Cereri și absențe'],['asistent.html','Asistent']]}
 ];
 const configurablePages=pagePermissionGroups.flatMap(group=>group.pages);
+const limitedModulePages = new Set([
+    'index.html',
+    'marketplace.html',
+    'calculator.html',
+    'calculatorilegal.html',
+    'locatiiilegale.html',
+    'marketplace-ilegal.html',
+    'minigames.html'
+]);
 const assistantPageGroups=[
     {key:'general',label:'Generale',pages:[['index.html','Dashboard'],['pontaj.html','Pontaj'],['cereri.html','Cereri și absențe'],['bucatarie.html','Bucătărie'],['asistent.html','Asistent']]},
     {key:'legal',label:'Legale',pages:[['anunturi.html','Anunțuri și sondaje'],['contracte.html','Contracte'],['marketplace.html','Marketplace legal'],['rapoarte.html','Rapoarte']]},
@@ -498,8 +515,8 @@ const webhookDefinitions={
 const fields=Object.keys(webhookDefinitions);
 $('webhooks').innerHTML=fields.map(x=>`<fieldset class="rounded-xl border border-slate-700 p-3"><legend class="px-1 font-bold text-slate-200">${webhookDefinitions[x].label}</legend><small class="mb-2 block text-slate-400">${webhookDefinitions[x].help}</small><label class="flex items-center gap-2 text-xs"><input type="checkbox" id="wh_primary_enabled_${x}"> Discord principal</label><input id="wh_primary_url_${x}" type="url" class="field" placeholder="Webhook Discord principal"><label class="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" id="wh_secondary_enabled_${x}"> Discord secundar</label><input id="wh_secondary_url_${x}" type="url" class="field" placeholder="Webhook Discord secundar"></fieldset>`).join('');
 const organizationDraftKey=(id=$('id')?.value)=>`panel_local_organization_admin:${id||'new'}`;
-const saveOrganizationDraft=()=>{try{const fieldsToSave=['name','illegal-name','code','address','client','url','logo','guild','guild-secondary','expires','contract-title','contract-salary','contract-template'];const values=Object.fromEntries(fieldsToSave.map(id=>[id,$(id)?.value||'']));const webhooks=Object.fromEntries(fields.map(x=>[x,{primary:{enabled:$(`wh_primary_enabled_${x}`).checked,url:$(`wh_primary_url_${x}`).value.trim()},secondary:{enabled:$(`wh_secondary_enabled_${x}`).checked,url:$(`wh_secondary_url_${x}`).value.trim()}}]));localStorage.setItem(organizationDraftKey(),JSON.stringify({version:3,updated_at:new Date().toISOString(),values,webhooks,discord_channel_routes:window.getDiscordChannelRoutes?.()||{},role_rows:roleRows,page_permissions:pagePermissions,action_permissions:actionPermissions,global_permissions:globalPermissions,assistant_page_permissions:assistantPagePermissions,communication_permissions:communicationPermissions,discipline_permissions:disciplinePermissions}));}catch(_){}};
-const restoreOrganizationDraft=(id=$('id')?.value)=>{try{const draft=JSON.parse(localStorage.getItem(organizationDraftKey(id)||'')||'null');if(!draft||Number(draft.version||0)<2)return false;Object.entries(draft.values||{}).forEach(([field,value])=>{if($(field))$(field).value=value||''});window.discordChannelRoutesInitial=draft.discord_channel_routes||{};window.setDiscordChannelRoutes?.(draft.discord_channel_routes||{});fields.forEach(x=>{['primary','secondary'].forEach(target=>{const route=draft.webhooks?.[x]?.[target]||{};$(`wh_${target}_url_${x}`).value=route.url||'';$(`wh_${target}_enabled_${x}`).checked=route.enabled===true&&Boolean(route.url)})});roleRows=Array.isArray(draft.role_rows)?draft.role_rows:roleRows;pagePermissions=draft.page_permissions&&typeof draft.page_permissions==='object'?draft.page_permissions:pagePermissions;actionPermissions=draft.action_permissions&&typeof draft.action_permissions==='object'?draft.action_permissions:actionPermissions;globalPermissions=draft.global_permissions&&typeof draft.global_permissions==='object'?draft.global_permissions:globalPermissions;globalPermissionsInitialized=Boolean(draft.global_permissions&&typeof draft.global_permissions==='object');assistantPagePermissions=draft.assistant_page_permissions&&typeof draft.assistant_page_permissions==='object'?draft.assistant_page_permissions:assistantPagePermissions;communicationPermissions=draft.communication_permissions&&typeof draft.communication_permissions==='object'?draft.communication_permissions:communicationPermissions;disciplinePermissions=draft.discipline_permissions&&typeof draft.discipline_permissions==='object'?draft.discipline_permissions:disciplinePermissions;webhookRoutes=draft.webhooks||webhookRoutes;renderRoles();renderPagePermissions();renderAssistantPermissions();renderActionPermissions();renderAudiencePermissions();renderExpiry();return true;}catch(_){return false;}};
+const saveOrganizationDraft=()=>{try{const fieldsToSave=['name','illegal-name','code','address','client','url','logo','guild','guild-secondary','expires','contract-title','contract-salary','contract-template'];const values=Object.fromEntries(fieldsToSave.map(id=>[id,$(id)?.value||'']));const webhooks=Object.fromEntries(fields.map(x=>[x,{primary:{enabled:$(`wh_primary_enabled_${x}`).checked,url:$(`wh_primary_url_${x}`).value.trim()},secondary:{enabled:$(`wh_secondary_enabled_${x}`).checked,url:$(`wh_secondary_url_${x}`).value.trim()}}]));localStorage.setItem(organizationDraftKey(),JSON.stringify({version:4,updated_at:new Date().toISOString(),values,webhooks,discord_channel_routes:window.getDiscordChannelRoutes?.()||{},role_rows:roleRows,limited_module_roles:limitedModuleRoles,page_permissions:pagePermissions,action_permissions:actionPermissions,global_permissions:globalPermissions,assistant_page_permissions:assistantPagePermissions,communication_permissions:communicationPermissions,discipline_permissions:disciplinePermissions}));}catch(_){}};
+const restoreOrganizationDraft=(id=$('id')?.value)=>{try{const draft=JSON.parse(localStorage.getItem(organizationDraftKey(id)||'')||'null');if(!draft||Number(draft.version||0)<2)return false;Object.entries(draft.values||{}).forEach(([field,value])=>{if($(field))$(field).value=value||''});window.discordChannelRoutesInitial=draft.discord_channel_routes||{};window.setDiscordChannelRoutes?.(draft.discord_channel_routes||{});fields.forEach(x=>{['primary','secondary'].forEach(target=>{const route=draft.webhooks?.[x]?.[target]||{};$(`wh_${target}_url_${x}`).value=route.url||'';$(`wh_${target}_enabled_${x}`).checked=route.enabled===true&&Boolean(route.url)})});roleRows=Array.isArray(draft.role_rows)?draft.role_rows:roleRows;limitedModuleRoles=Array.isArray(draft.limited_module_roles)?draft.limited_module_roles.map(String):limitedModuleRoles;pagePermissions=draft.page_permissions&&typeof draft.page_permissions==='object'?draft.page_permissions:pagePermissions;actionPermissions=draft.action_permissions&&typeof draft.action_permissions==='object'?draft.action_permissions:actionPermissions;globalPermissions=draft.global_permissions&&typeof draft.global_permissions==='object'?draft.global_permissions:globalPermissions;globalPermissionsInitialized=Boolean(draft.global_permissions&&typeof draft.global_permissions==='object');assistantPagePermissions=draft.assistant_page_permissions&&typeof draft.assistant_page_permissions==='object'?draft.assistant_page_permissions:assistantPagePermissions;communicationPermissions=draft.communication_permissions&&typeof draft.communication_permissions==='object'?draft.communication_permissions:communicationPermissions;disciplinePermissions=draft.discipline_permissions&&typeof draft.discipline_permissions==='object'?draft.discipline_permissions:disciplinePermissions;webhookRoutes=draft.webhooks||webhookRoutes;renderRoles();renderPagePermissions();renderAssistantPermissions();renderActionPermissions();renderAudiencePermissions();renderExpiry();return true;}catch(_){return false;}};
 async function invoke(body){
     if(body.action==='save'){
         body.organization={
@@ -514,6 +531,7 @@ async function invoke(body){
         };
 
         body.page_permissions=pagePermissions;
+        body.limited_module_roles=limitedModuleRoles;
         body.action_permissions=actionPermissions;
         body.global_permissions=globalPermissions;
         body.assistant_page_permissions=assistantPagePermissions;
@@ -774,6 +792,7 @@ function reset(){[
 ].forEach(x=>$(x).value='');fields.forEach(x=>{['primary','secondary'].forEach(target=>{ $(`wh_${target}_enabled_${x}`).checked=false; $(`wh_${target}_url_${x}`).value='' })});$('expires').value=toLocalInput(new Date(Date.now()+30*86400000));
 discordRoles=[];
 roleGuildAvailability={};
+limitedModuleRoles=[];
 pagePermissions={};
 actionPermissions={};
 globalPermissions={organization:{read:[],write:[]},departments:{read:[],write:[]}};
@@ -934,6 +953,10 @@ async function editOrganization(id){const o=organizations.find(x=>x.id===id);awa
 
 pagePermissions =
     o.platform_settings?.page_permissions || {};
+
+limitedModuleRoles = Array.isArray(o.platform_settings?.limited_module_roles?.role_ids)
+    ? o.platform_settings.limited_module_roles.role_ids.map(String)
+    : [];
 
 actionPermissions =
     o.platform_settings?.action_permissions || {};
@@ -1115,6 +1138,7 @@ const header = `
                 renderRoles();
                 renderPagePermissions();
                 renderActionPermissions();
+                renderLimitedModuleRoles();
             };
         });
 
@@ -1203,8 +1227,36 @@ const header = `
                 renderRoles();
                 renderPagePermissions();
                 renderActionPermissions();
+                renderLimitedModuleRoles();
             };
         });
+
+    renderLimitedModuleRoles();
+}
+
+function renderLimitedModuleRoles() {
+    const host = $('limited-module-roles');
+    if (!host) return;
+    const roles = roleRows
+        .filter(row => row.discord_role_id)
+        .map(row => ({
+            id: String(row.discord_role_id),
+            name: discordRoles.find(role => String(role.id) === String(row.discord_role_id))?.name || row.discord_role_name || row.panel_role || row.discord_role_id,
+            guild: discordRoles.find(role => String(role.id) === String(row.discord_role_id))?.guild_name || row.guild_id
+        }));
+    const selected = new Set(limitedModuleRoles.map(String));
+    host.innerHTML = roles.length
+        ? roles.map(role => `<label class="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-200"><input type="checkbox" data-limited-module-role="${esc(role.id)}" ${selected.has(role.id) ? 'checked' : ''}><span><b>${esc(role.name)}</b><small class="mt-1 block text-slate-500">${esc(role.guild)}</small></span></label>`).join('')
+        : '<p class="rounded-lg border border-dashed border-slate-700 p-3 text-xs text-slate-500">Alege mai întâi rolurile Discord de mai sus.</p>';
+    host.querySelectorAll('[data-limited-module-role]').forEach(box => {
+        box.onchange = () => {
+            const id = String(box.dataset.limitedModuleRole || '');
+            const values = new Set(limitedModuleRoles.map(String));
+            box.checked ? values.add(id) : values.delete(id);
+            limitedModuleRoles = [...values];
+            renderPagePermissions();
+        };
+    });
 }
 function renderGroupedPagePermissions() {
     const host = $('page-permissions');
@@ -1225,7 +1277,7 @@ function renderGroupedPagePermissions() {
     // Un grup poate conține o pagină nouă (de exemplu Comenzi) care încă nu a
     // fost configurată. Sumarul trebuie să păstreze vizibile rolurile deja
     // salvate pe celelalte pagini, fără să le considere dispărute.
-    const selectedForPages = pages => roles.filter(role => pages.some(([page]) => (pagePermissions[page] || []).map(String).includes(role.id)));
+    const selectedForPages = pages => roles.filter(role => pages.some(([page]) => (pagePermissions[page] || []).map(String).includes(role.id) && (limitedModulePages.has(page) || !limitedModuleRoles.includes(role.id))));
     const setRoleForPages = (pages, roleId, checked) => {
         pages.forEach(([page]) => {
             const current = new Set((pagePermissions[page] || []).map(String));
@@ -1233,17 +1285,17 @@ function renderGroupedPagePermissions() {
             pagePermissions[page] = [...current];
         });
     };
-    const setAllRolesForPages = (pages, checked) => pages.forEach(([page]) => { pagePermissions[page] = checked ? roles.map(role => role.id) : []; });
+    const setAllRolesForPages = (pages, checked) => pages.forEach(([page]) => { pagePermissions[page] = checked ? roles.filter(role => limitedModulePages.has(page) || !limitedModuleRoles.includes(role.id)).map(role => role.id) : []; });
     const selectablePages = pagePermissionGroups.filter(group => group.mode !== 'all').flatMap(group => group.pages);
     const renderPageRow = (page, label) => {
-        const selected = (pagePermissions[page] || []).map(String);
-        return `<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2"><div class="min-w-0"><div class="text-sm font-bold text-slate-200">${esc(label)}</div><div class="mt-0.5 text-[11px] text-slate-500">${selected.length} ${selected.length === 1 ? 'rol selectat' : 'roluri selectate'}</div></div><details class="relative" data-page-role-menu="${page}"><summary class="cursor-pointer list-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800">Alege rolurile (${selected.length})</summary><div class="absolute right-0 z-50 mt-2 w-[300px] max-w-[80vw] rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl"><label class="mb-2 flex cursor-pointer items-center gap-2 rounded-lg border border-emerald-900/60 bg-emerald-950/30 px-3 py-2 text-xs font-bold text-emerald-300"><input id="select-page-${page}" name="select_page_${page}" type="checkbox" data-select-page="${page}" ${roles.length > 0 && roles.every(role => selected.includes(role.id)) ? 'checked' : ''}>Toate rolurile</label><div class="max-h-64 space-y-1 overflow-y-auto">${roles.map(role => `<label class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs hover:bg-slate-800"><input id="page-${page}-role-${role.id}" name="page_${page}_role_${role.id}" type="checkbox" data-page="${page}" data-page-role="${role.id}" ${selected.includes(role.id) ? 'checked' : ''}><span class="truncate">${esc(role.name)}</span></label>`).join('')}</div></div></details></div>`;
+        const selected = (pagePermissions[page] || []).map(String).filter(roleId => limitedModulePages.has(page) || !limitedModuleRoles.includes(roleId));
+        return `<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2"><div class="min-w-0"><div class="text-sm font-bold text-slate-200">${esc(label)}</div><div class="mt-0.5 text-[11px] text-slate-500">${selected.length} ${selected.length === 1 ? 'rol selectat' : 'roluri selectate'}</div></div><details class="relative" data-page-role-menu="${page}"><summary class="cursor-pointer list-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800">Alege rolurile (${selected.length})</summary><div class="absolute right-0 z-50 mt-2 w-[300px] max-w-[80vw] rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl"><label class="mb-2 flex cursor-pointer items-center gap-2 rounded-lg border border-emerald-900/60 bg-emerald-950/30 px-3 py-2 text-xs font-bold text-emerald-300"><input id="select-page-${page}" name="select_page_${page}" type="checkbox" data-select-page="${page}" ${roles.length > 0 && roles.filter(role => limitedModulePages.has(page) || !limitedModuleRoles.includes(role.id)).every(role => selected.includes(role.id)) ? 'checked' : ''}>Toate rolurile</label><div class="max-h-64 space-y-1 overflow-y-auto">${roles.map(role => { const limited = limitedModuleRoles.includes(role.id) && !limitedModulePages.has(page); return `<label class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs hover:bg-slate-800 ${limited ? 'opacity-50' : ''}"><input id="page-${page}-role-${role.id}" name="page_${page}_role_${role.id}" type="checkbox" data-page="${page}" data-page-role="${role.id}" ${selected.includes(role.id) && !limited ? 'checked' : ''} ${limited ? 'disabled' : ''}><span class="truncate">${esc(role.name)}${limited ? ' · acces limitat' : ''}</span></label>`; }).join('')}</div></div></details></div>`;
     };
     const renderGroupRow = group => {
         const selectedRoles = selectedForPages(group.pages);
-        const allSelectedRoles = roles.filter(role => group.pages.every(([page]) => (pagePermissions[page] || []).map(String).includes(role.id)));
+        const allSelectedRoles = roles.filter(role => group.pages.every(([page]) => (pagePermissions[page] || []).map(String).includes(role.id) && (limitedModulePages.has(page) || !limitedModuleRoles.includes(role.id))));
         const pageLabels = group.pages.map(([, label]) => label).join(' · ');
-        return `<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-cyan-800/70 bg-cyan-950/20 px-3 py-2"><div class="min-w-0"><div class="text-sm font-bold text-slate-100">${esc(group.label)}</div><div class="mt-0.5 text-[11px] text-slate-400">${esc(group.description || pageLabels)}</div><div class="mt-1 text-[11px] text-cyan-300">${selectedRoles.length} ${selectedRoles.length === 1 ? 'rol selectat' : 'roluri selectate'} în grup</div></div><details class="relative" data-page-group-menu="${group.key}"><summary class="cursor-pointer list-none rounded-lg border border-cyan-700/70 bg-slate-900 px-3 py-2 text-xs font-bold text-cyan-200 hover:bg-slate-800">Alege rolurile (${selectedRoles.length})</summary><div class="absolute right-0 z-50 mt-2 w-[300px] max-w-[80vw] rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl"><label class="mb-2 flex cursor-pointer items-center gap-2 rounded-lg border border-emerald-900/60 bg-emerald-950/30 px-3 py-2 text-xs font-bold text-emerald-300"><input type="checkbox" data-select-page-group="${group.key}" ${roles.length > 0 && allSelectedRoles.length === roles.length ? 'checked' : ''}>Toate rolurile</label><div class="max-h-64 space-y-1 overflow-y-auto">${roles.map(role => `<label class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs hover:bg-slate-800"><input type="checkbox" data-page-group="${group.key}" data-page-group-role="${role.id}" ${allSelectedRoles.some(selected => selected.id === role.id) ? 'checked' : ''}><span class="truncate">${esc(role.name)}</span></label>`).join('')}</div></div></details></div>`;
+        return `<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-cyan-800/70 bg-cyan-950/20 px-3 py-2"><div class="min-w-0"><div class="text-sm font-bold text-slate-100">${esc(group.label)}</div><div class="mt-0.5 text-[11px] text-slate-400">${esc(group.description || pageLabels)}</div><div class="mt-1 text-[11px] text-cyan-300">${selectedRoles.length} ${selectedRoles.length === 1 ? 'rol selectat' : 'roluri selectate'} în grup</div></div><details class="relative" data-page-group-menu="${group.key}"><summary class="cursor-pointer list-none rounded-lg border border-cyan-700/70 bg-slate-900 px-3 py-2 text-xs font-bold text-cyan-200 hover:bg-slate-800">Alege rolurile (${selectedRoles.length})</summary><div class="absolute right-0 z-50 mt-2 w-[300px] max-w-[80vw] rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl"><label class="mb-2 flex cursor-pointer items-center gap-2 rounded-lg border border-emerald-900/60 bg-emerald-950/30 px-3 py-2 text-xs font-bold text-emerald-300"><input type="checkbox" data-select-page-group="${group.key}" ${roles.length > 0 && allSelectedRoles.length === roles.length ? 'checked' : ''}>Toate rolurile</label><div class="max-h-64 space-y-1 overflow-y-auto">${roles.map(role => { const limited = limitedModuleRoles.includes(role.id) && group.pages.some(([page]) => !limitedModulePages.has(page)); return `<label class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs hover:bg-slate-800 ${limited ? 'opacity-50' : ''}"><input type="checkbox" data-page-group="${group.key}" data-page-group-role="${role.id}" ${allSelectedRoles.some(selected => selected.id === role.id) ? 'checked' : ''} ${limited ? 'disabled' : ''}><span class="truncate">${esc(role.name)}${limited ? ' · acces limitat pe paginile restricționate' : ''}</span></label>`; }).join('')}</div></div></details></div>`;
     };
 
     host.innerHTML = `<div data-select-toolbar class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-700/50 bg-emerald-950/20 px-3 py-2"><span class="text-xs font-bold text-slate-300">Acces rapid</span><label class="flex items-center gap-2 text-xs text-emerald-300"><input id="select-all-pages" name="select_all_pages" type="checkbox" data-select-all-pages>Toate rolurile pe toate paginile</label></div><div class="space-y-1.5">${pagePermissionGroups.map(group => group.mode === 'individual' ? `<div class="pt-2 text-xs font-bold uppercase tracking-wide text-slate-500">${esc(group.label)}</div>${group.pages.map(([page, label]) => renderPageRow(page, label)).join('')}` : group.mode === 'all' ? `<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-emerald-800/70 bg-emerald-950/20 px-3 py-2"><div><div class="text-sm font-bold text-slate-100">Dashboard</div><div class="mt-0.5 text-[11px] text-emerald-300">Vizibil automat tuturor rolurilor configurate.</div></div><span class="rounded-lg border border-emerald-700/60 px-3 py-2 text-xs font-bold text-emerald-300">Toate rolurile</span></div>` : `<div class="pt-2 text-xs font-bold uppercase tracking-wide text-slate-500">${esc(group.label)}</div>${renderGroupRow(group)}`).join('')}</div>`;
@@ -1780,6 +1832,8 @@ renderRoles = () => {
 
       roles: roleRows,
 
+      limited_module_roles: limitedModuleRoles,
+
       page_permissions: pagePermissions,
 
       action_permissions: actionPermissions,
@@ -1816,6 +1870,10 @@ renderRoles = () => {
           Array.isArray(data.roles)
               ? data.roles
               : roleRows;
+
+      limitedModuleRoles = Array.isArray(data.limited_module_roles?.role_ids)
+          ? data.limited_module_roles.role_ids.map(String)
+          : limitedModuleRoles;
 
       pagePermissions =
           data.page_permissions || pagePermissions;
@@ -1862,6 +1920,7 @@ renderRoles = () => {
               organization: full.organization,
               guilds: full.guilds,
               roles: full.roles,
+              limited_module_roles: full.limited_module_roles,
               page_permissions: full.page_permissions,
               action_permissions: full.action_permissions,
               assistant_page_permissions: full.assistant_page_permissions,
@@ -1896,6 +1955,10 @@ renderRoles = () => {
 
           roleRows =
               saved.roles || roleRows;
+
+          limitedModuleRoles = Array.isArray(saved.limited_module_roles)
+              ? saved.limited_module_roles.map(String)
+              : limitedModuleRoles;
 
           pagePermissions =
               saved.page_permissions || pagePermissions;

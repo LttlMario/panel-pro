@@ -9,6 +9,8 @@ const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const avatarUrl = (id: string, avatar?: string | null) => avatar ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png` : 'https://panel-management.netlify.app//img/logo-192.png';
 const normalizeId = (value: unknown) => String(value ?? '').trim();
+const limitedModulePages = new Set(['index.html','marketplace.html','calculator.html','calculatorilegal.html','locatiiilegale.html','marketplace-ilegal.html','minigames.html']);
+const limitedModuleActionKeys = new Set(['marketplace.delete']);
 const discordBotHeaders = (bot: string) => ({ Authorization: `Bot ${bot}`, 'User-Agent': 'PanelManagement/1.0 (+https://panel-management.netlify.app)' });
 const fetchDiscordMember = async (guildId: string, discordId: string, accessToken: string, botToken: string) => {
   const botResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`, { headers: discordBotHeaders(botToken) });
@@ -155,7 +157,7 @@ Deno.serve(async (request) => {
     const organizationIds=[...new Set(scopedGuilds.map((guild:any)=>String(guild.organization_id)))];
     const [accessResult, mappingResult] = await Promise.all([
       organizationIds.length
-        ? db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','organization_package','page_permissions','communication_permissions','discipline_permissions','assistant_page_permissions','action_permissions'])
+        ? db.from('app_settings').select('organization_id,key,value').in('organization_id',organizationIds).in('key',['organization_access','organization_package','page_permissions','communication_permissions','discipline_permissions','assistant_page_permissions','action_permissions','limited_module_roles'])
         : Promise.resolve({ data: [], error: null }),
       // Rolurile istorice pot avea enabled = NULL. Sunt active implicit;
       // doar enabled = false trebuie să blocheze accesul.
@@ -445,6 +447,13 @@ if (!existing) {
       const actionRoleIds = audience === 'organization' ? ['actions.organization.read', 'actions.organization.write', 'actions.organization.delete'].flatMap((key) => Array.isArray(action?.[key]) ? action[key].map(String) : []) : [];
       if ([...roleIds, ...disciplineRoleIds, ...actionRoleIds].some((roleId: string) => roleIdsForAudience(audience).includes(roleId))) allowed_pages.push(page);
     });
+    const limitedRoleIds = new Set(
+      (Array.isArray((accessRows || []).find((row:any) => String(row.organization_id) === organization_id && row.key === 'limited_module_roles')?.value?.role_ids)
+        ? (accessRows || []).find((row:any) => String(row.organization_id) === organization_id && row.key === 'limited_module_roles')?.value?.role_ids
+        : [])
+        .map(String)
+    );
+    const hasLimitedModuleAccess = !isPlatformAdmin && value.discord_role_ids.some((roleId: string) => limitedRoleIds.has(String(roleId)));
     const action = actionSettings.get(organization_id) || {};
     [
       ['cereri.departments', 'cereri-angajati.html'],
@@ -474,6 +483,11 @@ if (!existing) {
       allowed_pages = allowed_pages.filter((page) => packageAllowsPage(String(page), packageValue));
     }
 
+    if (hasLimitedModuleAccess) {
+      allowed_pages = [...limitedModulePages]
+        .filter((page) => isPlatformAdmin || packageAllowsPage(page, packageValue));
+    }
+
     const assistantRules: any = assistantPageSettings.get(organization_id) || {};
     const assistantConfigured = Object.keys(assistantRules).length > 0;
     const assistant_allowed_pages = (assistantConfigured ? Object.entries(assistantRules) : Object.entries(rules))
@@ -483,6 +497,13 @@ if (!existing) {
       .filter((page) => isPlatformAdmin || packageAllowsPage(String(page), packageValue));
     const packageFeatures = resolvePackageFeatures(packageValue);
     const actionPermissions = { ...(actionSettings.get(organization_id) || {}) };
+    if (hasLimitedModuleAccess) {
+      for (const [key, ids] of Object.entries(actionPermissions)) {
+        if (Array.isArray(ids) && !limitedModuleActionKeys.has(key)) {
+          actionPermissions[key] = ids.filter((id: any) => false);
+        }
+      }
+    }
     if (!isPlatformAdmin && !packageFeatures.includes('requests_organization')) delete actionPermissions['cereri.organization'];
     const primaryGuild = configuredGuildsForOrganization.find((guild:any) => String(guild.kind || '') === 'primary') || configuredGuildsForOrganization[0];
     const discordOnly = value.organization?.access_mode === 'discord_only' || String(value.organization?.slug || '').startsWith('discord-');
@@ -498,9 +519,12 @@ if (!existing) {
       package_code: String(packageValue.code || 'standard'),
       package_features: resolvePackageFeatures(packageValue),
       allowed_pages,
-      assistant_allowed_pages,
+      assistant_allowed_pages: hasLimitedModuleAccess
+        ? [...limitedModulePages].filter((page) => isPlatformAdmin || packageAllowsPage(page, packageValue))
+        : assistant_allowed_pages,
       assistant_permissions_configured: assistantConfigured,
-      page_permissions_configured: configured
+      page_permissions_configured: configured,
+      limited_module_access: hasLimitedModuleAccess
     };
   })
   .sort((a, b) =>
@@ -692,6 +716,9 @@ return reply({
     allowed_pages:
       active.allowed_pages,
 
+    limited_module_access:
+      active.limited_module_access,
+
     page_permissions_configured:
       active.page_permissions_configured,
 
@@ -706,6 +733,9 @@ return reply({
 
     assistant_allowed_pages:
       active.assistant_allowed_pages,
+
+    limited_module_access:
+      active.limited_module_access,
 
     assistant_permissions_configured:
       active.assistant_permissions_configured,
@@ -785,6 +815,8 @@ return reply({
         item.action_permissions,
       assistant_allowed_pages:
         item.assistant_allowed_pages,
+      limited_module_access:
+        item.limited_module_access,
       assistant_permissions_configured:
         item.assistant_permissions_configured
 

@@ -184,7 +184,8 @@ Deno.serve(async request=>{
               'global_permissions',
               'communication_permissions',
               'discipline_permissions',
-              'organization_package'
+              'organization_package',
+              'limited_module_roles'
             ])
         : {
             data: [],
@@ -457,6 +458,20 @@ if (settingsError) {
       await db.from('app_settings').upsert({organization_id:organizationId,key:'pontaj_config',value:{maxHours:12,dayEndTime:'19:59',nightEndTime:'23:00',excludeBreaks:false}},{onConflict:'organization_id,key'});
       if(body.access){const expiresAt=String(body.access.expires_at||'').trim()||null;if(expiresAt&&Number.isNaN(Date.parse(expiresAt)))throw new Error('Data expirării este invalidă.');await updateOrganizationAccess(db,session,organizationId,expiresAt,true);}
       if(body.contract_template){const title=String(body.contract_template.title||'').trim(),template=String(body.contract_template.template||'').trim();if(title.length<2)throw new Error('Numele contractului este obligatoriu.');if(template.length<20)throw new Error('Textul contractului este prea scurt.');const allowed=['{{COMPANY}}','{{ADDRESS}}','{{MANAGER}}','{{EMPLOYEE_NAME}}','{{CNP}}','{{PHONE}}','{{POSITION}}','{{SALARY}}','{{PROGRAM}}','{{START_DATE}}','{{CONTRACT_NUMBER}}'];const unknown=[...template.matchAll(/{{[A-Z0-9_]+}}/g)].map(match=>match[0]).filter(value=>!allowed.includes(value));if(unknown.length)throw new Error(`Câmpuri necunoscute în contract: ${[...new Set(unknown)].join(', ')}`);const defaults=body.contract_template.defaults&&typeof body.contract_template.defaults==='object'?body.contract_template.defaults:{};const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'contract_template',value:{title,template,defaults:{salary:String(defaults.salary||'').trim()||null}},updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;}
+      const limitedModulePages = new Set(['index.html','marketplace.html','calculator.html','calculatorilegal.html','locatiiilegale.html','marketplace-ilegal.html','minigames.html']);
+      const limitedModuleActionKeys = new Set(['marketplace.delete']);
+      const limitedRoleIds = new Set((Array.isArray(body.limited_module_roles) ? body.limited_module_roles : []).map(String).filter(id => /^\d{15,22}$/.test(id)));
+      if (body.limited_module_roles === undefined) {
+        const { data: existingLimitedRoles, error: existingLimitedRolesError } = await db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'limited_module_roles').maybeSingle();
+        if (existingLimitedRolesError) throw existingLimitedRolesError;
+        (Array.isArray(existingLimitedRoles?.value?.role_ids) ? existingLimitedRoles.value.role_ids : []).map(String).filter(id => /^\d{15,22}$/.test(id)).forEach(id => limitedRoleIds.add(id));
+      }
+      const validLimitedRoleIds = new Set((Array.isArray(body.roles) ? body.roles : []).map((role: any) => String(role?.discord_role_id || '').trim()).filter(id => /^\d{15,22}$/.test(id)));
+      if (Array.isArray(body.roles)) [...limitedRoleIds].forEach(id => { if (!validLimitedRoleIds.has(id)) limitedRoleIds.delete(id); });
+      if (body.limited_module_roles !== undefined) {
+        const { error: limitedRolesError } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'limited_module_roles', value: { role_ids: [...limitedRoleIds] }, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+        if (limitedRolesError) throw limitedRolesError;
+      }
       if(body.page_permissions && typeof body.page_permissions === 'object'){
   const allowedPages = new Set([
     'index.html',
@@ -492,6 +507,7 @@ if (settingsError) {
           (Array.isArray(ids) ? ids : [])
             .map(String)
             .filter(id => /^\d{15,22}$/.test(id))
+            .filter(id => limitedModulePages.has(page) || !limitedRoleIds.has(id))
         )]
       ])
   );
@@ -528,6 +544,7 @@ if (body.global_permissions && typeof body.global_permissions === 'object') {
         : [])
         .map(String)
         .filter(id => /^\d{15,22}$/.test(id))
+        .filter(id => !limitedRoleIds.has(id))
     )
   ];
   const globalRules = {
@@ -587,6 +604,7 @@ if(
             (Array.isArray(ids) ? ids : [])
               .map(String)
               .filter(id => /^\d{15,22}$/.test(id))
+              .filter(id => limitedModuleActionKeys.has(action) || !limitedRoleIds.has(id))
           )
         ]
       ])
@@ -639,7 +657,8 @@ if(body.assistant_page_permissions && typeof body.assistant_page_permissions ===
         page,
         [...new Set((Array.isArray(ids) ? ids : [])
           .map(String)
-          .filter(id => /^\d{15,22}$/.test(id)))]
+          .filter(id => /^\d{15,22}$/.test(id))
+          .filter(id => limitedModulePages.has(page) || !limitedRoleIds.has(id)))]
       ])
   );
   const { error } = await db.from('app_settings').upsert({
@@ -661,6 +680,7 @@ if(
         : [])
         .map(String)
         .filter(id => /^\d{15,22}$/.test(id))
+        .filter(id => !limitedRoleIds.has(id))
     )
   ];
   const communicationPermissions = {
@@ -686,6 +706,7 @@ if (
         : [])
         .map(String)
         .filter(id => /^\d{15,22}$/.test(id))
+        .filter(id => !limitedRoleIds.has(id))
     )
   ];
   const disciplinePermissions = {
