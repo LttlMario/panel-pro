@@ -98,7 +98,7 @@ const illegalCategories: CalculatorCategory[] = [
       recipe('mini_ak', 'Mini Ak', { 'Piese de armă': 1, 'Corp Rifle': 1, 'Țeavă SMG': 1 }), recipe('vintage_pistol', 'Vintage Pistol', { 'Piese de armă': 2, 'Corp Pistol': 1, 'Țeavă Pistol': 1 }),
       recipe('smg_mk2', 'SMG Mk2', { 'Piese de armă': 1, 'Corp SMG': 1, 'Țeavă SMG': 1 }), recipe('tommy_gun', 'Tommy Gun', { 'Piese de armă': 1, 'Țeavă Rifle': 1, 'Corp Rifle': 1, Butstock: 1 }),
       recipe('db', 'DB', { 'Piese de armă': 3, 'Corp Pistol': 1, 'Țeavă Pistol': 1, Aur: 1 }),
-      recipe('piese_arma', 'Piese de armă x2', { Arc: 1, Oțel: 1, Plastic: 1, Scrap: 2 }, 2),
+      recipe('piese_arma', 'Piese de armă', { Arc: 1, Oțel: 1, Plastic: 1, Scrap: 2 }, 2),
       recipe('teava_pistol', 'Țeavă Pistol', { 'Piese de armă': 1 }), recipe('corp_pistol', 'Corp Pistol', { 'Piese de armă': 1 }),
       recipe('teava_smg', 'Țeavă SMG', { 'Piese de armă': 2 }), recipe('corp_smg', 'Corp SMG', { 'Piese de armă': 2 }),
       recipe('corp_rifle', 'Corp Rifle', { 'Piese de armă': 3 }), recipe('teava_rifle', 'Țeavă Rifle', { 'Piese de armă': 3 }), recipe('butstock', 'Butstock', { 'Piese de armă': 2 }),
@@ -134,10 +134,29 @@ const findRecipe = (kind: 'legal' | 'illegal', categoryId: string, recipeId: str
 function calculateRecipe(recipeItem: CalculatorRecipe, quantity: number, categories: CalculatorCategory[]) {
   const direct: Record<string, number> = {};
   const raw: Record<string, number> = {};
-  const byName = new Map(categories.flatMap((category) => category.recipes).map((item) => [item.name.toLocaleLowerCase('ro-RO'), item]));
+  // Topitoria este publicată numai în calculatorul ilegal, dar materialele
+  // produse acolo sunt dependențe brute și pentru rețetele legale (Oțel, Arc).
+  // Nu o afișăm în lista legală; o folosim doar la descompunerea materiilor.
+  const dependencyCategories = categories.some((category) => category.id === 'topitorie')
+    ? categories
+    : [...categories, illegalCategories.find((category) => category.id === 'topitorie')].filter(Boolean) as CalculatorCategory[];
+  const allRecipes = dependencyCategories.flatMap((category) => category.recipes);
+  const normalize = (value: string) => value.toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const aliases: Record<string, string> = {
+    [normalize('ouă ochiuri')]: normalize('Ouă ochiuri x3'),
+    [normalize('pulpă de pui')]: normalize('Pulpă de pui x2'),
+    [normalize('omletă')]: normalize('Omletă x2'),
+    [normalize('ton crud')]: normalize('Ton crud x2'),
+    [normalize('somon crud')]: normalize('Somon crud x2'),
+    [normalize('chiflă')]: normalize('Chifle proaspete x2'),
+  };
+  const byName = (value: string) => {
+    const key = aliases[normalize(value)] || normalize(value);
+    return allRecipes.find((item) => normalize(item.name) === key || normalize(item.id) === key) || null;
+  };
   const add = (target: Record<string, number>, key: string, amount: number) => { target[key] = (target[key] || 0) + amount; };
   const resolve = (name: string, amount: number, seen = new Set<string>()) => {
-    const nested = byName.get(name.toLocaleLowerCase('ro-RO'));
+    const nested = byName(name);
     if (!nested || seen.has(nested.id)) { add(raw, name, amount); return; }
     const crafts = Math.ceil(amount / Math.max(1, nested.produces || 1));
     const next = new Set(seen); next.add(nested.id);
