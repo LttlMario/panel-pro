@@ -170,6 +170,24 @@
         let organizationActionPermissions = {};
         let requestRoute = null;
 
+        function getRequestAudience() {
+            if (requestPageAudience === 'departments' || requestPageAudience === 'organization') {
+                return requestPageAudience;
+            }
+            return requestRoute?.channel === 'requests_departments' ? 'departments' : 'organization';
+        }
+
+        function currentUserIsPlatformAdmin() {
+            const cached = JSON.parse(localStorage.getItem('discord_user') || '{}');
+            return Boolean(
+                (typeof window.isPlatformAdmin === 'function' && window.isPlatformAdmin()) ||
+                currentUser.platform_admin === true ||
+                currentUser.is_platform_admin === true ||
+                cached.platform_admin === true ||
+                cached.is_platform_admin === true
+            );
+        }
+
         function loadActiveOrganizationContext() {
             try {
                 const storedOrganization =
@@ -534,11 +552,11 @@ console.log(
                     .map(String)
                     .some(role => roles.includes(role));
 
-            const canSubmit = requestPageAudience === 'organization'
+            const canSubmit = currentUserIsPlatformAdmin() || (requestPageAudience === 'organization'
                 ? canOrganization
                 : requestPageAudience === 'departments'
                     ? canDepartments
-                    : canOrganization || canDepartments;
+                    : canOrganization || canDepartments);
 
             if (!canSubmit) {
                 alert(
@@ -575,7 +593,7 @@ console.log(
             }
             const newAbsence = {
                 organization_id: activeOrganization.id,
-                request_audience: requestPageAudience === 'departments' ? 'departments' : 'organization',
+                request_audience: getRequestAudience(),
                 discord_id: currentUser.discord_id,
                 colleague_name: `${activeName} [${activeRole}]`,
                 notice_type: noticeType,
@@ -672,6 +690,7 @@ fetchAbsences();
                 .select('*')
                 .eq('organization_id', activeOrganization.id)
                 .eq('discord_id', currentUser.discord_id)
+                .eq('request_audience', getRequestAudience())
                 .order('created_at', { ascending: false });
 
                 if (error) throw error;
@@ -732,7 +751,8 @@ fetchAbsences();
                     .delete()
                     .eq('id', id)
                     .eq('organization_id', activeOrganization.id)
-                    .eq('discord_id', currentUser.discord_id);
+                    .eq('discord_id', currentUser.discord_id)
+                    .eq('request_audience', getRequestAudience());
 
                 if (error) throw error;
 
@@ -779,7 +799,7 @@ fetchAbsences();
             const days = Math.max(1, Math.floor((getNoticeDateTime(endAt) - getNoticeDateTime(startAt)) / 86400000) + 1);
 
             const updatedData = {
-                request_audience: requestPageAudience === 'departments' ? 'departments' : 'organization',
+                request_audience: getRequestAudience(),
                 notice_type: noticeType,
                 reason: reason,
                 start_date: startDate,
@@ -801,7 +821,8 @@ fetchAbsences();
                     .update(updatedData)
                     .eq('id', id)
                     .eq('organization_id', activeOrganization.id)
-                    .eq('discord_id', currentUser.discord_id);
+                    .eq('discord_id', currentUser.discord_id)
+                    .eq('request_audience', getRequestAudience());
 
                 if (error) throw error;
 
