@@ -35,6 +35,8 @@ const levels: Record<string, number> = {
   contract_uploads: 1,
   log_contracts: 1,
   contract_identity_weekly: 1,
+  calculator: 1,
+  illegal_calculator: 1,
   marketplace: 1,
   illegal_marketplace: 1,
   log_marketplace: 1,
@@ -198,6 +200,10 @@ Deno.serve(async (request) => {
           ? 'requests_departments'
           : finalChannel === 'illegal_marketplace'
             ? 'illegal_marketplace'
+            : finalChannel === 'calculator'
+              ? 'legal_tools'
+              : finalChannel === 'illegal_calculator'
+                ? 'illegal_calculator'
             : null;
     if (requiredFeature && !packageFeatures.includes(requiredFeature)) {
       return reply(request, { error: 'Acest canal Discord nu este inclus în pachetul organizației.' }, 403);
