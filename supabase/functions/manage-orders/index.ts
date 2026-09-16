@@ -72,7 +72,7 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const action = text(body.action, 40) || 'load';
     const [{ data: settings, error: settingsError }, { data: member, error: memberError }, { data: guilds, error: guildsError }, { data: mappings, error: mappingsError }] = await Promise.all([
-      db.from('app_settings').select('key,value').eq('organization_id', organizationId).in('key', ['page_permissions', 'action_permissions', 'organization_package']),
+      db.from('app_settings').select('key,value').eq('organization_id', organizationId).in('key', ['page_permissions', 'action_permissions', 'organization_package', 'limited_module_roles']),
       db.from('organization_members').select('panel_role').eq('organization_id', organizationId).eq('discord_id', session.discord_id).eq('active', true).maybeSingle(),
       db.from('organization_guilds').select('guild_id,kind,enabled').eq('organization_id', organizationId),
       db.from('organization_role_mappings').select('discord_role_id,guild_id,panel_role').eq('organization_id', organizationId).eq('enabled', true),
@@ -81,6 +81,8 @@ Deno.serve(async (request) => {
     const values = Object.fromEntries((settings || []).map((row: any) => [row.key, row.value || {}]));
     if (!session.is_platform_admin && String(values.organization_package?.code || '').toLowerCase() !== 'full') return reply({ error: 'Comenzile sunt disponibile doar pentru organizațiile cu pachetul Full.' }, 403);
     const roleIds = new Set((session.discord_role_ids || []).map(String));
+    const limitedRoleIds = new Set((Array.isArray(values.limited_module_roles?.role_ids) ? values.limited_module_roles.role_ids : []).map(String));
+    if (!session.is_platform_admin && [...roleIds].some((roleId) => limitedRoleIds.has(roleId))) return reply({ error: 'Profilul acestui rol nu include modulul Comenzi.' }, 403);
     if (member?.panel_role) {
       for (const row of (mappings || []).filter((item: any) => String(item.panel_role || '') === String(member.panel_role))) roleIds.add(String(row.discord_role_id));
     }
