@@ -515,13 +515,10 @@ async function resolveRequestContext(db: any, interaction: any, audience: 'organ
   const { data: organizationMember, error: memberError } = await db.from('organization_members').select('panel_role,permission_level,active').eq('organization_id', guild.organization_id).eq('discord_id', discordId).eq('active', true).maybeSingle();
   if (memberError) throw memberError;
   const platformAdmin = await isPlatformAdminAccount(db, discordId);
-  const { data: actionSettings, error: actionError } = await db.from('app_settings').select('key,value').eq('organization_id', guild.organization_id).in('key', ['action_permissions', 'organization_package']);
-  if (actionError) throw actionError;
-  const actionSetting = (actionSettings || []).find((item: any) => item.key === 'action_permissions');
-  const discordOnly = (actionSettings || []).find((item: any) => item.key === 'organization_package')?.value?.code === 'discord';
-  const permissionKey = audience === 'organization' ? 'cereri.organization' : 'cereri.departments';
-  const allowedRoles = Array.isArray(actionSetting?.value?.[permissionKey]) ? actionSetting.value[permissionKey].map(String) : [];
-  if (!platformAdmin && !discordOnly && !memberRolesHasAny(memberRoles, allowedRoles)) throw new Error(`Nu ai permisiunea configurată pentru Învoiri · ${audience === 'organization' ? 'Organizație' : 'Angajați'}.`);
+  // Învoirile inițiate din Discord sunt disponibile direct membrilor organizației.
+  // Nu folosim permisiunile configurabile ale paginii web aici: canalul este deja
+  // asociat organizației, iar apartenența este verificată prin mapping-ul Discord
+  // sau prin membrul activ din organizație.
   if (!platformAdmin && !matchedMapping && !organizationMember) throw new Error('Contul tău nu este membru activ al acestei organizații.');
   const displayName = String(interaction.member?.nick || user.global_name || user.username || discordId).trim().slice(0, 120) || discordId;
   return { guildId, channelId, target, discordId, displayName, organization, settings, platformAdmin, audience, routeKey, logRouteKey, role: matchedMapping?.panel_role || organizationMember?.panel_role || 'Membru' };
