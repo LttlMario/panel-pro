@@ -36,13 +36,14 @@ Deno.serve(async (request) => {
       // Web-ul folosește conversia Leaflet pentru coordonate; aici aplicăm
       // direct procentul salvat ca să păstrăm aceeași poziție vizuală.
       const y = Math.max(0, Math.min(map.height, (Number(location.y) / 100) * map.height));
-      const isCayoPlantation = key === 'cayo' && String(location.category || '') === 'drugs';
-      const rawTitle = isCayoPlantation ? (cayoPlantationLabelShown ? '' : 'Plantație') : String(location.title || 'Locație');
+      const locationTitle = String(location.title || 'Locație');
+      const isCayoPlantation = key === 'cayo' && String(location.category || '') === 'drugs' && !/^procesare\b/i.test(locationTitle.trim());
+      const rawTitle = isCayoPlantation ? (cayoPlantationLabelShown ? '' : 'Plantație') : locationTitle;
       if (isCayoPlantation) cayoPlantationLabelShown = true;
       const title = escapeXml(rawTitle);
       const category = categories[String(location.category || '')] || { icon: '📍', color: '#ef4444' };
       const icon = escapeXml(category.icon);
-      const label = title ? `<text x="0" y="53" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#fff" stroke="#111827" stroke-width="7" paint-order="stroke">${title}</text>` : '';
+      const label = title ? `<text x="0" y="53" text-anchor="middle" font-family="Arial,sans-serif" font-size="20" font-weight="400" fill="#fff" stroke="#111827" stroke-width="3" paint-order="stroke">${title}</text>` : '';
       return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle cy="0" r="27" fill="#0b1220" stroke="${category.color}" stroke-width="5"/><text x="0" y="8" text-anchor="middle" font-family="Segoe UI Emoji,Arial,sans-serif" font-size="23">${icon}</text>${label}</g>`;
     }).join('');
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${map.width}" height="${map.height}" viewBox="0 0 ${map.width} ${map.height}"><image href="${backgroundData}" xlink:href="${backgroundData}" x="0" y="0" width="${map.width}" height="${map.height}" preserveAspectRatio="none"/>${pins}</svg>`;
