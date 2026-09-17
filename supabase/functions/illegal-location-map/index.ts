@@ -59,8 +59,8 @@ Deno.serve(async (request) => {
       const category = categories[String(location.category || '')] || { icon: '📍', color: '#ef4444' };
       const icon = escapeXml(category.icon);
       const layout = title ? labelLayout(x, y, rawTitle) : null;
-      const label = title && layout ? `<text x="${(layout.textX - x).toFixed(1)}" y="${(layout.textY - y).toFixed(1)}" text-anchor="${layout.anchor}" font-family="Arial,sans-serif" font-size="20" font-weight="400" fill="#fff" stroke="#111827" stroke-width="3" paint-order="stroke">${title}</text>` : '';
-      return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle cy="0" r="27" fill="#0b1220" stroke="${category.color}" stroke-width="5"/><text x="0" y="8" text-anchor="middle" font-family="Segoe UI Emoji,Arial,sans-serif" font-size="23">${icon}</text>${label}</g>`;
+      const label = title && layout ? `<text x="${(layout.textX - x).toFixed(1)}" y="${(layout.textY - y).toFixed(1)}" text-anchor="${layout.anchor}" font-family="Arial,sans-serif" font-size="20" font-weight="400" fill="#111827" stroke="#fff" stroke-width="3" paint-order="stroke">${title}</text>` : '';
+      return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><path d="M0 -31 C-17 -31 -28 -19 -28 -4 C-28 13 -13 25 0 39 C13 25 28 13 28 -4 C28 -19 17 -31 0 -31Z" fill="#0b1220" stroke="${category.color}" stroke-width="5"/><text x="0" y="5" text-anchor="middle" font-family="Segoe UI Emoji,Arial,sans-serif" font-size="23">${icon}</text>${label}</g>`;
     }).join('');
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${map.width}" height="${map.height}" viewBox="0 0 ${map.width} ${map.height}"><image href="${backgroundData}" xlink:href="${backgroundData}" x="0" y="0" width="${map.width}" height="${map.height}" preserveAspectRatio="none"/>${pins}</svg>`;
     return new Response(svg, { status: 200, headers: { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
