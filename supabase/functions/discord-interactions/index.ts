@@ -788,8 +788,15 @@ async function resolveWheelContext(db: any, interaction: any) {
   if (organizationError || settingsError) throw organizationError || settingsError;
   if (!organization?.active) throw new Error('Organizația este dezactivată.');
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
-  const configured = settings?.discord_channel_routes?.wheel_timer?.[target];
-  if (configured?.enabled === false || String(configured?.channel_id || '') !== channelId) throw new Error('Acest canal nu este configurat pentru embedul Roată.');
+  const wheelRoutes = settings?.discord_channel_routes?.wheel_timer || {};
+  // Pentru organizațiile care au fost configurate înainte de separarea
+  // primary/secondary, guild.kind poate să nu mai corespundă cheii salvate.
+  // Verificăm în continuare strict canalul actual, dar acceptăm ruta Roții
+  // dacă ea este salvată pe oricare dintre cele două ținte.
+  const configured = wheelRoutes?.[target]?.channel_id === channelId
+    ? wheelRoutes[target]
+    : Object.values(wheelRoutes).find((route: any) => String(route?.channel_id || '') === channelId);
+  if (!configured || configured.enabled === false) throw new Error('Acest canal nu este configurat pentru embedul Roată.');
   return { guildId, channelId, target, discordId, organization, settings };
 }
 
