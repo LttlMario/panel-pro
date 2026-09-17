@@ -31,7 +31,7 @@ const PANEL_ROUTE_LABELS: Record<string, string> = {
   contracts: 'Contracte', log_contracts: 'Log contracte', log_discipline_organization: 'Log avertismente și amenzi organizație', log_discipline_departments: 'Log avertismente și amenzi angajați', log_actions_organization: 'Log acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
   stash: 'Stash', log_stash: 'Log Stash', stash_requests: 'Cereri Stash', log_stash_requests: 'Log cereri Stash', stash_donations: 'Donații Stash', log_stash_donations: 'Log donații Stash',
   marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
-  calculator: 'Calculator legal', illegal_calculator: 'Calculator ilegal', wheel_timer: 'Roată · timer personal',
+  calculator: 'Calculator legal', illegal_calculator: 'Calculator ilegal', illegal_locations: 'Locații ilegale', wheel_timer: 'Roată · timer personal',
 };
 const panelRouteKeys = Object.keys(PANEL_ROUTE_LABELS);
 const PANEL_LOG_ROUTES: Record<string, string> = {
@@ -121,6 +121,7 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
     actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
     calculator: { title: '🧮 Calculator legal · Panel Pro', description: 'Alege categoria, articolul și cantitatea. Primești instant materialele directe și materialele brute necesare.', color: 0x22c55e, buttons: [{ label: 'Începe calculul', style: 1, id: 'panel:calculator:legal:start' }] },
     illegal_calculator: { title: '🚨 Calculator ilegal · Panel Pro', description: 'Calculează arme, muniție, topitorie și resurse ilegale direct din Discord.', color: 0xef4444, buttons: [{ label: 'Începe calculul', style: 4, id: 'panel:calculator:illegal:start' }] },
+    illegal_locations: { title: '🗺️ Locații ilegale · Panel Pro', description: 'Alege harta. Embedul se actualizează direct în Discord și păstrează butoanele pentru cele 3 zone.', color: 0xef4444, buttons: [{ label: 'Los Santos', style: 4, id: 'panel:illegal_locations:map:ls' }, { label: 'Cayo Perico', style: 4, id: 'panel:illegal_locations:map:cayo' }, { label: 'Maldive', style: 4, id: 'panel:illegal_locations:map:maldive' }] },
     wheel_timer: { title: '🎡 Roată · timer personal', description: 'Pornește timerul personal de 6 ore și verifică timpul rămas. Răspunsurile sunt private pentru fiecare utilizator.', color: 0x06b6d4, buttons: [{ label: 'Am dat la roată', style: 1, id: 'panel:wheel:start' }, { label: 'Verifică timpul', style: 2, id: 'panel:wheel:status' }] },
   };
   const definition = definitions[routeKey] || { title: `⚙️ ${PANEL_ROUTE_LABELS[routeKey] || 'Panel Pro'}`, description: 'Embed de administrare Panel Pro.', color: 0x5865f2, buttons: [] };
@@ -792,6 +793,28 @@ const wheelRemainingText = (completesAt: string) => {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   return `Mai ai **${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s**.`;
+};
+
+const illegalLocationMap = (value: string) => {
+  const maps: Record<string, { label: string; image: string; url: string; description: string }> = {
+    ls: { label: 'Los Santos', image: 'https://panel-pro.ro/img/gtav.jpg', url: 'https://panel-pro.ro/locatiiilegale.html?map=ls', description: 'Harta Los Santos și Blaine County cu locațiile ilegale disponibile.' },
+    cayo: { label: 'Cayo Perico', image: 'https://panel-pro.ro/img/cayo.jpg', url: 'https://panel-pro.ro/locatiiilegale.html?map=cayo', description: 'Harta Cayo Perico cu locațiile ilegale disponibile.' },
+    maldive: { label: 'Maldive', image: 'https://panel-pro.ro/img/maldive.jpg', url: 'https://panel-pro.ro/locatiiilegale.html?map=maldive', description: 'Harta Maldive cu locațiile ilegale disponibile.' },
+  };
+  return maps[value] || null;
+};
+
+const illegalLocationsMessage = (mapKey = '') => {
+  const selected = illegalLocationMap(mapKey);
+  const buttons = selected ? [
+    { type: 2, style: 2, label: 'Înapoi la hărți', custom_id: 'panel:illegal_locations:maps' },
+    { type: 2, style: 5, label: 'Deschide harta completă', url: selected.url },
+  ] : [];
+  const mapButtons = ['ls', 'cayo', 'maldive'].map((key) => {
+    const item = illegalLocationMap(key)!;
+    return { type: 2, style: 4, label: item.label, custom_id: `panel:illegal_locations:map:${key}` };
+  });
+  return { type: 7, data: { allowed_mentions: { parse: [] }, embeds: [{ title: selected ? `🗺️ ${selected.label} · Locații ilegale` : '🗺️ Locații ilegale · Panel Pro', description: selected ? selected.description : 'Alege una dintre cele 3 hărți. Embedul se va actualiza aici, fără să trimită un mesaj nou.', color: 0xef4444, ...(selected ? { image: { url: selected.image }, url: selected.url } : {}), footer: { text: 'Panel Pro · harta se selectează din butoane' } }], components: [{ type: 1, components: selected ? [...buttons, ...mapButtons].slice(0, 5) : mapButtons }] } };
 };
 
 const wheelPrivateMessage = (timer: any = null) => {
@@ -2201,6 +2224,7 @@ Deno.serve(async (request) => {
   const isMarketplace = customId.startsWith('panel:marketplace:');
   const isDiscovery = customId.startsWith('panel:discovery:');
   const isCalculator = customId.startsWith('panel:calculator:');
+  const isIllegalLocations = customId.startsWith('panel:illegal_locations:');
   const isWheel = customId.startsWith('panel:wheel:');
   const isCustomModule = customId.startsWith('panel:custom:');
   if (isCommand) {
@@ -2218,7 +2242,7 @@ Deno.serve(async (request) => {
     return reply(interactionMessage('Comanda Panel Pro nu este disponibilă.'));
   }
   if (!isComponent && !isModalSubmit) return reply(interactionMessage('Acest tip de interacțiune nu este disponibil.'));
-  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isWheel && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isIllegalLocations && !isWheel && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
 
   if (isCalculator) {
     const parts = customId.split(':');
@@ -2253,6 +2277,16 @@ Deno.serve(async (request) => {
       return reply(calculatorResultMessage(kind, categoryId, recipeId, quantity));
     }
     return reply(calculatorStartMessage(kind));
+  }
+
+  if (isIllegalLocations) {
+    const secret = serviceKey();
+    if (!secret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, secret);
+    try { await resolveUniversalModuleContext(db, interaction, 'illegal_locations', 'illegal_locations'); }
+    catch (error) { return reply(interactionMessage(readableError(error, 'Locațiile ilegale nu sunt disponibile pe acest canal.'))); }
+    const parts = customId.split(':');
+    return reply(illegalLocationsMessage(parts[2] === 'map' ? String(parts[3] || '') : ''));
   }
 
   if (isWheel) {
