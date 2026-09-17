@@ -58,7 +58,7 @@ Deno.serve(async (request) => {
       const title = escapeXml(rawTitle);
       const category = categories[String(location.category || '')] || { icon: '📍', color: '#ef4444' };
       const icon = escapeXml(category.icon);
-      const fontSize = key === 'ls' ? 26 : 20;
+      const fontSize = key === 'ls' ? 36 : 20;
       const layout = title ? labelLayout(x, y, rawTitle, fontSize) : null;
       const label = title && layout ? `<text x="${(layout.textX - x).toFixed(1)}" y="${(layout.textY - y).toFixed(1)}" text-anchor="${layout.anchor}" font-family="Arial,sans-serif" font-size="${fontSize}" font-weight="400" fill="#111827" stroke="#fff" stroke-width="3" paint-order="stroke">${title}</text>` : '';
       return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><path d="M0 -23 C-13 -23 -21 -14 -21 -3 C-21 10 -10 19 0 29 C10 19 21 10 21 -3 C21 -14 13 -23 0 -23Z" fill="#0b1220" stroke="${category.color}" stroke-width="4"/><text x="0" y="4" text-anchor="middle" font-family="Segoe UI Emoji,Arial,sans-serif" font-size="18">${icon}</text>${label}</g>`;
