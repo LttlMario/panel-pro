@@ -796,11 +796,12 @@ const wheelRemainingText = (completesAt: string) => {
 };
 
 const ILLEGAL_LOCATION_MAP_ENDPOINT = 'https://vkvsabbbawyiurnaiugo.supabase.co/functions/v1/illegal-location-map';
+const renderedIllegalMap = (key: string) => `https://wsrv.nl/?url=${encodeURIComponent(`${ILLEGAL_LOCATION_MAP_ENDPOINT}?map=${key}&v=${Date.now()}`)}&output=png`;
 const illegalLocationMap = (value: string) => {
   const maps: Record<string, { label: string; image: string; url: string; description: string }> = {
-    ls: { label: 'Los Santos', image: 'https://panel-pro.ro/img/gtav.jpg', url: 'https://panel-pro.ro/locatiiilegale.html?map=ls', description: 'Harta Los Santos și Blaine County cu locațiile ilegale disponibile.' },
-    cayo: { label: 'Cayo Perico', image: 'https://panel-pro.ro/img/cayo.jpg', url: 'https://panel-pro.ro/locatiiilegale.html?map=cayo', description: 'Harta Cayo Perico cu locațiile ilegale disponibile.' },
-    maldive: { label: 'Maldive', image: 'https://panel-pro.ro/img/maldive.jpg', url: 'https://panel-pro.ro/locatiiilegale.html?map=maldive', description: 'Harta Maldive cu locațiile ilegale disponibile.' },
+    ls: { label: 'Los Santos', image: renderedIllegalMap('ls'), url: 'https://panel-pro.ro/locatiiilegale.html?map=ls', description: 'Harta Los Santos și Blaine County cu locațiile ilegale disponibile.' },
+    cayo: { label: 'Cayo Perico', image: renderedIllegalMap('cayo'), url: 'https://panel-pro.ro/locatiiilegale.html?map=cayo', description: 'Harta Cayo Perico cu locațiile ilegale disponibile.' },
+    maldive: { label: 'Maldive', image: renderedIllegalMap('maldive'), url: 'https://panel-pro.ro/locatiiilegale.html?map=maldive', description: 'Harta Maldive cu locațiile ilegale disponibile.' },
   };
   return maps[value] || null;
 };
