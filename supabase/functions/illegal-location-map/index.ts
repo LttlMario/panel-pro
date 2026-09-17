@@ -29,16 +29,21 @@ Deno.serve(async (request) => {
     if (!backgroundResponse.ok) throw new Error(`Harta nu a putut fi încărcată (${backgroundResponse.status}).`);
     const backgroundType = String(backgroundResponse.headers.get('content-type') || 'image/jpeg').split(';')[0];
     const backgroundData = `data:${backgroundType};base64,${toBase64(new Uint8Array(await backgroundResponse.arrayBuffer()))}`;
+    let cayoPlantationLabelShown = false;
     const pins = (data || []).map((location: any) => {
       const x = Math.max(0, Math.min(map.width, (Number(location.x) / 100) * map.width));
       // În imaginea statică SVG axa Y este deja orientată de sus în jos.
       // Web-ul folosește conversia Leaflet pentru coordonate; aici aplicăm
       // direct procentul salvat ca să păstrăm aceeași poziție vizuală.
       const y = Math.max(0, Math.min(map.height, (Number(location.y) / 100) * map.height));
-      const title = escapeXml(String(location.title || 'Locație'));
+      const isCayoPlantation = key === 'cayo' && String(location.category || '') === 'drugs';
+      const rawTitle = isCayoPlantation ? (cayoPlantationLabelShown ? '' : 'Plantație') : String(location.title || 'Locație');
+      if (isCayoPlantation) cayoPlantationLabelShown = true;
+      const title = escapeXml(rawTitle);
       const category = categories[String(location.category || '')] || { icon: '📍', color: '#ef4444' };
       const icon = escapeXml(category.icon);
-      return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle cy="0" r="27" fill="#0b1220" stroke="${category.color}" stroke-width="5"/><text x="0" y="8" text-anchor="middle" font-family="Segoe UI Emoji,Arial,sans-serif" font-size="23">${icon}</text><text x="0" y="53" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#fff" stroke="#111827" stroke-width="7" paint-order="stroke">${title}</text></g>`;
+      const label = title ? `<text x="0" y="53" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#fff" stroke="#111827" stroke-width="7" paint-order="stroke">${title}</text>` : '';
+      return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle cy="0" r="27" fill="#0b1220" stroke="${category.color}" stroke-width="5"/><text x="0" y="8" text-anchor="middle" font-family="Segoe UI Emoji,Arial,sans-serif" font-size="23">${icon}</text>${label}</g>`;
     }).join('');
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${map.width}" height="${map.height}" viewBox="0 0 ${map.width} ${map.height}"><image href="${backgroundData}" xlink:href="${backgroundData}" x="0" y="0" width="${map.width}" height="${map.height}" preserveAspectRatio="none"/>${pins}</svg>`;
     return new Response(svg, { status: 200, headers: { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
