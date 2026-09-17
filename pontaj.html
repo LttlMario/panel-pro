@@ -405,8 +405,8 @@
             const parts = getRomanianDateTimeParts(now);
 
             const configuredTime = shiftType === 'noapte'
-                ? '23:00'
-                : '19:59';
+                ? String(organizationPontajConfig?.nightEndTime || '23:00')
+                : String(organizationPontajConfig?.dayEndTime || '19:59');
 
             const [configuredHour, configuredMinute] = configuredTime
                 .split(':')

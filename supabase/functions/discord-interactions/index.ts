@@ -431,9 +431,12 @@ function zonedDateAt(year: number, month: number, day: number, hour: number, min
   return new Date(wanted + (wanted - observedUtc));
 }
 
-function shiftDeadline(shiftType: string, now = new Date()) {
+function shiftDeadline(shiftType: string, now = new Date(), configuredTime = '') {
   const parts = romanianParts(now);
-  const configured = shiftType === 'noapte' ? [23, 0] : [19, 59];
+  const configuredValue = /^\d{2}:\d{2}$/.test(configuredTime)
+    ? configuredTime
+    : shiftType === 'noapte' ? '23:00' : '19:59';
+  const configured = configuredValue.split(':').map(Number);
   let marker = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
   let deadline = zonedDateAt(marker.getUTCFullYear(), marker.getUTCMonth() + 1, marker.getUTCDate(), configured[0], configured[1]);
   if (deadline.getTime() <= now.getTime()) {
@@ -2077,7 +2080,11 @@ async function handleButton(db: any, interaction: any, context: any, action: str
     if (!shiftType) return interactionMessage('Selectează mai întâi **Tura de zi** sau **Tura de noapte**.');
     if (!shiftAllowed(shiftType)) return interactionMessage(shiftType === 'noapte' ? 'Tura de noapte poate fi pornită între **20:00 și 23:00**.' : 'Tura de zi nu poate fi pornită în intervalul configurat pentru tura de noapte.');
     const now = new Date();
-    const { data: created, error } = await db.from('shifts').insert({ organization_id: orgId, discord_id: context.discordId, colleague_name: context.displayName, date: romanianDate(now), start_time: romanianTime(now), end_time: null, duration: '00:00:00', duration_ms: 0, shift_type: shiftType, status: 'active', started_at: now.toISOString(), auto_stop_at: shiftDeadline(shiftType, now).toISOString(), paused_seconds: 0, paused_at: null, stop_reason: null, created_at: now.toISOString(), updated_at: now.toISOString() }).select('*').single();
+    const { data: pontajSetting } = await db.from('app_settings').select('value').eq('organization_id', orgId).eq('key', 'pontaj_config').maybeSingle();
+    const configuredTime = shiftType === 'noapte'
+      ? String(pontajSetting?.value?.nightEndTime || '23:00')
+      : String(pontajSetting?.value?.dayEndTime || '19:59');
+    const { data: created, error } = await db.from('shifts').insert({ organization_id: orgId, discord_id: context.discordId, colleague_name: context.displayName, date: romanianDate(now), start_time: romanianTime(now), end_time: null, duration: '00:00:00', duration_ms: 0, shift_type: shiftType, status: 'active', started_at: now.toISOString(), auto_stop_at: shiftDeadline(shiftType, now, configuredTime).toISOString(), paused_seconds: 0, paused_at: null, stop_reason: null, created_at: now.toISOString(), updated_at: now.toISOString() }).select('*').single();
     if (error) throw error;
     const logResult = await sendActionNotification(db, context.settings, shiftLogEmbed(created, context, 'started', now));
     if (logResult?.messageIds) await saveLogMessageIds(db, orgId, String(created.id), logResult.messageIds);
