@@ -1735,7 +1735,7 @@ async function saveAbsenceLogMessageIds(db: any, organizationId: string, absence
 
 async function sendAbsenceLog(db: any, context: any, absence: any, title = 'Învoire nouă', messageIds: Record<string, string> = {}) {
   try {
-    const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [requestEmbed(absence, context, title)] }), { messageIds });
+    const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [requestEmbed(absence, context, title)] }), { messageIds, messageIdsOnly: true });
     const nextMessageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
     await saveAbsenceLogMessageIds(db, String(context.organization.id), String(absence.id), nextMessageIds);
     return { error: delivery.results.length ? '' : delivery.failures.join(' | '), messageIds: nextMessageIds };
@@ -1943,7 +1943,7 @@ async function sendActionNotification(db: any, settings: any, embed: any, messag
   const destinations = routeCandidates(settings, 'log_pontaj');
   if (!destinations.some((item) => item.candidates.length)) return { error: 'Canalul „Log pontaj” nu este configurat pentru această organizație.', messageIds: {} };
   try {
-    const delivery = await deliverDiscordRoute(db, settings, 'log_pontaj', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [embed] }), { messageIds });
+    const delivery = await deliverDiscordRoute(db, settings, 'log_pontaj', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [embed] }), { messageIds, messageIdsOnly: true });
     const nextMessageIds = Object.fromEntries(delivery.results.filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
     return { error: delivery.results.length > 0 ? '' : delivery.failures.join(' | ') || 'Discord nu a acceptat mesajul.', messageIds: nextMessageIds };
   } catch (error) {

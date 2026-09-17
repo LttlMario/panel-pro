@@ -409,6 +409,7 @@ Deno.serve(async (request) => {
       messageIds,
       fallbackRouteKey: effectiveFallbackRouteKey,
       postOnly: requestedPostOnly,
+      messageIdsOnly: isPontajLog || isRequestsLog,
     });
     const messages = (delivery.results || []).map((result) => ({
       channel_id: result.channel_id || null,

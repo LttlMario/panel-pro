@@ -124,7 +124,7 @@ Deno.serve(async (request) => {
             { name: '⏳ Timp Total Lucrat', value: `**${formatDuration(seconds)}**`, inline: true },
             { name: '📝 Motiv', value: reason, inline: false },
           ], timestamp: finishedAt.toISOString(),
-        }] }), { messageIds: logMessageIds });
+        }] }), { messageIds: logMessageIds, messageIdsOnly: true });
       if (!delivery.results.length) throw new Error(delivery.failures.join(' | ') || 'Discord nu a acceptat notificarea.');
       const nextMessageIds = { ...logMessageIds, ...Object.fromEntries(delivery.results.filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)])) };
       await supabase.from('shifts').update({

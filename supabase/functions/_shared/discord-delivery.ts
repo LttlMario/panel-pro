@@ -180,18 +180,21 @@ export async function deliverDiscordRoute(
   settings: any,
   routeKey: string,
   body: BodyInit,
-  options: { messageIds?: Record<string, string>; headers?: Record<string, string>; fallbackRouteKey?: string; postOnly?: boolean } = {}
+  options: { messageIds?: Record<string, string>; headers?: Record<string, string>; fallbackRouteKey?: string; postOnly?: boolean; messageIdsOnly?: boolean } = {}
 ) {
   const results: any[] = [];
   const failures: string[] = [];
   for (const { target, candidates } of routeCandidates(settings, routeKey, options.fallbackRouteKey || '')) {
     if (!candidates.length) continue;
+    // Log routes contain one message per record. Their configured route message
+    // is not the record message and must never be edited as a fallback.
+    const messageIdsOnly = options.messageIdsOnly ?? routeKey.startsWith('log_');
     const requestedMessageId = options.postOnly ? '' : String(options.messageIds?.[target] || '').trim();
     let delivered = false;
     let lastError = '';
     for (const candidate of candidates) {
       try {
-        let response = await requestDiscordTarget(db, candidate, body, { messageId: requestedMessageId || (options.postOnly ? '' : candidate.message_id), headers: options.headers });
+        let response = await requestDiscordTarget(db, candidate, body, { messageId: requestedMessageId || (options.postOnly || messageIdsOnly ? '' : candidate.message_id), headers: options.headers });
         // Dacă mesajul existent nu poate fi editat, nu creăm un mesaj nou:
         // rutele configurate sunt embeduri editabile, iar un POST aici ar
         // produce duplicate.
@@ -209,7 +212,7 @@ export async function deliverDiscordRoute(
           continue;
         }
         const data = await response.clone().json().catch(() => ({}));
-        results.push({ target, transport: candidate.transport, channel_id: candidate.channel_id || null, id: data?.id ? String(data.id) : requestedMessageId || candidate.message_id || null });
+        results.push({ target, transport: candidate.transport, channel_id: candidate.channel_id || null, id: data?.id ? String(data.id) : requestedMessageId || (messageIdsOnly ? null : candidate.message_id) });
         delivered = true;
         break;
       } catch (error) {
