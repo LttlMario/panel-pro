@@ -31,8 +31,8 @@ Deno.serve(async (request) => {
     const backgroundData = `data:${backgroundType};base64,${toBase64(new Uint8Array(await backgroundResponse.arrayBuffer()))}`;
     let cayoPlantationLabelShown = false;
     const placedLabels: Array<{ left: number; top: number; right: number; bottom: number }> = [];
-    const labelLayout = (x: number, y: number, title: string) => {
-      const width = Math.min(420, Math.max(80, title.length * 11 + 18));
+    const labelLayout = (x: number, y: number, title: string, fontSize: number) => {
+      const width = Math.min(520, Math.max(80, title.length * (fontSize * 0.55) + 18));
       const height = 28;
       const candidates = [
         { textX: x, textY: y + 53, anchor: 'middle', left: x - width / 2, top: y + 34 },
@@ -58,9 +58,10 @@ Deno.serve(async (request) => {
       const title = escapeXml(rawTitle);
       const category = categories[String(location.category || '')] || { icon: '📍', color: '#ef4444' };
       const icon = escapeXml(category.icon);
-      const layout = title ? labelLayout(x, y, rawTitle) : null;
-      const label = title && layout ? `<text x="${(layout.textX - x).toFixed(1)}" y="${(layout.textY - y).toFixed(1)}" text-anchor="${layout.anchor}" font-family="Arial,sans-serif" font-size="20" font-weight="400" fill="#111827" stroke="#fff" stroke-width="3" paint-order="stroke">${title}</text>` : '';
-      return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><path d="M0 -31 C-17 -31 -28 -19 -28 -4 C-28 13 -13 25 0 39 C13 25 28 13 28 -4 C28 -19 17 -31 0 -31Z" fill="#0b1220" stroke="${category.color}" stroke-width="5"/><text x="0" y="5" text-anchor="middle" font-family="Segoe UI Emoji,Arial,sans-serif" font-size="23">${icon}</text>${label}</g>`;
+      const fontSize = key === 'ls' ? 26 : 20;
+      const layout = title ? labelLayout(x, y, rawTitle, fontSize) : null;
+      const label = title && layout ? `<text x="${(layout.textX - x).toFixed(1)}" y="${(layout.textY - y).toFixed(1)}" text-anchor="${layout.anchor}" font-family="Arial,sans-serif" font-size="${fontSize}" font-weight="400" fill="#111827" stroke="#fff" stroke-width="3" paint-order="stroke">${title}</text>` : '';
+      return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><path d="M0 -23 C-13 -23 -21 -14 -21 -3 C-21 10 -10 19 0 29 C10 19 21 10 21 -3 C21 -14 13 -23 0 -23Z" fill="#0b1220" stroke="${category.color}" stroke-width="4"/><text x="0" y="4" text-anchor="middle" font-family="Segoe UI Emoji,Arial,sans-serif" font-size="18">${icon}</text>${label}</g>`;
     }).join('');
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${map.width}" height="${map.height}" viewBox="0 0 ${map.width} ${map.height}"><image href="${backgroundData}" xlink:href="${backgroundData}" x="0" y="0" width="${map.width}" height="${map.height}" preserveAspectRatio="none"/>${pins}</svg>`;
     return new Response(svg, { status: 200, headers: { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
