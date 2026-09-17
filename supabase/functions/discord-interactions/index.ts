@@ -816,7 +816,7 @@ const illegalLocationsMessage = (mapKey = '') => {
     const item = illegalLocationMap(key)!;
     return { type: 2, style: 4, label: item.label, custom_id: `panel:illegal_locations:map:${key}` };
   });
-  return { type: 7, data: { allowed_mentions: { parse: [] }, embeds: [{ title: selected ? `🗺️ ${selected.label} · Locații ilegale` : '🗺️ Locații ilegale · Panel Pro', description: selected ? selected.description : 'Alege una dintre cele 3 hărți. Embedul se va actualiza aici, fără să trimită un mesaj nou.', color: 0xef4444, ...(selected ? { image: { url: selected.image }, url: selected.url } : {}), footer: { text: 'Panel Pro · pinurile și numele sunt încărcate din Supabase' } }], components: [{ type: 1, components: selected ? [...buttons, ...mapButtons].slice(0, 5) : mapButtons }] } };
+  return { type: 7, data: { allowed_mentions: { parse: [] }, embeds: [{ title: selected ? `🗺️ ${selected.label} · Locații ilegale` : '🗺️ Locații ilegale · Panel Pro', description: selected ? selected.description : 'Alege una dintre cele 3 hărți. Embedul se va actualiza aici, fără să trimită un mesaj nou.', color: 0xef4444, ...(selected ? { image: { url: selected.image }, url: selected.url } : {}), footer: { text: 'Panel Pro - By Little Mario' } }], components: [{ type: 1, components: selected ? [...buttons, ...mapButtons].slice(0, 5) : mapButtons }] } };
 };
 
 const wheelPrivateMessage = (timer: any = null) => {
