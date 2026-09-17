@@ -12,7 +12,6 @@ const serviceKey = () => {
   try { return String(JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default || '').trim(); } catch (_) { return ''; }
 };
 
-const cronSecret = () => String(Deno.env.get('CRON_SECRET') || '').trim();
 const DISCORD_API = 'https://discord.com/api/v10';
 const WHEEL_DURATION_MS = 6 * 60 * 60 * 1000;
 
@@ -79,7 +78,9 @@ Deno.serve(async (request) => {
     if (!key) throw new Error('Cheia secretă Supabase lipsește.');
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
     const body = await request.json().catch(() => ({}));
-    if (String(request.headers.get('x-cron-secret') || '').trim() === cronSecret() && String(body.action || '') === 'process') {
+    const suppliedCronSecret = String(request.headers.get('x-cron-secret') || '').trim();
+    const configuredCronSecret = await getPlatformSecret(db, 'cron_secret');
+    if (suppliedCronSecret && configuredCronSecret && suppliedCronSecret === configuredCronSecret && String(body.action || '') === 'process') {
       return new Response(JSON.stringify({ ok: true, processed: await processDueTimers(db) }), { status: 200, headers });
     }
     const session = await requirePanelSession(db, request);
