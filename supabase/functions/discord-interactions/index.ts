@@ -7,6 +7,7 @@ import { discordPremiumAccess, discordPremiumButton, discordPremiumConfigured, d
 import { allCategories, calculateRecipe, findCategory, findRecipe } from '../_shared/discord-calculators.ts';
 
 const DISCORD_API = 'https://discord.com/api/v10';
+const PANEL_FOOTER = 'Panel Pro - By Little Mario';
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
 let discordPublicKeyCache = '';
 async function discordPublicKey(db?: any) {
@@ -20,7 +21,14 @@ async function discordPublicKey(db?: any) {
     || await getPlatformSecret(db, 'DISCORD_APPLICATION_PUBLIC_KEY');
   return discordPublicKeyCache;
 }
-const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
+const normalizeEmbedFooters = (value: any): any => {
+  if (Array.isArray(value)) return value.map(normalizeEmbedFooters);
+  if (!value || typeof value !== 'object') return value;
+  const normalized = Object.fromEntries(Object.entries(value).map(([key, item]) => [key, normalizeEmbedFooters(item)]));
+  if (Array.isArray(normalized.embeds)) normalized.embeds = normalized.embeds.map((embed: any) => ({ ...embed, footer: { ...(embed?.footer || {}), text: PANEL_FOOTER } }));
+  return normalized;
+};
+const reply = (data: unknown, status = 200) => new Response(JSON.stringify(normalizeEmbedFooters(data)), { status, headers: { 'Content-Type': 'application/json' } });
 const interactionMessage = (content: string, extra: Record<string, unknown> = {}) => ({ type: 4, data: { content, flags: 64, ...extra } });
 const commandSubcommand = (interaction: any) => Array.isArray(interaction?.data?.options) ? interaction.data.options.find((option: any) => option?.type === 1) : null;
 const commandOptions = (interaction: any) => Array.isArray(commandSubcommand(interaction)?.options) ? commandSubcommand(interaction).options : (Array.isArray(interaction?.data?.options) ? interaction.data.options : []);

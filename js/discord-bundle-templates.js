@@ -22,7 +22,7 @@
       review: 'Cererea a fost trimisă pentru aprobare.',
       error: 'Nu am putut procesa solicitarea. Încearcă din nou.'
     },
-    footer: 'Panel Pro · bot Discord'
+    footer: 'Panel Pro - By Little Mario'
   });
   const open = (label, style = 1) => ({ label, action: 'open_form', style });
   const reportButton = (label = 'Vezi raportul') => ({ label, action: 'report', style: 1 });

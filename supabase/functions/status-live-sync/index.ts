@@ -133,7 +133,7 @@ Deno.serve(async (request) => {
     `${icon} **${shift.colleague_name || names.get(String(shift.discord_id)) || 'Utilizator'}** — ${elapsed(shift, now)}`;
     const section = (title: string, items: any[], icon: string) => `${title} (${items.length})\n${items.length ? items.map((shift) => line(shift, icon)).join('\n') : '_Nimeni_'}`;
     const description = `${section('🟢 În pontaj', active, '🟢')}\n\n${section('☕ În pauză', paused, '☕')}\n\n📊 **Total:** ${rows.length}\n⏱️ **Actualizat:** <t:${Math.floor(now / 1000)}:R>`;
-    const payload = { embeds: [{ title: `📡 STATUS LIVE · ${organization?.name || 'Organizație'}`, description, color: 3066993, timestamp: new Date(now).toISOString(), footer: { text: 'Panel · actualizare live' } }] };
+    const payload = { embeds: [{ title: `📡 STATUS LIVE · ${organization?.name || 'Organizație'}`, description, color: 3066993, timestamp: new Date(now).toISOString(), footer: { text: 'Panel Pro - By Little Mario' } }] };
     const configuredTargets = routeCandidates(settings, 'status_live');
     if (!configuredTargets.some((destination) => destination.candidates.length)) {
       throw new Error('Canalul Discord pentru Status Live nu este configurat.');
@@ -179,14 +179,13 @@ Deno.serve(async (request) => {
       for (const candidate of destination.candidates) {
         // Prioritatea este ID-ul salvat pe rută, apoi ID-ul păstrat în browser,
         // iar pentru canalul principal folosim și ID-ul istoric al organizației.
-        // Dacă mesajul botului a fost șters, PATCH-ul eșuează și se face
-        // automat un singur POST de înlocuire.
+        // Dacă mesajul botului a fost șters, PATCH-ul eșuează fără să creeze
+        // un mesaj nou; astfel Status Live nu produce duplicate.
         const existingId = String(
           candidate.message_id || requestedMessageIds[target] || (target === 'primary' ? storedMessageId : '') || ''
         ).trim();
         selectedMessageId = existingId;
         response = await requestDiscordTarget(db, candidate, JSON.stringify(payload), { messageId: existingId });
-        if (!response.ok && existingId && response.status === 404) response = await requestDiscordTarget(db, { ...candidate, message_id: '' }, JSON.stringify(payload));
         if (response.ok) { usedTargets[target] = candidate; break; }
       }
       if (!response?.ok) throw new Error(`Discord a răspuns cu HTTP ${response?.status || 500}.`);

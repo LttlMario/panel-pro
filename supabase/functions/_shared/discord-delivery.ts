@@ -1,6 +1,7 @@
 import { getPlatformSecret } from './platform-secrets.ts';
 
 const DISCORD_API = 'https://discord.com/api/v10';
+const PANEL_FOOTER = 'Panel Pro - By Little Mario';
 const TARGETS = ['primary', 'secondary'] as const;
 
 export type DiscordDeliveryTarget = {
@@ -52,6 +53,20 @@ const jsonHeaders = (body: BodyInit | null, headers: Record<string, string> = {}
   }
   return result;
 };
+
+function normalizePanelEmbedFooter(body: BodyInit | null): BodyInit | null {
+  if (typeof body !== 'string') return body;
+  try {
+    const payload = JSON.parse(body);
+    if (!Array.isArray(payload?.embeds)) return body;
+    return JSON.stringify({
+      ...payload,
+      embeds: payload.embeds.map((embed: any) => ({ ...embed, footer: { ...(embed?.footer || {}), text: PANEL_FOOTER } })),
+    });
+  } catch (_) {
+    return body;
+  }
+}
 
 async function discordBotIdentity(db: any) {
   try {
@@ -156,7 +171,8 @@ export async function requestDiscordTarget(
     if (options.messageId) url += `/${encodeURIComponent(String(options.messageId))}`;
     headers = { Authorization: `Bot ${botToken}`, ...headers };
   }
-  return fetch(url, { method, headers: jsonHeaders(body, headers), body: method === 'DELETE' ? undefined : body });
+  const normalizedBody = normalizePanelEmbedFooter(body);
+  return fetch(url, { method, headers: jsonHeaders(normalizedBody, headers), body: method === 'DELETE' ? undefined : normalizedBody });
 }
 
 export async function deliverDiscordRoute(
@@ -176,17 +192,9 @@ export async function deliverDiscordRoute(
     for (const candidate of candidates) {
       try {
         let response = await requestDiscordTarget(db, candidate, body, { messageId: requestedMessageId || (options.postOnly ? '' : candidate.message_id), headers: options.headers });
-        let responseDetails: any = null;
-        if (!response.ok && (requestedMessageId || candidate.message_id)) {
-          responseDetails = await response.clone().json().catch(() => ({}));
-        }
-        // Discord code 50005 = mesajul existent a fost creat de alt bot/utilizator.
-        // Nu blocăm publicarea: creăm un mesaj nou și îl folosim pe acesta la
-        // următoarele actualizări.
-        const cannotEditForeignMessage = Number(responseDetails?.code) === 50005;
-        if (!response.ok && (requestedMessageId || candidate.message_id) && ([400, 404].includes(response.status) || cannotEditForeignMessage)) {
-          response = await requestDiscordTarget(db, { ...candidate, message_id: '' }, body, { headers: options.headers });
-        }
+        // Dacă mesajul existent nu poate fi editat, nu creăm un mesaj nou:
+        // rutele configurate sunt embeduri editabile, iar un POST aici ar
+        // produce duplicate.
         if (!response.ok) {
           const details = await response.clone().json().catch(() => ({}));
           const discordMessage = String(details?.message || '').trim();

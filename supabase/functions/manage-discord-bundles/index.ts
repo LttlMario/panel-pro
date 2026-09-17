@@ -97,7 +97,7 @@ const payload = (routeKey: string) => {
   }
   components.push({ type: 1, components: [{ type: 2, style: 5, label: 'Donează pentru dezvoltare', url: 'https://revolut.me/mariomihail' }] });
   if (discordPremiumConfigured()) components.push(...discordPremiumButton());
-  return { allowed_mentions: { parse: [] }, embeds: [{ title: definition.title, description: definition.description, color: definition.color, footer: { text: 'Panel Pro · configurat din Discord' } }], components };
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: definition.title, description: definition.description, color: definition.color, footer: { text: 'Panel Pro - By Little Mario' } }], components };
 };
 const hasInteractiveDefinition = (routeKey: string) => Array.isArray(definitions[routeKey]?.buttons) && definitions[routeKey].buttons.length > 0;
 
