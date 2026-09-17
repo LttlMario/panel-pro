@@ -804,7 +804,7 @@ const illegalLocationMap = (value: string) => {
   return maps[value] || null;
 };
 
-const illegalLocationsMessage = (mapKey = '') => {
+const illegalLocationsMessage = (mapKey = '', locations: any[] = []) => {
   const selected = illegalLocationMap(mapKey);
   const buttons = selected ? [
     { type: 2, style: 2, label: 'Înapoi la hărți', custom_id: 'panel:illegal_locations:maps' },
@@ -814,7 +814,11 @@ const illegalLocationsMessage = (mapKey = '') => {
     const item = illegalLocationMap(key)!;
     return { type: 2, style: 4, label: item.label, custom_id: `panel:illegal_locations:map:${key}` };
   });
-  return { type: 7, data: { allowed_mentions: { parse: [] }, embeds: [{ title: selected ? `🗺️ ${selected.label} · Locații ilegale` : '🗺️ Locații ilegale · Panel Pro', description: selected ? selected.description : 'Alege una dintre cele 3 hărți. Embedul se va actualiza aici, fără să trimită un mesaj nou.', color: 0xef4444, ...(selected ? { image: { url: selected.image }, url: selected.url } : {}), footer: { text: 'Panel Pro · harta se selectează din butoane' } }], components: [{ type: 1, components: selected ? [...buttons, ...mapButtons].slice(0, 5) : mapButtons }] } };
+  const locationLines = locations.map((location: any) => {
+    const details = [location.category, location.description, location.notes].map((value) => String(value || '').trim()).filter(Boolean).join(' · ');
+    return `• **${String(location.title || 'Locație fără nume').slice(0, 100)}**${details ? ` — ${details.slice(0, 240)}` : ''}`;
+  }).join('\n').slice(0, 3800);
+  return { type: 7, data: { allowed_mentions: { parse: [] }, embeds: [{ title: selected ? `🗺️ ${selected.label} · Locații ilegale` : '🗺️ Locații ilegale · Panel Pro', description: selected ? `${selected.description}\n\n**Locații salvate: ${locations.length}**\n${locationLines || 'Nu există locații salvate pentru această hartă.'}` : 'Alege una dintre cele 3 hărți. Embedul se va actualiza aici, fără să trimită un mesaj nou.', color: 0xef4444, ...(selected ? { image: { url: selected.image }, url: selected.url } : {}), footer: { text: 'Panel Pro · harta și locațiile sunt încărcate din Supabase' } }], components: [{ type: 1, components: selected ? [...buttons, ...mapButtons].slice(0, 5) : mapButtons }] } };
 };
 
 const wheelPrivateMessage = (timer: any = null) => {
@@ -2286,7 +2290,14 @@ Deno.serve(async (request) => {
     try { await resolveUniversalModuleContext(db, interaction, 'illegal_locations', 'illegal_locations'); }
     catch (error) { return reply(interactionMessage(readableError(error, 'Locațiile ilegale nu sunt disponibile pe acest canal.'))); }
     const parts = customId.split(':');
-    return reply(illegalLocationsMessage(parts[2] === 'map' ? String(parts[3] || '') : ''));
+    const mapKey = parts[2] === 'map' ? String(parts[3] || '') : '';
+    let locations: any[] = [];
+    if (mapKey) {
+      const { data, error } = await db.from('illegal_locations').select('title,description,category,map_key,notes').eq('map_key', mapKey).order('title').limit(50);
+      if (error) return reply(interactionMessage('Harta a fost găsită, dar locațiile nu au putut fi încărcate din Supabase.'));
+      locations = data || [];
+    }
+    return reply(illegalLocationsMessage(mapKey, locations));
   }
 
   if (isWheel) {
