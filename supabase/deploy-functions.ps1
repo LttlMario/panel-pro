@@ -61,6 +61,7 @@ $functions = @(
     'save-draft-roles',
     'touch-panel-session',
     'wheel-timer',
+    'illegal-location-map',
     'mark-tutorial-read',
     'link-discord-account',
     'link-email-discord-guild',
