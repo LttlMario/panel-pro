@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
-import { isPlatformAdminAccount } from '../_shared/platform-admin.ts';
+import { getPlatformAdminDiscordIds, isPlatformAdminAccount } from '../_shared/platform-admin.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 import { requestDiscordTarget } from '../_shared/discord-delivery.ts';
 
@@ -88,6 +88,28 @@ async function deleteDiscordEmbeds(db: any, post: any) {
   }));
 }
 
+async function notifyPlatformOwners(db: any, post: any) {
+  const [token, ownerIds] = await Promise.all([
+    getPlatformSecret(db, 'discord_bot_token'),
+    getPlatformAdminDiscordIds(db),
+  ]);
+  if (!token || !ownerIds.length) return 0;
+  const headers = { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' };
+  const kindLabel = post.kind === 'rating' ? 'recenzie' : 'sugestie';
+  const content = `📩 Ai primit o ${kindLabel} nouă în Panel Pro.\n\nTitlu: ${limitText(post.title || kindLabel, 160)}\nAutor: ${limitText(post.author_name || post.author_discord_id, 120)}\n\n${limitText(post.content, 1200)}\n\nDeschide: ${postUrl(post.kind, post.id)}`;
+  let sent = 0;
+  for (const discordId of ownerIds) {
+    try {
+      const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', { method: 'POST', headers, body: JSON.stringify({ recipient_id: discordId }) });
+      const channel = await channelResponse.json().catch(() => ({}));
+      if (!channelResponse.ok || !channel?.id) continue;
+      const messageResponse = await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, { method: 'POST', headers, body: JSON.stringify({ allowed_mentions: { parse: [] }, content }) });
+      if (messageResponse.ok) sent++;
+    } catch (_) {}
+  }
+  return sent;
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
@@ -155,7 +177,8 @@ Deno.serve(async (request) => {
       }).select('*').single();
       if (error) throw error;
       const discord = await syncDiscordEmbeds(db, post);
-      return reply({ post: { ...post, reactions: [], can_edit: true, can_delete: true }, discord });
+      const privateNotifications = await notifyPlatformOwners(db, post);
+      return reply({ post: { ...post, reactions: [], can_edit: true, can_delete: true }, discord, private_notifications: privateNotifications });
     }
 
     const postId = String(body.post_id || '').trim();
