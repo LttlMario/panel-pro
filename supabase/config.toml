@@ -130,6 +130,9 @@ verify_jwt = false
 [functions.wheel-timer]
 verify_jwt = false
 
+[functions.illegal-location-map]
+verify_jwt = false
+
 [functions.update-user-account-settings]
 verify_jwt = true
 

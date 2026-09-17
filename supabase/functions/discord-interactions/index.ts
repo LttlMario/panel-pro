@@ -795,16 +795,17 @@ const wheelRemainingText = (completesAt: string) => {
   return `Mai ai **${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s**.`;
 };
 
+const ILLEGAL_LOCATION_MAP_ENDPOINT = 'https://vkvsabbbawyiurnaiugo.supabase.co/functions/v1/illegal-location-map';
 const illegalLocationMap = (value: string) => {
   const maps: Record<string, { label: string; image: string; url: string; description: string }> = {
-    ls: { label: 'Los Santos', image: 'https://panel-pro.ro/img/gtav.jpg', url: 'https://panel-pro.ro/locatiiilegale.html?map=ls', description: 'Harta Los Santos și Blaine County cu locațiile ilegale disponibile.' },
-    cayo: { label: 'Cayo Perico', image: 'https://panel-pro.ro/img/cayo.jpg', url: 'https://panel-pro.ro/locatiiilegale.html?map=cayo', description: 'Harta Cayo Perico cu locațiile ilegale disponibile.' },
-    maldive: { label: 'Maldive', image: 'https://panel-pro.ro/img/maldive.jpg', url: 'https://panel-pro.ro/locatiiilegale.html?map=maldive', description: 'Harta Maldive cu locațiile ilegale disponibile.' },
+    ls: { label: 'Los Santos', image: `${ILLEGAL_LOCATION_MAP_ENDPOINT}?map=ls&v=${Date.now()}`, url: 'https://panel-pro.ro/locatiiilegale.html?map=ls', description: 'Harta Los Santos și Blaine County cu locațiile ilegale disponibile.' },
+    cayo: { label: 'Cayo Perico', image: `${ILLEGAL_LOCATION_MAP_ENDPOINT}?map=cayo&v=${Date.now()}`, url: 'https://panel-pro.ro/locatiiilegale.html?map=cayo', description: 'Harta Cayo Perico cu locațiile ilegale disponibile.' },
+    maldive: { label: 'Maldive', image: `${ILLEGAL_LOCATION_MAP_ENDPOINT}?map=maldive&v=${Date.now()}`, url: 'https://panel-pro.ro/locatiiilegale.html?map=maldive', description: 'Harta Maldive cu locațiile ilegale disponibile.' },
   };
   return maps[value] || null;
 };
 
-const illegalLocationsMessage = (mapKey = '', locations: any[] = []) => {
+const illegalLocationsMessage = (mapKey = '') => {
   const selected = illegalLocationMap(mapKey);
   const buttons = selected ? [
     { type: 2, style: 2, label: 'Înapoi la hărți', custom_id: 'panel:illegal_locations:maps' },
@@ -814,11 +815,7 @@ const illegalLocationsMessage = (mapKey = '', locations: any[] = []) => {
     const item = illegalLocationMap(key)!;
     return { type: 2, style: 4, label: item.label, custom_id: `panel:illegal_locations:map:${key}` };
   });
-  const locationLines = locations.map((location: any) => {
-    const details = [location.category, location.description, location.notes].map((value) => String(value || '').trim()).filter(Boolean).join(' · ');
-    return `• **${String(location.title || 'Locație fără nume').slice(0, 100)}**${details ? ` — ${details.slice(0, 240)}` : ''}`;
-  }).join('\n').slice(0, 3800);
-  return { type: 7, data: { allowed_mentions: { parse: [] }, embeds: [{ title: selected ? `🗺️ ${selected.label} · Locații ilegale` : '🗺️ Locații ilegale · Panel Pro', description: selected ? `${selected.description}\n\n**Locații salvate: ${locations.length}**\n${locationLines || 'Nu există locații salvate pentru această hartă.'}` : 'Alege una dintre cele 3 hărți. Embedul se va actualiza aici, fără să trimită un mesaj nou.', color: 0xef4444, ...(selected ? { image: { url: selected.image }, url: selected.url } : {}), footer: { text: 'Panel Pro · harta și locațiile sunt încărcate din Supabase' } }], components: [{ type: 1, components: selected ? [...buttons, ...mapButtons].slice(0, 5) : mapButtons }] } };
+  return { type: 7, data: { allowed_mentions: { parse: [] }, embeds: [{ title: selected ? `🗺️ ${selected.label} · Locații ilegale` : '🗺️ Locații ilegale · Panel Pro', description: selected ? selected.description : 'Alege una dintre cele 3 hărți. Embedul se va actualiza aici, fără să trimită un mesaj nou.', color: 0xef4444, ...(selected ? { image: { url: selected.image }, url: selected.url } : {}), footer: { text: 'Panel Pro · pinurile și numele sunt încărcate din Supabase' } }], components: [{ type: 1, components: selected ? [...buttons, ...mapButtons].slice(0, 5) : mapButtons }] } };
 };
 
 const wheelPrivateMessage = (timer: any = null) => {
@@ -2291,13 +2288,7 @@ Deno.serve(async (request) => {
     catch (error) { return reply(interactionMessage(readableError(error, 'Locațiile ilegale nu sunt disponibile pe acest canal.'))); }
     const parts = customId.split(':');
     const mapKey = parts[2] === 'map' ? String(parts[3] || '') : '';
-    let locations: any[] = [];
-    if (mapKey) {
-      const { data, error } = await db.from('illegal_locations').select('title,description,category,map_key,notes').eq('map_key', mapKey).order('title').limit(50);
-      if (error) return reply(interactionMessage('Harta a fost găsită, dar locațiile nu au putut fi încărcate din Supabase.'));
-      locations = data || [];
-    }
-    return reply(illegalLocationsMessage(mapKey, locations));
+    return reply(illegalLocationsMessage(mapKey));
   }
 
   if (isWheel) {
