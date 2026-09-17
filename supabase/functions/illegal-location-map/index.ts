@@ -30,6 +30,21 @@ Deno.serve(async (request) => {
     const backgroundType = String(backgroundResponse.headers.get('content-type') || 'image/jpeg').split(';')[0];
     const backgroundData = `data:${backgroundType};base64,${toBase64(new Uint8Array(await backgroundResponse.arrayBuffer()))}`;
     let cayoPlantationLabelShown = false;
+    const placedLabels: Array<{ left: number; top: number; right: number; bottom: number }> = [];
+    const labelLayout = (x: number, y: number, title: string) => {
+      const width = Math.min(420, Math.max(80, title.length * 11 + 18));
+      const height = 28;
+      const candidates = [
+        { textX: x, textY: y + 53, anchor: 'middle', left: x - width / 2, top: y + 34 },
+        { textX: x, textY: y - 40, anchor: 'middle', left: x - width / 2, top: y - 60 },
+        { textX: x + 38, textY: y + 7, anchor: 'start', left: x + 34, top: y - 18 },
+        { textX: x - 38, textY: y + 7, anchor: 'end', left: x - 34 - width, top: y - 18 },
+      ];
+      const overlaps = (candidate: any) => placedLabels.some((placed) => candidate.left < placed.right + 8 && candidate.left + width > placed.left - 8 && candidate.top < placed.bottom + 8 && candidate.top + height > placed.top - 8);
+      const selected = candidates.find((candidate) => !overlaps(candidate)) || candidates[1];
+      placedLabels.push({ left: selected.left, top: selected.top, right: selected.left + width, bottom: selected.top + height });
+      return selected;
+    };
     const pins = (data || []).map((location: any) => {
       const x = Math.max(0, Math.min(map.width, (Number(location.x) / 100) * map.width));
       // În imaginea statică SVG axa Y este deja orientată de sus în jos.
@@ -43,7 +58,8 @@ Deno.serve(async (request) => {
       const title = escapeXml(rawTitle);
       const category = categories[String(location.category || '')] || { icon: '📍', color: '#ef4444' };
       const icon = escapeXml(category.icon);
-      const label = title ? `<text x="0" y="53" text-anchor="middle" font-family="Arial,sans-serif" font-size="20" font-weight="400" fill="#fff" stroke="#111827" stroke-width="3" paint-order="stroke">${title}</text>` : '';
+      const layout = title ? labelLayout(x, y, rawTitle) : null;
+      const label = title && layout ? `<text x="${(layout.textX - x).toFixed(1)}" y="${(layout.textY - y).toFixed(1)}" text-anchor="${layout.anchor}" font-family="Arial,sans-serif" font-size="20" font-weight="400" fill="#fff" stroke="#111827" stroke-width="3" paint-order="stroke">${title}</text>` : '';
       return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle cy="0" r="27" fill="#0b1220" stroke="${category.color}" stroke-width="5"/><text x="0" y="8" text-anchor="middle" font-family="Segoe UI Emoji,Arial,sans-serif" font-size="23">${icon}</text>${label}</g>`;
     }).join('');
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${map.width}" height="${map.height}" viewBox="0 0 ${map.width} ${map.height}"><image href="${backgroundData}" xlink:href="${backgroundData}" x="0" y="0" width="${map.width}" height="${map.height}" preserveAspectRatio="none"/>${pins}</svg>`;
