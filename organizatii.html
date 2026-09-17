@@ -427,6 +427,10 @@ const webhookDefinitions={
         label:'Evenimente · remindere 14 zile',
         help:'Reminder Discord trimis automat o dată pe zi, timp de 14 zile de la data evenimentului.'
     },
+    wheel_timer:{
+        label:'Roată · timer personal',
+        help:'Embed cu butoane pentru pornirea timerului personal și verificarea timpului rămas.'
+    },
     status_live:{
         label:'Status Live',
         help:'Embed Discord actualizat automat la fiecare minut cu pontajul și pauzele active.'
@@ -2058,6 +2062,6 @@ window.refreshCustomOrganizationPages();
 window.addEventListener('panel-custom-page-published', () => window.refreshCustomOrganizationPages());
 window.addEventListener('storage', (event) => { if (event.key === 'panel_custom_page_published') window.refreshCustomOrganizationPages(); });
 try { const channel = new BroadcastChannel('panel-pro-pages'); channel.addEventListener('message', (event) => { if (event.data?.type === 'published') window.refreshCustomOrganizationPages(); }); } catch (_) {}
-</script><script src="js/organization-packages.js?v=3.10.0"></script><script src="js/organization-webhook-extension.js?v=3.10.0"></script><script src="js/discord-notifications.js?v=20260902-live-channel-routes"></script><script src="js/discord-channel-config.js?v=20260916-calculators-embed"></script><script src="js/global-footer.js?v=3.10.0"></script></body></html>
+</script><script src="js/organization-packages.js?v=3.10.0"></script><script src="js/organization-webhook-extension.js?v=3.10.0"></script><script src="js/discord-notifications.js?v=20260902-live-channel-routes"></script><script src="js/discord-channel-config.js?v=20260917-wheel-timer"></script><script src="js/global-footer.js?v=3.10.0"></script></body></html>
 
 

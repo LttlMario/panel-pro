@@ -31,7 +31,7 @@ const PANEL_ROUTE_LABELS: Record<string, string> = {
   contracts: 'Contracte', log_contracts: 'Log contracte', log_discipline_organization: 'Log avertismente și amenzi organizație', log_discipline_departments: 'Log avertismente și amenzi angajați', log_actions_organization: 'Log acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
   stash: 'Stash', log_stash: 'Log Stash', stash_requests: 'Cereri Stash', log_stash_requests: 'Log cereri Stash', stash_donations: 'Donații Stash', log_stash_donations: 'Log donații Stash',
   marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
-  calculator: 'Calculator legal', illegal_calculator: 'Calculator ilegal',
+  calculator: 'Calculator legal', illegal_calculator: 'Calculator ilegal', wheel_timer: 'Roată · timer personal',
 };
 const panelRouteKeys = Object.keys(PANEL_ROUTE_LABELS);
 const PANEL_LOG_ROUTES: Record<string, string> = {
@@ -121,6 +121,7 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
     actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
     calculator: { title: '🧮 Calculator legal · Panel Pro', description: 'Alege categoria, articolul și cantitatea. Primești instant materialele directe și materialele brute necesare.', color: 0x22c55e, buttons: [{ label: 'Începe calculul', style: 1, id: 'panel:calculator:legal:start' }] },
     illegal_calculator: { title: '🚨 Calculator ilegal · Panel Pro', description: 'Calculează arme, muniție, topitorie și resurse ilegale direct din Discord.', color: 0xef4444, buttons: [{ label: 'Începe calculul', style: 4, id: 'panel:calculator:illegal:start' }] },
+    wheel_timer: { title: '🎡 Roată · timer personal', description: 'Pornește timerul personal de 6 ore și verifică timpul rămas. Răspunsurile sunt private pentru fiecare utilizator.', color: 0x06b6d4, buttons: [{ label: 'Am dat la roată', style: 1, id: 'panel:wheel:start' }, { label: 'Verifică timpul', style: 2, id: 'panel:wheel:status' }] },
   };
   const definition = definitions[routeKey] || { title: `⚙️ ${PANEL_ROUTE_LABELS[routeKey] || 'Panel Pro'}`, description: 'Embed de administrare Panel Pro.', color: 0x5865f2, buttons: [] };
     const components: any[] = [];
@@ -762,6 +763,41 @@ async function resolveUniversalModuleContext(db: any, interaction: any, routeKey
   const displayName = String(interaction.member?.nick || interaction.member?.user?.global_name || interaction.member?.user?.username || discordId).slice(0, 120);
   return { guildId, channelId, target, discordId, displayName, organization, settings, logRouteKey };
 }
+
+async function resolveWheelContext(db: any, interaction: any) {
+  const guildId = String(interaction.guild_id || '').trim();
+  const channelId = String(interaction.channel_id || '').trim();
+  const discordId = String(interaction.member?.user?.id || interaction.user?.id || '').trim();
+  if (!/^\d{15,22}$/.test(guildId) || !/^\d{15,22}$/.test(channelId) || !/^\d{15,22}$/.test(discordId)) throw new Error('Interacțiunea Discord nu conține date valide.');
+  const { data: guild, error: guildError } = await db.from('organization_guilds').select('organization_id,kind').eq('guild_id', guildId).eq('enabled', true).maybeSingle();
+  if (guildError) throw guildError;
+  if (!guild?.organization_id) throw new Error('Serverul Discord nu este asociat unei organizații Panel Pro.');
+  const [{ data: organization, error: organizationError }, { data: settings, error: settingsError }] = await Promise.all([
+    db.from('organizations').select('id,name,active').eq('id', guild.organization_id).maybeSingle(),
+    db.from('organization_settings').select('discord_channel_routes,panel_public_url').eq('organization_id', guild.organization_id).maybeSingle(),
+  ]);
+  if (organizationError || settingsError) throw organizationError || settingsError;
+  if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
+  const configured = settings?.discord_channel_routes?.wheel_timer?.[target];
+  if (configured?.enabled === false || String(configured?.channel_id || '') !== channelId) throw new Error('Acest canal nu este configurat pentru embedul Roată.');
+  return { guildId, channelId, target, discordId, organization, settings };
+}
+
+const wheelRemainingText = (completesAt: string) => {
+  const remaining = Math.max(0, Date.parse(String(completesAt || '')) - Date.now());
+  if (!remaining) return 'Timerul a expirat. Poți porni din nou roata.';
+  const totalSeconds = Math.ceil(remaining / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `Mai ai **${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s**.`;
+};
+
+const wheelPrivateMessage = (timer: any = null) => {
+  const active = timer && Date.parse(String(timer.completes_at || '')) > Date.now();
+  return interactionMessage('', { embeds: [{ title: active ? '⏳ Timerul tău este activ' : '🎡 Roata este disponibilă', description: active ? wheelRemainingText(timer.completes_at) : 'Poți apăsa „Am dat la roată” pentru a porni un nou timer de 6 ore.', color: active ? 0xf59e0b : 0x06b6d4, footer: { text: 'Panel Pro · răspuns vizibil doar pentru tine' } }], components: [{ type: 1, components: [{ type: 2, style: active ? 2 : 1, label: active ? 'Verifică timpul' : 'Am dat la roată', custom_id: active ? 'panel:wheel:status' : 'panel:wheel:start' }] }] });
+};
 
 function marketplaceEmbed(kind: 'legal' | 'illegal', values: Record<string, any>, context: any, id: string) {
   const illegal = kind === 'illegal';
@@ -2165,6 +2201,7 @@ Deno.serve(async (request) => {
   const isMarketplace = customId.startsWith('panel:marketplace:');
   const isDiscovery = customId.startsWith('panel:discovery:');
   const isCalculator = customId.startsWith('panel:calculator:');
+  const isWheel = customId.startsWith('panel:wheel:');
   const isCustomModule = customId.startsWith('panel:custom:');
   if (isCommand) {
     const commandKey = customModuleKey(interaction?.data?.name);
@@ -2181,7 +2218,7 @@ Deno.serve(async (request) => {
     return reply(interactionMessage('Comanda Panel Pro nu este disponibilă.'));
   }
   if (!isComponent && !isModalSubmit) return reply(interactionMessage('Acest tip de interacțiune nu este disponibil.'));
-  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isWheel && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
 
   if (isCalculator) {
     const parts = customId.split(':');
@@ -2216,6 +2253,28 @@ Deno.serve(async (request) => {
       return reply(calculatorResultMessage(kind, categoryId, recipeId, quantity));
     }
     return reply(calculatorStartMessage(kind));
+  }
+
+  if (isWheel) {
+    const secret = serviceKey();
+    if (!secret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, secret);
+    let context;
+    try { context = await resolveWheelContext(db, interaction); }
+    catch (error) { return reply(interactionMessage(readableError(error, 'Timerul nu este disponibil pe acest canal.'))); }
+    const action = customId.split(':')[2] === 'start' ? 'start' : 'status';
+    const { data: active, error: activeError } = await db.from('wheel_timers').select('*').eq('organization_id', context.organization.id).eq('discord_id', context.discordId).eq('status', 'active').maybeSingle();
+    if (activeError) return reply(interactionMessage('Nu am putut verifica timerul. Încearcă din nou.'));
+    if (active && Date.parse(String(active.completes_at || '')) <= Date.now()) {
+      await db.from('wheel_timers').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', active.id).eq('status', 'active');
+    }
+    if (action === 'status') return reply(wheelPrivateMessage(active && Date.parse(String(active.completes_at || '')) > Date.now() ? active : null));
+    if (active && Date.parse(String(active.completes_at || '')) > Date.now()) return reply(wheelPrivateMessage(active));
+    const started = new Date();
+    const completes = new Date(started.getTime() + 6 * 60 * 60 * 1000);
+    const { data: timer, error: insertError } = await db.from('wheel_timers').insert({ organization_id: context.organization.id, discord_id: context.discordId, started_at: started.toISOString(), completes_at: completes.toISOString() }).select('*').single();
+    if (insertError) return reply(interactionMessage('Timerul nu a putut fi pornit. Încearcă din nou.'));
+    return reply(wheelPrivateMessage(timer));
   }
 
   if (isCustomModule) {
