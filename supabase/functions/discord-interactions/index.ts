@@ -796,7 +796,7 @@ const wheelRemainingText = (completesAt: string) => {
 };
 
 const ILLEGAL_LOCATION_MAP_ENDPOINT = 'https://vkvsabbbawyiurnaiugo.supabase.co/functions/v1/illegal-location-map';
-const renderedIllegalMap = (key: string) => `https://wsrv.nl/?url=${encodeURIComponent(`${ILLEGAL_LOCATION_MAP_ENDPOINT}?map=${key}&v=${Date.now()}`)}&output=png`;
+const renderedIllegalMap = (key: string) => `https://wsrv.nl/?url=${encodeURIComponent(`${ILLEGAL_LOCATION_MAP_ENDPOINT}?map=${key}&v=${Date.now()}`)}&output=png&w=1280&q=80`;
 const illegalLocationMap = (value: string) => {
   const maps: Record<string, { label: string; image: string; url: string; description: string }> = {
     ls: { label: 'Los Santos', image: renderedIllegalMap('ls'), url: 'https://panel-pro.ro/locatiiilegale.html?map=ls', description: 'Harta Los Santos și Blaine County cu locațiile ilegale disponibile.' },
