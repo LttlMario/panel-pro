@@ -31,7 +31,10 @@ Deno.serve(async (request) => {
     const backgroundData = `data:${backgroundType};base64,${toBase64(new Uint8Array(await backgroundResponse.arrayBuffer()))}`;
     const pins = (data || []).map((location: any) => {
       const x = Math.max(0, Math.min(map.width, (Number(location.x) / 100) * map.width));
-      const y = Math.max(0, Math.min(map.height, map.height - (Number(location.y) / 100) * map.height));
+      // În imaginea statică SVG axa Y este deja orientată de sus în jos.
+      // Web-ul folosește conversia Leaflet pentru coordonate; aici aplicăm
+      // direct procentul salvat ca să păstrăm aceeași poziție vizuală.
+      const y = Math.max(0, Math.min(map.height, (Number(location.y) / 100) * map.height));
       const title = escapeXml(String(location.title || 'Locație'));
       const category = categories[String(location.category || '')] || { icon: '📍', color: '#ef4444' };
       const icon = escapeXml(category.icon);
