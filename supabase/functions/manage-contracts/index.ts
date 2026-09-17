@@ -15,6 +15,11 @@ const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse
 const clean = (value: unknown, max = 500) => String(value || '').trim().slice(0, max);
 const validDiscordId = (value: unknown) => /^\d{15,22}$/.test(clean(value, 30));
 const normalizeCnp = (value: unknown) => clean(value, 120);
+const stripContractPhone = (value: unknown) => String(value || '')
+  .replace(/^[ \t]*(?:telefon|număr(?:ul)?(?: de)? telefon)[^\r\n]*(?:\r?\n|$)/gim, '')
+  .replace(/\{\{PHONE\}\}/gi, '')
+  .replace(/\n{3,}/g, '\n\n')
+  .trim();
 
 function validateCnp(value: unknown) {
   const cnp = normalizeCnp(value);
@@ -106,7 +111,7 @@ async function listContracts(db: any, organizationId: string) {
   await syncEmployees(db, organizationId, await getPlatformSecret(db, 'discord_bot_token'));
   const [{ data: employees, error: employeesError }, { data: contracts, error: contractsError }, { data: batches, error: batchesError }, { data: members, error: membersError }, { data: templateSetting, error: templateError }] = await Promise.all([
     db.from('organization_employees').select('id,discord_id,full_name,cnp,status,joined_at,left_at,last_discord_seen_at,created_at,updated_at').eq('organization_id', organizationId).is('archived_at', null).order('status').order('full_name'),
-    db.from('organization_contracts').select('id,employee_id,contract_number,phone,position,salary,schedule,start_date,created_at,created_by_discord_id,id_card_url,signed_contract_url,discord_message_id,discord_message_ids').eq('organization_id', organizationId).order('created_at', { ascending: false }),
+    db.from('organization_contracts').select('id,employee_id,contract_number,position,salary,schedule,start_date,created_at,created_by_discord_id,id_card_url,signed_contract_url,discord_message_id,discord_message_ids').eq('organization_id', organizationId).order('created_at', { ascending: false }),
     db.from('contract_export_batches').select('id,created_at,row_count,completed_at').eq('organization_id', organizationId).eq('export_type', 'manual').eq('status', 'completed').order('created_at', { ascending: false }).limit(100),
     db.from('organization_members').select('discord_id,active,panel_role').eq('organization_id', organizationId).eq('active', true).order('discord_id'),
     db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'contract_template').maybeSingle(),
@@ -144,7 +149,9 @@ async function listContracts(db: any, organizationId: string) {
       last_manual_export_at: exportMap.get(String(employee.id))?.last || null,
     })),
     contracts: contracts || [],
-    contract_template: templateSetting?.value || null,
+    contract_template: templateSetting?.value && typeof templateSetting.value === 'object'
+      ? { ...templateSetting.value, template: stripContractPhone(templateSetting.value.template) }
+      : null,
     discord_members: (members || []).map((member: any) => {
       const user = userMap.get(String(member.discord_id));
       return { discord_id: String(member.discord_id), display_name: user?.display_name || user?.username || String(member.discord_id), panel_role: member.panel_role || '' };
@@ -171,7 +178,7 @@ async function createContract(db: any, session: any, body: any) {
   if (fullName.length < 2) throw new Error('Numele angajatului este obligatoriu.');
   const cnp = validateCnp(body.cnp);
   const contractNumber = clean(body.contract_number, 80);
-  const contractText = clean(body.contract_text, 50000);
+  const contractText = stripContractPhone(clean(body.contract_text, 50000));
   if (!contractNumber) throw new Error('Numărul contractului este obligatoriu.');
   if (!contractText) throw new Error('Textul contractului este obligatoriu.');
   const discordId = validDiscordId(body.discord_id) ? clean(body.discord_id, 30) : null;
@@ -195,7 +202,6 @@ async function createContract(db: any, session: any, body: any) {
     employee_id: employee.id,
     contract_number: contractNumber,
     contract_text: contractText,
-    phone: clean(body.phone, 80) || null,
     position: clean(body.position, 120) || null,
     salary: clean(body.salary, 120) || null,
     schedule: clean(body.schedule, 120) || null,
@@ -298,10 +304,10 @@ async function manualDiscordExport(db: any, session: any, body: any) {
 async function saveContractTemplate(db: any, session: any, body: any) {
   const input = body.contract_template && typeof body.contract_template === 'object' ? body.contract_template : {};
   const title = clean(input.title, 120);
-  const template = clean(input.template, 50000);
+  const template = stripContractPhone(clean(input.template, 50000));
   if (title.length < 2) throw new Error('Numele contractului este obligatoriu.');
   if (template.length < 20) throw new Error('Șablonul contractului este prea scurt.');
-  const allowed = ['{{COMPANY}}','{{ADDRESS}}','{{MANAGER}}','{{EMPLOYEE_NAME}}','{{CNP}}','{{PHONE}}','{{POSITION}}','{{SALARY}}','{{PROGRAM}}','{{START_DATE}}','{{CONTRACT_NUMBER}}'];
+  const allowed = ['{{COMPANY}}','{{ADDRESS}}','{{MANAGER}}','{{EMPLOYEE_NAME}}','{{CNP}}','{{POSITION}}','{{SALARY}}','{{PROGRAM}}','{{START_DATE}}','{{CONTRACT_NUMBER}}'];
   const unknown = [...template.matchAll(/{{[A-Z0-9_]+}}/g)].map((match) => match[0]).filter((value) => !allowed.includes(value));
   if (unknown.length) throw new Error(`Câmpuri necunoscute în contract: ${[...new Set(unknown)].join(', ')}`);
   const defaults = input.defaults && typeof input.defaults === 'object' ? input.defaults : {};
@@ -327,7 +333,7 @@ async function resendRecentContracts(db: any, session: any) {
   const results: any[] = [];
   const failures: string[] = [];
   for (const contract of contracts) {
-    const text = clean(contract.contract_text, 50000);
+    const text = stripContractPhone(clean(contract.contract_text, 50000));
     const chunks = contractExportChunks(text.split('\n'), 3800);
     let sent = 0;
     for (let index = 0; index < chunks.length; index += 1) {

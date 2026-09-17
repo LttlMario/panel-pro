@@ -1082,7 +1082,6 @@ function contractModal() {
   return { type: 9, data: { custom_id: 'panel:contracts:submit', title: 'Generează contract', components: [
     { type: 1, components: [input('employee_name', 'Nume și prenume', 'Introdu numele și prenumele', 120)] },
     { type: 1, components: [input('cnp', 'CNP angajat', 'Introdu CNP-ul angajatului', 120)] },
-    { type: 1, components: [input('phone', 'Număr de telefon', '07xx xxx xxx', 80)] },
   ] } };
 }
 
@@ -1100,19 +1099,27 @@ function contractSettingsModal() {
 function contractInfoMessage() {
   return interactionMessage('', { embeds: [{ title: 'ℹ️ Cum configurezi contractul', description: 'În șablon, folosește exact variabilele de mai jos între acolade duble. La generare, botul le înlocuiește automat cu datele organizației și ale angajatului.', color: 0x14b8a6, fields: [
     { name: 'Date completate automat', value: '`{{COMPANY}}` companie\n`{{ADDRESS}}` adresă\n`{{MANAGER}}` manager\n`{{POSITION}}` funcție\n`{{SALARY}}` salariu\n`{{PROGRAM}}` program\n`{{START_DATE}}` data începerii\n`{{CONTRACT_NUMBER}}` număr contract', inline: true },
-    { name: 'Date cerute la generare', value: '`{{EMPLOYEE_NAME}}` nume și prenume\n`{{CNP}}` CNP\n`{{PHONE}}` număr de telefon', inline: true },
-    { name: 'Exemplu', value: 'Angajat: `{{EMPLOYEE_NAME}}`\nCNP: `{{CNP}}`\nTelefon: `{{PHONE}}`\nSalariu: `{{SALARY}}`', inline: false },
+    { name: 'Date cerute la generare', value: '`{{EMPLOYEE_NAME}}` nume și prenume\n`{{CNP}}` CNP', inline: true },
+    { name: 'Exemplu', value: 'Angajat: `{{EMPLOYEE_NAME}}`\nCNP: `{{CNP}}`\nSalariu: `{{SALARY}}`', inline: false },
   ], footer: { text: 'Panel Pro · Contracte Discord' } }] });
 }
 
 function contractTemplateVariables() {
-  return new Set(['{{COMPANY}}', '{{ADDRESS}}', '{{MANAGER}}', '{{EMPLOYEE_NAME}}', '{{CNP}}', '{{PHONE}}', '{{POSITION}}', '{{SALARY}}', '{{PROGRAM}}', '{{START_DATE}}', '{{CONTRACT_NUMBER}}']);
+  return new Set(['{{COMPANY}}', '{{ADDRESS}}', '{{MANAGER}}', '{{EMPLOYEE_NAME}}', '{{CNP}}', '{{POSITION}}', '{{SALARY}}', '{{PROGRAM}}', '{{START_DATE}}', '{{CONTRACT_NUMBER}}']);
+}
+
+function stripContractPhone(value: unknown) {
+  return String(value || '')
+    .replace(/^[ \t]*(?:telefon|număr(?:ul)?(?: de)? telefon)[^\r\n]*(?:\r?\n|$)/gim, '')
+    .replace(/\{\{PHONE\}\}/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 async function handleContractSettingsSubmit(db: any, context: any, interaction: any, values: Record<string, any>) {
   if (!isDiscordManager(interaction) && !context.platformAdmin) throw new Error('Doar ownerul serverului sau un administrator cu Manage Server poate seta contractul.');
   const title = contractValue(values.title, '');
-  const template = String(values.template ?? '').trim().slice(0, 50000);
+  const template = stripContractPhone(String(values.template ?? '').trim().slice(0, 50000));
   const address = contractValue(values.address, context.organization.address || '');
   const salary = contractValue(values.salary, '');
   const schedule = contractValue(values.schedule, '20:00-23:00');
@@ -1125,7 +1132,7 @@ async function handleContractSettingsSubmit(db: any, context: any, interaction: 
   const position = contractValue(previousDefaults.position, 'Angajat');
   const { error } = await db.from('app_settings').upsert({ organization_id: context.organization.id, key: 'contract_template', value: { title, template, defaults: { position, address: address || null, salary: salary || null, schedule } }, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
   if (error) throw error;
-  return interactionMessage(`Șablonul **${title}** a fost salvat. La generare se completează automat organizația, adresa de lucru, managerul, funcția, salariul, programul, data și numărul contractului; angajatul completează numele, CNP-ul și telefonul.`);
+  return interactionMessage(`Șablonul **${title}** a fost salvat. La generare se completează automat organizația, adresa de lucru, managerul, funcția, salariul, programul, data și numărul contractului; angajatul completează numele și CNP-ul.`);
 }
 
 function disciplineModal(audience: 'organization' | 'departments', kind: 'warning' | 'sanction', targetId = '') {
@@ -1248,7 +1255,6 @@ Adresă: {{ADDRESS}}.
 
 Angajat: {{EMPLOYEE_NAME}}
 CNP: {{CNP}}
-Telefon: {{PHONE}}
 
 Funcție: {{POSITION}}
 Salariu: {{SALARY}}
@@ -1287,7 +1293,6 @@ function contractEmbed(contract: any, organization: any, title: string, instruct
   const fields = [
     { name: '👤 Angajat', value: contract.employee_name, inline: true },
     { name: '🪪 CNP', value: contract.cnp, inline: true },
-    { name: '📞 Telefon', value: contract.phone, inline: true },
     { name: '📍 Adresă de lucru', value: contract.address || organization.address || '—', inline: false },
     { name: '💼 Funcție', value: contract.position, inline: true },
     { name: '💰 Salariu', value: contract.salary, inline: true },
@@ -1314,12 +1319,12 @@ function contractComponents(contractId: string, includePublish = true) {
 }
 
 function contractCopyModal(contract: any) {
-  const text = String(contract?.contract_text || '').trim().slice(0, 4000);
+  const text = stripContractPhone(String(contract?.contract_text || '').trim()).slice(0, 4000);
   return { type: 9, data: { custom_id: `panel:contracts:copy:modal:${String(contract?.id || '')}`, title: `Contract ${String(contract?.contract_number || '').slice(0, 28)}`, components: [{ type: 1, components: [{ type: 4, custom_id: 'contract_text', label: 'Contract generat · Ctrl+A / Ctrl+C', style: 2, required: true, value: text, max_length: 4000 }]}] } };
 }
 
 async function loadSavedContract(db: any, context: any, contractId: string) {
-  const { data: contract, error: contractError } = await db.from('organization_contracts').select('id,employee_id,contract_number,contract_text,phone,position,salary,schedule,start_date,created_by_discord_id,discord_message_id,discord_message_ids').eq('organization_id', context.organization.id).eq('id', contractId).maybeSingle();
+  const { data: contract, error: contractError } = await db.from('organization_contracts').select('id,employee_id,contract_number,contract_text,position,salary,schedule,start_date,created_by_discord_id,discord_message_id,discord_message_ids').eq('organization_id', context.organization.id).eq('id', contractId).maybeSingle();
   if (contractError) throw contractError;
   if (!contract) return null;
   const { data: employee, error: employeeError } = await db.from('organization_employees').select('full_name,cnp,discord_id').eq('organization_id', context.organization.id).eq('id', contract.employee_id).maybeSingle();
@@ -1330,10 +1335,8 @@ async function loadSavedContract(db: any, context: any, contractId: string) {
 async function handleContractSubmit(db: any, context: any, values: Record<string, any>) {
   const employeeName = contractValue(values.employee_name, '');
   const cnp = contractValue(values.cnp, '');
-  const phone = contractValue(values.phone, '');
   if (!employeeName) return interactionMessage('Numele și prenumele sunt obligatorii.');
   if (!cnp) return interactionMessage('CNP-ul angajatului este obligatoriu.');
-  if (!phone) return interactionMessage('Numărul de telefon al angajatului este obligatoriu.');
   const { data: templateSetting, error: templateError } = await db.from('app_settings').select('value').eq('organization_id', context.organization.id).eq('key', 'contract_template').maybeSingle();
   if (templateError) throw templateError;
   const custom = templateSetting?.value && typeof templateSetting.value === 'object' ? templateSetting.value : {};
@@ -1343,7 +1346,6 @@ async function handleContractSubmit(db: any, context: any, values: Record<string
   const contract = {
     employee_name: employeeName,
     cnp,
-    phone,
     position: contractValue(defaults.position, 'Angajat'),
     address: contractValue(defaults.address, context.organization.address || '—'),
     salary: contractValue(defaults.salary, '100 lei/lună'),
@@ -1352,14 +1354,13 @@ async function handleContractSubmit(db: any, context: any, values: Record<string
     contract_number: contractNumber,
     manager: context.displayName,
   };
-  const template = String(custom.template || contractTemplateFallback()).trim().slice(0, 50000);
+  const template = stripContractPhone(String(custom.template || contractTemplateFallback()).trim().slice(0, 50000));
   const contractText = replaceContractPlaceholders(template, {
     COMPANY: contractValue(context.organization.name, 'Organizație'),
     ADDRESS: contract.address,
     MANAGER: contract.manager,
     EMPLOYEE_NAME: contract.employee_name,
     CNP: contract.cnp,
-    PHONE: contract.phone,
     POSITION: contract.position,
     SALARY: contract.salary,
     PROGRAM: contract.schedule,
@@ -1379,7 +1380,7 @@ async function handleContractSubmit(db: any, context: any, values: Record<string
     if (employeeError) throw employeeError;
     employee = upsertedEmployee;
   }
-  const { data: saved, error: contractError } = await db.from('organization_contracts').insert({ organization_id: context.organization.id, employee_id: employee.id, contract_number: contract.contract_number, contract_text: contractText, phone: contract.phone, position: contract.position, salary: contract.salary, schedule: contract.schedule, start_date: contract.start_date, created_by_discord_id: context.discordId }).select('id').single();
+  const { data: saved, error: contractError } = await db.from('organization_contracts').insert({ organization_id: context.organization.id, employee_id: employee.id, contract_number: contract.contract_number, contract_text: contractText, position: contract.position, salary: contract.salary, schedule: contract.schedule, start_date: contract.start_date, created_by_discord_id: context.discordId }).select('id').single();
   if (contractError) {
     if (contractError.code === '23505') return interactionMessage('Numărul contractului există deja. Încearcă din nou.');
     throw contractError;
