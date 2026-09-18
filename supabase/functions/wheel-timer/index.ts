@@ -70,7 +70,7 @@ async function processDueTimers(db: any, discordId?: string, organizationId?: st
     const { error: updateError } = await db.from('wheel_timers').update({
       status: 'completed', completed_at: timer.completed_at || now.toISOString(), notification_sent_at: discordSent ? now.toISOString() : null,
       notification_error: notificationError || null,
-    }).eq('id', timer.id).eq('status', 'active');
+    }).eq('id', timer.id);
     if (updateError) throw updateError;
     results.push({ id: timer.id, discord_sent: discordSent, notification_error: notificationError || null });
   }
