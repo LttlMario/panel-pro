@@ -17,25 +17,33 @@ const WHEEL_DURATION_MS = 6 * 60 * 60 * 1000;
 
 async function notifyDiscord(db: any, discordId: string, content: string) {
   const token = await getPlatformSecret(db, 'discord_bot_token');
-  if (!token || !/^\d{15,22}$/.test(discordId)) return false;
+  if (!token) throw new Error('Tokenul botului Discord lipsește.');
+  if (!/^\d{15,22}$/.test(discordId)) throw new Error('ID-ul Discord al utilizatorului este invalid.');
   const headers = { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' };
   const channelResponse = await fetch(`${DISCORD_API}/users/@me/channels`, {
     method: 'POST', headers, body: JSON.stringify({ recipient_id: discordId }),
   });
   const channel = await channelResponse.json().catch(() => ({}));
-  if (!channelResponse.ok || !channel?.id) return false;
+  if (!channelResponse.ok || !channel?.id) {
+    const details = String(channel?.message || '').trim();
+    throw new Error(`Discord nu a putut deschide mesajul privat (HTTP ${channelResponse.status}${details ? `: ${details}` : ''}).`);
+  }
   const messageResponse = await fetch(`${DISCORD_API}/channels/${channel.id}/messages`, {
     method: 'POST', headers, body: JSON.stringify({ allowed_mentions: { parse: [] }, content }),
   });
-  return messageResponse.ok;
+  if (!messageResponse.ok) {
+    const details = await messageResponse.clone().json().catch(() => ({}));
+    const message = String(details?.message || '').trim();
+    throw new Error(`Discord nu a putut trimite mesajul privat (HTTP ${messageResponse.status}${message ? `: ${message}` : ''}).`);
+  }
+  return true;
 }
 
 async function processDueTimers(db: any, discordId?: string, organizationId?: string) {
   const now = new Date();
   let query = db.from('wheel_timers')
-    .select('id,organization_id,discord_id,completes_at')
-    .eq('status', 'active')
-    .lte('completes_at', now.toISOString())
+    .select('id,organization_id,discord_id,completes_at,completed_at')
+    .or(`and(status.eq.active,completes_at.lte.${now.toISOString()}),and(status.eq.completed,notification_sent_at.is.null)`)
     .order('completes_at', { ascending: true })
     .limit(100);
   if (discordId) query = query.eq('discord_id', discordId);
@@ -60,7 +68,7 @@ async function processDueTimers(db: any, discordId?: string, organizationId?: st
       if (webError) notificationError = [notificationError, webError.message].filter(Boolean).join(' | ');
     } catch (error) { notificationError = [notificationError, error instanceof Error ? error.message : 'Notificarea web a eșuat.'].filter(Boolean).join(' | '); }
     const { error: updateError } = await db.from('wheel_timers').update({
-      status: 'completed', completed_at: now.toISOString(), notification_sent_at: (discordSent || !notificationError) ? now.toISOString() : null,
+      status: 'completed', completed_at: timer.completed_at || now.toISOString(), notification_sent_at: discordSent ? now.toISOString() : null,
       notification_error: notificationError || null,
     }).eq('id', timer.id).eq('status', 'active');
     if (updateError) throw updateError;
