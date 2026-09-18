@@ -14,18 +14,25 @@ const SECRET_ENV_FALLBACKS: Record<string, string[]> = {
 };
 
 export async function getPlatformSecret(db: any, name: string): Promise<string> {
-  // Botul Panel Pro Web este configurat prin Edge Function Secrets.
-  // Prioritizează secretul runtime pentru a nu reutiliza accidental tokenul
-  // vechi rămas în tabela de secrete a proiectului.
-  for (const envName of SECRET_ENV_FALLBACKS[name] || []) {
-    const value = String(Deno.env.get(envName) || '').trim();
+  // Joburile pg_cron trimit valorile din Vault. Pentru cron_secret trebuie
+  // folosită aceeași valoare și în funcție; un CRON_SECRET runtime vechi ar
+  // produce 401 chiar dacă jobul cron este programat și rulează corect.
+  const runtimeValue = () => {
+    for (const envName of SECRET_ENV_FALLBACKS[name] || []) {
+      const value = String(Deno.env.get(envName) || '').trim();
+      if (value) return value;
+    }
+    return '';
+  };
+  if (name !== 'cron_secret') {
+    const value = runtimeValue();
     if (value) return value;
   }
   try {
     const { data, error } = await db.rpc('get_panel_platform_secret', { secret_name: name });
     if (!error && typeof data === 'string' && data.trim()) return data.trim();
   } catch (_) {}
-  return '';
+  return runtimeValue();
 }
 
 export const platformSecretFallbacks = SECRET_ENV_FALLBACKS;
