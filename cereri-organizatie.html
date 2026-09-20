@@ -690,7 +690,6 @@ fetchAbsences();
                 .select('*')
                 .eq('organization_id', activeOrganization.id)
                 .eq('discord_id', currentUser.discord_id)
-                .eq('request_audience', getRequestAudience())
                 .order('created_at', { ascending: false });
 
                 if (error) throw error;

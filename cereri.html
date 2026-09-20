@@ -690,7 +690,6 @@ fetchAbsences();
                 .select('*')
                 .eq('organization_id', activeOrganization.id)
                 .eq('discord_id', currentUser.discord_id);
-            if (requestPageAudience) absencesQuery = absencesQuery.eq('request_audience', requestPageAudience);
             const { data: absences, error } = await absencesQuery.order('created_at', { ascending: false });
 
                 if (error) throw error;
