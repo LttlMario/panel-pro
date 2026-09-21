@@ -310,7 +310,7 @@ body:has(#panel-global-footer) > [data-panel-footer-host] {
 #panel-sponsorship-rail { position:fixed; top:6.5rem; right:1rem; width:clamp(190px,18vw,300px); max-height:none; overflow:visible; display:flex; flex-direction:column; gap:.75rem; z-index:30; pointer-events:none; }
 #panel-sponsorship-rail .panel-sponsorship { pointer-events:auto; width:100%; }
 #panel-sponsorship-rail .panel-sponsorship-label { flex-basis:auto; text-align:left; padding:.15rem .25rem 0; }
-/* The dashboard content has a capped width, so the fixed rail can overlap its
-   right-hand cards before the viewport reaches the old 1100px breakpoint. */
-@media (max-width:2000px){#panel-sponsorship-rail{position:relative;top:auto;right:auto;width:min(100% - 2rem,700px);max-height:none;margin:1rem auto;pointer-events:auto}#panel-sponsorship-rail .panel-sponsorship{width:100%}}
+/* Reserve the rail's width in the page layout so it never covers content. */
+@media (min-width:1101px){body.has-panel-sponsorship-rail main{padding-right:clamp(220px,18vw,320px)!important}}
+@media (max-width:1100px){#panel-sponsorship-rail{position:relative;top:auto;right:auto;width:min(100% - 2rem,700px);max-height:none;margin:1rem auto;pointer-events:auto}#panel-sponsorship-rail .panel-sponsorship{width:100%}}
 @media (max-width:767px){.panel-sponsorship img{max-height:130px}.panel-sponsorship span{margin-top:100px}}
