@@ -311,6 +311,6 @@ body:has(#panel-global-footer) > [data-panel-footer-host] {
 #panel-sponsorship-rail .panel-sponsorship { pointer-events:auto; width:100%; }
 #panel-sponsorship-rail .panel-sponsorship-label { flex-basis:auto; text-align:left; padding:.15rem .25rem 0; }
 /* Reserve the rail's width in the page layout so it never covers content. */
-@media (min-width:1101px){body.has-panel-sponsorship-rail main{padding-right:clamp(220px,18vw,320px)!important}}
+@media (min-width:1101px){body.has-panel-sponsorship-rail main{--panel-sponsorship-space:clamp(220px,18vw,320px);padding-right:var(--panel-sponsorship-space)!important}body.has-panel-sponsorship-rail main > #panel-header-host{width:calc(100% + var(--panel-sponsorship-space))!important;margin-right:calc(var(--panel-sponsorship-space) * -1)!important}}
 @media (max-width:1100px){#panel-sponsorship-rail{position:relative;top:auto;right:auto;width:min(100% - 2rem,700px);max-height:none;margin:1rem auto;pointer-events:auto}#panel-sponsorship-rail .panel-sponsorship{width:100%}}
 @media (max-width:767px){.panel-sponsorship img{max-height:130px}.panel-sponsorship span{margin-top:100px}}
