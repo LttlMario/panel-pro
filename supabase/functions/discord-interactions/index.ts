@@ -8,6 +8,7 @@ import { allCategories, calculateRecipe, findCategory, findRecipe } from '../_sh
 
 const DISCORD_API = 'https://discord.com/api/v10';
 const PANEL_FOOTER = 'Panel Pro - By Little Mario';
+const PANEL_REACTIVATION_CONTACT_URL = 'https://discord.com/channels/@me/247012210021236738';
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
 let discordPublicKeyCache = '';
 async function discordPublicKey(db?: any) {
@@ -29,7 +30,20 @@ const normalizeEmbedFooters = (value: any): any => {
   return normalized;
 };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(normalizeEmbedFooters(data)), { status, headers: { 'Content-Type': 'application/json' } });
-const interactionMessage = (content: string, extra: Record<string, unknown> = {}) => ({ type: 4, data: { content, flags: 64, ...extra } });
+const interactionMessage = (content: string, extra: Record<string, unknown> = {}) => {
+  const expired = /termenul de valabilitate|organizația este dezactivată/i.test(String(content || ''));
+  return {
+    type: 4,
+    data: {
+      content,
+      flags: 64,
+      ...(expired ? {
+        components: [{ type: 1, components: [{ type: 2, style: 5, label: 'Contactează pentru reactivare', url: PANEL_REACTIVATION_CONTACT_URL }] }],
+      } : {}),
+      ...extra,
+    },
+  };
+};
 const commandSubcommand = (interaction: any) => Array.isArray(interaction?.data?.options) ? interaction.data.options.find((option: any) => option?.type === 1) : null;
 const commandOptions = (interaction: any) => Array.isArray(commandSubcommand(interaction)?.options) ? commandSubcommand(interaction).options : (Array.isArray(interaction?.data?.options) ? interaction.data.options : []);
 const commandOption = (interaction: any, name: string) => commandOptions(interaction).find((option: any) => option?.name === name)?.value;
@@ -57,7 +71,6 @@ const isDiscordManager = (interaction: any) => {
 };
 
 async function requireActiveOrganizationAccess(db: any, organization: any) {
-  if (!organization?.active) throw new Error('Organizația este dezactivată.');
   const { data: accessSetting, error } = await db.from('app_settings')
     .select('value')
     .eq('organization_id', organization.id)
@@ -66,8 +79,9 @@ async function requireActiveOrganizationAccess(db: any, organization: any) {
   if (error) throw error;
   const expiresAt = Date.parse(String(accessSetting?.value?.expires_at || ''));
   if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) {
-    throw new Error('Termenul de valabilitate al organizației a expirat.');
+    throw new Error(`Termenul de valabilitate al organizației a expirat la ${new Date(expiresAt).toLocaleString('ro-RO')}. Pentru reactivare, contactează administratorul Panel Pro.`);
   }
+  if (!organization?.active) throw new Error('Organizația este dezactivată. Pentru reactivare, contactează administratorul Panel Pro.');
 }
 
 async function ensureDiscordOnlyOrganization(db: any, interaction: any) {
