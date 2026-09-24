@@ -56,6 +56,20 @@ const isDiscordManager = (interaction: any) => {
   try { return (BigInt(String(interaction?.member?.permissions || '0')) & 40n) !== 0n; } catch { return false; }
 };
 
+async function requireActiveOrganizationAccess(db: any, organization: any) {
+  if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  const { data: accessSetting, error } = await db.from('app_settings')
+    .select('value')
+    .eq('organization_id', organization.id)
+    .eq('key', 'organization_access')
+    .maybeSingle();
+  if (error) throw error;
+  const expiresAt = Date.parse(String(accessSetting?.value?.expires_at || ''));
+  if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) {
+    throw new Error('Termenul de valabilitate al organizației a expirat.');
+  }
+}
+
 async function ensureDiscordOnlyOrganization(db: any, interaction: any) {
   const guildId = String(interaction?.guild_id || '').trim();
   const discordId = String(interaction?.member?.user?.id || interaction?.user?.id || '').trim();
@@ -216,7 +230,7 @@ async function resolveCustomModulePublication(db: any, interaction: any, moduleK
   if (!guild?.organization_id) throw new Error('Serverul Discord nu este asociat unei organizații Panel Pro.');
   const { data: organization, error: organizationError } = await db.from('organizations').select('id,name,active').eq('id', guild.organization_id).maybeSingle();
   if (organizationError) throw organizationError;
-  if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  await requireActiveOrganizationAccess(db, organization);
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
   const { data: publication, error: publicationError } = await db.from('platform_module_publications').select('*').eq('module_key', moduleKey).eq('organization_id', guild.organization_id).eq('target', target).eq('status', 'published').maybeSingle();
   if (publicationError) throw publicationError;
@@ -479,7 +493,7 @@ async function resolveContext(db: any, interaction: any) {
   if (!guild) throw new Error('Serverul Discord nu este asociat unei organizații Panel Pro.');
   const { data: organization, error: organizationError } = await db.from('organizations').select('id,name,active').eq('id', guild.organization_id).maybeSingle();
   if (organizationError) throw organizationError;
-  if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  await requireActiveOrganizationAccess(db, organization);
 
   const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', guild.organization_id).maybeSingle();
   if (settingsError) throw settingsError;
@@ -510,7 +524,7 @@ async function resolveRequestContext(db: any, interaction: any, audience: 'organ
   if (!guild) throw new Error('Serverul Discord nu este asociat unei organizații Panel Pro.');
   const { data: organization, error: organizationError } = await db.from('organizations').select('id,name,active').eq('id', guild.organization_id).maybeSingle();
   if (organizationError) throw organizationError;
-  if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  await requireActiveOrganizationAccess(db, organization);
   const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', guild.organization_id).maybeSingle();
   if (settingsError) throw settingsError;
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
@@ -564,7 +578,7 @@ async function resolveAnnouncementContext(db: any, interaction: any, audience: '
   if (!guild) throw new Error('Serverul Discord nu este asociat unei organizații Panel Pro.');
   const { data: organization, error: organizationError } = await db.from('organizations').select('id,name,active').eq('id', guild.organization_id).maybeSingle();
   if (organizationError) throw organizationError;
-  if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  await requireActiveOrganizationAccess(db, organization);
   const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes,panel_public_url').eq('organization_id', guild.organization_id).maybeSingle();
   if (settingsError) throw settingsError;
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
@@ -615,7 +629,7 @@ async function resolveManagementContext(db: any, interaction: any, audience: 'or
   if (!guild) throw new Error('Serverul Discord nu este asociat unei organizații Panel Pro.');
   const { data: organization, error: organizationError } = await db.from('organizations').select('id,name,active').eq('id', guild.organization_id).maybeSingle();
   if (organizationError) throw organizationError;
-  if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  await requireActiveOrganizationAccess(db, organization);
   const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes,panel_public_url').eq('organization_id', guild.organization_id).maybeSingle();
   if (settingsError) throw settingsError;
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
@@ -662,7 +676,7 @@ async function resolveContractContext(db: any, interaction: any, routeKey = 'con
     db.from('organization_settings').select('discord_channel_routes,panel_public_url').eq('organization_id', guild.organization_id).maybeSingle(),
   ]);
   if (resolvedOrganizationError) throw resolvedOrganizationError;
-  if (!resolvedOrganization?.active) throw new Error('Organizația este dezactivată.');
+  await requireActiveOrganizationAccess(db, resolvedOrganization);
   if (resolvedSettingsError) throw resolvedSettingsError;
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
   if (!channelMatches(resolvedSettings, routeKey, target, channelId)) throw new Error(`Acest canal nu este configurat pentru panoul ${routeKey === 'log_contracts' ? 'Log contracte' : 'Contracte'}.`);
@@ -765,7 +779,7 @@ async function resolveUniversalModuleContext(db: any, interaction: any, routeKey
     db.from('organization_members').select('active,panel_role,permission_level').eq('organization_id', guild.organization_id).eq('discord_id', discordId).eq('active', true).maybeSingle(),
   ]);
   if (organizationError || settingsError || packageError || memberError) throw organizationError || settingsError || packageError || memberError;
-  if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  await requireActiveOrganizationAccess(db, organization);
   if (!resolvePackageFeatures(packageSetting?.value || {}).includes(feature) && !(await isPlatformAdminAccount(db, discordId)) && packageSetting?.value?.code !== 'discord') throw new Error('Acest modul nu este inclus în pachetul organizației.');
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
   const configured = settings?.discord_channel_routes?.[routeKey]?.[target];
@@ -789,7 +803,7 @@ async function resolveWheelContext(db: any, interaction: any) {
     db.from('organization_settings').select('discord_channel_routes,panel_public_url').eq('organization_id', guild.organization_id).maybeSingle(),
   ]);
   if (organizationError || settingsError) throw organizationError || settingsError;
-  if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  await requireActiveOrganizationAccess(db, organization);
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
   const wheelRoutes = settings?.discord_channel_routes?.wheel_timer || {};
   // Pentru organizațiile care au fost configurate înainte de separarea
@@ -1527,7 +1541,7 @@ async function resolveStashContext(db: any, interaction: any, routeKey: 'stash' 
     db.from('app_settings').select('value').eq('organization_id', guild.organization_id).eq('key', 'action_permissions').maybeSingle(),
   ]);
   if (organizationError || settingsError || packageError || permissionError) throw organizationError || settingsError || packageError || permissionError;
-  if (!organization?.active) throw new Error('Organizația este dezactivată.');
+  await requireActiveOrganizationAccess(db, organization);
   const discordOnly = packageSetting?.value?.code === 'discord';
   if (!resolvePackageFeatures(packageSetting?.value || {}).includes('stash')) throw new Error('Stash nu este inclus în pachetul organizației.');
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
