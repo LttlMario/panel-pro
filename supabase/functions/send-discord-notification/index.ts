@@ -414,7 +414,7 @@ Deno.serve(async (request) => {
     const messages = (delivery.results || []).map((result) => ({
       channel_id: result.channel_id || null,
       id: result.id,
-      action: messageIds[result.target] ? 'edited' : 'created',
+      action: result.recreated ? 'recreated' : messageIds[result.target] ? 'edited' : 'created',
     }));
     if (!messages.length) throw new Error(delivery.failures.join(' | ') || 'Discord nu a acceptat notificarea.');
 

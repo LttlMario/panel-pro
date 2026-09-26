@@ -194,7 +194,18 @@ export async function deliverDiscordRoute(
     let lastError = '';
     for (const candidate of candidates) {
       try {
-        let response = await requestDiscordTarget(db, candidate, body, { messageId: requestedMessageId || (options.postOnly || messageIdsOnly ? '' : candidate.message_id), headers: options.headers });
+        const attemptedMessageId = requestedMessageId || (options.postOnly || messageIdsOnly ? '' : candidate.message_id);
+        let response = await requestDiscordTarget(db, candidate, body, { messageId: attemptedMessageId, headers: options.headers });
+        let recreated = false;
+        // Dacă mesajul salvat a fost șters din Discord, îl recreăm o singură
+        // dată și lăsăm apelantul să salveze noul ID pentru actualizările viitoare.
+        if (!response.ok && response.status === 404 && attemptedMessageId) {
+          const replacement = await requestDiscordTarget(db, candidate, body, { method: 'POST', headers: options.headers });
+          if (replacement.ok) {
+            response = replacement;
+            recreated = true;
+          }
+        }
         // Dacă mesajul existent nu poate fi editat, nu creăm un mesaj nou:
         // rutele configurate sunt embeduri editabile, iar un POST aici ar
         // produce duplicate.
@@ -212,7 +223,7 @@ export async function deliverDiscordRoute(
           continue;
         }
         const data = await response.clone().json().catch(() => ({}));
-        results.push({ target, transport: candidate.transport, channel_id: candidate.channel_id || null, id: data?.id ? String(data.id) : requestedMessageId || (messageIdsOnly ? null : candidate.message_id) });
+        results.push({ target, transport: candidate.transport, channel_id: candidate.channel_id || null, id: data?.id ? String(data.id) : attemptedMessageId || (messageIdsOnly ? null : candidate.message_id), recreated });
         delivered = true;
         break;
       } catch (error) {
