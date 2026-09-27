@@ -368,7 +368,9 @@ Deno.serve(async (request) => {
     let messageRefsSetting: any = null;
     let storedPontajMessageRefs: Record<string, any> = {};
     let storedMessageRefs: Record<string, string> = {};
-    if (editExistingControlMessage) {
+    const usesStoredMessageRefs = editExistingControlMessage
+      || ((isPontajLog || isRequestsLog) && Boolean(requestedMessageKey));
+    if (usesStoredMessageRefs) {
       const { data, error: messageRefsError } = await db
         .from('app_settings')
         .select('value')
@@ -391,7 +393,8 @@ Deno.serve(async (request) => {
     const messageIds: Record<string, string> = {};
     if (isPontajLog) Object.assign(messageIds, shiftLogMessageIds);
     if (isRequestsLog) Object.assign(messageIds, absenceLogMessageIds);
-    if (editExistingControlMessage) {
+    if ((isPontajLog || isRequestsLog) && !Object.keys(messageIds).length) Object.assign(messageIds, storedMessageRefs);
+    if (editExistingControlMessage || ((isPontajLog || isRequestsLog) && Boolean(requestedMessageKey))) {
       for (const item of configuredRoutes) {
         const channelId = settings.discord_channel_routes?.[effectiveRouteKey]?.[item.target]?.channel_id
           || settings.discord_channel_routes?.[effectiveFallbackRouteKey]?.[item.target]?.channel_id;
