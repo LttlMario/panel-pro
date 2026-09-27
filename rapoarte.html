@@ -588,6 +588,28 @@
             } catch (err) {}
         }
 
+        async function sendManagerCompletedShiftDiscordWebhook(shift) {
+            const now = new Date();
+            const shiftType = String(shift.shift_type || 'zi').toUpperCase();
+            const payload = {
+                allowed_mentions: { parse: [] },
+                embeds: [{
+                    title: `⏹️ Pontaj Încheiat - Tură de ${shiftType}`,
+                    color: shift.shift_type === 'zi' ? 16766720 : 65535,
+                    fields: [
+                        { name: '👤 Angajat', value: String(shift.colleague_name || shift.discord_id || 'Membru'), inline: true },
+                        { name: '📅 Data', value: String(shift.date || ''), inline: true },
+                        { name: '⏰ Început', value: `${String(shift.date || '')} · ${String(shift.start_time || '')}`, inline: false },
+                        { name: '⏱️ Interval', value: `${String(shift.start_time || '')} - ${String(shift.end_time || '')}`, inline: false },
+                        { name: '⏳ Timp Total Lucrat', value: `**${String(shift.duration || '00:00:00')}**`, inline: true },
+                        { name: '📝 Motiv', value: String(shift.stop_reason || 'Încheiere de către manager'), inline: false }
+                    ],
+                    timestamp: now.toISOString()
+                }]
+            };
+            await sendPanelDiscord('log_pontaj', payload, { messageKey: String(shift.id || '') });
+        }
+
         function resetTimerState() {
             clearInterval(timerInterval);
             secondsElapsed = 0;
@@ -788,22 +810,39 @@ async function forceStopActiveShift(shiftId) {
             totalElapsedSeconds - pausedSeconds
         );
 
+        const completionUpdate = {
+            status: 'completed',
+            ended_at: new Date().toISOString(),
+            stop_reason: 'Încheiere de către manager',
+            end_time: getRomanianTime(),
+            duration: formatTime(workedSeconds),
+            duration_ms: workedSeconds * 1000,
+            paused_seconds: pausedSeconds,
+            paused_at: null
+        };
+
         const { error } = await supabaseClient
             .from('shifts')
-            .update({
-                status: 'completed',
-                ended_at: new Date().toISOString(),
-                stop_reason: 'Încheiere de către manager',
-                end_time: getRomanianTime(),
-                duration: formatTime(workedSeconds),
-                duration_ms: workedSeconds * 1000,
-                paused_seconds: pausedSeconds,
-                paused_at: null
-            })
+            .update(completionUpdate)
             .eq('id', shiftId)
             .eq('organization_id', currentUser.organization_id);
 
         if (error) throw error;
+
+        try {
+            await sendManagerCompletedShiftDiscordWebhook({
+                ...shift,
+                ...completionUpdate,
+                id: shiftId,
+                colleague_name: shift.colleague_name || usersMap[shift.discord_id] || 'Membru',
+            });
+        } catch (discordError) {
+            console.error('Eroare la actualizarea embedului de pontaj:', discordError);
+            alert('Pontajul a fost oprit, dar embedul Discord nu a putut fi actualizat. Verifică ruta „Log pontaj”.');
+            fetchActiveShifts();
+            fetchAllShifts();
+            return;
+        }
 
         alert('Pontajul a fost oprit.');
         fetchActiveShifts();
