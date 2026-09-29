@@ -12,6 +12,13 @@ export type DiscordDeliveryTarget = {
   message_id?: string;
 };
 
+type DeliveryContext = {
+  organizationId?: string;
+  messageKey?: string;
+  retryPayload?: unknown;
+  retryHeaders?: Record<string, string>;
+};
+
 export const validDiscordChannelId = (value: unknown) => /^\d{15,22}$/.test(String(value || '').trim());
 
 const clean = (value: unknown, max = 500) => String(value || '').trim().slice(0, max);
@@ -25,6 +32,108 @@ const errorMessage = (error: unknown) => {
   }
   return 'Eroare Discord.';
 };
+
+export async function recordDiscordDeliveryEvent(
+  db: any,
+  context: DeliveryContext,
+  routeKey: string,
+  candidate: DiscordDeliveryTarget,
+  details: {
+    messageId?: string;
+    operation: 'create' | 'edit' | 'recreate' | 'verify' | 'sync';
+    status: 'success' | 'failure';
+    httpStatus?: number;
+    errorMessage?: string;
+    metadata?: Record<string, unknown>;
+  },
+) {
+  const organizationId = String(context.organizationId || '').trim();
+  const channelId = String(candidate.channel_id || '').trim();
+  if (!organizationId || !validDiscordChannelId(channelId)) return;
+  const messageKey = String(context.messageKey || 'control').trim().slice(0, 160) || 'control';
+  const messageId = String(details.messageId || '').trim();
+  let registryId = '';
+  try {
+    const routeName = String(routeKey || 'unknown').trim().slice(0, 120) || 'unknown';
+    const targetName = String(candidate.target || 'primary');
+    const { data: previous } = await db.from('discord_message_registry')
+      .select('id,message_id,last_delivered_at')
+      .eq('organization_id', organizationId)
+      .eq('route_key', routeName)
+      .eq('message_key', messageKey)
+      .eq('target', targetName)
+      .eq('channel_id', channelId)
+      .maybeSingle();
+    const retainedMessageId = validDiscordChannelId(messageId)
+      ? messageId
+      : validDiscordChannelId(previous?.message_id) ? String(previous.message_id) : null;
+    const { data: registry, error: registryError } = await db.from('discord_message_registry').upsert({
+      organization_id: organizationId,
+      route_key: routeName,
+      message_key: messageKey,
+      target: targetName,
+      channel_id: channelId,
+      guild_id: validDiscordChannelId(candidate.guild_id) ? String(candidate.guild_id) : null,
+      message_id: retainedMessageId,
+      status: details.status === 'success' ? 'active' : details.httpStatus === 404 ? 'missing' : 'failed',
+      operation: details.operation,
+      last_http_status: Number.isFinite(details.httpStatus) ? details.httpStatus : null,
+      last_error: details.status === 'success' ? null : String(details.errorMessage || '').slice(0, 2000) || 'Eroare Discord.',
+      last_delivered_at: details.status === 'success' ? new Date().toISOString() : previous?.last_delivered_at || null,
+      last_checked_at: new Date().toISOString(),
+      metadata: details.metadata || {},
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'organization_id,route_key,message_key,target,channel_id' }).select('id').maybeSingle();
+    if (registryError) throw registryError;
+    registryId = String(registry?.id || '');
+    if (details.status === 'success') {
+      if (registryId) await db.rpc('increment_discord_registry_delivery_count', { p_registry_id: registryId });
+      const persistentEmbed = !String(routeKey || '').startsWith('log_') && /control$/i.test(messageKey);
+      if (persistentEmbed && candidate.target === 'primary' && context.retryPayload && typeof context.retryPayload === 'object' && !Array.isArray(context.retryPayload)) {
+        await db.from('discord_embed_versions').insert({
+          organization_id: organizationId,
+          route_key: String(routeKey || 'unknown').trim().slice(0, 120) || 'unknown',
+          message_key: messageKey,
+          payload: context.retryPayload,
+          change_type: details.operation === 'recreate' ? 'restored' : 'delivered',
+        });
+      }
+    }
+    await db.from('discord_delivery_attempts').insert({
+      organization_id: organizationId,
+      registry_id: registryId || null,
+      route_key: routeName,
+      message_key: messageKey,
+      target: String(candidate.target || 'primary'),
+      channel_id: channelId,
+      message_id: validDiscordChannelId(messageId) ? messageId : null,
+      operation: details.operation,
+      status: details.status,
+      http_status: Number.isFinite(details.httpStatus) ? details.httpStatus : null,
+      error_message: details.status === 'success' ? null : String(details.errorMessage || '').slice(0, 2000),
+      metadata: details.metadata || {},
+    });
+    const retryable = details.status === 'failure' && (
+      !details.httpStatus || details.httpStatus === 408 || details.httpStatus === 409 || details.httpStatus === 429 || details.httpStatus >= 500
+    );
+    if (retryable && context.retryPayload && typeof context.retryPayload === 'object' && !Array.isArray(context.retryPayload)) {
+      await db.from('discord_delivery_queue').insert({
+        organization_id: organizationId,
+        route_key: String(routeKey || 'unknown').trim().slice(0, 120) || 'unknown',
+        message_key: messageKey,
+        target: String(candidate.target || 'primary'),
+        channel_id: channelId,
+        message_id: validDiscordChannelId(messageId) ? messageId : null,
+        payload: context.retryPayload,
+        headers: context.retryHeaders || {},
+        last_error: String(details.errorMessage || '').slice(0, 2000) || 'Eroare Discord.',
+      });
+    }
+  } catch (error) {
+    // Observability must never turn a successful Discord delivery into a failure.
+    console.error('[discord-delivery-registry]', error);
+  }
+}
 
 export const routeCandidates = (settings: any, routeKey: string, fallbackRouteKey = '') => {
   const channelRoutes = settings?.discord_channel_routes || {};
@@ -180,7 +289,7 @@ export async function deliverDiscordRoute(
   settings: any,
   routeKey: string,
   body: BodyInit,
-  options: { messageIds?: Record<string, string>; headers?: Record<string, string>; fallbackRouteKey?: string; postOnly?: boolean; messageIdsOnly?: boolean } = {}
+  options: { messageIds?: Record<string, string>; headers?: Record<string, string>; fallbackRouteKey?: string; postOnly?: boolean; messageIdsOnly?: boolean; organizationId?: string; messageKey?: string; retryPayload?: unknown; retryHeaders?: Record<string, string> } = {}
 ) {
   const results: any[] = [];
   const failures: string[] = [];
@@ -220,14 +329,36 @@ export async function deliverDiscordRoute(
           lastError = response.status === 403
             ? `Botul Discord nu are acces la canalul ${candidate.channel_id}. ${channelSummary ? `Canal detectat: ${channelSummary}. ` : ''}${accessSummary ? `${accessSummary}. ` : ''}Verifică View Channel, Send Messages și Embed Links.${candidate.guild_id ? ` Guild salvată în configurație: ${candidate.guild_id}.` : ''} Bot identificat de Supabase: ${await discordBotIdentity(db) || 'necunoscut'}. Discord code: ${String(details?.code || '50013')}.`
             : `Discord ${candidate.transport} HTTP ${response.status}${discordMessage ? `: ${discordMessage}` : ''}${discordErrors}`;
+          await recordDiscordDeliveryEvent(db, options, routeKey, candidate, {
+            messageId: attemptedMessageId,
+            operation: attemptedMessageId ? 'edit' : 'create',
+            status: 'failure',
+            httpStatus: response.status,
+            errorMessage: lastError,
+            metadata: { recreated: false },
+          });
           continue;
         }
         const data = await response.clone().json().catch(() => ({}));
-        results.push({ target, transport: candidate.transport, channel_id: candidate.channel_id || null, id: data?.id ? String(data.id) : attemptedMessageId || (messageIdsOnly ? null : candidate.message_id), recreated });
+        const deliveredMessageId = data?.id ? String(data.id) : attemptedMessageId || (messageIdsOnly ? null : candidate.message_id);
+        results.push({ target, transport: candidate.transport, channel_id: candidate.channel_id || null, id: deliveredMessageId, recreated });
+        await recordDiscordDeliveryEvent(db, options, routeKey, candidate, {
+          messageId: deliveredMessageId,
+          operation: recreated ? 'recreate' : attemptedMessageId ? 'edit' : 'create',
+          status: 'success',
+          httpStatus: response.status,
+          metadata: { recreated },
+        });
         delivered = true;
         break;
       } catch (error) {
         lastError = errorMessage(error);
+        await recordDiscordDeliveryEvent(db, options, routeKey, candidate, {
+          messageId: attemptedMessageId,
+          operation: attemptedMessageId ? 'edit' : 'create',
+          status: 'failure',
+          errorMessage: lastError,
+        });
       }
     }
     if (!delivered) failures.push(`${target}: ${lastError || 'destinație indisponibilă'}`);

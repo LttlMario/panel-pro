@@ -198,7 +198,11 @@ Deno.serve(async (request) => {
           { title: `📋 Export săptămânal · Angajați activi · ${displayDate(period.start)} – ${displayDate(period.end)}`, description: activeDescription, color: 5763719, timestamp: now.toISOString() },
           { title: `📋 Export săptămânal · Plecați / demisionați · ${displayDate(period.start)} – ${displayDate(period.end)}`, description: inactiveDescription, color: 15548997, timestamp: now.toISOString() },
         ];
-        const delivery = await deliverDiscordRoute(db, settings, 'log_contract_identity_weekly', JSON.stringify({ allowed_mentions: { parse: [] }, embeds }));
+        const delivery = await deliverDiscordRoute(db, settings, 'log_contract_identity_weekly', JSON.stringify({ allowed_mentions: { parse: [] }, embeds }), {
+          organizationId: String(organization.id),
+          messageKey: `weekly-contract-export-${period.start}-${period.end}`,
+          retryPayload: { allowed_mentions: { parse: [] }, embeds },
+        });
         const failures: string[] = delivery.failures || [];
         if (!delivery.results.length) throw new Error(failures.join(' | ') || 'Discord nu a acceptat exportul.');
         await db.from('contract_export_batches').update({ status: 'completed', row_count: exportItems.length, completed_at: new Date().toISOString(), error: failures.length ? failures.join(' | ') : null }).eq('id', batch.id);

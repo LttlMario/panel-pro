@@ -124,7 +124,24 @@ Deno.serve(async (request) => {
             { name: '⏳ Timp Total Lucrat', value: `**${formatDuration(seconds)}**`, inline: true },
             { name: '📝 Motiv', value: reason, inline: false },
           ], timestamp: finishedAt.toISOString(),
-        }] }), { messageIds: logMessageIds, messageIdsOnly: true });
+        }] }), {
+        messageIds: logMessageIds,
+        messageIdsOnly: true,
+        organizationId: String(shift.organization_id),
+        messageKey: `shift-${String(shift.id)}`,
+        retryPayload: { embeds: [{
+          title: `⏹️ Pontaj Încheiat - Tură de ${String(shift.shift_type).toUpperCase()}`,
+          color: shift.shift_type === 'zi' ? 16766720 : 65535,
+          fields: [
+            { name: '👤 Angajat', value: colleagueName, inline: true },
+            { name: '📅 Data', value: String(shift.date || ''), inline: true },
+            { name: '⏰ Început', value: `${String(shift.date || '')} · ${String(shift.start_time || '')}`, inline: false },
+            { name: '⏱️ Interval', value: `${String(shift.start_time || '')} - ${String(shift.end_time || '')}`, inline: false },
+            { name: '⏳ Timp Total Lucrat', value: `**${formatDuration(seconds)}**`, inline: true },
+            { name: '📝 Motiv', value: reason, inline: false },
+          ], timestamp: finishedAt.toISOString(),
+        }] },
+      });
       if (!delivery.results.length) throw new Error(delivery.failures.join(' | ') || 'Discord nu a acceptat notificarea.');
       const nextMessageIds = { ...logMessageIds, ...Object.fromEntries(delivery.results.filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)])) };
       await supabase.from('shifts').update({

@@ -126,7 +126,13 @@ Deno.serve(async (request) => {
         discordSettings,
         'log_comenzi',
         JSON.stringify(orderDiscordPayload(data)),
-        { headers: { 'Content-Type': 'application/json' }, postOnly: true },
+        {
+          headers: { 'Content-Type': 'application/json' },
+          postOnly: true,
+          organizationId,
+          messageKey: `order-${String(data.id)}`,
+          retryPayload: orderDiscordPayload(data),
+        },
       );
       if (!delivery.results.length) throw new Error(delivery.failures.join(' | ') || 'Cererea nu a putut fi trimisă pe Discord.');
       return reply({ ok: true, order: data, discord: delivery });
@@ -152,7 +158,13 @@ Deno.serve(async (request) => {
           discordSettings,
           'log_comenzi',
           JSON.stringify(orderStatusDiscordPayload(data)),
-          { headers: { 'Content-Type': 'application/json' }, postOnly: true },
+          {
+            headers: { 'Content-Type': 'application/json' },
+            postOnly: true,
+            organizationId,
+            messageKey: `order-${String(data.id)}-review-${status}`,
+            retryPayload: orderStatusDiscordPayload(data),
+          },
         );
       } else {
         discord.failures = ['Canalul Discord pentru Log comenzi nu este configurat.'];

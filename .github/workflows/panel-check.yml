@@ -35,8 +35,22 @@ jobs:
           test -f supabase/migrations/20260813000300_shifts_history_composite_index.sql
           test ! -f supabase/MASTER-MULTI-ORGANIZATIE.sql
 
+      - name: Validate Supabase Function TypeScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            npx --yes esbuild "$file" --loader:.ts=ts --format=esm --outfile=/dev/null --log-level=error
+          done < <(find supabase/functions -type f -name '*.ts' -print0)
+
       - name: Validate inline JavaScript and deployment parity
         run: node tools/validate-panel.mjs
+
+      - name: Validate Discord delivery and automation contracts
+        run: node tools/validate-discord-stability.mjs
+
+      - name: Audit approved Panel Pro upgrades
+        run: node tools/validate-panel-upgrades.mjs
 
       - name: Audit npm dependencies
         run: npm audit --omit=dev --audit-level=high

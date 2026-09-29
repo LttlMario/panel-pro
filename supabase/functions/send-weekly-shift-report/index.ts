@@ -270,7 +270,11 @@ Deno.serve(async (request) => {
           },
         ];
 
-        const delivery = await deliverDiscordRoute(db, settings, 'weekly_reports', JSON.stringify({ allowed_mentions: { parse: [] }, embeds }));
+        const delivery = await deliverDiscordRoute(db, settings, 'weekly_reports', JSON.stringify({ allowed_mentions: { parse: [] }, embeds }), {
+          organizationId: String(organization.id),
+          messageKey: `weekly-shift-report-${period.start}-${period.end}`,
+          retryPayload: { allowed_mentions: { parse: [] }, embeds },
+        });
         const failures: string[] = delivery.failures || [];
         if (!delivery.results.length) throw new Error(failures.join(' | ') || 'Discord nu a acceptat raportul.');
         const { data: resetRows, error: resetError } = await db.from('shifts').delete().eq('organization_id', organization.id).eq('status', 'completed').gte('date', period.start).lte('date', period.end).select('id');

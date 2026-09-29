@@ -84,11 +84,11 @@ function buildCsv(ranking: any[]) {
   return `\ufeff${rows.map((row) => row.map(csvCell).join(',')).join('\n')}`;
 }
 
-async function sendReport(db: any, settings: any, embed: any, csv: string, filename: string) {
+async function sendReport(db: any, settings: any, embed: any, csv: string, filename: string, organizationId: string, messageKey: string) {
   const form = new FormData();
   form.append('payload_json', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [embed] }));
   form.append('files[0]', new Blob([csv], { type: 'text/csv;charset=utf-8' }), filename);
-  return deliverDiscordRoute(db, settings, 'actions_organization_weekly', form, { fallbackRouteKey: 'actions_organization' });
+  return deliverDiscordRoute(db, settings, 'actions_organization_weekly', form, { fallbackRouteKey: 'actions_organization', organizationId, messageKey });
 }
 
 Deno.serve(async (request) => {
@@ -126,7 +126,7 @@ Deno.serve(async (request) => {
         const lines = ranking.slice(0, 15).map((person, index) => `${index + 1}. **${person.name}** — ${person.participations} participări · ${person.actions.size} acțiuni distincte`);
         const description = `Perioada: **${period.startDate} – ${period.endDate}**\nAcțiuni înregistrate: **${rows.length}** · Participări: **${totalParticipations}** · Persoane implicate: **${ranking.length}**\n\n${lines.join('\n') || 'Nu există participanți selectați.'}${ranking.length > 15 ? `\n…și încă ${ranking.length - 15} persoane.` : ''}`;
         const embeds = [{ title: `🏆 Clasament implicare · ${organization.name || 'Organizație'}`, description: description.slice(0, 4000), color: 16753920, timestamp: now.toISOString(), footer: { text: 'Panel Pro · Raport automat Acțiuni' } }];
-        const delivery = await sendReport(db, settings, embeds[0], buildCsv(ranking), `clasament-actiuni-${period.startDate}-${period.endDate}.csv`);
+        const delivery = await sendReport(db, settings, embeds[0], buildCsv(ranking), `clasament-actiuni-${period.startDate}-${period.endDate}.csv`, String(organization.id), `weekly-action-report-${period.startDate}-${period.endDate}`);
         const failures = delivery.failures || [];
         if (!delivery.results.length) throw new Error(failures.join(' | ') || 'Discord nu a acceptat raportul.');
         await finishRun(db, runId, 'sent', failures.length ? `Unele destinații Discord au eșuat: ${failures.join(' | ')}` : null);

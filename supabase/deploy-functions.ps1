@@ -29,6 +29,8 @@ $functions = @(
     'manage-stash',
     'manage-orders',
     'send-discord-notification',
+    'discord-delivery-retry',
+    'discord-route-health',
     'close-expired-shifts',
     'send-weekly-shift-report',
     'send-weekly-contract-export',

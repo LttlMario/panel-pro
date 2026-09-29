@@ -826,7 +826,11 @@ async function resolveWheelContext(db: any, interaction: any) {
   // dacă ea este salvată pe oricare dintre cele două ținte.
   const configured = wheelRoutes?.[target]?.channel_id === channelId
     ? wheelRoutes[target]
-    : Object.values(wheelRoutes).find((route: any) => String(route?.channel_id || '') === channelId);
+    : Object.values(wheelRoutes).find((route: any) => String(route?.channel_id || '') === channelId)
+      // Compatibilitate pentru embedurile Roată publicate înainte ca ruta
+      // dedicată wheel_timer să fie separată de ruta evenimentelor.
+      || Object.values(settings?.discord_channel_routes?.event_reminders || {}).find((route: any) => String(route?.channel_id || '') === channelId)
+      || Object.values(settings?.discord_channel_routes?.log_event_reminders || {}).find((route: any) => String(route?.channel_id || '') === channelId);
   if (!configured || configured.enabled === false) throw new Error('Acest canal nu este configurat pentru embedul Roată.');
   return { guildId, channelId, target, discordId, organization, settings };
 }
@@ -916,7 +920,7 @@ async function deliverGlobalMarketplaceResult(db: any, routeKey: string, body: B
   for (const settings of settingsRows || []) {
     if (!routeCandidates(settings, routeKey).some((item: any) => item.candidates.length)) continue;
     try {
-      const delivery = await deliverDiscordRoute(db, settings, routeKey, body, { postOnly: true });
+      const delivery = await deliverDiscordRoute(db, settings, routeKey, body, { postOnly: true, organizationId: String(settings.organization_id), messageKey: `global-${routeKey}-${crypto.randomUUID()}` });
       results.push(...delivery.results.map((item: any) => ({ ...item, organization_id: settings.organization_id })));
       failures.push(...delivery.failures.map((failure: string) => `${settings.organization_id}: ${failure}`));
     } catch (error) {
@@ -950,7 +954,7 @@ async function handleReminderSubmit(db: any, context: any, values: Record<string
   const { data, error } = await db.from('organization_events').insert({ organization_id: context.organization.id, title: title.slice(0, 160), event_type: String(values.event_type || 'other').slice(0, 40), event_date: eventDate, details: String(values.details || '').slice(0, 5000), evidence_url: String(values.evidence_url || '').trim() || null, status: 'active', created_by_discord_id: context.discordId }).select('id,title,event_date').single();
   if (error) throw error;
   const payload = { allowed_mentions: { parse: [] }, embeds: [{ title: `🗓️ Eveniment nou · ${data.title}`, description: String(values.details || 'Fără detalii.').slice(0, 4096), color: 0xf59e0b, fields: [{ name: 'Data', value: String(data.event_date), inline: true }, { name: 'Tip', value: String(values.event_type || 'other'), inline: true }], timestamp: new Date().toISOString() }] };
-  const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify(payload), { postOnly: true });
+  const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify(payload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `event-${String(data.id)}`, retryPayload: payload });
   if (!delivery.results?.length) throw new Error('Evenimentul a fost salvat, dar logul Discord nu a putut fi trimis.');
   return interactionMessage('Evenimentul a fost salvat și trimis în canalul de log.');
 }
@@ -968,7 +972,7 @@ async function handleWeeklyReport(db: any, context: any) {
   const employeeMap = new Map((employees || []).map((employee: any) => [String(employee.id), employee]));
   const lines = ids.map((id) => employeeMap.get(id)).filter(Boolean).map((employee: any) => `${employee.status === 'inactive' ? '🔴' : '🟢'} ${String(employee.full_name || 'Angajat').slice(0, 100)} · CNP ${String(employee.cnp || '—')}`);
   const payload = { allowed_mentions: { parse: [] }, embeds: [{ title: '📋 Raport săptămânal · Contracte', description: lines.join('\n').slice(0, 4000) || 'Nu există contracte în ultimele 7 zile.', color: 0x14b8a6, fields: [{ name: 'Perioadă', value: `${start.toISOString().slice(0, 10)} – ${end.toISOString().slice(0, 10)}`, inline: true }, { name: 'Înregistrări', value: String(lines.length), inline: true }], footer: { text: 'Panel Pro · raport generat din baza web' }, timestamp: end.toISOString() }] };
-  const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify(payload), { postOnly: true });
+  const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify(payload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `weekly-contract-report-${start.toISOString().slice(0, 10)}`, retryPayload: payload });
   if (!delivery.results?.length) throw new Error(delivery.failures?.join(' | ') || 'Raportul nu a putut fi trimis în canalul de log.');
   return interactionMessage('Raportul săptămânal a fost generat și trimis în canalul de log.');
 }
@@ -1056,7 +1060,8 @@ async function saveCommunityMessageRefs(db: any, organizationId: string, postId:
 
 async function syncCommunityPostDiscord(db: any, context: any, data: any) {
   const messageIds = communityMessageRefs(data.post);
-  const delivery = await deliverDiscordRoute(db, context.settings, context.routeKey, communityPayload({ ...data, settings: context.settings }), { messageIds });
+  const communityBody = communityPayload({ ...data, settings: context.settings });
+  const delivery = await deliverDiscordRoute(db, context.settings, context.routeKey, communityBody, { messageIds, organizationId: String(context.organization.id), messageKey: `community-post-${String(data.post.id)}`, retryPayload: JSON.parse(communityBody) });
   await saveCommunityMessageRefs(db, String(context.organization.id), String(data.post.id), delivery.results || []);
   return delivery;
 }
@@ -1084,7 +1089,7 @@ async function sendAnnouncementLog(db: any, context: any, post: any, action: str
   const type = post?.post_type === 'poll' ? 'Sondaj' : post?.post_type === 'question' ? 'Întrebare' : 'Anunț';
   const audience = context.audience === 'organization' ? 'Organizație' : 'Angajați';
   try {
-    const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{
+    const payload = { allowed_mentions: { parse: [] }, embeds: [{
       title: `📝 ${action} · ${audience}`,
       color: action.toLowerCase().includes('șters') ? 0xef4444 : 0x64748b,
       fields: [
@@ -1095,7 +1100,8 @@ async function sendAnnouncementLog(db: any, context: any, post: any, action: str
       ],
       footer: { text: `Panel Pro · Log anunțuri · ${audience}` },
       timestamp: new Date().toISOString(),
-    }] }));
+    }] };
+    const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify(payload), { organizationId: String(context.organization.id), messageKey: `community-log-${String(post.id)}-${String(action).toLowerCase()}`, retryPayload: payload });
     return delivery;
   } catch (error) {
     console.error('[discord-interactions] announcement log failed', error);
@@ -1429,7 +1435,7 @@ async function handleContractPublish(db: any, context: any, contractId: string) 
     allowed_mentions: { parse: [] },
     embeds: [contractEmbed(contract, context.organization, 'Contract nou', 'Atașează imaginile cu buletinul și contractul sub acest mesaj.')]
   });
-  const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, payload, { postOnly: true });
+  const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, payload, { postOnly: true, organizationId: String(context.organization.id), messageKey: `contract-${String(contract.id)}`, retryPayload: JSON.parse(payload) });
   const messageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [String(item.target), String(item.id)]));
   if (Object.keys(messageIds).length) {
     const firstMessageId = Object.values(messageIds)[0] as string;
@@ -1451,7 +1457,7 @@ async function sendDisciplineDiscord(db: any, context: any, kind: 'warning' | 's
   const destinations = routeCandidates(context.settings, routeKey);
   if (!destinations.some((item: any) => item.candidates.length)) throw new Error(`Canalul Discord pentru ${routeKey} nu este configurat.`);
   const payload = JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [disciplineEmbed(record, kind, context, action)], components: disciplineComponents(context.audience, kind, String(record.id)) });
-  const delivery = await deliverDiscordRoute(db, context.settings, routeKey, payload, { messageIds: record.discord_message_id ? { [context.target]: String(record.discord_message_id) } : {} });
+  const delivery = await deliverDiscordRoute(db, context.settings, routeKey, payload, { messageIds: record.discord_message_id ? { [context.target]: String(record.discord_message_id) } : {}, organizationId: String(context.organization.id), messageKey: `discipline-${kind}-${String(record.id)}`, retryPayload: JSON.parse(payload) });
   return delivery.results?.[0]?.id || null;
 }
 
@@ -1497,7 +1503,8 @@ async function publishActionRecord(db: any, context: any, record: any) {
   const routeKey = 'log_announcements_organization';
   const destinations = routeCandidates(context.settings, routeKey);
   if (!destinations.some((item: any) => item.candidates.length)) return interactionMessage('Acțiunea a fost salvată în Supabase, dar canalul „Log anunțuri organizație” nu este configurat.');
-  const delivery = await deliverDiscordRoute(db, context.settings, routeKey, JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [actionEmbed(record, context)], components: actionComponents(String(record.id)) }));
+  const actionPayload = { allowed_mentions: { parse: [] }, embeds: [actionEmbed(record, context)], components: actionComponents(String(record.id)) };
+  const delivery = await deliverDiscordRoute(db, context.settings, routeKey, JSON.stringify(actionPayload), { organizationId: String(context.organization.id), messageKey: `action-${String(record.id)}`, retryPayload: actionPayload });
   const messageId = delivery.results?.[0]?.id || null;
   if (messageId) await db.from('organization_actions').update({ discord_message_id: messageId }).eq('organization_id', context.organization.id).eq('id', record.id);
   return interactionMessage(`Acțiunea a fost salvată și publicată în ${delivery.results.length || 0} canal Discord.`);
@@ -1628,7 +1635,8 @@ function stashApprovalEmbed(kind: 'request' | 'donation', row: any) {
 }
 
 async function publishStashApproval(db: any, context: any, kind: 'request' | 'donation', row: any) {
-  const delivery = await deliverDiscordRoute(db, context.settings, 'stash', JSON.stringify(stashApprovalEmbed(kind, row)), { postOnly: true });
+  const payload = stashApprovalEmbed(kind, row);
+  const delivery = await deliverDiscordRoute(db, context.settings, 'stash', JSON.stringify(payload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `stash-${kind}-pending-${String(row.id)}`, retryPayload: payload });
   return delivery.results?.length || 0;
 }
 
@@ -1646,7 +1654,8 @@ async function handleStashDecision(db: any, context: any, kind: 'request' | 'don
   if (kind === 'request') {
     const { data, error } = await db.from('organization_stash_requests').update({ status: decision, handled_by_discord_id: context.discordId, handled_by_name: context.displayName, handled_at: now, updated_at: now }).eq('organization_id', context.organization.id).eq('id', id).eq('status', 'pending').select('*').single();
     if (error) throw error;
-    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: decision === 'approved' ? '✅ Cerere Stash aprobată' : '❌ Cerere Stash respinsă', fields: [{ name: 'Articol', value: String(data.item_title), inline: true }, { name: 'Număr iteme', value: String(data.quantity), inline: true }, { name: 'Solicitat de', value: String(data.requested_by_name), inline: true }, { name: 'Status', value: decision === 'approved' ? 'Aprobată' : 'Respinsă', inline: true }], color: decision === 'approved' ? 0x22c55e : 0xef4444, timestamp: now }] }), { postOnly: true });
+    const payload = { allowed_mentions: { parse: [] }, embeds: [{ title: decision === 'approved' ? '✅ Cerere Stash aprobată' : '❌ Cerere Stash respinsă', fields: [{ name: 'Articol', value: String(data.item_title), inline: true }, { name: 'Număr iteme', value: String(data.quantity), inline: true }, { name: 'Solicitat de', value: String(data.requested_by_name), inline: true }, { name: 'Status', value: decision === 'approved' ? 'Aprobată' : 'Respinsă', inline: true }], color: decision === 'approved' ? 0x22c55e : 0xef4444, timestamp: now }] };
+    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash', JSON.stringify(payload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `stash-request-${String(data.id)}-${decision}`, retryPayload: payload });
     const messageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
     if (Object.keys(messageIds).length) await db.from('organization_stash_requests').update({ discord_message_ids: messageIds }).eq('organization_id', context.organization.id).eq('id', id);
     return interactionMessage(`Cererea a fost ${decision === 'approved' ? 'aprobată' : 'respinsă'} și logul a fost actualizat.`);
@@ -1656,16 +1665,19 @@ async function handleStashDecision(db: any, context: any, kind: 'request' | 'don
     if (itemError) throw itemError;
     const { data: donation, error } = await db.from('organization_stash_donations').update({ status: 'approved', reviewed_by_discord_id: context.discordId, reviewed_by_name: context.displayName, reviewed_at: now, stash_item_id: item.id, updated_at: now }).eq('organization_id', context.organization.id).eq('id', id).eq('status', 'pending').select('*').single();
     if (error) throw error;
-    const itemDelivery = await deliverDiscordRoute(db, context.settings, 'log_stash', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '✅ Donație aprobată și adăugată în Stash', fields: [{ name: 'Articol', value: String(item.title), inline: true }, { name: 'Categorie', value: String(item.category), inline: true }, { name: 'Număr iteme', value: String(item.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Disponibil', inline: true }], color: 0x22c55e, timestamp: now }], components: [{ type: 1, components: [{ type: 2, style: 4, label: 'Șterge articolul', custom_id: `panel:stash:delete_item:${item.id}` }] }] }), { postOnly: true });
+    const itemPayload = { allowed_mentions: { parse: [] }, embeds: [{ title: '✅ Donație aprobată și adăugată în Stash', fields: [{ name: 'Articol', value: String(item.title), inline: true }, { name: 'Categorie', value: String(item.category), inline: true }, { name: 'Număr iteme', value: String(item.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Disponibil', inline: true }], color: 0x22c55e, timestamp: now }], components: [{ type: 1, components: [{ type: 2, style: 4, label: 'Șterge articolul', custom_id: `panel:stash:delete_item:${item.id}` }] }] };
+    const itemDelivery = await deliverDiscordRoute(db, context.settings, 'log_stash', JSON.stringify(itemPayload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `stash-item-${String(item.id)}-approved`, retryPayload: itemPayload });
     const itemMessageIds = Object.fromEntries((itemDelivery.results || []).filter((entry: any) => entry.id).map((entry: any) => [entry.target, String(entry.id)]));
     if (Object.keys(itemMessageIds).length) await db.from('organization_stash_items').update({ discord_message_ids: itemMessageIds }).eq('organization_id', context.organization.id).eq('id', item.id);
-    const donationDelivery = await deliverDiscordRoute(db, context.settings, 'log_stash', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '✅ Donație Stash aprobată', fields: [{ name: 'Articol', value: String(donation.title), inline: true }, { name: 'Număr iteme', value: String(donation.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Aprobată', inline: true }], color: 0x22c55e, timestamp: now }] }), { postOnly: true });
+    const donationPayload = { allowed_mentions: { parse: [] }, embeds: [{ title: '✅ Donație Stash aprobată', fields: [{ name: 'Articol', value: String(donation.title), inline: true }, { name: 'Număr iteme', value: String(donation.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Aprobată', inline: true }], color: 0x22c55e, timestamp: now }] };
+    const donationDelivery = await deliverDiscordRoute(db, context.settings, 'log_stash', JSON.stringify(donationPayload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `stash-donation-${String(donation.id)}-approved`, retryPayload: donationPayload });
     const donationMessageIds = Object.fromEntries((donationDelivery.results || []).filter((entry: any) => entry.id).map((entry: any) => [entry.target, String(entry.id)]));
     if (Object.keys(donationMessageIds).length) await db.from('organization_stash_donations').update({ discord_message_ids: donationMessageIds }).eq('organization_id', context.organization.id).eq('id', id);
   } else {
     const { data: donation, error } = await db.from('organization_stash_donations').update({ status: 'rejected', reviewed_by_discord_id: context.discordId, reviewed_by_name: context.displayName, reviewed_at: now, updated_at: now }).eq('organization_id', context.organization.id).eq('id', id).eq('status', 'pending').select('*').single();
     if (error) throw error;
-    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '❌ Donație Stash respinsă', fields: [{ name: 'Articol', value: String(donation.title), inline: true }, { name: 'Număr iteme', value: String(donation.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Respinsă', inline: true }], color: 0xef4444, timestamp: now }] }), { postOnly: true });
+    const payload = { allowed_mentions: { parse: [] }, embeds: [{ title: '❌ Donație Stash respinsă', fields: [{ name: 'Articol', value: String(donation.title), inline: true }, { name: 'Număr iteme', value: String(donation.quantity), inline: true }, { name: 'Donat de', value: String(donation.donated_by_name), inline: true }, { name: 'Status', value: 'Respinsă', inline: true }], color: 0xef4444, timestamp: now }] };
+    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash', JSON.stringify(payload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `stash-donation-${String(donation.id)}-rejected`, retryPayload: payload });
     const messageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
     if (Object.keys(messageIds).length) await db.from('organization_stash_donations').update({ discord_message_ids: messageIds }).eq('organization_id', context.organization.id).eq('id', id);
   }
@@ -1681,7 +1693,8 @@ async function handleStashSubmit(db: any, context: any, kind: 'item' | 'request'
     if (title.length < 2) return interactionMessage('Numele articolului este obligatoriu.');
     const { data, error } = await db.from('organization_stash_items').insert({ organization_id: context.organization.id, title, category: String(values.category || 'General').trim(), quantity, unit: 'buc.', description: String(values.description || '').trim(), status: 'available', source_type: 'manual', created_by_discord_id: context.discordId, created_by_name: context.displayName, updated_by_discord_id: context.discordId, created_at: now, updated_at: now }).select('*').single();
     if (error) throw error;
-    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{ title: '📦 Articol nou în Stash', color: 0x22c55e, fields: [{ name: 'Articol', value: title, inline: true }, { name: 'Categorie', value: String(values.category || 'General').trim(), inline: true }, { name: 'Număr iteme', value: String(quantity), inline: true }, { name: 'Status', value: 'Disponibil', inline: true }, { name: 'Detalii', value: String(values.description || '').trim() || 'Fără detalii.', inline: false }, { name: 'Retrageri recente', value: 'Nu au fost înregistrate retrageri.', inline: false }], footer: { text: `Postat de ${context.displayName}` }, timestamp: now }], components: [{ type: 1, components: [{ type: 2, style: 4, label: 'Șterge articolul', custom_id: `panel:stash:delete_item:${data.id}` }] }] }), { postOnly: true });
+    const payload = { allowed_mentions: { parse: [] }, embeds: [{ title: '📦 Articol nou în Stash', color: 0x22c55e, fields: [{ name: 'Articol', value: title, inline: true }, { name: 'Categorie', value: String(values.category || 'General').trim(), inline: true }, { name: 'Număr iteme', value: String(quantity), inline: true }, { name: 'Status', value: 'Disponibil', inline: true }, { name: 'Detalii', value: String(values.description || '').trim() || 'Fără detalii.', inline: false }, { name: 'Retrageri recente', value: 'Nu au fost înregistrate retrageri.', inline: false }], footer: { text: `Postat de ${context.displayName}` }, timestamp: now }], components: [{ type: 1, components: [{ type: 2, style: 4, label: 'Șterge articolul', custom_id: `panel:stash:delete_item:${data.id}` }] }] };
+    const delivery = await deliverDiscordRoute(db, context.settings, 'log_stash', JSON.stringify(payload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `stash-item-${String(data.id)}-created`, retryPayload: payload });
     const itemMessageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
     if (Object.keys(itemMessageIds).length) await db.from('organization_stash_items').update({ discord_message_ids: itemMessageIds }).eq('organization_id', context.organization.id).eq('id', data.id);
     return interactionMessage(`Articolul **${data.title}** a fost adăugat în Stash.${delivery.results.length ? '' : `\n⚠️ Logul nu a fost trimis: ${delivery.failures.join(' | ')}`}`);
@@ -1763,7 +1776,8 @@ async function saveAbsenceLogMessageIds(db: any, organizationId: string, absence
 
 async function sendAbsenceLog(db: any, context: any, absence: any, title = 'Învoire nouă', messageIds: Record<string, string> = {}) {
   try {
-    const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [requestEmbed(absence, context, title)] }), { messageIds, messageIdsOnly: true });
+    const absencePayload = { allowed_mentions: { parse: [] }, embeds: [requestEmbed(absence, context, title)] };
+    const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, JSON.stringify(absencePayload), { messageIds, messageIdsOnly: true, organizationId: String(context.organization.id), messageKey: `absence-${String(absence.id)}`, retryPayload: absencePayload });
     const nextMessageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
     await saveAbsenceLogMessageIds(db, String(context.organization.id), String(absence.id), nextMessageIds);
     return { error: delivery.results.length ? '' : delivery.failures.join(' | '), messageIds: nextMessageIds };
@@ -1843,7 +1857,8 @@ async function handleAnnouncementSubmit(db: any, context: any, interaction: any,
   }
   const data = await loadCommunityPost(db, String(context.organization.id), String(created.id));
   try {
-    const delivery = await deliverDiscordRoute(db, context.settings, context.routeKey, communityPayload({ ...data, settings: context.settings }));
+    const communityBody = communityPayload({ ...data, settings: context.settings });
+    const delivery = await deliverDiscordRoute(db, context.settings, context.routeKey, communityBody, { organizationId: String(context.organization.id), messageKey: `community-post-${String(created.id)}`, retryPayload: JSON.parse(communityBody) });
     await saveCommunityMessageRefs(db, String(context.organization.id), String(created.id), delivery.results || []);
     return interactionMessage(`Postarea a fost salvată și publicată în ${delivery.results.length} canal${delivery.results.length === 1 ? '' : 'e'} Discord.`);
   } catch (error) {
@@ -1967,11 +1982,12 @@ function shiftLogEmbed(shift: any, context: any, action: 'started' | 'paused' | 
   };
 }
 
-async function sendActionNotification(db: any, settings: any, embed: any, messageIds: Record<string, string> = {}) {
+async function sendActionNotification(db: any, settings: any, embed: any, messageIds: Record<string, string> = {}, organizationId = '', messageKey = '') {
   const destinations = routeCandidates(settings, 'log_pontaj');
   if (!destinations.some((item) => item.candidates.length)) return { error: 'Canalul „Log pontaj” nu este configurat pentru această organizație.', messageIds: {} };
   try {
-    const delivery = await deliverDiscordRoute(db, settings, 'log_pontaj', JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [embed] }), { messageIds, messageIdsOnly: true });
+    const pontajPayload = { allowed_mentions: { parse: [] }, embeds: [embed] };
+    const delivery = await deliverDiscordRoute(db, settings, 'log_pontaj', JSON.stringify(pontajPayload), { messageIds, messageIdsOnly: true, organizationId, messageKey, retryPayload: pontajPayload });
     const nextMessageIds = Object.fromEntries(delivery.results.filter((item: any) => item.id).map((item: any) => [item.target, String(item.id)]));
     return { error: delivery.results.length > 0 ? '' : delivery.failures.join(' | ') || 'Discord nu a acceptat mesajul.', messageIds: nextMessageIds };
   } catch (error) {
@@ -2114,7 +2130,7 @@ async function handleButton(db: any, interaction: any, context: any, action: str
       : String(pontajSetting?.value?.dayEndTime || '19:59');
     const { data: created, error } = await db.from('shifts').insert({ organization_id: orgId, discord_id: context.discordId, colleague_name: context.displayName, date: romanianDate(now), start_time: romanianTime(now), end_time: null, duration: '00:00:00', duration_ms: 0, shift_type: shiftType, status: 'active', started_at: now.toISOString(), auto_stop_at: shiftDeadline(shiftType, now, configuredTime).toISOString(), paused_seconds: 0, paused_at: null, stop_reason: null, created_at: now.toISOString(), updated_at: now.toISOString() }).select('*').single();
     if (error) throw error;
-    const logResult = await sendActionNotification(db, context.settings, shiftLogEmbed(created, context, 'started', now));
+    const logResult = await sendActionNotification(db, context.settings, shiftLogEmbed(created, context, 'started', now), {}, String(context.organization.id), `shift-${String(created.id)}`);
     if (logResult?.messageIds) await saveLogMessageIds(db, orgId, String(created.id), logResult.messageIds);
     await updateControlPanel(db, context, interaction.message, `a pornit tura de ${shiftType}`);
     return interactionMessage(`Pontaj pornit: tura de **${shiftType}**.\nSe oprește automat la ora configurată în panel.${logResult?.error ? `\n⚠️ Logul Discord nu a fost trimis: ${logResult.error}` : ''}`);
@@ -2128,7 +2144,7 @@ async function handleButton(db: any, interaction: any, context: any, action: str
     const { data, error } = await db.from('shifts').update(update).eq('id', current.id).eq('organization_id', orgId).in('status', ['active', 'paused']).select('*').single();
     if (error) throw error;
     const paused = data.status === 'paused';
-    const logResult = await sendActionNotification(db, context.settings, shiftLogEmbed(data, context, paused ? 'paused' : 'resumed', now), current.discord_log_message_ids || {});
+    const logResult = await sendActionNotification(db, context.settings, shiftLogEmbed(data, context, paused ? 'paused' : 'resumed', now), current.discord_log_message_ids || {}, String(context.organization.id), `shift-${String(current.id)}`);
     if (logResult?.messageIds) await saveLogMessageIds(db, orgId, String(current.id), logResult.messageIds);
     await updateControlPanel(db, context, interaction.message, paused ? 'a pus tura pe pauză' : 'a reluat tura');
     return interactionMessage(`${paused ? 'Tura a fost pusă pe pauză.' : 'Tura a fost reluată.'}${logResult?.error ? `\n⚠️ Logul Discord nu a fost trimis: ${logResult.error}` : ''}`);
@@ -2139,7 +2155,7 @@ async function handleButton(db: any, interaction: any, context: any, action: str
   const { data, error } = await db.from('shifts').update(update).eq('id', current.id).eq('organization_id', orgId).in('status', ['active', 'paused']).select('*').maybeSingle();
   if (error) throw error;
   if (!data) return interactionMessage('Tura a fost deja închisă sau nu mai este disponibilă.');
-  const logResult = await sendActionNotification(db, context.settings, shiftLogEmbed(data, context, 'completed', now), current.discord_log_message_ids || {});
+  const logResult = await sendActionNotification(db, context.settings, shiftLogEmbed(data, context, 'completed', now), current.discord_log_message_ids || {}, String(context.organization.id), `shift-${String(current.id)}`);
   if (logResult?.messageIds) await saveLogMessageIds(db, orgId, String(current.id), logResult.messageIds);
   await updateControlPanel(db, context, interaction.message, 'a oprit pontajul');
   return interactionMessage(`Pontaj oprit. Timp lucrat: **${data.duration}**.${logResult?.error ? `\n⚠️ Logul Discord nu a fost trimis: ${logResult.error}` : ''}`);
@@ -2200,7 +2216,8 @@ Deno.serve(async (request) => {
             if (!syncResponse.ok) throw new Error(String(syncData?.error || 'Statusul live nu a putut fi publicat.'));
             return interactionMessage(`Statusul live a fost publicat și va fi actualizat automat. În pontaj: **${Number(syncData.active || 0)}**, în pauză: **${Number(syncData.paused || 0)}**.`);
           }
-          await deliverDiscordRoute(db, { discord_channel_routes: settings.discord_channel_routes }, routeKey, JSON.stringify(controlPayload(routeKey, trialText, !premiumActive)), { postOnly: true });
+          const panelPayload = controlPayload(routeKey, trialText, !premiumActive);
+          await deliverDiscordRoute(db, { discord_channel_routes: settings.discord_channel_routes }, routeKey, JSON.stringify(panelPayload), { postOnly: true, organizationId: String(guild.organization_id), messageKey: `${routeKey}-control`, retryPayload: panelPayload });
           return interactionMessage(`Embedul **${PANEL_ROUTE_LABELS[routeKey]}** a fost publicat în <#${route.channel_id}>.`);
         }, 'Embedul nu a putut fi publicat.');
       }

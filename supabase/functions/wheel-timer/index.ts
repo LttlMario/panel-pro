@@ -41,8 +41,10 @@ async function notifyDiscord(db: any, discordId: string, content: string) {
 
 async function processDueTimers(db: any, discordId?: string, organizationId?: string) {
   const now = new Date();
+  const nowIso = now.toISOString();
+  const staleClaimIso = new Date(now.getTime() - 10 * 60 * 1000).toISOString();
   let query = db.from('wheel_timers')
-    .select('id,organization_id,discord_id,completes_at,completed_at')
+    .select('id,organization_id,discord_id,completes_at,completed_at,status,notification_claimed_at,notification_sent_at,notification_attempts,notification_next_attempt_at')
     .or(`and(status.eq.active,completes_at.lte.${now.toISOString()}),and(status.eq.completed,notification_sent_at.is.null)`)
     .order('completes_at', { ascending: true })
     .limit(100);
@@ -52,23 +54,52 @@ async function processDueTimers(db: any, discordId?: string, organizationId?: st
   if (error) throw error;
   const results = [];
   for (const timer of timers || []) {
+    if (Number(timer.notification_attempts || 0) >= 3 && !timer.notification_sent_at) continue;
+    const nextAttemptAt = timer.notification_next_attempt_at ? Date.parse(String(timer.notification_next_attempt_at)) : NaN;
+    if (Number.isFinite(nextAttemptAt) && nextAttemptAt > now.getTime()) continue;
+    const claimedAt = timer.notification_claimed_at ? Date.parse(String(timer.notification_claimed_at)) : NaN;
+    if (Number.isFinite(claimedAt) && claimedAt > now.getTime() - 10 * 60 * 1000) continue;
+    const nextAttempt = Number(timer.notification_attempts || 0) + 1;
+    const claim = await db.from('wheel_timers').update({
+      status: 'completed',
+      completed_at: timer.completed_at || nowIso,
+      notification_claimed_at: nowIso,
+      notification_attempts: nextAttempt,
+      notification_next_attempt_at: new Date(now.getTime() + 10 * 60 * 1000).toISOString(),
+    }).eq('id', timer.id).is('notification_sent_at', null)
+      .or(`notification_claimed_at.is.null,notification_claimed_at.lt.${staleClaimIso}`)
+      .select('id').maybeSingle();
+    if (claim.error || !claim.data) continue;
     const message = '🎡 Au trecut cele 6 ore de la roată. Poți apăsa din nou „Am dat la roată” din dashboard.';
     let notificationError = '';
     let discordSent = false;
     try { discordSent = await notifyDiscord(db, String(timer.discord_id), message); } catch (error) { notificationError = error instanceof Error ? error.message : 'Notificarea Discord a eșuat.'; }
     try {
-      const { error: webError } = await db.from('panel_notifications').insert({
-        organization_id: timer.organization_id,
-        title: 'Timer roată finalizat',
-        message,
-        level: 'success',
-        notification_type: 'wheel_timer',
-        recipient_discord_id: timer.discord_id,
-      });
-      if (webError) notificationError = [notificationError, webError.message].filter(Boolean).join(' | ');
+      const { data: existingWebNotification, error: readWebError } = await db.from('panel_notifications').select('id')
+        .eq('organization_id', timer.organization_id)
+        .eq('notification_type', 'wheel_timer')
+        .eq('recipient_discord_id', timer.discord_id)
+        .contains('metadata', { wheel_timer_id: timer.id })
+        .limit(1).maybeSingle();
+      if (readWebError) notificationError = [notificationError, readWebError.message].filter(Boolean).join(' | ');
+      if (!readWebError && !existingWebNotification) {
+        const { error: webError } = await db.from('panel_notifications').insert({
+          organization_id: timer.organization_id,
+          title: 'Timer roată finalizat',
+          message,
+          level: 'success',
+          notification_type: 'wheel_timer',
+          recipient_discord_id: timer.discord_id,
+          metadata: { wheel_timer_id: timer.id },
+        });
+        if (webError) notificationError = [notificationError, webError.message].filter(Boolean).join(' | ');
+      }
     } catch (error) { notificationError = [notificationError, error instanceof Error ? error.message : 'Notificarea web a eșuat.'].filter(Boolean).join(' | '); }
     const { error: updateError } = await db.from('wheel_timers').update({
-      status: 'completed', completed_at: timer.completed_at || now.toISOString(), notification_sent_at: discordSent ? now.toISOString() : null,
+      status: 'completed', completed_at: timer.completed_at || nowIso,
+      notification_sent_at: discordSent ? nowIso : null,
+      notification_claimed_at: null,
+      notification_next_attempt_at: discordSent ? null : new Date(now.getTime() + 10 * 60 * 1000).toISOString(),
       notification_error: notificationError || null,
     }).eq('id', timer.id);
     if (updateError) throw updateError;

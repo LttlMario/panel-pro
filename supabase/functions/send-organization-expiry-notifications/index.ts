@@ -175,7 +175,11 @@ Deno.serve(async (request) => {
           }],
         });
 
-        const delivery = await deliverDiscordRoute(db, settings, 'organization_expiration', payload);
+        const delivery = await deliverDiscordRoute(db, settings, 'organization_expiration', payload, {
+          organizationId,
+          messageKey: `organization-expiration-${thresholdDays}-${String(organizationId)}`,
+          retryPayload: JSON.parse(payload),
+        });
         const failures: string[] = delivery.failures || [];
         if (!delivery.results.length) throw new Error(failures.join(' | ') || 'Discord nu a acceptat notificarea.');
         await finishRun(db, runId, 'sent', failures.length ? `Unele canale Discord au eșuat: ${failures.join(' | ')}` : null);

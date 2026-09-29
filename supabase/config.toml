@@ -130,6 +130,12 @@ verify_jwt = false
 [functions.wheel-timer]
 verify_jwt = false
 
+[functions.discord-delivery-retry]
+verify_jwt = false
+
+[functions.discord-route-health]
+verify_jwt = false
+
 [functions.illegal-location-map]
 verify_jwt = false
 

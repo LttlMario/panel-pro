@@ -233,7 +233,7 @@ Deno.serve(async (request) => {
       for (const settings of settingsRows || []) {
         if (!routeCandidates(settings, finalChannel).some((item) => item.candidates.length)) continue;
         try {
-          const delivery = await deliverDiscordRoute(db, settings, finalChannel, forwardBody, { headers: forwardHeaders });
+          const delivery = await deliverDiscordRoute(db, settings, finalChannel, forwardBody, { headers: forwardHeaders, organizationId: String(settings.organization_id), messageKey: `global-${finalChannel}-${crypto.randomUUID()}` });
           messages.push(...delivery.results.map((item) => ({ ...item, organization_id: settings.organization_id })));
           failures.push(...delivery.failures.map((failure) => `${settings.organization_id}: ${failure}`));
         } catch (error) {
@@ -413,6 +413,10 @@ Deno.serve(async (request) => {
       fallbackRouteKey: effectiveFallbackRouteKey,
       postOnly: requestedPostOnly,
       messageIdsOnly: isPontajLog || isRequestsLog,
+      organizationId: sessionOrganizationId,
+      messageKey: requestedMessageKey || (editExistingControlMessage ? 'control' : `event-${crypto.randomUUID()}`),
+      retryPayload: payload,
+      retryHeaders: forwardHeaders,
     });
     const messages = (delivery.results || []).map((result) => ({
       channel_id: result.channel_id || null,

@@ -27,7 +27,12 @@ const syncDiscordMessage = async (db: any, organizationId: string, routeKey: str
   if (!createIfMissing) return { route: routeKey, configured: true, sent: 0, edited: 0, failed: 0, message_ids: {} };
   const delivery = await deliverDiscordRoute(db, settings, routeKey, JSON.stringify(itemId
     ? { username: 'Panel Pro · Stash', embeds: [embed], allowed_mentions: { parse: [] }, components: [{ type: 1, components: [{ type: 2, style: 4, label: 'Șterge articolul', custom_id: `panel:stash:delete_item:${itemId}` }] }] }
-    : { username: 'Panel Pro · Stash', embeds: [embed], allowed_mentions: { parse: [] } }), { messageIds: existingMessageIds });
+    : { username: 'Panel Pro · Stash', embeds: [embed], allowed_mentions: { parse: [] } }), {
+      messageIds: existingMessageIds,
+      organizationId,
+      messageKey: `${routeKey}-${itemId || 'control'}`,
+      retryPayload: itemId ? { username: 'Panel Pro · Stash', embeds: [embed], allowed_mentions: { parse: [] }, components: [{ type: 1, components: [{ type: 2, style: 4, label: 'Șterge articolul', custom_id: `panel:stash:delete_item:${itemId}` }] }] } : { username: 'Panel Pro · Stash', embeds: [embed], allowed_mentions: { parse: [] } },
+    });
   const messageIds: Record<string, string> = {};
   for (const item of delivery.results || []) if (item.id) messageIds[item.target] = String(item.id);
   return { route: routeKey, configured: true, sent: delivery.results.filter((item: any) => !existingMessageIds?.[item.target]).length, edited: delivery.results.filter((item: any) => existingMessageIds?.[item.target]).length, failed: delivery.failures.length, message_ids: messageIds };
@@ -75,7 +80,12 @@ const syncApprovalMessage = async (db: any, table: string, row: any, organizatio
       { type: 2, style: 4, label: 'Respinge', custom_id: `panel:stash:decision_${kind}:rejected:${row.id}` },
     ] }],
   };
-  const delivery = await deliverDiscordRoute(db, settings, 'stash', JSON.stringify(payload), { postOnly: true });
+  const delivery = await deliverDiscordRoute(db, settings, 'stash', JSON.stringify(payload), {
+    postOnly: true,
+    organizationId,
+    messageKey: `${kind}-${String(row.id)}`,
+    retryPayload: payload,
+  });
   const messageIds: Record<string, string> = {};
   for (const item of delivery.results || []) if (item.id) messageIds[item.target] = String(item.id);
   if (Object.keys(messageIds).length) {

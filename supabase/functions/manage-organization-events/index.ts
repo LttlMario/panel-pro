@@ -50,7 +50,12 @@ async function sendReminder(db: any, settings: any, event: any, daysRemaining: n
   const payload = { allowed_mentions: { parse: [] }, embeds: [{ title: `${test ? '🧪 Test · ' : ''}🗓️ ${eventType} · ${event.title}`, description: `Evenimentul a fost înregistrat la data de **${event.event_date}**.\n\n${ending}${event.details ? `\n\n**Detalii:**\n${event.details.slice(0, 1800)}` : ''}`, color: daysRemaining <= 1 ? 15158332 : 16753920, fields: [{ name: 'Tip eveniment', value: eventType, inline: true }, { name: 'Progres', value: `${MAX_DAYS - daysRemaining} / ${MAX_DAYS} zile trecute`, inline: true }, ...(event.evidence_url ? [{ name: 'Dovadă', value: `[Deschide linkul](${event.evidence_url})`, inline: true }] : [])], footer: { text: 'Panel Pro · remindere automate evenimente' }, timestamp: new Date().toISOString() }] };
   const destinations = routeCandidates(settings, 'log_event_reminders');
   if (!destinations.some((item) => item.candidates.length)) throw new Error('Nu există nicio destinație Discord configurată pentru evenimente.');
-  return deliverDiscordRoute(db, settings, 'log_event_reminders', JSON.stringify(payload), { postOnly: true });
+  return deliverDiscordRoute(db, settings, 'log_event_reminders', JSON.stringify(payload), {
+    postOnly: true,
+    organizationId: String(event.organization_id),
+    messageKey: `event-reminder-${String(event.id)}-${localDate()}`,
+    retryPayload: payload,
+  });
 }
 
 const localDate = (now = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);

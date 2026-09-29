@@ -51,7 +51,7 @@ Deno.serve(async request=>{
    add('bot-secret','Discord','Token bot Discord',bot?'ok':'error',bot?'Tokenul botului este configurat.':'DISCORD_BOT_TOKEN lipsește.');
    add('guild','Discord','Serverul principal',primary?'ok':'error',primary?`Guild configurat: ${primary.guild_name||primary.guild_id}.`:'Serverul principal lipsește sau este dezactivat.');
    add('guild-secondary','Discord','Serverul secundar',secondary?'ok':'warning',secondary?`Guild configurat: ${secondary.guild_name||secondary.guild_id}.`:'Nu există server secundar; se folosește serverul principal.');
-   const botChannelDefinitions=[['organization','Anunțuri organizație · disciplină inclusă'],['departments','Anunțuri angajați · disciplină inclusă'],['pontaj','Pontaj și ture'],['log_pontaj','Log pontaj · Start / Pauză / Stop'],['weekly_reports','Rapoarte săptămânale'],['event_reminders','Evenimente și remindere'],['requests','Cereri / învoiri'],['requests_organization','Cereri organizație'],['requests_departments','Cereri birouri'],['contracts','Contracte'],['log_contracts','Log contracte'],['marketplace','Marketplace legal'],['log_marketplace','Log marketplace legal'],['illegal_marketplace','Marketplace ilegal'],['log_illegal_marketplace','Log marketplace ilegal'],['log_announcements_organization','Log anunțuri organizație · disciplină inclusă'],['log_announcements_departments','Log anunțuri angajați · disciplină inclusă'],['actions_organization','Acțiuni organizație'],['log_actions_organization','Log acțiuni organizație'],['actions_organization_weekly','Clasament acțiuni'],['status_live','Status live'],['stash','Stash · anunțuri, cereri și donații'],['log_stash','Log Stash · activitate, cereri și donații'],['organization_expiration','Expirare organizație']];
+   const botChannelDefinitions=[['organization','Anunțuri organizație · disciplină inclusă'],['departments','Anunțuri angajați · disciplină inclusă'],['pontaj','Pontaj și ture'],['log_pontaj','Log pontaj · Start / Pauză / Stop'],['weekly_reports','Rapoarte săptămânale'],['event_reminders','Evenimente și remindere'],['wheel_timer','Roată · timer personal'],['requests','Cereri / învoiri'],['requests_organization','Cereri organizație'],['requests_departments','Cereri birouri'],['contracts','Contracte'],['log_contracts','Log contracte'],['marketplace','Marketplace legal'],['log_marketplace','Log marketplace legal'],['illegal_marketplace','Marketplace ilegal'],['log_illegal_marketplace','Log marketplace ilegal'],['illegal_locations','Locații ilegale'],['calculator','Calculator legal'],['illegal_calculator','Calculator ilegal'],['log_announcements_organization','Log anunțuri organizație · disciplină inclusă'],['log_announcements_departments','Log anunțuri angajați · disciplină inclusă'],['actions_organization','Acțiuni organizație'],['log_actions_organization','Log acțiuni organizație'],['actions_organization_weekly','Clasament acțiuni'],['status_live','Status live'],['stash','Stash · anunțuri, cereri și donații'],['log_stash','Log Stash · activitate, cereri și donații'],['organization_expiration','Expirare organizație']];
    const routes=state.settings?.discord_channel_routes||{};
    for(const [channel,label] of botChannelDefinitions){
     for(const target of ['primary','secondary']){
@@ -90,9 +90,16 @@ Deno.serve(async request=>{
     add('automation-health','Automatizări','Configurarea cron și Vault','warning','Nu s-a putut verifica starea joburilor automate. Aplică migrarea pentru verificarea automatizărilor și rulează din nou.',Date.now());
    }else{
     const automationChecks=[
-     ['cron-weekly','Job raport săptămânal','weekly_shift_report'],
+     ['cron-weekly','Job raport săptămânal · pontaj','weekly_shift_report'],
+     ['cron-contracts','Job raport săptămânal · contracte','weekly_contract_export'],
+     ['cron-actions','Job raport săptămânal · acțiuni','weekly_action_report'],
+     ['cron-events','Job remindere evenimente','organization_event_reminders'],
+     ['cron-close-shifts','Job închidere ture expirate','close_expired_shifts'],
+     ['cron-wheel','Job notificări Roată','wheel_timer'],
      ['cron-status-live','Job status live','status_live'],
      ['cron-expiration','Job notificări expirare','organization_expiration'],
+     ['cron-discord-retry','Job retry Discord','discord_delivery_retry'],
+     ['cron-discord-routes','Job verificare rute Discord','discord_route_health'],
     ];
     for(const [id,label,key] of automationChecks){const configured=automationHealth?.jobs?.[key]===true;add(id,'Automatizări',label,configured?'ok':'error',configured?'Jobul automat este programat.':'Jobul automat lipsește din pg_cron.',Date.now());}
     const vaultReady=automationHealth?.vault?.project_url===true&&automationHealth?.vault?.publishable_key===true&&automationHealth?.vault?.cron_secret===true;

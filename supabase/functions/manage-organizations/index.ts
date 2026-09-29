@@ -3,6 +3,7 @@ import { requirePanelSession } from '../_shared/panel-session.ts';
 import { getPlatformAdminDiscordIds, isPlatformAdminAccount } from '../_shared/platform-admin.ts';
 import { FULL_PACKAGE_FEATURES, OPERATIONS_PACKAGE_FEATURES, PACKAGE_FEATURES, packageAllowsPage as packagePageAllowed, packageCatalogForClient, resolvePackageFeatures, STANDARD_PACKAGE_FEATURES } from '../_shared/package-features.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
+import { deliverDiscordRoute } from '../_shared/discord-delivery.ts';
 import { corsOptions, getCorsHeaders } from '../_shared/cors.ts';
 
 const buildReply=(data:unknown,status=200,headers=getCorsHeaders(new Request('https://panel-pro.ro')))=>new Response(JSON.stringify(data),{status,headers});
@@ -132,9 +133,94 @@ const summarizeBotChannels=(routes:any)=>{
   }
   return {configured,missing,invalid,total:channels.length*2};
 };
+const verifyDiscordRoutes=async(routes:any,bot:string)=>{
+  const source=routes&&typeof routes==='object'?routes:{};
+  const checks:any[]=[];
+  const unique=new Map<string,any>();
+  for(const [routeKey,route] of Object.entries(source)){
+    if(!route||typeof route!=='object')continue;
+    for(const target of ['primary','secondary']){
+      const item=(route as any)?.[target];
+      const channelId=String(item?.channel_id||'').trim();
+      if(!item?.enabled)continue;
+      const check={route_key:String(routeKey),target,channel_id:channelId,status:'missing',channel_name:'',error:''};
+      checks.push(check);
+      if(!validDiscordChannelId(channelId)){check.status=channelId?'invalid':'missing';check.error=channelId?'Channel ID invalid.':'Canalul nu este selectat.';continue;}
+      if(!bot){check.status='not_checked';check.error='Tokenul botului lipsește.';continue;}
+      if(!unique.has(channelId))unique.set(channelId,{channelId,checks:[]});
+      unique.get(channelId).checks.push(check);
+    }
+  }
+  await Promise.all([...unique.values()].map(async(entry:any)=>{
+    try{
+      const response=await fetch(`https://discord.com/api/v10/channels/${entry.channelId}`,{headers:discordBotHeaders(bot)});
+      const value=await response.json().catch(()=>({}));
+      for(const check of entry.checks){check.status=response.ok?'ok':'error';check.channel_name=String(value?.name||'');if(!response.ok)check.error=`Discord HTTP ${response.status}${value?.message?`: ${value.message}`:''}`;}
+    }catch(error){for(const check of entry.checks){check.status='error';check.error=error instanceof Error?error.message:'Canalul nu a putut fi verificat.';}}
+  }));
+  return checks;
+};
+const verifyDiscordMessages=async(db:any,organizationId:string,bot:string)=>{
+  const {data:registry,error}=await db.from('discord_message_registry').select('id,route_key,message_key,target,channel_id,message_id,status').eq('organization_id',organizationId).order('updated_at',{ascending:false}).limit(500);
+  if(error)throw error;
+  const rows=Array.isArray(registry)?registry:[];
+  if(!bot)return rows.map((item:any)=>({...item,check_status:'not_checked',check_error:'Tokenul botului lipsește.'}));
+  return Promise.all(rows.map(async(item:any)=>{
+    if(!validDiscordChannelId(item.channel_id)||!validDiscordChannelId(item.message_id))return {...item,check_status:'missing',check_error:'Canalul sau mesajul nu are un ID valid.'};
+    try{
+      const response=await fetch(`https://discord.com/api/v10/channels/${item.channel_id}/messages/${item.message_id}`,{headers:discordBotHeaders(bot)});
+      const value=await response.json().catch(()=>({}));
+      const checkStatus=response.ok?'active':response.status===404?'missing':'failed';
+      await db.from('discord_message_registry').update({status:checkStatus,last_http_status:response.status,last_error:response.ok?null:String(value?.message||`Discord HTTP ${response.status}`),last_checked_at:nowIso(),updated_at:nowIso()}).eq('id',item.id);
+      return {...item,check_status:checkStatus,check_error:response.ok?'':String(value?.message||`Discord HTTP ${response.status}`)};
+    }catch(error){
+      const message=error instanceof Error?error.message:'Mesajul nu a putut fi verificat.';
+      await db.from('discord_message_registry').update({status:'failed',last_error:message.slice(0,2000),last_checked_at:nowIso(),updated_at:nowIso()}).eq('id',item.id);
+      return {...item,check_status:'failed',check_error:message};
+    }
+  }));
+};
+const repairMissingDiscordMessages=async(db:any,organizationId:string,session:any)=>{
+  const [{data:settings,error:settingsError},{data:failed,error:registryError}]=await Promise.all([
+    db.from('organization_settings').select('discord_channel_routes').eq('organization_id',organizationId).maybeSingle(),
+    db.from('discord_message_registry').select('route_key,message_key,target,channel_id,message_id,status').eq('organization_id',organizationId).in('status',['missing','failed','stale']).order('updated_at',{ascending:false}).limit(200),
+  ]);
+  if(settingsError||registryError)throw settingsError||registryError;
+  let repaired=0,skipped=0;
+  for(const item of failed||[]){
+    if(!validDiscordChannelId(item.message_id)){skipped++;continue;}
+    const {data:version,error:versionError}=await db.from('discord_embed_versions').select('payload').eq('organization_id',organizationId).eq('route_key',item.route_key).eq('message_key',item.message_key).order('created_at',{ascending:false}).limit(1).maybeSingle();
+    if(versionError)throw versionError;
+    if(!version?.payload){skipped++;continue;}
+    const messageIds:any={[item.target]:String(item.message_id)};
+    const delivery=await deliverDiscordRoute(db,settings||{},item.route_key,JSON.stringify(version.payload),{messageIds,organizationId,messageKey:item.message_key,retryPayload:version.payload});
+    if(delivery.results?.length)repaired+=delivery.results.length;else skipped++;
+  }
+  await audit(db,session,'organization_discord_missing_messages_repaired',organizationId,{repaired,skipped});
+  return {repaired,skipped};
+};
 const countRows=(db:any,table:string,organizationId:string,filters:((query:any)=>any)[]=[])=>(async()=>{
     let query=db.from(table).select('*',{count:'exact',head:true}).eq('organization_id',organizationId);for(const filter of filters)query=filter(query);const {count,error}=await query;if(error)throw error;return Number(count||0);
   })();
+const discordDeliveryHealth=async(db:any,organizationId:string)=>{
+  const fallback={available:false,active_messages:0,failed_messages:0,pending_retries:0,failed_retries:0,attempts_24h:0,failures_24h:0,last_failure:null as any};
+  try{
+    const since=new Date(Date.now()-24*60*60*1000).toISOString();
+    const [active,failed,pending,failedQueue,attempts,failures,lastFailure]=await Promise.all([
+      db.from('discord_message_registry').select('id',{count:'exact',head:true}).eq('organization_id',organizationId).eq('status','active'),
+      db.from('discord_message_registry').select('id',{count:'exact',head:true}).eq('organization_id',organizationId).in('status',['failed','missing','stale']),
+      db.from('discord_delivery_queue').select('id',{count:'exact',head:true}).eq('organization_id',organizationId).in('status',['pending','processing']),
+      db.from('discord_delivery_queue').select('id',{count:'exact',head:true}).eq('organization_id',organizationId).eq('status','failed'),
+      db.from('discord_delivery_attempts').select('id',{count:'exact',head:true}).eq('organization_id',organizationId).gte('created_at',since),
+      db.from('discord_delivery_attempts').select('id',{count:'exact',head:true}).eq('organization_id',organizationId).eq('status','failure').gte('created_at',since),
+      db.from('discord_delivery_attempts').select('route_key,message_key,target,channel_id,http_status,error_message,created_at').eq('organization_id',organizationId).eq('status','failure').order('created_at',{ascending:false}).limit(1).maybeSingle(),
+    ]);
+    const results=[active,failed,pending,failedQueue,attempts,failures,lastFailure];
+    const problem=results.find((result:any)=>result.error);
+    if(problem?.error) return fallback;
+    return {available:true,active_messages:Number(active.count||0),failed_messages:Number(failed.count||0),pending_retries:Number(pending.count||0),failed_retries:Number(failedQueue.count||0),attempts_24h:Number(attempts.count||0),failures_24h:Number(failures.count||0),last_failure:lastFailure.data||null};
+  }catch(_){return fallback;}
+};
 
 Deno.serve(async request=>{
   const headers=getCorsHeaders(request);
@@ -267,13 +353,14 @@ Deno.serve(async request=>{
         const app=(appRows||[]).filter((item:any)=>item.organization_id===organizationId).reduce((map:any,item:any)=>{map[item.key]=item.value;return map;},{});
         const guilds=(guildRows||[]).filter((item:any)=>item.organization_id===organizationId).map((item:any)=>({...item,guild_name:liveGuildNames.get(String(item.guild_id))||installationNames.get(String(item.guild_id))||item.guild_name}));
         const roles=(roleRows||[]).filter((item:any)=>item.organization_id===organizationId);
-        const [members,activeSessions,activeShifts,activeAbsences,auditCount,lastAudit]=await Promise.all([
+        const [members,activeSessions,activeShifts,activeAbsences,auditCount,lastAudit,deliveryHealth]=await Promise.all([
           countRows(db,'organization_members',organizationId,[query=>query.eq('active',true)]),
           countRows(db,'panel_sessions',organizationId,[query=>query.is('revoked_at',null).gt('expires_at',nowIso())]),
           countRows(db,'shifts',organizationId,[query=>query.in('status',['active','paused'])]),
           countRows(db,'absences',organizationId,[query=>query.gte('end_at',nowIso())]),
           countRows(db,'admin_audit_log',organizationId),
-          db.from('admin_audit_log').select('action,created_at').eq('organization_id',organizationId).eq('target_type','organization').order('created_at',{ascending:false}).limit(1).maybeSingle()
+          db.from('admin_audit_log').select('action,created_at').eq('organization_id',organizationId).eq('target_type','organization').order('created_at',{ascending:false}).limit(1).maybeSingle(),
+          discordDeliveryHealth(db,organizationId)
         ]);
         if(lastAudit.error)throw lastAudit.error;
         const access=app.organization_access&&typeof app.organization_access==='object'?app.organization_access:{};
@@ -292,7 +379,7 @@ Deno.serve(async request=>{
           pagePermissionCount:Object.values(app.page_permissions||{}).reduce((total:any,ids:any)=>total+(Array.isArray(ids)?ids.length:0),0),
           bot_channels:botChannelSummary
         };
-        const issueCount=(health.guildsConfigured===0?1:0)+(health.rolesConfigured===0?1:0)+(health.hasClientId?0:1)+(health.hasPublicUrl?0:1)+botChannelSummary.missing+botChannelSummary.invalid;
+        const issueCount=(health.guildsConfigured===0?1:0)+(health.rolesConfigured===0?1:0)+(health.hasClientId?0:1)+(health.hasPublicUrl?0:1)+botChannelSummary.missing+botChannelSummary.invalid+(Number(deliveryHealth.failed_messages||0)>0?1:0)+(Number(deliveryHealth.failed_retries||0)>0?1:0);
         const liveOrganizationName=organization.access_mode==='discord_only'
           ? (guilds.find((guild:any)=>guild.kind==='primary')?.guild_name||guilds[0]?.guild_name||organization.name)
           : organization.name;
@@ -312,7 +399,7 @@ Deno.serve(async request=>{
           guilds:guilds.map((guild:any)=>({guild_id:guild.guild_id,guild_name:guild.guild_name,kind:guild.kind,enabled:guild.enabled!==false})),
           roles:roles.map((role:any)=>({guild_id:role.guild_id,discord_role_id:role.discord_role_id,discord_role_name:role.discord_role_name,panel_role:role.panel_role,enabled:role.enabled!==false})),
           metrics:{members,active_sessions:activeSessions,active_shifts:activeShifts,active_absences:activeAbsences,audit_events:auditCount,last_audit:lastAudit.data||null},
-          health:{...health,issueCount,status:isActive?'active':isDraft?'draft':isExpired?'expired':'inactive'}
+          health:{...health,delivery:deliveryHealth,issueCount,status:isActive?'active':isDraft?'draft':isExpired?'expired':'inactive'}
         });
       }
       return reply({ok:true,generated_at:nowIso(),feature_catalog:packageCatalogForClient(),organizations:organizationsWithDetails,discord_installations:discordInstallations});
@@ -340,9 +427,71 @@ Deno.serve(async request=>{
         discordGuilds.push({guild_id:guild.guild_id,guild_name:guild.guild_name,kind:guild.kind,enabled:true,status:'ok',role_count:Array.isArray(discordRoles)?discordRoles.filter((role:any)=>!role.managed&&String(role.id)!==String(guild.guild_id)).length:0});
       }
       const app=Object.fromEntries((apps||[]).map((item:any)=>[item.key,item.value]));
-      const health={guilds:discordGuilds,roles_configured:(roles||[]).filter((role:any)=>role.enabled!==false).length,has_client_id:/^\d{15,22}$/.test(String(settings?.discord_client_id||'')),has_public_url:Boolean(settings?.panel_public_url),bot_channels:summarizeBotChannels(settings?.discord_channel_routes),access:app.organization_access||null,package:app.organization_package||null,page_permission_count:Object.values(app.page_permissions||{}).reduce((total:any,ids:any)=>total+(Array.isArray(ids)?ids.length:0),0)};
+      const health={guilds:discordGuilds,routes:await verifyDiscordRoutes(settings?.discord_channel_routes,bot),roles_configured:(roles||[]).filter((role:any)=>role.enabled!==false).length,has_client_id:/^\d{15,22}$/.test(String(settings?.discord_client_id||'')),has_public_url:Boolean(settings?.panel_public_url),bot_channels:summarizeBotChannels(settings?.discord_channel_routes),delivery:await discordDeliveryHealth(db,organizationId),access:app.organization_access||null,package:app.organization_package||null,page_permission_count:Object.values(app.page_permissions||{}).reduce((total:any,ids:any)=>total+(Array.isArray(ids)?ids.length:0),0)};
       await audit(db,session,'organization_health_check',organizationId,{guilds:discordGuilds.map((guild:any)=>({guild_id:guild.guild_id,status:guild.status})),bot_channel_summary:health.bot_channels});
       return reply({ok:true,organization:{id:organization.id,name:organization.name,active:organization.active,lifecycle_status:organization.lifecycle_status},health,checked_at:nowIso()});
+    }
+    if(body.action==='delivery_health'){
+      const organizationId=String(body.organization_id||'').trim();
+      if(!validOrganizationId(organizationId))return reply({error:'ID-ul organizației este invalid.'},400);
+      const [{data:registry,error:registryError},{data:attempts,error:attemptsError},{data:queue,error:queueError}]=await Promise.all([
+        db.from('discord_message_registry').select('id,route_key,message_key,target,channel_id,guild_id,message_id,status,operation,last_http_status,last_error,delivery_count,last_delivered_at,last_checked_at,updated_at').eq('organization_id',organizationId).order('updated_at',{ascending:false}).limit(200),
+        db.from('discord_delivery_attempts').select('id,route_key,message_key,target,channel_id,message_id,operation,status,http_status,error_message,created_at').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(200),
+        db.from('discord_delivery_queue').select('id,route_key,message_key,target,channel_id,message_id,status,attempts,next_attempt_at,last_error,created_at,updated_at').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(200),
+      ]);
+      if(registryError||attemptsError||queueError)throw registryError||attemptsError||queueError;
+      await audit(db,session,'organization_discord_delivery_health',organizationId,{registry_count:(registry||[]).length,queue_count:(queue||[]).length});
+      return reply({ok:true,registry:registry||[],attempts:attempts||[],queue:queue||[],checked_at:nowIso()});
+    }
+    if(body.action==='delivery_verify_all'){
+      const organizationId=String(body.organization_id||'').trim();
+      if(!validOrganizationId(organizationId))return reply({error:'ID-ul organizației este invalid.'},400);
+      const bot=await getPlatformSecret(db,'discord_bot_token');
+      const messages=await verifyDiscordMessages(db,organizationId,bot);
+      await audit(db,session,'organization_discord_messages_verified',organizationId,{count:messages.length,active:messages.filter((item:any)=>item.check_status==='active').length,missing:messages.filter((item:any)=>item.check_status==='missing').length,failed:messages.filter((item:any)=>item.check_status==='failed').length});
+      return reply({ok:true,messages,checked_at:nowIso()});
+    }
+    if(body.action==='delivery_repair_missing'){
+      const organizationId=String(body.organization_id||'').trim();
+      if(!validOrganizationId(organizationId))return reply({error:'ID-ul organizației este invalid.'},400);
+      return reply({ok:true,...await repairMissingDiscordMessages(db,organizationId,session)});
+    }
+    if(body.action==='delivery_requeue'){
+      const organizationId=String(body.organization_id||'').trim();
+      if(!validOrganizationId(organizationId))return reply({error:'ID-ul organizației este invalid.'},400);
+      const requestedId=String(body.queue_id||'').trim();
+      let query=db.from('discord_delivery_queue').update({status:'pending',next_attempt_at:nowIso(),locked_at:null,completed_at:null,last_error:null,updated_at:nowIso()}).eq('organization_id',organizationId).in('status',['failed','processing']);
+      if(requestedId)query=query.eq('id',requestedId);
+      const {data,error}=await query.select('id');
+      if(error)throw error;
+      await audit(db,session,'organization_discord_delivery_requeued',organizationId,{queue_id:requestedId||null,count:Array.isArray(data)?data.length:0});
+      return reply({ok:true,requeued:Array.isArray(data)?data.length:0});
+    }
+    if(body.action==='delivery_versions'){
+      const organizationId=String(body.organization_id||'').trim();
+      if(!validOrganizationId(organizationId))return reply({error:'ID-ul organizației este invalid.'},400);
+      const {data,error}=await db.from('discord_embed_versions').select('id,route_key,message_key,changed_by_discord_id,change_type,created_at,payload').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(200);
+      if(error)throw error;
+      return reply({ok:true,versions:data||[],checked_at:nowIso()});
+    }
+    if(body.action==='delivery_restore'){
+      const organizationId=String(body.organization_id||'').trim();
+      const versionId=Number(body.version_id);
+      if(!validOrganizationId(organizationId)||!Number.isInteger(versionId)||versionId<1)return reply({error:'Versiunea sau organizația este invalidă.'},400);
+      const [{data:version,error:versionError},{data:settings,error:settingsError}]=await Promise.all([
+        db.from('discord_embed_versions').select('id,route_key,message_key,payload').eq('id',versionId).eq('organization_id',organizationId).maybeSingle(),
+        db.from('organization_settings').select('discord_channel_routes').eq('organization_id',organizationId).maybeSingle(),
+      ]);
+      if(versionError||settingsError)throw versionError||settingsError;
+      if(!version?.payload)return reply({error:'Versiunea nu a fost găsită.'},404);
+      const {data:refs,error:refsError}=await db.from('discord_message_registry').select('target,message_id').eq('organization_id',organizationId).eq('route_key',version.route_key).eq('message_key',version.message_key).eq('status','active').not('message_id','is',null).order('updated_at',{ascending:false}).limit(20);
+      if(refsError)throw refsError;
+      const messageIds:any={};for(const item of refs||[]){if(item.message_id&&!messageIds[item.target])messageIds[item.target]=String(item.message_id);}
+      const delivery=await deliverDiscordRoute(db,settings||{},version.route_key,JSON.stringify(version.payload),{messageIds,organizationId,messageKey:version.message_key,retryPayload:version.payload});
+      if(!delivery.results?.length)throw new Error(delivery.failures?.join(' | ')||'Embedul nu a putut fi restaurat.');
+      await db.from('discord_embed_versions').insert({organization_id:organizationId,route_key:version.route_key,message_key:version.message_key,payload:version.payload,changed_by_discord_id:session.discord_id,change_type:'restored'});
+      await audit(db,session,'organization_discord_embed_restored',organizationId,{version_id:versionId,route_key:version.route_key,message_key:version.message_key});
+      return reply({ok:true,restored:delivery.results.length,version_id:versionId});
     }
     if(body.action==='revoke_organization_sessions'){
       const organizationId=String(body.organization_id||'').trim();

@@ -56,6 +56,11 @@ Deno.serve(async (request) => {
     const organizationId = String(body.organization_id || session.organization_id); if (!/^[0-9a-f-]{36}$/i.test(organizationId)) return reply({ error: 'Organizația este invalidă.' }, 400);
     if (!platformAdmin) return reply({ error: 'Acces permis doar administratorului global.' }, 403);
     const guildId = id(body.guild_id); const target = body.target === 'secondary' ? 'secondary' : 'primary'; const embedChannelId = id(body.embed_channel_id); const resultChannelId = body.result_channel_id ? id(body.result_channel_id) : '';
+    if (action === 'publication_history') {
+      const { data, error } = await db.from('platform_module_events').select('id,event_type,payload,discord_id,created_at').eq('module_key', moduleKey).eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(100);
+      if (error) throw error;
+      return reply({ ok: true, history: data || [] });
+    }
     const permissions = { allowed_role_ids: roleIds(body.permissions?.allowed_role_ids), approval_role_ids: roleIds(body.permissions?.approval_role_ids) };
     if (!guildId || !embedChannelId) return reply({ error: 'Guild-ul și canalul embed sunt obligatorii.' }, 400);
     if (['publish', 'repair'].includes(action) && Array.isArray(module.definition?.buttons) && module.definition.buttons.length && !resultChannelId) return reply({ error: 'Pentru un modul cu butoane este obligatoriu canalul de rezultate.' }, 400);
@@ -85,7 +90,7 @@ Deno.serve(async (request) => {
       }
       const row = { module_key: moduleKey, organization_id: organizationId, guild_id: guildId, target, embed_channel_id: embedChannelId, result_channel_id: resultChannelId || null, permissions, message_id: messageId || null, status: action === 'save_publication' ? 'draft' : 'published', last_error: null, published_at: action === 'save_publication' ? null : new Date().toISOString(), updated_at: new Date().toISOString() };
       const { data: saved, error } = await db.from('platform_module_publications').upsert(row, { onConflict: 'module_key,organization_id,target' }).select('*').single(); if (error) throw error;
-      await db.from('platform_module_events').insert({ module_key: moduleKey, organization_id: organizationId, guild_id: guildId, discord_id: session.discord_id, event_type: `publication_${row.status}`, payload: { message_id: messageId, embed_channel_id: embedChannelId, result_channel_id: resultChannelId || null } });
+      await db.from('platform_module_events').insert({ module_key: moduleKey, organization_id: organizationId, guild_id: guildId, discord_id: session.discord_id, event_type: `publication_${row.status}`, payload: { message_id: messageId, embed_channel_id: embedChannelId, result_channel_id: resultChannelId || null, module_definition: module.definition, module_label: module.label, module_description: module.description } });
       return reply({ ok: true, publication: saved });
     }
     return reply({ error: 'Acțiune necunoscută.' }, 400);

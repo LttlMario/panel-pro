@@ -303,7 +303,13 @@ const notifyActionDiscord = async (record:any) => {
     if (!routeCandidates(settings, routeKey).some((item) => item.candidates.length)) return null;
     const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
     const participants = Array.isArray(record.participants) ? record.participants : [];
-    const delivery = await deliverDiscordRoute(db, settings, routeKey, JSON.stringify({ embeds: [{ title: `✅ Acțiune nouă: ${record.action_label}`, description: record.description || 'A fost înregistrată o acțiune a organizației.', color: 5763719, url: `${site}/anunturi.html?actions=${record.id}`, fields: [{ name: 'Tip', value: record.action_type || record.action_label, inline: true }, { name: 'Participanți', value: participants.length ? participants.map((item:any) => `• ${item.name}`).join('\n').slice(0, 1024) : 'Nespecificați' }, ...(record.notes ? [{ name: 'Note', value: String(record.notes).slice(0, 1024) }] : [])], footer: { text: `Panel Pro · ${record.created_by_name || record.created_by_discord_id}` } }], components: actionDiscordComponents(String(record.id)) }), record.discord_message_id ? { messageIds: { primary: String(record.discord_message_id) } } : {});
+    const payload = { embeds: [{ title: `✅ Acțiune nouă: ${record.action_label}`, description: record.description || 'A fost înregistrată o acțiune a organizației.', color: 5763719, url: `${site}/anunturi.html?actions=${record.id}`, fields: [{ name: 'Tip', value: record.action_type || record.action_label, inline: true }, { name: 'Participanți', value: participants.length ? participants.map((item:any) => `• ${item.name}`).join('\n').slice(0, 1024) : 'Nespecificați' }, ...(record.notes ? [{ name: 'Note', value: String(record.notes).slice(0, 1024) }] : [])], footer: { text: `Panel Pro · ${record.created_by_name || record.created_by_discord_id}` } }], components: actionDiscordComponents(String(record.id)) };
+    const delivery = await deliverDiscordRoute(db, settings, routeKey, JSON.stringify(payload), {
+        ...(record.discord_message_id ? { messageIds: { primary: String(record.discord_message_id) } } : {}),
+        organizationId: String(organizationId),
+        messageKey: `action-${String(record.id)}`,
+        retryPayload: payload,
+    });
     return delivery.results[0]?.id || null;
 };
 if (String(body.action || '').startsWith('actions_')) {
@@ -642,13 +648,18 @@ const notifyDisciplineDiscord = async (kind:'warning'|'sanction', record:any) =>
     if (!routeCandidates(settings, routeKey).some((item) => item.candidates.length)) return null;
     const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
     const detailUrl = `${site}/anunturi.html?discipline=${kind}&id=${record.id}`;
-    const delivery = await deliverDiscordRoute(db, settings, routeKey, JSON.stringify({ embeds: [{
+    const payload = { embeds: [{
             title: kind === 'warning' ? '⚠️ Evidență disciplinară nouă' : '💰 Măsură financiară nouă',
             description: 'A fost înregistrată o măsură disciplinară. Detaliile sunt disponibile numai persoanelor autorizate în panel.',
             color: kind === 'warning' ? 16753920 : 15548997,
             url: detailUrl,
             footer: { text: 'Panel Pro · acces controlat' }
-        }], components: disciplineDiscordComponents(audience, kind, String(record.id)) }));
+        }], components: disciplineDiscordComponents(audience, kind, String(record.id)) };
+    const delivery = await deliverDiscordRoute(db, settings, routeKey, JSON.stringify(payload), {
+        organizationId: String(organizationId),
+        messageKey: `discipline-${kind}-${String(record.id)}`,
+        retryPayload: payload,
+    });
     return delivery.results[0]?.id || null;
 };
 
@@ -944,7 +955,7 @@ const notifyCommunityLog = async (post:any, action:string) => {
     const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
     const audienceLabel = audience === 'departments' ? 'Angajați' : 'Organizație';
     try {
-        await deliverDiscordRoute(db, settings, routeKey, JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{
+        const payload = { allowed_mentions: { parse: [] }, embeds: [{
             title: `📝 ${action} · ${audienceLabel}`,
             color: action.toLowerCase().includes('șters') ? 0xef4444 : 0x64748b,
             fields: [
@@ -955,7 +966,12 @@ const notifyCommunityLog = async (post:any, action:string) => {
             ],
             footer: { text: `Panel Pro · Log anunțuri · ${audienceLabel}` },
             timestamp: new Date().toISOString(),
-        }] }));
+        }] };
+        await deliverDiscordRoute(db, settings, routeKey, JSON.stringify(payload), {
+            organizationId: String(organizationId),
+            messageKey: `community-log-${String(post.id)}-${String(action).toLowerCase().replace(/[^a-z0-9]+/gi, '-')}`,
+            retryPayload: payload,
+        });
     } catch (error) { console.error('Logul Anunțuri nu a putut fi trimis:', error); }
 };
 
@@ -1008,7 +1024,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
     });
 
 
-    const delivery = await deliverDiscordRoute(db, discordConfig, routeKey, JSON.stringify({
+    const payload = {
         embeds: [{
             title: post.title,
             description: post.content,
@@ -1018,7 +1034,12 @@ async function notifyDiscord(post:any, options:string[], audience:string){
             footer: { text: `${post.post_type === 'poll' ? 'Sondaj' : post.post_type === 'question' ? 'Întrebare' : 'Anunț'} • ${post.author_name}` }
         }],
         components: communityPostComponents(post, options)
-    }));
+    };
+    const delivery = await deliverDiscordRoute(db, discordConfig, routeKey, JSON.stringify(payload), {
+        organizationId: String(organizationId),
+        messageKey: `community-post-${String(post.id)}`,
+        retryPayload: payload,
+    });
     if (!delivery.results.length) throw new Error(`Postarea a fost creată, dar Discord nu a acceptat mesajul. ${delivery.failures.join(' | ')}`);
     return delivery.results[0]?.id || null;
     }
@@ -1100,7 +1121,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
     const postUrl = `${site}/anunturi.html?post=${post.id}`;
 
 
-    await deliverDiscordRoute(db, discordConfig, routeKey, JSON.stringify({ embeds: [{
+    const payload = { embeds: [{
         title: post.title,
         description: post.content,
         color: audience === 'organization' ? 5865 : 3447003,
@@ -1110,7 +1131,13 @@ async function notifyDiscord(post:any, options:string[], audience:string){
             { name: '🗳️ Votează în panel', value: `[Deschide sondajul](${postUrl})` }
         ],
         footer: { text: `Sondaj • ${post.author_name}` }
-    }], components: communityPostComponents(post, (options || []).map((item:any) => item.option_text)) }), { messageIds: { primary: String(post.discord_message_id) } });
+    }], components: communityPostComponents(post, (options || []).map((item:any) => item.option_text)) };
+    await deliverDiscordRoute(db, discordConfig, routeKey, JSON.stringify(payload), {
+        messageIds: { primary: String(post.discord_message_id) },
+        organizationId: String(organizationId),
+        messageKey: `community-post-${String(post.id)}`,
+        retryPayload: payload,
+    });
 
 }
  }catch(e){

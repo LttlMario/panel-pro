@@ -277,8 +277,9 @@ async function manualDiscordExport(db: any, session: any, body: any) {
   const chunks = contractExportChunks((employees || []).map((employee: any) => `${employee.full_name}\t${employee.cnp}`));
   const failures: string[] = [];
   let successfulPosts = 0;
-  for (const content of chunks) {
-    const delivery = await deliverDiscordRoute(db, settings, 'log_contract_identity_weekly', JSON.stringify({
+  for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
+    const content = chunks[chunkIndex];
+    const payload = {
       allowed_mentions: { parse: [] },
       embeds: [{
         title: '📋 Export manual angajați',
@@ -286,7 +287,12 @@ async function manualDiscordExport(db: any, session: any, body: any) {
         color: 3447003,
         timestamp: now.toISOString(),
       }],
-    }));
+    };
+    const delivery = await deliverDiscordRoute(db, settings, 'log_contract_identity_weekly', JSON.stringify(payload), {
+      organizationId: String(session.organization_id),
+      messageKey: `manual-contract-export-${String(batch.id)}-${chunkIndex}`,
+      retryPayload: payload,
+    });
     if (delivery.results.length) successfulPosts += delivery.results.length;
     failures.push(...(delivery.failures || []));
   }
@@ -337,7 +343,7 @@ async function resendRecentContracts(db: any, session: any) {
     const chunks = contractExportChunks(text.split('\n'), 3800);
     let sent = 0;
     for (let index = 0; index < chunks.length; index += 1) {
-      const delivery = await deliverDiscordRoute(db, settings, 'contracts', JSON.stringify({
+      const payload = {
         allowed_mentions: { parse: [] },
         content: index === 0 ? `📄 **Contract ${contract.contract_number || ''}** retrimis din Panel Pro.` : undefined,
         embeds: [{
@@ -347,7 +353,13 @@ async function resendRecentContracts(db: any, session: any) {
           footer: { text: `${organization?.name || 'Panel Pro'} · Contract ${index + 1}/${chunks.length}` },
           timestamp: index === 0 ? new Date(contract.created_at || Date.now()).toISOString() : undefined,
         }],
-      }), { postOnly: true });
+      };
+      const delivery = await deliverDiscordRoute(db, settings, 'contracts', JSON.stringify(payload), {
+        postOnly: true,
+        organizationId: String(organizationId),
+        messageKey: `contract-resend-${String(contract.id)}-${index}`,
+        retryPayload: payload,
+      });
       sent += delivery.results.length;
       failures.push(...(delivery.failures || []).map((failure) => `${contract.contract_number}: ${failure}`));
     }
