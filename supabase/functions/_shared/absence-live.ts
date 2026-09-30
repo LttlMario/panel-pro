@@ -83,7 +83,11 @@ async function syncAudience(db: any, organizationId: string, settings: any, audi
       response = await requestDiscordTarget(db, candidate, JSON.stringify(payload), { method: 'POST' });
       recreated = response.ok;
     }
-    if (!response.ok) throw new Error(`Discord ${routeKey}/${target} HTTP ${response.status}.`);
+    if (!response.ok) {
+      const discordBody = await response.clone().json().catch(async () => ({ raw: await response.clone().text().catch(() => '') }));
+      const discordReason = String(discordBody?.message || discordBody?.raw || '').trim().slice(0, 500);
+      throw new Error(`Discord ${routeKey}/${target} HTTP ${response.status}${discordReason ? `: ${discordReason}` : '.'}`);
+    }
     const body = await response.json().catch(() => ({}));
     const messageId = String(body?.id || savedId || '').trim();
     if (validDiscordChannelId(messageId) && messageId !== savedId) await saveLiveMessageId(db, organizationId, routeKey, target, messageId);
