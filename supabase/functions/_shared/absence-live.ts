@@ -58,7 +58,7 @@ async function saveLiveMessageId(db: any, organizationId: string, routeKey: stri
 async function syncAudience(db: any, organizationId: string, settings: any, audience: string, now: Date) {
   const routeKey = routeForAudience(audience);
   const { data, error } = await db.from('absences')
-    .select('id,discord_id,colleague_name,notice_type,reason,notes,start_at,end_at,start_date,status,request_audience')
+    .select('id,discord_id,colleague_name,notice_type,reason,notes,start_at,end_at,start_date,request_audience')
     .eq('organization_id', organizationId)
     .gte('end_at', now.toISOString())
     .order('end_at', { ascending: true })
@@ -67,8 +67,7 @@ async function syncAudience(db: any, organizationId: string, settings: any, audi
   if (error) throw error;
   const rows = (data || []).filter((row: any) => {
     const requestedAudience = String(row.request_audience || 'organization');
-    const status = String(row.status || '').toLowerCase();
-    return requestedAudience === audience && !['rejected', 'deleted', 'archived', 'cancelled'].includes(status) && (!row.start_at || Date.parse(String(row.start_at)) <= now.getTime());
+    return requestedAudience === audience && (!row.start_at || Date.parse(String(row.start_at)) <= now.getTime());
   });
   const payload = absencePayload(audience, rows, now);
   const route = settings?.discord_channel_routes?.[routeKey] || {};
