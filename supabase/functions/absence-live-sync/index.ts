@@ -20,6 +20,9 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const requestedOrganization = String(body.organization_id || '').trim();
     const cronAuthorized = await isAbsenceCronAuthorized(db, request);
+    const requestedRoutes = body.discord_channel_routes && typeof body.discord_channel_routes === 'object' && !Array.isArray(body.discord_channel_routes)
+      ? { discord_channel_routes: body.discord_channel_routes }
+      : undefined;
     let organizations;
     let panelAudience = body.audience === 'departments' ? 'departments' : body.audience === 'organization' ? 'organization' : undefined;
     if (cronAuthorized) {
@@ -34,7 +37,7 @@ Deno.serve(async (request) => {
     const results = [];
     for (const organization of organizations) {
       try {
-        results.push(await syncAbsenceLiveEmbeds(db, String(organization.id), undefined, panelAudience));
+        results.push(await syncAbsenceLiveEmbeds(db, String(organization.id), cronAuthorized ? undefined : requestedRoutes, panelAudience));
       } catch (error) {
         results.push({ organization_id: organization.id, error: error instanceof Error ? error.message : 'Sincronizarea a eșuat.' });
       }
