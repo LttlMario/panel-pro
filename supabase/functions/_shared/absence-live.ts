@@ -58,7 +58,7 @@ async function saveLiveMessageId(db: any, organizationId: string, routeKey: stri
 async function syncAudience(db: any, organizationId: string, settings: any, audience: string, now: Date) {
   const routeKey = routeForAudience(audience);
   const { data, error } = await db.from('absences')
-    .select('id,discord_id,colleague_name,notice_type,reason,notes,start_at,end_at,start_date,end_date,status,request_audience')
+    .select('id,discord_id,colleague_name,notice_type,reason,notes,start_at,end_at,start_date,status,request_audience')
     .eq('organization_id', organizationId)
     .gte('end_at', now.toISOString())
     .order('end_at', { ascending: true })
