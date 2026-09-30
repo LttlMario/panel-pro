@@ -89,6 +89,7 @@ async function syncAudience(db: any, organizationId: string, settings: any, audi
     if (validDiscordChannelId(messageId) && messageId !== savedId) await saveLiveMessageId(db, organizationId, routeKey, target, messageId);
     results.push({ audience, target, message_id: messageId, count: rows.length, recreated });
   }
+  if (!results.length) throw new Error(`Nu există un canal Discord valid configurat pentru ${routeKey}.`);
   return { audience, count: rows.length, results };
 }
 

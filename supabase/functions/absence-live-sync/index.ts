@@ -39,6 +39,8 @@ Deno.serve(async (request) => {
         results.push({ organization_id: organization.id, error: error instanceof Error ? error.message : 'Sincronizarea a eșuat.' });
       }
     }
+    const failures = results.filter((item: any) => item?.error);
+    if (failures.length) return reply({ ok: false, error: failures.map((item: any) => item.error).join(' | '), organizations: results.length, results }, 502);
     return reply({ ok: true, organizations: results.length, results });
   } catch (error) {
     return reply({ error: error instanceof Error ? error.message : 'Sincronizarea învoirilor a eșuat.' }, 500);
