@@ -9,6 +9,17 @@ const headers = {
   'Content-Type': 'application/json',
 };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
+const errorText = (error: unknown) => {
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === 'object') {
+    const value = error as Record<string, unknown>;
+    if (String(value.message || '').trim()) return String(value.message).trim();
+    if (String(value.details || '').trim()) return String(value.details).trim();
+    if (String(value.hint || '').trim()) return String(value.hint).trim();
+    try { return JSON.stringify(error); } catch (_) {}
+  }
+  return String(error || 'Sincronizarea învoirilor a eșuat.');
+};
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
@@ -39,13 +50,14 @@ Deno.serve(async (request) => {
       try {
         results.push(await syncAbsenceLiveEmbeds(db, String(organization.id), cronAuthorized ? undefined : requestedRoutes, panelAudience));
       } catch (error) {
-        results.push({ organization_id: organization.id, error: error instanceof Error ? error.message : 'Sincronizarea a eșuat.' });
+        results.push({ organization_id: organization.id, error: errorText(error) });
       }
     }
     const failures = results.filter((item: any) => item?.error);
     if (failures.length) return reply({ ok: false, error: failures.map((item: any) => item.error).join(' | '), organizations: results.length, results }, 502);
     return reply({ ok: true, organizations: results.length, results });
   } catch (error) {
-    return reply({ error: error instanceof Error ? error.message : 'Sincronizarea învoirilor a eșuat.' }, 500);
+    console.error('[absence-live-sync]', error);
+    return reply({ error: errorText(error) }, 500);
   }
 });
