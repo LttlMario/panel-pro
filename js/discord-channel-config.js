@@ -363,6 +363,28 @@
     } catch (error) { statusNode.textContent = error.message || 'Embedul nu a putut fi publicat.'; }
     finally { delete statusNode.dataset.busy; syncRequestPublishState(key, false); }
   };
+  const publishAbsenceLiveEmbed = async (key) => {
+    const button = section.querySelector(`[data-absence-live-publish="${key}"]`);
+    const statusNode = section.querySelector(`[data-absence-live-publish-status="${key}"]`);
+    if (!button || !statusNode) return;
+    const targets = selectedRouteTargets(key);
+    const selectedOrganizationId = String(organizationId() || '').trim();
+    const activeOrganizationId = String(window.getActiveOrganizationId?.() || '').trim();
+    if (!targets.length) { statusNode.textContent = 'Selectează cel puțin un canal pentru logul învoirilor active.'; return; }
+    if (!selectedOrganizationId || selectedOrganizationId !== activeOrganizationId) { statusNode.textContent = 'Intră mai întâi în organizația aleasă din „Administrare organizații”.'; return; }
+    if (typeof window.panelRequestJson !== 'function') { statusNode.textContent = 'Sesiunea securizată a panelului nu este disponibilă.'; return; }
+    button.disabled = true;
+    statusNode.textContent = 'Se trimite / actualizează embedul învoirilor active...';
+    try {
+      const audience = key === 'log_requests_departments' ? 'departments' : 'organization';
+      await window.panelRequestJson('absence-live-sync', { method: 'POST', body: JSON.stringify({ organization_id: selectedOrganizationId, audience }), timeoutMs: 15000 });
+      statusNode.textContent = 'Embedul învoirilor active a fost trimis sau actualizat. Mesajul existent este reutilizat.';
+    } catch (error) {
+      statusNode.textContent = error.message || 'Embedul învoirilor active nu a putut fi actualizat.';
+    } finally {
+      button.disabled = false;
+    }
+  };
   const buildAdditionalPanelPayload = (key) => {
     const definitions = {
       marketplace: { title: '🛒 Marketplace', description: 'Publică și consultă anunțuri pentru vehicule, bunuri și servicii.', color: 0x2563eb, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:marketplace:legal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:legal:mine' }] },
@@ -466,8 +488,14 @@
       if (!fieldset) return;
       fieldset.insertAdjacentHTML('beforeend', `<div class="mt-3 flex flex-wrap items-center gap-2"><button type="button" data-publish-individual="${esc(definition.key)}" class="rounded-lg border border-cyan-700/70 bg-cyan-950/40 px-3 py-2 text-xs font-bold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-40">🔁 Retrimite / actualizează embedul cu butoane</button><span data-publish-individual-status="${esc(definition.key)}" class="text-[11px] text-slate-400">Editează embedul deja salvat, fără să creeze unul nou.</span></div>`);
     });
-    grid.querySelectorAll('[data-discord-channel-route]').forEach((select) => { select.onchange = () => { const key = select.dataset.discordChannelRoute; setRoute(key, select.dataset.discordChannelTarget, select.value); syncBulkPublishState(); syncIndividualPublishState(key); }; });
+    ['log_requests_organization', 'log_requests_departments'].forEach((key) => {
+      const fieldset = grid.querySelector(`[data-discord-channel-route="${key}"]`)?.closest('fieldset');
+      if (!fieldset) return;
+      fieldset.insertAdjacentHTML('beforeend', `<div class="mt-3 flex flex-wrap items-center gap-2"><button type="button" data-absence-live-publish="${esc(key)}" class="rounded-lg border border-amber-700/70 bg-amber-950/40 px-3 py-2 text-xs font-bold text-amber-100 disabled:cursor-not-allowed disabled:opacity-40">📋 Trimite / actualizează învoirile active</button><span data-absence-live-publish-status="${esc(key)}" class="text-[11px] text-slate-400">Un singur embed live, actualizat fără duplicate.</span></div>`);
+    });
+    grid.querySelectorAll('[data-discord-channel-route]').forEach((select) => { select.onchange = () => { const key = select.dataset.discordChannelRoute; setRoute(key, select.dataset.discordChannelTarget, select.value); syncBulkPublishState(); syncIndividualPublishState(key); const liveButton = grid.querySelector(`[data-absence-live-publish="${key}"]`); if (liveButton) liveButton.disabled = !selectedRouteTargets(key).length; }; });
     grid.querySelectorAll('[data-publish-individual]').forEach((button) => { const key = button.dataset.publishIndividual; button.onclick = () => publishIndividualPanel(key); syncIndividualPublishState(key); });
+    grid.querySelectorAll('[data-absence-live-publish]').forEach((button) => { const key = button.dataset.absenceLivePublish; button.onclick = () => publishAbsenceLiveEmbed(key); button.disabled = !selectedRouteTargets(key).length; });
     const stashFieldset = grid.querySelector('[data-discord-channel-route="stash"]')?.closest('fieldset');
     grid.querySelector('[data-discord-channel-route="actions_organization"]')?.closest('fieldset')?.classList.remove('md:col-span-2');
     grid.querySelectorAll('[data-discord-channel-route]').forEach((select) => {

@@ -31,6 +31,7 @@ $functions = @(
     'send-discord-notification',
     'discord-delivery-retry',
     'discord-route-health',
+    'absence-live-sync',
     'close-expired-shifts',
     'send-weekly-shift-report',
     'send-weekly-contract-export',

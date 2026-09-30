@@ -5,6 +5,7 @@ import { getPlatformSecret } from '../_shared/platform-secrets.ts';
 import { deliverDiscordRoute, requestDiscordTarget, routeCandidates } from '../_shared/discord-delivery.ts';
 import { discordPremiumAccess, discordPremiumButton, discordPremiumConfigured, discordPremiumMessage, discordPremiumModule } from '../_shared/discord-premium.ts';
 import { allCategories, calculateRecipe, findCategory, findRecipe } from '../_shared/discord-calculators.ts';
+import { syncAbsenceLiveEmbeds } from '../_shared/absence-live.ts';
 
 const DISCORD_API = 'https://discord.com/api/v10';
 const PANEL_FOOTER = 'Panel Pro - By Little Mario';
@@ -1812,6 +1813,7 @@ async function handleRequestSubmit(db: any, context: any, interaction: any, valu
   const { data: created, error } = await db.from('absences').insert(absence).select('*').single();
   if (error) throw error;
   const logResult = await sendAbsenceLog(db, context, created, 'Învoire nouă');
+  try { await syncAbsenceLiveEmbeds(db, String(context.organization.id), context.settings, context.audience); } catch (error) { console.error('[discord-interactions] absence live embed failed', error); }
   return interactionMessage(`Învoirea a fost înregistrată pentru **${startDate.split('-').reverse().join('.')} – ${endDate.split('-').reverse().join('.')}**.${logResult.error ? `\n⚠️ Logul Discord nu a fost trimis: ${logResult.error}` : ''}`);
 }
 

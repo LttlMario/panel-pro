@@ -136,6 +136,9 @@ verify_jwt = false
 [functions.discord-route-health]
 verify_jwt = false
 
+[functions.absence-live-sync]
+verify_jwt = false
+
 [functions.illegal-location-map]
 verify_jwt = false
 

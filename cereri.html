@@ -177,6 +177,18 @@
             return requestRoute?.channel === 'requests_departments' ? 'departments' : 'organization';
         }
 
+        async function refreshAbsenceLiveEmbed() {
+            try {
+                await window.panelRequestJson('absence-live-sync', {
+                    method: 'POST',
+                    body: JSON.stringify({ organization_id: activeOrganization?.id, audience: getRequestAudience() }),
+                    timeoutMs: 10000,
+                });
+            } catch (error) {
+                console.warn('Embedul live al învoirilor nu a putut fi actualizat imediat:', error);
+            }
+        }
+
         function currentUserIsPlatformAdmin() {
             const cached = JSON.parse(localStorage.getItem('discord_user') || '{}');
             return Boolean(
@@ -616,6 +628,7 @@ try {
 
     if (error) throw error;
     Object.assign(newAbsence, savedAbsence || {});
+    await refreshAbsenceLiveEmbed();
 
 } catch (err) {
     console.error(
@@ -756,6 +769,7 @@ fetchAbsences();
                 if (error) throw error;
 
                 alert('Învoirea a fost ștearsă cu succes!');
+                await refreshAbsenceLiveEmbed();
                 fetchAbsences();
 
             } catch (err) {
@@ -832,6 +846,7 @@ fetchAbsences();
                 }
 
                 alert('Învoirea a fost actualizată cu succes!');
+                await refreshAbsenceLiveEmbed();
 
                 closeEditModal();
                 fetchAbsences();

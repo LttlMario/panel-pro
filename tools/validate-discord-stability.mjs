@@ -71,6 +71,14 @@ const checks = [
   ['deployment parity', `${read('supabase/config.toml')}\n${read('supabase/deploy-functions.ps1')}`, [
     'discord-delivery-retry',
     'discord-route-health',
+    'absence-live-sync',
+  ]],
+  ['absence live embed', `${read('supabase/functions/_shared/absence-live.ts')}\n${read('supabase/functions/absence-live-sync/index.ts')}\n${read('supabase/migrations/20260930000100_absence_live_embed.sql')}\n${read('supabase/functions/discord-interactions/index.ts')}`, [
+    'Învoiri active',
+    'absence_live_message_id',
+    "jobname = 'invoke-absence-live-sync'",
+    'syncAbsenceLiveEmbeds',
+    "gte('end_at'",
   ]],
   ['page builder lifecycle', `${read('supabase/functions/manage-platform-pages/index.ts')}\n${read('js/platform-assistant-workbench.js')}`, [
     "action === 'save_page'",
