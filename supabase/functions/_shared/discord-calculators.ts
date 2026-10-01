@@ -92,7 +92,7 @@ const illegalCategories: CalculatorCategory[] = [
       recipe('combat_mg', 'Combat MG', { Blueprint: 1, 'Piese de armă': 4, 'Țeavă Rifle': 1, 'Corp Rifle': 1, Butstock: 1 }),
       recipe('assault_smg', 'Assault SMG', { Blueprint: 1, 'Piese de armă': 4, 'Țeavă SMG': 1, 'Corp Rifle': 1, Butstock: 1 }),
       recipe('gadget_pistol', 'Gadget Pistol', { Blueprint: 1, 'Piese de armă': 20, 'Țeavă Rifle': 1, 'Corp Pistol': 1, Aur: 10, Diamant: 2, Rubin: 2, Emerald: 2 }),
-      recipe('shotgun', 'Shotgun', { 'Piese de armă': 4, 'Țeavă SMG': 1, 'Corp Pistol': 1 }), recipe('heavy_revolver', 'Heavy Revolver', { 'Piese de armă': 4, 'Țeavă Rifle': 1, 'Corp Pistol': 1 }),
+      recipe('shotgun', 'Shotgun', { Blueprint: 1, 'Piese de armă': 4, 'Țeavă SMG': 1, 'Corp Pistol': 1 }), recipe('heavy_revolver', 'Heavy Revolver', { Blueprint: 1, 'Piese de armă': 4, 'Țeavă Rifle': 1, 'Corp Pistol': 1 }),
       recipe('mg', 'MG', { 'Piese de armă': 3, 'Țeavă Rifle': 1, 'Corp Rifle': 1, Butstock: 1 }), recipe('assault_rifle_mk2', 'Assault Rifle MK2', { 'Piese de armă': 3, 'Țeavă Rifle': 1, 'Corp Rifle': 1, Butstock: 1 }),
       recipe('pistol', 'Pistol', { 'Corp Pistol': 1, 'Țeavă Pistol': 1 }), recipe('tec9', 'Tec-9', { 'Piese de armă': 1, 'Corp Pistol': 1, 'Țeavă SMG': 1 }),
       recipe('pistol_mk2', 'Pistol Mk2', { 'Piese de armă': 1, 'Corp Pistol': 1, 'Țeavă Pistol': 1 }), recipe('micro_smg', 'Micro SMG', { 'Piese de armă': 1, 'Corp SMG': 1, 'Țeavă SMG': 1 }),
