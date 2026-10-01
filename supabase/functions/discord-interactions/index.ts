@@ -825,7 +825,14 @@ async function resolveUniversalModuleContext(db: any, interaction: any, routeKey
   await requireActiveOrganizationAccess(db, organization);
   if (!resolvePackageFeatures(packageSetting?.value || {}).includes(feature) && !(await isPlatformAdminAccount(db, discordId)) && packageSetting?.value?.code !== 'discord') throw new Error('Acest modul nu este inclus în pachetul organizației.');
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
-  const configured = settings?.discord_channel_routes?.[routeKey]?.[target];
+  const configuredRoute = settings?.discord_channel_routes?.[routeKey] || {};
+  // Unele organizații au fost salvate înainte ca asocierea guild-ului
+  // principal/secundar să fie sincronizată perfect cu ruta. Canalul este
+  // deja asociat aceleiași organizații, deci acceptăm și ținta alternativă
+  // dacă ID-ul canalului corespunde exact rutei modulului.
+  const configured = configuredRoute?.[target]?.channel_id === channelId
+    ? configuredRoute[target]
+    : Object.values(configuredRoute).find((route: any) => String(route?.channel_id || '') === channelId);
   const logRouteKey = PANEL_LOG_ROUTES[routeKey] || routeKey;
   if (configured?.enabled === false || !(await routeChannelMatches(db, guild.organization_id, settings, routeKey, target, channelId, interactionMessageId(interaction)))) throw new Error('Acest canal nu este configurat pentru modulul selectat.');
   if (!member && !isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, discordId))) throw new Error('Nu ai acces la acest modul în organizația Discord.');
