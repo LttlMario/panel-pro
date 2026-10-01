@@ -247,8 +247,9 @@ async function resolveCustomModulePublication(db: any, interaction: any, moduleK
   if (organizationError) throw organizationError;
   await requireActiveOrganizationAccess(db, organization);
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
-  const { data: publication, error: publicationError } = await db.from('platform_module_publications').select('*').eq('module_key', moduleKey).eq('organization_id', guild.organization_id).eq('target', target).eq('status', 'published').maybeSingle();
+  const { data: publications, error: publicationError } = await db.from('platform_module_publications').select('*').eq('module_key', moduleKey).eq('organization_id', guild.organization_id).eq('status', 'published');
   if (publicationError) throw publicationError;
+  const publication = (publications || []).find((item: any) => String(item.embed_channel_id || '') === channelId || String(item.result_channel_id || '') === channelId);
   const isEmbedChannel = publication && String(publication.embed_channel_id) === channelId;
   const isResultChannel = publication && publication.result_channel_id && String(publication.result_channel_id) === channelId;
   if (!publication || (!isEmbedChannel && !isResultChannel)) throw new Error('Acest canal nu este configurat pentru modulul Panel Pro.');
@@ -513,7 +514,7 @@ async function resolveContext(db: any, interaction: any) {
   const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', guild.organization_id).maybeSingle();
   if (settingsError) throw settingsError;
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
-  const configuredChannel = settings?.discord_channel_routes?.pontaj?.[target];
+  const configuredChannel = configuredRouteForChannel(settings, 'pontaj', target, channelId);
   if (configuredChannel?.enabled === false || !(await routeChannelMatches(db, guild.organization_id, settings, 'pontaj', target, channelId, interactionMessageId(interaction)))) throw new Error('Acest canal nu este configurat pentru panoul Pontaj al organizației.');
 
   const memberRoles = new Set((interaction.member?.roles || []).map((role: unknown) => String(role)));
@@ -546,9 +547,9 @@ async function resolveRequestContext(db: any, interaction: any, audience: 'organ
   const routeKey = audience === 'organization' ? 'requests_organization' : 'requests_departments';
   const logRouteKey = audience === 'organization' ? 'log_requests_organization' : 'log_requests_departments';
   const alternateRouteKey = audience === 'organization' ? 'requests_departments' : 'requests_organization';
-  const configuredChannel = settings?.discord_channel_routes?.[routeKey]?.[target]
-    || settings?.discord_channel_routes?.requests?.[target]
-    || settings?.discord_channel_routes?.[alternateRouteKey]?.[target];
+  const configuredChannel = configuredRouteForChannel(settings, routeKey, target, channelId)
+    || configuredRouteForChannel(settings, 'requests', target, channelId)
+    || configuredRouteForChannel(settings, alternateRouteKey, target, channelId);
   const messageId = interactionMessageId(interaction);
   const routeMatches = await routeChannelMatches(db, guild.organization_id, settings, routeKey, target, channelId, messageId)
     || await routeChannelMatches(db, guild.organization_id, settings, 'requests', target, channelId, messageId)
@@ -580,8 +581,15 @@ function announcementRoutes(audience: 'organization' | 'departments') {
     : { control: 'departments', log: 'log_announcements_departments' };
 }
 
+function configuredRouteForChannel(settings: any, routeKey: string, target: string, channelId: string) {
+  const route = settings?.discord_channel_routes?.[routeKey] || {};
+  const configured = route?.[target];
+  if (configured?.enabled !== false && String(configured?.channel_id || '') === String(channelId || '')) return configured;
+  return Object.values(route).find((item: any) => item?.enabled !== false && String(item?.channel_id || '') === String(channelId || '')) || null;
+}
+
 function channelMatches(settings: any, routeKey: string, target: string, channelId: string) {
-  const configured = settings?.discord_channel_routes?.[routeKey]?.[target];
+  const configured = configuredRouteForChannel(settings, routeKey, target, channelId);
   return configured?.enabled !== false && String(configured?.channel_id || '') === String(channelId || '');
 }
 
