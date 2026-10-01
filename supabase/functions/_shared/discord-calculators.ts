@@ -88,7 +88,7 @@ const legalCategories: CalculatorCategory[] = [
 const illegalCategories: CalculatorCategory[] = [
   {
     id: 'arme', label: '🔫 Arme', recipes: [
-      recipe('navy_pistol', 'Navy Pistol', { Blueprint: 1, 'Piese de armă': 6, 'Țeavă Rifle': 1, 'Corp Pistol': 1 }),
+      recipe('navy_pistol', 'Navy Pistol', { 'Piese de armă': 6, 'Țeavă Rifle': 1, 'Corp Pistol': 1 }),
       recipe('combat_mg', 'Combat MG', { Blueprint: 1, 'Piese de armă': 4, 'Țeavă Rifle': 1, 'Corp Rifle': 1, Butstock: 1 }),
       recipe('assault_smg', 'Assault SMG', { Blueprint: 1, 'Piese de armă': 4, 'Țeavă SMG': 1, 'Corp Rifle': 1, Butstock: 1 }),
       recipe('gadget_pistol', 'Gadget Pistol', { Blueprint: 1, 'Piese de armă': 20, 'Țeavă Rifle': 1, 'Corp Pistol': 1, Aur: 10, Diamant: 2, Rubin: 2, Emerald: 2 }),
@@ -98,7 +98,7 @@ const illegalCategories: CalculatorCategory[] = [
       recipe('pistol_mk2', 'Pistol Mk2', { 'Piese de armă': 1, 'Corp Pistol': 1, 'Țeavă Pistol': 1 }), recipe('micro_smg', 'Micro SMG', { 'Piese de armă': 1, 'Corp SMG': 1, 'Țeavă SMG': 1 }),
       recipe('mini_ak', 'Mini Ak', { 'Piese de armă': 1, 'Corp Rifle': 1, 'Țeavă SMG': 1 }), recipe('vintage_pistol', 'Vintage Pistol', { 'Piese de armă': 2, 'Corp Pistol': 1, 'Țeavă Pistol': 1 }),
       recipe('smg_mk2', 'SMG Mk2', { 'Piese de armă': 1, 'Corp SMG': 1, 'Țeavă SMG': 1 }), recipe('tommy_gun', 'Tommy Gun', { 'Piese de armă': 1, 'Țeavă Rifle': 1, 'Corp Rifle': 1, Butstock: 1 }),
-      recipe('db', 'DB', { 'Piese de armă': 3, 'Corp Pistol': 1, 'Țeavă Pistol': 1, Aur: 1 }),
+      recipe('db', 'DB', { Blueprint: 1, 'Piese de armă': 3, 'Corp Pistol': 1, 'Țeavă Pistol': 1, Aur: 1 }),
     ],
   },
   {
