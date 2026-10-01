@@ -514,7 +514,7 @@ async function resolveContext(db: any, interaction: any) {
   if (settingsError) throw settingsError;
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
   const configuredChannel = settings?.discord_channel_routes?.pontaj?.[target];
-  if (configuredChannel?.enabled === false || String(configuredChannel?.channel_id || '') !== channelId) throw new Error('Acest canal nu este configurat pentru panoul Pontaj al organizației.');
+  if (configuredChannel?.enabled === false || !(await routeChannelMatches(db, guild.organization_id, settings, 'pontaj', target, channelId, interactionMessageId(interaction)))) throw new Error('Acest canal nu este configurat pentru panoul Pontaj al organizației.');
 
   const memberRoles = new Set((interaction.member?.roles || []).map((role: unknown) => String(role)));
   const { data: mappings, error: mappingsError } = await db.from('organization_role_mappings').select('discord_role_id,panel_role,permission_level,priority').eq('organization_id', guild.organization_id).eq('guild_id', guildId).eq('enabled', true);
@@ -549,7 +549,11 @@ async function resolveRequestContext(db: any, interaction: any, audience: 'organ
   const configuredChannel = settings?.discord_channel_routes?.[routeKey]?.[target]
     || settings?.discord_channel_routes?.requests?.[target]
     || settings?.discord_channel_routes?.[alternateRouteKey]?.[target];
-  if (configuredChannel?.enabled === false || String(configuredChannel?.channel_id || '') !== channelId) throw new Error(`Acest canal nu este configurat pentru panoul Învoiri · ${audience === 'organization' ? 'Organizație' : 'Angajați'}.`);
+  const messageId = interactionMessageId(interaction);
+  const routeMatches = await routeChannelMatches(db, guild.organization_id, settings, routeKey, target, channelId, messageId)
+    || await routeChannelMatches(db, guild.organization_id, settings, 'requests', target, channelId, messageId)
+    || await routeChannelMatches(db, guild.organization_id, settings, alternateRouteKey, target, channelId, messageId);
+  if (configuredChannel?.enabled === false || !routeMatches) throw new Error(`Acest canal nu este configurat pentru panoul Învoiri · ${audience === 'organization' ? 'Organizație' : 'Angajați'}.`);
   const memberRoles = new Set((interaction.member?.roles || []).map((role: unknown) => String(role)));
   const { data: mappings, error: mappingsError } = await db.from('organization_role_mappings').select('discord_role_id,panel_role,permission_level,priority').eq('organization_id', guild.organization_id).eq('guild_id', guildId).eq('enabled', true);
   if (mappingsError) throw mappingsError;
@@ -581,6 +585,28 @@ function channelMatches(settings: any, routeKey: string, target: string, channel
   return configured?.enabled !== false && String(configured?.channel_id || '') === String(channelId || '');
 }
 
+async function routeChannelMatches(db: any, organizationId: string, settings: any, routeKey: string, target: string, channelId: string, messageId = '') {
+  if (channelMatches(settings, routeKey, target, channelId)) return true;
+  try {
+    const { data, error } = await db.from('discord_message_registry')
+      .select('id,target,channel_id,message_id,status')
+      .eq('organization_id', organizationId)
+      .eq('route_key', routeKey)
+      .eq('channel_id', channelId)
+      .in('status', ['pending', 'active', 'stale'])
+      .order('updated_at', { ascending: false })
+      .limit(5);
+    if (error) throw error;
+    const rows = Array.isArray(data) ? data : [];
+    return rows.some((row: any) => String(row.target || target) === target || String(row.message_id || '') === String(messageId || ''));
+  } catch (error) {
+    console.error('[discord-interactions] route registry lookup failed', error);
+    return false;
+  }
+}
+
+const interactionMessageId = (interaction: any) => String(interaction?.message?.id || interaction?.message_id || '').trim();
+
 async function resolveAnnouncementContext(db: any, interaction: any, audience: 'organization' | 'departments', permission: 'read' | 'write') {
   const guildId = String(interaction.guild_id || '').trim();
   const channelId = String(interaction.channel_id || '').trim();
@@ -598,7 +624,8 @@ async function resolveAnnouncementContext(db: any, interaction: any, audience: '
   if (settingsError) throw settingsError;
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
   const routes = announcementRoutes(audience);
-  if (!channelMatches(settings, routes.control, target, channelId) && !channelMatches(settings, routes.log, target, channelId)) throw new Error(`Acest canal nu este configurat pentru panoul ${audience === 'organization' ? 'Anunțuri · Organizație' : 'Anunțuri · Angajați'}.`);
+  const messageId = interactionMessageId(interaction);
+  if (!(await routeChannelMatches(db, guild.organization_id, settings, routes.control, target, channelId, messageId)) && !(await routeChannelMatches(db, guild.organization_id, settings, routes.log, target, channelId, messageId))) throw new Error(`Acest canal nu este configurat pentru panoul ${audience === 'organization' ? 'Anunțuri · Organizație' : 'Anunțuri · Angajați'}.`);
 
   const { data: permissionSettings, error: permissionError } = await db.from('app_settings').select('key,value').eq('organization_id', guild.organization_id).in('key', ['communication_permissions', 'page_permissions', 'action_permissions', 'organization_package']);
   if (permissionError) throw permissionError;
@@ -649,7 +676,8 @@ async function resolveManagementContext(db: any, interaction: any, audience: 'or
   if (settingsError) throw settingsError;
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
   const routes = announcementRoutes(audience);
-  if (!channelMatches(settings, routeKey, target, channelId) && !channelMatches(settings, routes.log, target, channelId)) throw new Error(`Acest canal nu este configurat pentru ${routeKey}.`);
+  const messageId = interactionMessageId(interaction);
+  if (!(await routeChannelMatches(db, guild.organization_id, settings, routeKey, target, channelId, messageId)) && !(await routeChannelMatches(db, guild.organization_id, settings, routes.log, target, channelId, messageId))) throw new Error(`Acest canal nu este configurat pentru ${routeKey}.`);
   const { data: permissionSettings, error: permissionError } = await db.from('app_settings').select('key,value').eq('organization_id', guild.organization_id).in('key', ['discipline_permissions', 'action_permissions', 'organization_package']);
   if (permissionError) throw permissionError;
   const byKey = new Map((permissionSettings || []).map((item: any) => [String(item.key), item.value]));
@@ -694,7 +722,7 @@ async function resolveContractContext(db: any, interaction: any, routeKey = 'con
   await requireActiveOrganizationAccess(db, resolvedOrganization);
   if (resolvedSettingsError) throw resolvedSettingsError;
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
-  if (!channelMatches(resolvedSettings, routeKey, target, channelId)) throw new Error(`Acest canal nu este configurat pentru panoul ${routeKey === 'log_contracts' ? 'Log contracte' : 'Contracte'}.`);
+  if (!(await routeChannelMatches(db, guild.organization_id, resolvedSettings, routeKey, target, channelId, interactionMessageId(interaction)))) throw new Error(`Acest canal nu este configurat pentru panoul ${routeKey === 'log_contracts' ? 'Log contracte' : 'Contracte'}.`);
   const [{ data: packageSetting, error: packageError }, { data: permissionSetting, error: permissionError }, { data: mappings, error: mappingsError }, { data: organizationMember, error: memberError }, platformAdmin] = await Promise.all([
     db.from('app_settings').select('value').eq('organization_id', guild.organization_id).eq('key', 'organization_package').maybeSingle(),
     db.from('app_settings').select('value').eq('organization_id', guild.organization_id).eq('key', 'page_permissions').maybeSingle(),
@@ -799,7 +827,7 @@ async function resolveUniversalModuleContext(db: any, interaction: any, routeKey
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
   const configured = settings?.discord_channel_routes?.[routeKey]?.[target];
   const logRouteKey = PANEL_LOG_ROUTES[routeKey] || routeKey;
-  if (configured?.enabled === false || String(configured?.channel_id || '') !== channelId) throw new Error('Acest canal nu este configurat pentru modulul selectat.');
+  if (configured?.enabled === false || !(await routeChannelMatches(db, guild.organization_id, settings, routeKey, target, channelId, interactionMessageId(interaction)))) throw new Error('Acest canal nu este configurat pentru modulul selectat.');
   if (!member && !isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, discordId))) throw new Error('Nu ai acces la acest modul în organizația Discord.');
   const displayName = String(interaction.member?.nick || interaction.member?.user?.global_name || interaction.member?.user?.username || discordId).slice(0, 120);
   return { guildId, channelId, target, discordId, displayName, organization, settings, logRouteKey };
@@ -832,7 +860,11 @@ async function resolveWheelContext(db: any, interaction: any) {
       // dedicată wheel_timer să fie separată de ruta evenimentelor.
       || Object.values(settings?.discord_channel_routes?.event_reminders || {}).find((route: any) => String(route?.channel_id || '') === channelId)
       || Object.values(settings?.discord_channel_routes?.log_event_reminders || {}).find((route: any) => String(route?.channel_id || '') === channelId);
-  if (!configured || configured.enabled === false) throw new Error('Acest canal nu este configurat pentru embedul Roată.');
+  const messageId = interactionMessageId(interaction);
+  const registered = await routeChannelMatches(db, guild.organization_id, settings, 'wheel_timer', target, channelId, messageId)
+    || await routeChannelMatches(db, guild.organization_id, settings, 'event_reminders', target, channelId, messageId)
+    || await routeChannelMatches(db, guild.organization_id, settings, 'log_event_reminders', target, channelId, messageId);
+  if ((!configured && !registered) || configured?.enabled === false) throw new Error('Acest canal nu este configurat pentru embedul Roată.');
   return { guildId, channelId, target, discordId, organization, settings };
 }
 
@@ -1568,8 +1600,9 @@ async function resolveStashContext(db: any, interaction: any, routeKey: 'stash' 
   if (!resolvePackageFeatures(packageSetting?.value || {}).includes('stash')) throw new Error('Stash nu este inclus în pachetul organizației.');
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
   const controlRouteKey = ['stash_requests', 'stash_donations'].includes(routeKey) ? 'stash' : routeKey;
-  const legacyRouteAllowed = ['stash_requests', 'stash_donations'].includes(routeKey) && channelMatches(settings, routeKey, target, channelId);
-  if (!channelMatches(settings, controlRouteKey, target, channelId) && !legacyRouteAllowed && !(controlRouteKey === 'log_stash' && channelMatches(settings, 'log_stash', target, channelId))) throw new Error(`Acest canal nu este configurat pentru panoul ${controlRouteKey === 'stash' ? 'Stash' : 'Log stash'}.`);
+  const messageId = interactionMessageId(interaction);
+  const legacyRouteAllowed = ['stash_requests', 'stash_donations'].includes(routeKey) && await routeChannelMatches(db, guild.organization_id, settings, routeKey, target, channelId, messageId);
+  if (!(await routeChannelMatches(db, guild.organization_id, settings, controlRouteKey, target, channelId, messageId)) && !legacyRouteAllowed && !(controlRouteKey === 'log_stash' && await routeChannelMatches(db, guild.organization_id, settings, 'log_stash', target, channelId, messageId))) throw new Error(`Acest canal nu este configurat pentru panoul ${controlRouteKey === 'stash' ? 'Stash' : 'Log stash'}.`);
   const memberRoles = new Set((interaction.member?.roles || []).map((role: unknown) => String(role)));
   const { data: mappings, error: mappingsError } = await db.from('organization_role_mappings').select('discord_role_id,panel_role,priority').eq('organization_id', guild.organization_id).eq('guild_id', guildId).eq('enabled', true);
   if (mappingsError) throw mappingsError;
