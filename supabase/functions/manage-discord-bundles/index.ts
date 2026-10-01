@@ -138,6 +138,7 @@ Deno.serve(async (request) => {
       const channel = await ensureChannel(guildId, token, channels, channelName, 0, String(category.row.id), botOverwrite);
       createdChannels += Number(channel.created);
       let messageId = '';
+      let skipped = '';
       if (publishEmbeds && !routeKey.startsWith('log_') && routeKey !== 'contract_uploads' && hasInteractiveDefinition(routeKey)) {
         const existingSettings = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
         const oldRoute = existingSettings.data?.discord_channel_routes?.[routeKey]?.[target] || {};
@@ -153,8 +154,7 @@ Deno.serve(async (request) => {
             messageId = String(message?.id || '');
             createdMessages += Number(Boolean(messageId));
           } else {
-          installed.push({ route: routeKey, label: routeLabels[routeKey] || routeKey, category_id: String(category.row.id), channel_id: String(channel.row.id), message_id: null, buttons: definitions[routeKey]?.buttons?.length || 0, skipped: 'Nu există un embed existent salvat pentru editare.' });
-          continue;
+            skipped = 'Nu există un embed existent salvat pentru editare.';
           }
         }
         if (canEditExisting) {
@@ -174,12 +174,29 @@ Deno.serve(async (request) => {
           if (!deleted.ok && deleted.status !== 404) throw new Error(`Embedul vechi pentru ${routeLabels[routeKey] || routeKey} nu a putut fi șters.`);
         }
       }
-      routes[routeKey] = { primary: { enabled: true, channel_id: String(channel.row.id), guild_id: guildId, ...(messageId ? { message_id: messageId } : {}) } };
-      installed.push({ route: routeKey, label: routeLabels[routeKey] || routeKey, category_id: String(category.row.id), channel_id: String(channel.row.id), message_id: messageId || null, buttons: definitions[routeKey]?.buttons?.length || 0 });
+      const previousRoute = (await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle()).data?.discord_channel_routes?.[routeKey]?.[target] || {};
+      const finalMessageId = messageId || (id(previousRoute.message_id) && String(previousRoute.channel_id || '') === String(channel.row.id) ? String(previousRoute.message_id) : '');
+      routes[routeKey] = { [target]: { enabled: true, channel_id: String(channel.row.id), guild_id: guildId, ...(finalMessageId ? { message_id: finalMessageId } : {}) } };
+      if (finalMessageId) {
+        await db.from('discord_message_registry').upsert({
+          organization_id: organizationId,
+          route_key: routeKey,
+          message_key: `${routeKey}-control`,
+          target,
+          channel_id: String(channel.row.id),
+          guild_id: guildId,
+          message_id: finalMessageId,
+          status: 'active',
+          operation: messageId && messageId !== previousRoute.message_id ? 'create' : 'edit',
+          last_checked_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'organization_id,route_key,message_key,target,channel_id' });
+      }
+      installed.push({ route: routeKey, label: routeLabels[routeKey] || routeKey, category_id: String(category.row.id), channel_id: String(channel.row.id), message_id: finalMessageId || null, buttons: definitions[routeKey]?.buttons?.length || 0, ...(skipped ? { skipped } : {}) });
     }
     const { data: currentSettings } = await db.from('organization_settings').select('discord_client_id,panel_public_url,discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
     const mergedRoutes = { ...(currentSettings?.discord_channel_routes || {}) };
-    for (const [key, value] of Object.entries(routes)) mergedRoutes[key] = { ...(mergedRoutes[key] || {}), [target]: value.primary };
+    for (const [key, value] of Object.entries(routes)) mergedRoutes[key] = { ...(mergedRoutes[key] || {}), [target]: (value as any)[target] };
     const { error: settingsError } = await db.from('organization_settings').upsert({ organization_id: organizationId, discord_client_id: currentSettings?.discord_client_id || '0', panel_public_url: currentSettings?.panel_public_url || '', discord_channel_routes: mergedRoutes, updated_by_discord_id: session.discord_id, updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
     if (settingsError) throw settingsError;
     await db.from('admin_audit_log').insert({ organization_id: organizationId, actor_discord_id: session.discord_id, action: 'discord_real_routes_installed', target_type: 'discord_guild', target_id: guildId, details: { bundle: body.bundle_key, category_id: category.row.id, route_count: installed.length, message_count: createdMessages, publish_embeds: publishEmbeds } });
