@@ -34,6 +34,7 @@ Deno.serve(async (request) => {
     const requestedRoutes = body.discord_channel_routes && typeof body.discord_channel_routes === 'object' && !Array.isArray(body.discord_channel_routes)
       ? { discord_channel_routes: body.discord_channel_routes }
       : undefined;
+    const forceRepost = body.force_repost === true;
     let organizations;
     let panelAudience = body.audience === 'departments' ? 'departments' : body.audience === 'organization' ? 'organization' : undefined;
     if (cronAuthorized) {
@@ -48,7 +49,7 @@ Deno.serve(async (request) => {
     const results = [];
     for (const organization of organizations) {
       try {
-        results.push(await syncAbsenceLiveEmbeds(db, String(organization.id), cronAuthorized ? undefined : requestedRoutes, panelAudience));
+        results.push(await syncAbsenceLiveEmbeds(db, String(organization.id), cronAuthorized ? undefined : requestedRoutes, panelAudience, forceRepost));
       } catch (error) {
         results.push({ organization_id: organization.id, error: errorText(error) });
       }

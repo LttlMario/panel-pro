@@ -55,7 +55,7 @@ async function saveLiveMessageId(db: any, organizationId: string, routeKey: stri
   if (error) throw error;
 }
 
-async function syncAudience(db: any, organizationId: string, settings: any, audience: string, now: Date) {
+async function syncAudience(db: any, organizationId: string, settings: any, audience: string, now: Date, forceRepost = false) {
   const routeKey = routeForAudience(audience);
   const { data, error } = await db.from('absences')
     .select('id,discord_id,colleague_name,notice_type,reason,notes,start_at,end_at,start_date,request_audience')
@@ -76,7 +76,17 @@ async function syncAudience(db: any, organizationId: string, settings: any, audi
     const candidate = candidates[0];
     if (!candidate) continue;
     const savedId = String(route?.[target]?.absence_live_message_id || '').trim();
-    let response = await requestDiscordTarget(db, candidate, JSON.stringify(payload), { messageId: validDiscordChannelId(savedId) ? savedId : undefined });
+    let reposted = false;
+    if (forceRepost && validDiscordChannelId(savedId)) {
+      const deleteResponse = await requestDiscordTarget(db, candidate, null, { method: 'DELETE', messageId: savedId });
+      if (!deleteResponse.ok && deleteResponse.status !== 404) {
+        throw new Error(`Discord ${routeKey}/${target} nu a putut șterge embedul live existent (HTTP ${deleteResponse.status}).`);
+      }
+      reposted = true;
+    }
+    let response = await requestDiscordTarget(db, candidate, JSON.stringify(payload), {
+      messageId: !reposted && validDiscordChannelId(savedId) ? savedId : undefined,
+    });
     let recreated = false;
     if (!response.ok && response.status === 404 && validDiscordChannelId(savedId)) {
       response = await requestDiscordTarget(db, candidate, JSON.stringify(payload), { method: 'POST' });
@@ -90,20 +100,20 @@ async function syncAudience(db: any, organizationId: string, settings: any, audi
     const body = await response.json().catch(() => ({}));
     const messageId = String(body?.id || savedId || '').trim();
     if (validDiscordChannelId(messageId) && messageId !== savedId) await saveLiveMessageId(db, organizationId, routeKey, target, messageId);
-    results.push({ audience, target, message_id: messageId, count: rows.length, recreated });
+    results.push({ audience, target, message_id: messageId, count: rows.length, recreated, reposted });
   }
   if (!results.length) throw new Error(`Nu există un canal Discord valid configurat pentru ${routeKey}.`);
   return { audience, count: rows.length, results };
 }
 
-export async function syncAbsenceLiveEmbeds(db: any, organizationId: string, settings: any = null, audience = '') {
+export async function syncAbsenceLiveEmbeds(db: any, organizationId: string, settings: any = null, audience = '', forceRepost = false) {
   const { data: loadedSettings, error } = settings ? { data: settings, error: null } : await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
   if (error) throw error;
   const currentSettings = loadedSettings || {};
   const now = new Date();
   const audiences = audience === 'organization' || audience === 'departments' ? [audience] : ['organization', 'departments'];
   const results = [];
-  for (const item of audiences) results.push(await syncAudience(db, organizationId, currentSettings, item, now));
+  for (const item of audiences) results.push(await syncAudience(db, organizationId, currentSettings, item, now, forceRepost));
   return { organization_id: organizationId, updated_at: now.toISOString(), results };
 }
 

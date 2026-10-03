@@ -377,8 +377,8 @@
     statusNode.textContent = 'Se trimite / actualizează embedul învoirilor active...';
     try {
       const audience = key === 'log_requests_departments' ? 'departments' : 'organization';
-      await window.panelRequestJson('absence-live-sync', { method: 'POST', body: JSON.stringify({ organization_id: selectedOrganizationId, audience, discord_channel_routes: window.getDiscordChannelRoutes?.() || {} }), timeoutMs: 15000 });
-      statusNode.textContent = 'Embedul învoirilor active a fost trimis sau actualizat. Mesajul existent este reutilizat.';
+      await window.panelRequestJson('absence-live-sync', { method: 'POST', body: JSON.stringify({ organization_id: selectedOrganizationId, audience, force_repost: true, discord_channel_routes: window.getDiscordChannelRoutes?.() || {} }), timeoutMs: 15000 });
+      statusNode.textContent = 'Embedul învoirilor active a fost actualizat și păstrat ca ultimul mesaj.';
     } catch (error) {
       statusNode.textContent = error.message || 'Embedul învoirilor active nu a putut fi actualizat.';
     } finally {

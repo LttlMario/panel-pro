@@ -177,11 +177,11 @@
             return requestRoute?.channel === 'requests_departments' ? 'departments' : 'organization';
         }
 
-        async function refreshAbsenceLiveEmbed() {
+        async function refreshAbsenceLiveEmbed(forceRepost = false) {
             try {
                 await window.panelRequestJson('absence-live-sync', {
                     method: 'POST',
-                    body: JSON.stringify({ organization_id: activeOrganization?.id, audience: getRequestAudience() }),
+                    body: JSON.stringify({ organization_id: activeOrganization?.id, audience: getRequestAudience(), force_repost: forceRepost }),
                     timeoutMs: 10000,
                 });
             } catch (error) {
@@ -628,8 +628,6 @@ try {
 
     if (error) throw error;
     Object.assign(newAbsence, savedAbsence || {});
-    await refreshAbsenceLiveEmbed();
-
 } catch (err) {
     console.error(
         'Eroare la salvarea învoirii în Supabase:',
@@ -670,6 +668,8 @@ if (discordSent) {
         'Învoirea a fost înregistrată, dar notificarea Discord nu a putut fi trimisă.'
     );
 }
+
+await refreshAbsenceLiveEmbed(true);
 
 document.getElementById('absence-form').reset();
 
@@ -769,7 +769,7 @@ fetchAbsences();
                 if (error) throw error;
 
                 alert('Învoirea a fost ștearsă cu succes!');
-                await refreshAbsenceLiveEmbed();
+                await refreshAbsenceLiveEmbed(true);
                 fetchAbsences();
 
             } catch (err) {
@@ -846,7 +846,7 @@ fetchAbsences();
                 }
 
                 alert('Învoirea a fost actualizată cu succes!');
-                await refreshAbsenceLiveEmbed();
+                await refreshAbsenceLiveEmbed(true);
 
                 closeEditModal();
                 fetchAbsences();
