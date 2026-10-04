@@ -2471,22 +2471,32 @@ Deno.serve(async (request) => {
     const secret = serviceKey();
     if (!secret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
     const db = createClient(Deno.env.get('SUPABASE_URL')!, secret);
+    const deferred = await deferInteraction(interaction, false);
+    let result;
     let context;
-    try { context = await resolveWheelContext(db, interaction); }
-    catch (error) { return reply(interactionMessage(readableError(error, 'Timerul nu este disponibil pe acest canal.'))); }
-    const action = customId.split(':')[2] === 'start' ? 'start' : 'status';
-    const { data: active, error: activeError } = await db.from('wheel_timers').select('*').eq('organization_id', context.organization.id).eq('discord_id', context.discordId).eq('status', 'active').maybeSingle();
-    if (activeError) return reply(interactionMessage('Nu am putut verifica timerul. Încearcă din nou.'));
-    if (active && Date.parse(String(active.completes_at || '')) <= Date.now()) {
-      await db.from('wheel_timers').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', active.id).eq('status', 'active');
+    try {
+      context = await resolveWheelContext(db, interaction);
+      const action = customId.split(':')[2] === 'start' ? 'start' : 'status';
+      const { data: active, error: activeError } = await db.from('wheel_timers').select('*').eq('organization_id', context.organization.id).eq('discord_id', context.discordId).eq('status', 'active').maybeSingle();
+      if (activeError) throw new Error('Nu am putut verifica timerul. Încearcă din nou.');
+      if (active && Date.parse(String(active.completes_at || '')) <= Date.now()) {
+        await db.from('wheel_timers').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', active.id).eq('status', 'active');
+      }
+      if (action === 'status') result = wheelPrivateMessage(active && Date.parse(String(active.completes_at || '')) > Date.now() ? active : null);
+      else if (active && Date.parse(String(active.completes_at || '')) > Date.now()) result = wheelPrivateMessage(active);
+      else {
+        const started = new Date();
+        const completes = new Date(started.getTime() + 6 * 60 * 60 * 1000);
+        const { data: timer, error: insertError } = await db.from('wheel_timers').insert({ organization_id: context.organization.id, discord_id: context.discordId, started_at: started.toISOString(), completes_at: completes.toISOString() }).select('*').single();
+        if (insertError) throw insertError;
+        result = wheelPrivateMessage(timer);
+      }
+    } catch (error) {
+      console.error('[discord-interactions] wheel timer failed', error);
+      result = interactionMessage(readableError(error, 'Timerul nu este disponibil pe acest canal.'));
     }
-    if (action === 'status') return reply(wheelPrivateMessage(active && Date.parse(String(active.completes_at || '')) > Date.now() ? active : null));
-    if (active && Date.parse(String(active.completes_at || '')) > Date.now()) return reply(wheelPrivateMessage(active));
-    const started = new Date();
-    const completes = new Date(started.getTime() + 6 * 60 * 60 * 1000);
-    const { data: timer, error: insertError } = await db.from('wheel_timers').insert({ organization_id: context.organization.id, discord_id: context.discordId, started_at: started.toISOString(), completes_at: completes.toISOString() }).select('*').single();
-    if (insertError) return reply(interactionMessage('Timerul nu a putut fi pornit. Încearcă din nou.'));
-    return reply(wheelPrivateMessage(timer));
+    await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+    return new Response(null, { status: 204 });
   }
 
   if (isCustomModule) {
