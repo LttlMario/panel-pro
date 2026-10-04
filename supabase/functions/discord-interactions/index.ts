@@ -899,7 +899,12 @@ async function resolveWheelContext(db: any, interaction: any) {
   const registered = await routeChannelMatches(db, guild.organization_id, settings, 'wheel_timer', target, channelId, messageId)
     || await routeChannelMatches(db, guild.organization_id, settings, 'event_reminders', target, channelId, messageId)
     || await routeChannelMatches(db, guild.organization_id, settings, 'log_event_reminders', target, channelId, messageId);
-  if ((!configured && !registered) || configured?.enabled === false) throw new Error('Acest canal nu este configurat pentru embedul Roată.');
+  const messageTitle = String(interaction?.message?.embeds?.[0]?.title || '').trim().toLowerCase();
+  const isOfficialWheelMessage = messageTitle.includes('roată') || messageTitle.includes('roata');
+  // Compatibilitate pentru embedurile Roată deja publicate înainte ca ruta
+  // dedicată să fie salvată în configurația organizației/registrul central.
+  // Verificăm titlul embedului Panel Pro, nu acceptăm orice buton arbitrar.
+  if ((!configured && !registered && !isOfficialWheelMessage) || configured?.enabled === false) throw new Error('Acest canal nu este configurat pentru embedul Roată.');
   return { guildId, channelId, target, discordId, organization, settings };
 }
 
