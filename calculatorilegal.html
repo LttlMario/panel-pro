@@ -464,15 +464,36 @@
                         <div class="category-header" onclick="toggleCategory('cat-mushrooms')">🍄 Plicuri Ciuperci</div>
                         <div class="category-content" id="mushroomsForm">
                             <div class="item-row" style="margin-bottom: 10px;">
-                                <span class="item-name">Tip Plic Ciuperci</span>
+                                <span class="item-name">Mod calcul</span>
+                                <select id="mushroomsMode" onchange="updateMushroomInputMode(); calculateAll()" style="width: 100%;">
+                                    <option value="desired">Cantitate dorită</option>
+                                    <option value="available">După material disponibil</option>
+                                </select>
+                            </div>
+                            <div class="item-row" style="margin-bottom: 10px;">
+                                <span class="item-name" id="mushroomsResourceLabel">Tip Plic Ciuperci</span>
                                 <select id="mushroomsResource" onchange="calculateAll()" style="width: 100%;">
                                     <option value="red_fire_x3">Red Fire x3</option>
                                     <option value="green_haze">Green Haze x3</option>
                                     <option value="blue_current_x3">Blue Current x3</option>
                                 </select>
                             </div>
+                            <div class="item-row" id="mushroomsAvailableRow" style="display: none; margin-bottom: 10px;">
+                                <span class="item-name">Material disponibil</span>
+                                <select id="mushroomsAvailableMaterial" onchange="syncMushroomRecipe(); calculateAll()" style="width: 100%;">
+                                    <option value="Amanita roșie" data-recipe="red_fire_x3">Amanita roșie</option>
+                                    <option value="Oyster roșu" data-recipe="red_fire_x3">Oyster roșu</option>
+                                    <option value="Pink Light" data-recipe="red_fire_x3">Pink Light</option>
+                                    <option value="Amanita verde" data-recipe="green_haze">Amanita verde</option>
+                                    <option value="Oyster galben" data-recipe="green_haze">Oyster galben</option>
+                                    <option value="Blue Light" data-recipe="green_haze">Blue Light</option>
+                                    <option value="Psilocybe" data-recipe="blue_current_x3">Psilocybe</option>
+                                    <option value="Oyster albastru" data-recipe="blue_current_x3">Oyster albastru</option>
+                                    <option value="Purple Light" data-recipe="blue_current_x3">Purple Light</option>
+                                </select>
+                            </div>
                             <div class="item-row">
-                                <span class="item-name">Cantitate</span>
+                                <span class="item-name" id="mushroomsQtyLabel">Cantitate dorită</span>
                                 <input type="number" id="mushroomsQty" min="0" value="0" placeholder="0" oninput="calculateAll()">
                             </div>
                         </div>
@@ -583,6 +604,11 @@
                     <div class="result-box" id="box_mushrooms">
                         <h3>Necesar Materiale Plicuri Ciuperci</h3>
                         <div class="grid-results" id="mushroomsResultsGrid">
+                            <div class="result-card"><div class="item-title">Mod calcul</div><div class="item-value" id="mush_res_mode">Cantitate dorită</div></div>
+                            <div class="result-card"><div class="item-title">Plicuri posibile</div><div class="item-value" id="mush_res_produced">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Material ales</div><div class="item-value" id="mush_res_available_material">—</div></div>
+                            <div class="result-card"><div class="item-title">Surplus material</div><div class="item-value" id="mush_res_surplus">0 buc</div></div>
+                            <div class="result-card"><div class="item-title">Lipsă pentru următorul lot</div><div class="item-value" id="mush_res_missing">0 buc</div></div>
                             <div class="result-card"><div class="item-title">Acetona</div><div class="item-value" id="mush_res_acetona">0 buc</div></div>
                             <div class="result-card"><div class="item-title">Pink Light</div><div class="item-value" id="mush_res_pink_light">0 buc</div></div>
                             <div class="result-card"><div class="item-title">Oyster Rosu</div><div class="item-value" id="mush_res_oyster_rosu">0 buc</div></div>
@@ -687,6 +713,7 @@
                 localStorage.setItem('discord_user', JSON.stringify(activeUser));
 
                 initForms();
+                updateMushroomInputMode();
             } catch (err) {
                 console.error('Erore sesiune:', err);
                 window.location.href = 'login.html';
@@ -703,6 +730,36 @@
         });
 
         const PRICE_PER_ENVELOPE = 13600;
+
+        const mushroomRecipes = {
+            red_fire_x3: { name: 'Red Fire x3', produces: 3, base: { Acetonă: 1, 'Pink Light': 3, 'Oyster roșu': 3, 'Amanita roșie': 3, 'Plicuri goale': 3 } },
+            green_haze: { name: 'Green Haze x3', produces: 3, base: { Acetonă: 1, 'Blue Light': 3, 'Oyster galben': 3, 'Amanita verde': 3, 'Plicuri goale': 3 } },
+            blue_current_x3: { name: 'Blue Current x3', produces: 3, base: { Acetonă: 1, 'Purple Light': 3, 'Oyster albastru': 3, Psilocybe: 3, 'Plicuri goale': 3 } }
+        };
+
+        function syncMushroomRecipe() {
+            const mode = document.getElementById('mushroomsMode')?.value || 'desired';
+            const recipeSelect = document.getElementById('mushroomsResource');
+            const availableSelect = document.getElementById('mushroomsAvailableMaterial');
+            if (!recipeSelect || !availableSelect) return;
+            if (mode === 'available') {
+                const recipeId = availableSelect.selectedOptions[0]?.dataset.recipe;
+                if (recipeId && mushroomRecipes[recipeId]) recipeSelect.value = recipeId;
+            }
+        }
+
+        function updateMushroomInputMode() {
+            const mode = document.getElementById('mushroomsMode')?.value || 'desired';
+            const availableRow = document.getElementById('mushroomsAvailableRow');
+            const recipeLabel = document.getElementById('mushroomsResourceLabel');
+            const quantityLabel = document.getElementById('mushroomsQtyLabel');
+            if (availableRow) availableRow.style.display = mode === 'available' ? '' : 'none';
+            const recipeSelect = document.getElementById('mushroomsResource');
+            if (recipeSelect) recipeSelect.disabled = mode === 'available';
+            if (recipeLabel) recipeLabel.textContent = mode === 'available' ? 'Produs calculat automat' : 'Tip Plic Ciuperci';
+            if (quantityLabel) quantityLabel.textContent = mode === 'available' ? 'Cantitatea materialului disponibil' : 'Cantitate dorită';
+            syncMushroomRecipe();
+        }
 
         const componentCost = {
             "Teava Pistol": 1,
@@ -1191,14 +1248,27 @@
             const weedTotalJoints = weedFactor * 1;
             const weedTotalKg = (weedTotalFrunze * 0.04) + (weedTotalFoite * 0.01);
 
+            const mushroomsMode = document.getElementById('mushroomsMode')?.value || 'desired';
             const mushroomsResource = document.getElementById('mushroomsResource').value;
             const mushroomsQtyVal = document.getElementById('mushroomsQty').value;
+            const mushroomRecipe = mushroomRecipes[mushroomsResource];
+            const availableMaterial = document.getElementById('mushroomsAvailableMaterial')?.value || '';
+            const availableAmount = parseFloat(mushroomsQtyVal) || 0;
             let mushQty = 0;
-            let hasMushrooms = false;
+            let hasMushrooms = availableAmount > 0 && !!mushroomRecipe;
+            let mushroomProduced = 0;
+            let mushroomSurplus = 0;
+            let mushroomMissing = 0;
 
-            if (mushroomsQtyVal !== '' && !isNaN(mushroomsQtyVal) && parseFloat(mushroomsQtyVal) > 0) {
-                hasMushrooms = true;
-                mushQty = parseFloat(mushroomsQtyVal);
+            if (hasMushrooms && mushroomsMode === 'available') {
+                const neededPerCraft = Number(mushroomRecipe.base[availableMaterial] || 0);
+                mushQty = neededPerCraft > 0 ? Math.floor(availableAmount / neededPerCraft) : 0;
+                mushroomProduced = mushQty * mushroomRecipe.produces;
+                mushroomSurplus = neededPerCraft > 0 ? availableAmount - (mushQty * neededPerCraft) : availableAmount;
+                mushroomMissing = neededPerCraft > 0 ? Math.max(0, neededPerCraft - mushroomSurplus) : 0;
+            } else if (hasMushrooms) {
+                mushQty = availableAmount;
+                mushroomProduced = mushQty * mushroomRecipe.produces;
             }
 
             let mushAcetona = 0;
@@ -1213,25 +1283,17 @@
             let mushPsilocybe = 0;
             let mushPlicuriGoale = 0;
 
-            if (mushroomsResource === 'red_fire_x3') {
-                mushAcetona = mushQty * 1;
-                mushPinkLight = mushQty * 3;
-                mushOysterRosu = mushQty * 3;
-                mushAmanitaRosie = mushQty * 3;
-                mushPlicuriGoale = mushQty * 3;
-            } else if (mushroomsResource === 'green_haze') {
-                mushAcetona = mushQty * 1;
-                mushBlueLight = mushQty * 3;
-                mushOysterGalben = mushQty * 3;
-                mushAmanitaVerde = mushQty * 3;
-                mushPlicuriGoale = mushQty * 3;
-            } else if (mushroomsResource === 'blue_current_x3') {
-                mushAcetona = mushQty * 1;
-                mushPurpleLight = mushQty * 3;
-                mushOysterAlbastru = mushQty * 3;
-                mushPsilocybe = mushQty * 3;
-                mushPlicuriGoale = mushQty * 3;
-            }
+            mushAcetona = mushQty * Number(mushroomRecipe?.base?.Acetonă || 0);
+            mushPinkLight = mushQty * Number(mushroomRecipe?.base?.['Pink Light'] || 0);
+            mushOysterRosu = mushQty * Number(mushroomRecipe?.base?.['Oyster roșu'] || 0);
+            mushAmanitaRosie = mushQty * Number(mushroomRecipe?.base?.['Amanita roșie'] || 0);
+            mushBlueLight = mushQty * Number(mushroomRecipe?.base?.['Blue Light'] || 0);
+            mushOysterGalben = mushQty * Number(mushroomRecipe?.base?.['Oyster galben'] || 0);
+            mushAmanitaVerde = mushQty * Number(mushroomRecipe?.base?.['Amanita verde'] || 0);
+            mushPurpleLight = mushQty * Number(mushroomRecipe?.base?.['Purple Light'] || 0);
+            mushOysterAlbastru = mushQty * Number(mushroomRecipe?.base?.['Oyster albastru'] || 0);
+            mushPsilocybe = mushQty * Number(mushroomRecipe?.base?.Psilocybe || 0);
+            mushPlicuriGoale = mushQty * Number(mushroomRecipe?.base?.['Plicuri goale'] || 0);
 
             const totalMushroomsCount = mushPinkLight + mushOysterRosu + mushAmanitaRosie + mushBlueLight + mushOysterGalben + mushAmanitaVerde + mushPurpleLight + mushOysterAlbastru + mushPsilocybe;
             const mushTotalKg = (mushAcetona * 2) + ((totalMushroomsCount + mushPlicuriGoale) * 0.10);
@@ -1319,6 +1381,11 @@
 
             if (hasMushrooms) {
                 boxMushrooms.classList.add('active');
+                document.getElementById('mush_res_mode').innerText = mushroomsMode === 'available' ? 'După material disponibil' : 'Cantitate dorită';
+                document.getElementById('mush_res_produced').innerText = formatNr(mushroomProduced) + " buc";
+                document.getElementById('mush_res_available_material').innerText = mushroomsMode === 'available' ? availableMaterial : '—';
+                document.getElementById('mush_res_surplus').innerText = mushroomsMode === 'available' ? formatNr(mushroomSurplus) + " buc" : '—';
+                document.getElementById('mush_res_missing').innerText = mushroomsMode === 'available' ? formatNr(mushroomMissing) + " buc" : '—';
                 document.getElementById('mush_res_acetona').innerText = formatNr(mushAcetona) + " buc";
                 document.getElementById('mush_res_pink_light').innerText = formatNr(mushPinkLight) + " buc";
                 document.getElementById('mush_res_oyster_rosu').innerText = formatNr(mushOysterRosu) + " buc";
@@ -1333,6 +1400,11 @@
                 document.getElementById('mush_res_kg').innerText = mushTotalKg.toFixed(2) + " KG";
             } else {
                 boxMushrooms.classList.remove('active');
+                document.getElementById('mush_res_mode').innerText = 'Cantitate dorită';
+                document.getElementById('mush_res_produced').innerText = '0 buc';
+                document.getElementById('mush_res_available_material').innerText = '—';
+                document.getElementById('mush_res_surplus').innerText = '0 buc';
+                document.getElementById('mush_res_missing').innerText = '0 buc';
             }
 
             if (hasSmeltery) {

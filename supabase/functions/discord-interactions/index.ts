@@ -157,7 +157,7 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
     stash: { title: '📦 Stash · Administrare', description: 'Gestionează articolele, cererile și donațiile Stash.', color: 0x22c55e, buttons: [{ label: 'Adaugă în Stash', style: 3, id: 'panel:stash:create' }, { label: 'Cereri în așteptare', style: 1, id: 'panel:stash:pending_requests' }, { label: 'Donații în așteptare', style: 1, id: 'panel:stash:pending_donations' }] },
     actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
     calculator: { title: '🧮 Calculator legal · Panel Pro', description: 'Alege categoria, articolul și cantitatea. Primești instant materialele directe și materialele brute necesare.', color: 0x22c55e, buttons: [{ label: 'Începe calculul', style: 1, id: 'panel:calculator:legal:start' }] },
-    illegal_calculator: { title: '🚨 Calculator ilegal · Panel Pro', description: 'Calculează arme, muniție, topitorie și resurse ilegale direct din Discord.', color: 0xef4444, buttons: [{ label: 'Începe calculul', style: 4, id: 'panel:calculator:illegal:start' }] },
+    illegal_calculator: { title: '🚨 Calculator ilegal · Panel Pro', description: 'Calculează arme, muniție, topitorie și resurse ilegale direct din Discord. La Ciuperci poți calcula și după materialul disponibil.', color: 0xef4444, buttons: [{ label: 'Începe calculul', style: 4, id: 'panel:calculator:illegal:start' }] },
     illegal_locations: { title: '🗺️ Locații ilegale · Panel Pro', description: 'Alege harta. Embedul se actualizează direct în Discord și păstrează butoanele pentru cele 3 zone.', color: 0xef4444, buttons: [{ label: 'Los Santos', style: 4, id: 'panel:illegal_locations:map:ls' }, { label: 'Cayo Perico', style: 4, id: 'panel:illegal_locations:map:cayo' }, { label: 'Maldive', style: 4, id: 'panel:illegal_locations:map:maldive' }] },
     wheel_timer: { title: '🎡 Roată · timer personal', description: 'Pornește timerul personal de 6 ore și verifică timpul rămas. Răspunsurile sunt private pentru fiecare utilizator.', color: 0x06b6d4, buttons: [{ label: 'Am dat la roată', style: 1, id: 'panel:wheel:start' }, { label: 'Verifică timpul', style: 2, id: 'panel:wheel:status' }] },
   };
@@ -185,14 +185,30 @@ const calculatorRows = (kind: 'legal' | 'illegal', categoryId = '', page = 0) =>
   const safePage = Math.max(0, Math.min(pageCount - 1, page));
   const options = category.recipes.slice(safePage * pageSize, (safePage + 1) * pageSize).map((item) => ({ label: item.name.slice(0, 100), value: item.id, description: `1 craft = ${item.produces || 1} produs(e)`.slice(0, 100) }));
   const rows: any[] = [{ type: 1, components: [{ type: 3, custom_id: `panel:calculator:${kind}:item:${calculatorId(category.id)}:${safePage}`, placeholder: `${category.label} · alege articolul`, min_values: 1, max_values: 1, options }] }];
+  if (kind === 'illegal' && category.id === 'ciuperci') {
+    rows.push({ type: 1, components: [{ type: 2, style: 1, label: 'Calculează după material disponibil', custom_id: 'panel:calculator:illegal:mushroom_mode' }] });
+  }
   const navigation: any[] = [{ type: 2, style: 2, label: 'Categorii', custom_id: `panel:calculator:${kind}:categories` }];
   if (safePage > 0) navigation.push({ type: 2, style: 2, label: '‹ Înapoi', custom_id: `panel:calculator:${kind}:page:${calculatorId(category.id)}:${safePage - 1}` });
   if (safePage < pageCount - 1) navigation.push({ type: 2, style: 2, label: 'Înainte ›', custom_id: `panel:calculator:${kind}:page:${calculatorId(category.id)}:${safePage + 1}` });
   rows.push({ type: 1, components: navigation });
   return rows;
 };
+const mushroomAvailableMaterials = [
+  { id: 'amanita_rosie', label: 'Amanita roșie', recipeId: 'red_fire_x3', material: 'Amanita roșie' },
+  { id: 'oyster_rosu', label: 'Oyster roșu', recipeId: 'red_fire_x3', material: 'Oyster roșu' },
+  { id: 'pink_light', label: 'Pink Light', recipeId: 'red_fire_x3', material: 'Pink Light' },
+  { id: 'amanita_verde', label: 'Amanita verde', recipeId: 'green_haze', material: 'Amanita verde' },
+  { id: 'oyster_galben', label: 'Oyster galben', recipeId: 'green_haze', material: 'Oyster galben' },
+  { id: 'blue_light', label: 'Blue Light', recipeId: 'green_haze', material: 'Blue Light' },
+  { id: 'psilocybe', label: 'Psilocybe', recipeId: 'blue_current_x3', material: 'Psilocybe' },
+  { id: 'oyster_albastru', label: 'Oyster albastru', recipeId: 'blue_current_x3', material: 'Oyster albastru' },
+  { id: 'purple_light', label: 'Purple Light', recipeId: 'blue_current_x3', material: 'Purple Light' },
+];
+const mushroomMaterialRows = () => [{ type: 1, components: [{ type: 3, custom_id: 'panel:calculator:illegal:mushroom_material', placeholder: 'Alege materialul disponibil', min_values: 1, max_values: 1, options: mushroomAvailableMaterials.map((item) => ({ label: item.label, value: item.id, description: `Calculează ${item.recipeId === 'red_fire_x3' ? 'Red Fire' : item.recipeId === 'green_haze' ? 'Green Haze' : 'Blue Current'} x3`.slice(0, 100) })) }] }, { type: 1, components: [{ type: 2, style: 2, label: 'Înapoi la articole', custom_id: 'panel:calculator:illegal:page:ciuperci:0' }] }];
 const calculatorStartMessage = (kind: 'legal' | 'illegal') => interactionMessage('', { embeds: [{ title: kind === 'legal' ? '🧮 Calculator legal' : '🚨 Calculator ilegal', description: 'Selectează întâi categoria. După articol poți introduce cantitatea dorită, iar rezultatul va apărea doar pentru tine.', color: kind === 'legal' ? 0x22c55e : 0xef4444, footer: { text: 'Panel Pro · calcul interactiv Discord' } }], components: calculatorRows(kind) });
 const calculatorQuantityModal = (kind: 'legal' | 'illegal', categoryId: string, recipeId: string) => ({ type: 9, data: { custom_id: `panel:calculator:${kind}:quantity:${calculatorId(categoryId)}:${calculatorId(recipeId)}`, title: 'Cantitate de calculat', components: [{ type: 1, components: [{ type: 4, custom_id: 'quantity', label: 'Cantitate dorită', style: 1, required: true, value: '1', placeholder: 'Ex: 10', min_length: 1, max_length: 8 }] }] } });
+const calculatorAvailableQuantityModal = (materialId: string) => ({ type: 9, data: { custom_id: `panel:calculator:illegal:quantity_available:${materialId}`, title: 'Material disponibil', components: [{ type: 1, components: [{ type: 4, custom_id: 'quantity', label: 'Cantitatea materialului disponibil', style: 1, required: true, value: '1', placeholder: 'Ex: 3', min_length: 1, max_length: 8 }] }] } });
 const calculatorResultMessage = (kind: 'legal' | 'illegal', categoryId: string, recipeId: string, quantity: number) => {
   const item = findRecipe(kind, categoryId, recipeId);
   if (!item) return interactionMessage('Articolul selectat nu mai există în calculator.');
@@ -200,6 +216,20 @@ const calculatorResultMessage = (kind: 'legal' | 'illegal', categoryId: string, 
   const list = (values: Record<string, number>) => Object.entries(values).filter(([, amount]) => amount > 0).map(([name, amount]) => `• ${name}: **${amount}**`).join('\n') || '—';
   const embed = { title: `${kind === 'legal' ? '🧮' : '🚨'} Rezultat calculator · ${item.name}`, description: `Ai ales **${quantity}** bucăți. Sunt necesare **${result.crafts}** craft-uri pentru rețeta selectată.`, color: kind === 'legal' ? 0x22c55e : 0xef4444, fields: [{ name: 'Materiale necesare', value: list(result.direct).slice(0, 1024), inline: false }], footer: { text: 'Panel Pro · rezultatul este vizibil doar pentru tine' } };
   return interactionMessage('', { embeds: [embed], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Schimbă articolul', custom_id: `panel:calculator:${kind}:categories` }, { type: 2, style: 2, label: 'Schimbă cantitatea', custom_id: `panel:calculator:${kind}:quantity_again:${calculatorId(categoryId)}:${calculatorId(recipeId)}` }] }] });
+};
+const calculatorAvailableResultMessage = (materialId: string, available: number) => {
+  const selected = mushroomAvailableMaterials.find((item) => item.id === materialId);
+  const item = selected ? findRecipe('illegal', 'ciuperci', selected.recipeId) : null;
+  const neededPerCraft = item && selected ? Number(item.base[selected.material] || 0) : 0;
+  const crafts = neededPerCraft > 0 ? Math.floor(available / neededPerCraft) : 0;
+  const quantity = crafts * Number(item?.produces || 1);
+  const result = item ? calculateRecipe(item, quantity, allCategories('illegal')) : null;
+  if (!item || !result) return interactionMessage('Materialul selectat nu mai există în calculator.');
+  const list = (values: Record<string, number>) => Object.entries(values).filter(([, amount]) => amount > 0).map(([name, amount]) => `• ${name}: **${amount}**`).join('\n') || '—';
+  const surplus = available - crafts * neededPerCraft;
+  const missing = neededPerCraft > 0 ? Math.max(0, neededPerCraft - surplus) : 0;
+  const embed = { title: `🚨 Rezultat după material · ${item.name}`, description: `Ai **${available}** × **${selected?.material}**. Poți produce **${quantity}** plicuri (${crafts} loturi). Îți rămâne **${surplus}** × materialul selectat și îți mai trebuie **${missing}** pentru următorul lot.`, color: 0xef4444, fields: [{ name: 'Materiale necesare pentru producția posibilă', value: list(result.direct).slice(0, 1024), inline: false }], footer: { text: 'Panel Pro · rezultatul este vizibil doar pentru tine' } };
+  return interactionMessage('', { embeds: [embed], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Schimbă materialul', custom_id: 'panel:calculator:illegal:mushroom_mode' }, { type: 2, style: 2, label: 'Calculează după cantitate', custom_id: `panel:calculator:illegal:quantity_again:ciuperci:${selected.recipeId}` }] }] });
 };
 
 const customModuleKey = (value: unknown) => /^custom_[a-z0-9_]{2,60}$/.test(String(value || '').trim()) ? String(value).trim() : '';
@@ -2397,6 +2427,12 @@ Deno.serve(async (request) => {
       return reply(interactionMessage('', { content: 'Alege articolul pentru calcul:', components: calculatorRows(kind, categoryId, 0) }));
     }
     if (parts[3] === 'page') return reply(interactionMessage('', { content: 'Alege articolul pentru calcul:', components: calculatorRows(kind, parts[4], Math.max(0, Number(parts[5]) || 0)) }));
+    if (parts[3] === 'mushroom_mode' && kind === 'illegal') return reply(interactionMessage('', { content: 'Alege materialul pe care îl ai disponibil:', components: mushroomMaterialRows() }));
+    if (parts[3] === 'mushroom_material' && kind === 'illegal' && isSelect) {
+      const materialId = String(interaction.data?.values?.[0] || '');
+      if (!mushroomAvailableMaterials.some((item) => item.id === materialId)) return reply(interactionMessage('Materialul selectat nu este valid.'));
+      return reply(calculatorAvailableQuantityModal(materialId));
+    }
     if (parts[3] === 'item' && isSelect) {
       const categoryId = String(parts[4] || '');
       const recipeId = String(interaction.data?.values?.[0] || '');
@@ -2410,6 +2446,12 @@ Deno.serve(async (request) => {
       const quantity = Math.floor(Number(modalValues(interaction).quantity || 0));
       if (!findRecipe(kind, categoryId, recipeId) || !Number.isFinite(quantity) || quantity < 1 || quantity > 100000) return reply(interactionMessage('Introdu o cantitate între 1 și 100.000.'));
       return reply(calculatorResultMessage(kind, categoryId, recipeId, quantity));
+    }
+    if (parts[3] === 'quantity_available' && isModalSubmit && kind === 'illegal') {
+      const materialId = String(parts[4] || '');
+      const quantity = Math.floor(Number(modalValues(interaction).quantity || 0));
+      if (!mushroomAvailableMaterials.some((item) => item.id === materialId) || !Number.isFinite(quantity) || quantity < 1 || quantity > 100000) return reply(interactionMessage('Introdu o cantitate între 1 și 100.000.'));
+      return reply(calculatorAvailableResultMessage(materialId, quantity));
     }
     return reply(calculatorStartMessage(kind));
   }

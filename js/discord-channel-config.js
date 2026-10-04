@@ -391,7 +391,7 @@
       status_live: { title: '📡 Status live · Panel Pro', description: 'Statusul este actualizat automat cu pontajele și pauzele active.', color: 0x06b6d4, buttons: [] },
       comenzi: { title: '📦 Comenzi ilegale', description: 'Trimite comenzi pe categorii și urmărește aprobarea lor în Panel Pro.', color: 0xf97316, buttons: [{ label: 'Trimite comandă', style: 5, url: 'https://panel-pro.ro/comenzi.html' }, { label: 'Vezi comenzile', style: 5, url: 'https://panel-pro.ro/comenzi.html' }] },
       calculator: { title: '🧮 Calculator legal · Panel Pro', description: 'Alege categoria, articolul și cantitatea. Rezultatul arată materialele directe și materialele brute.', color: 0x22c55e, buttons: [{ label: 'Începe calculul', style: 1, id: 'panel:calculator:legal:start' }] },
-      illegal_calculator: { title: '🚨 Calculator ilegal · Panel Pro', description: 'Calculează arme, muniție, topitorie și resurse ilegale direct din Discord.', color: 0xef4444, buttons: [{ label: 'Începe calculul', style: 4, id: 'panel:calculator:illegal:start' }] },
+      illegal_calculator: { title: '🚨 Calculator ilegal · Panel Pro', description: 'Calculează arme, muniție, topitorie și resurse ilegale direct din Discord. La Ciuperci poți calcula și după materialul disponibil.', color: 0xef4444, buttons: [{ label: 'Începe calculul', style: 4, id: 'panel:calculator:illegal:start' }] },
     };
     const definition = definitions[key];
     if (!definition) return null;
