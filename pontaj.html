@@ -32,16 +32,9 @@
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <h3 class="text-base font-bold text-slate-100">Selectare Tip Tură</h3>
-                            <p class="text-xs text-slate-400 mt-0.5">Alege tura dorită respectând intervalul orar permis.</p>
+                            <p class="text-xs text-slate-400 mt-0.5">Apasă Start; tura este stabilită automat după ora României și programul organizației.</p>
                         </div>
-                        <div class="flex space-x-3">
-                            <button id="btn-shift-day" onclick="selectShiftType('zi')" class="px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700">
-                                ☀️ Tură de Zi
-                            </button>
-                            <button id="btn-shift-night" onclick="selectShiftType('noapte')" class="px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700">
-                                🌙 Tură de Noapte
-                            </button>
-                        </div>
+                        <span class="text-xs text-cyan-300">Tura se stabilește automat după ora României și programul organizației.</span>
                     </div>
 
                     <!-- Cronometru și Butoane de Acțiune -->
@@ -202,62 +195,6 @@
 
                 });
 
-        function selectShiftType(type) {
-            if (activeShiftRecord) {
-                alert('Ai deja o tură activă. Oprește tura curentă înainte de a selecta una nouă.');
-                return;
-            }
-            document.getElementById('btn-start').disabled = false;
-            const romanianTime = getRomanianDateTimeParts();
-            const hours = Number(romanianTime.hour);
-            const minutes = Number(romanianTime.minute);
-            const currentTimeNum = hours * 100 + minutes;
-
-            const alertBox = document.getElementById('alert-box');
-            alertBox.classList.remove('hidden', 'bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400', 'bg-rose-500/10', 'border-rose-500/20', 'text-rose-400');
-
-            if (type === 'zi') {
-                const isDayAllowed = (currentTimeNum > 2300 || currentTimeNum < 1959);
-                if (!isDayAllowed) {
-                    alertBox.classList.add('bg-rose-500/10', 'border-rose-500/20', 'text-rose-400');
-                    alertBox.innerHTML = `⚠️ <strong>Restricție Tura de Zi:</strong> Nu te poți ponta pe programul de zi în acest interval!`;
-                    selectedShiftType = null;
-                    resetUIButtons();
-                    return;
-                }
-            } else if (type === 'noapte') {
-                const isNightAllowed = (currentTimeNum >= 2000 && currentTimeNum < 2300);
-                if (!isNightAllowed) {
-                    alertBox.classList.add('bg-rose-500/10', 'border-rose-500/20', 'text-rose-400');
-                    alertBox.innerHTML = `⚠️ <strong>Restricție Tura de Noapte:</strong> Nu te poți ponta pe programul de noapte în afara intervalului 20:00 - 23:00!`;
-                    selectedShiftType = null;
-                    resetUIButtons();
-                    return;
-                }
-            }
-
-            selectedShiftType = type;
-            alertBox.classList.add('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400');
-            alertBox.innerHTML = `✅ Ai selectat cu succes <strong>Tură de ${type.toUpperCase()}</strong>. Poți porni pontajul.`;
-
-            document.getElementById('btn-shift-day').className = type === 'zi' ? 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-emerald-600 border-emerald-500 text-white shadow-md' : 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700';
-            document.getElementById('btn-shift-night').className = type === 'noapte' ? 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-indigo-600 border-indigo-500 text-white shadow-md' : 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700';
-        }
-
-        function resetUIButtons() {
-            document.getElementById('btn-shift-day').className = 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700';
-            document.getElementById('btn-shift-night').className = 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700';
-        }
-
-        function selectRestoredShiftButton(type) {
-            document.getElementById('btn-shift-day').className = type === 'zi'
-                ? 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-emerald-600 border-emerald-500 text-white shadow-md'
-                : 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700';
-            document.getElementById('btn-shift-night').className = type === 'noapte'
-                ? 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-indigo-600 border-indigo-500 text-white shadow-md'
-                : 'px-5 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700';
-        }
-
         function formatTime(totalSeconds) {
             const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
             const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
@@ -401,6 +338,26 @@
             return new Date(wanted + (wanted - observed));
         }
 
+        function parsePontajTime(value, fallbackMinutes) {
+            const match = String(value || '').match(/^(\d{1,2}):(\d{2})$/);
+            if (!match) return fallbackMinutes;
+            const hour = Number(match[1]);
+            const minute = Number(match[2]);
+            return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 ? hour * 60 + minute : fallbackMinutes;
+        }
+
+        function getAutomaticShiftType(now = new Date()) {
+            const parts = getRomanianDateTimeParts(now);
+            const currentMinutes = Number(parts.hour) * 60 + Number(parts.minute);
+            const dayEnd = parsePontajTime(organizationPontajConfig?.dayEndTime, 19 * 60 + 59);
+            const nightEnd = parsePontajTime(organizationPontajConfig?.nightEndTime, 23 * 60);
+            const nightStart = (dayEnd + 1) % 1440;
+            const isNight = nightStart <= nightEnd
+                ? currentMinutes >= nightStart && currentMinutes <= nightEnd
+                : currentMinutes >= nightStart || currentMinutes <= nightEnd;
+            return isNight ? 'noapte' : 'zi';
+        }
+
         function getShiftDeadline(shiftType, now = new Date()) {
             const parts = getRomanianDateTimeParts(now);
 
@@ -444,7 +401,6 @@
             document.getElementById('btn-stop').disabled = false;
             document.getElementById('pause-btn-text').textContent = isPaused ? 'Reluare' : 'Pauză';
             document.getElementById('current-shift-status').textContent = isPaused ? 'Tura este în PAUZĂ' : `Tura de ${selectedShiftType.toUpperCase()} este activă...`;
-            selectRestoredShiftButton(selectedShiftType);
             updateTimerDisplay();
         }
 
@@ -499,12 +455,13 @@
         }
 
         async function startShift() {
-            if (isActionProcessing || !selectedShiftType) { if (!selectedShiftType) alert('Te rog selectează mai întâi o tură validă!'); return; }
+            if (isActionProcessing) return;
             isActionProcessing = true;
             try {
                 const existing = await findActiveShift();
                 if (existing) { activeShiftRecord = existing; syncActiveShiftUI(); startTimer(); alert('Există deja o tură activă pentru acest cont.'); return; }
                 const now = getRomanianNowDateTime();
+                selectedShiftType = getAutomaticShiftType(now);
                 const autoStopAt = getShiftDeadline(selectedShiftType, now);
                 const newShift = {
                     organization_id: currentUser.organization_id,
@@ -633,7 +590,7 @@
             secondsElapsed = 0;
             isPaused = false;
             document.getElementById('timer-display').textContent = '00:00:00'; document.getElementById('current-shift-status').textContent = 'Tură neselectată / Oprită';
-            document.getElementById('btn-start').disabled = false; document.getElementById('btn-pause').disabled = true; document.getElementById('btn-stop').disabled = true; document.getElementById('pause-btn-text').textContent = 'Pauză'; selectedShiftType = null; resetUIButtons();
+            document.getElementById('btn-start').disabled = false; document.getElementById('btn-pause').disabled = true; document.getElementById('btn-stop').disabled = true; document.getElementById('pause-btn-text').textContent = 'Pauză'; selectedShiftType = null;
         }
 
         function buildPontajLogEmbed(data, title, color, statusLabel = '') {

@@ -142,7 +142,7 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
   const definitions: Record<string, { title: string; description: string; color: number; buttons: any[] }> = {
     organization: { title: '📢 Anunțuri · Organizație', description: 'Publică anunțuri, întrebări, sondaje și măsuri disciplinare pentru organizație.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:organization:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:organization:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:organization:create:poll' }, { label: 'Avertisment', style: 4, id: 'panel:discipline:organization:warning' }, { label: 'Amendă', style: 4, id: 'panel:discipline:organization:sanction' }] },
     departments: { title: '📢 Anunțuri · Angajați', description: 'Publică anunțuri, întrebări, sondaje și măsuri disciplinare pentru angajați.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:departments:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:departments:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:departments:create:poll' }, { label: 'Avertisment', style: 4, id: 'panel:discipline:departments:warning' }, { label: 'Amendă', style: 4, id: 'panel:discipline:departments:sanction' }] },
-    pontaj: { title: '🕒 Pontaj · Panel Pro', description: 'Alege tura și folosește butoanele pentru Start, Pauză și Stop.', color: 0x22c55e, buttons: [{ label: 'Tura de zi', style: 1, id: 'panel:pontaj:shift_day' }, { label: 'Tura de noapte', style: 1, id: 'panel:pontaj:shift_night' }, { label: 'Start', style: 3, id: 'panel:pontaj:start' }, { label: 'Pauză', style: 2, id: 'panel:pontaj:pause' }, { label: 'Stop', style: 4, id: 'panel:pontaj:stop' }, { label: 'Pontajul meu', style: 1, id: 'panel:pontaj:my_stats' }] },
+    pontaj: { title: '🕒 Pontaj · Panel Pro', description: 'Apasă Start, iar tura de zi sau de noapte este stabilită automat după ora României și programul configurat în panel.', color: 0x22c55e, buttons: [{ label: 'Start', style: 3, id: 'panel:pontaj:start' }, { label: 'Pauză', style: 2, id: 'panel:pontaj:pause' }, { label: 'Stop', style: 4, id: 'panel:pontaj:stop' }, { label: 'Pontajul meu', style: 1, id: 'panel:pontaj:my_stats' }] },
     requests_organization: { title: '📝 Învoiri · Organizație', description: 'Trimite și consultă învoirile organizației.', color: 0xf59e0b, buttons: [{ label: 'Trimite învoire', style: 1, id: 'panel:requests:organization:new' }, { label: 'Învoirile mele', style: 2, id: 'panel:requests:organization:mine' }] },
     requests_departments: { title: '📝 Învoiri · Angajați', description: 'Trimite și consultă învoirile angajaților.', color: 0xf59e0b, buttons: [{ label: 'Trimite învoire', style: 1, id: 'panel:requests:departments:new' }, { label: 'Învoirile mele', style: 2, id: 'panel:requests:departments:mine' }] },
       contracts: { title: '📄 Contracte · Panel Pro', description: 'Generează și trimite contracte folosind șablonul organizației.', color: 0x14b8a6, buttons: [{ label: 'Creează contract', style: 1, id: 'panel:contracts:create' }, { label: 'Setează contractul', style: 2, id: 'panel:contracts:settings' }, { label: 'Info contract', style: 1, id: 'panel:contracts:info' }] },
@@ -482,6 +482,26 @@ function shiftAllowed(shiftType: string, now = new Date()) {
   if (shiftType === 'zi') return current > 2300 || current < 1959;
   if (shiftType === 'noapte') return current >= 2000 && current < 2300;
   return false;
+}
+
+function parsePontajMinutes(value: unknown, fallback: number) {
+  const match = String(value || '').match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return fallback;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 ? hour * 60 + minute : fallback;
+}
+
+function automaticShiftType(config: any = {}, now = new Date()) {
+  const parts = romanianParts(now);
+  const currentMinutes = parts.hour * 60 + parts.minute;
+  const dayEnd = parsePontajMinutes(config.dayEndTime, 19 * 60 + 59);
+  const nightEnd = parsePontajMinutes(config.nightEndTime, 23 * 60);
+  const nightStart = (dayEnd + 1) % 1440;
+  const isNight = nightStart <= nightEnd
+    ? currentMinutes >= nightStart && currentMinutes <= nightEnd
+    : currentMinutes >= nightStart || currentMinutes <= nightEnd;
+  return isNight ? 'noapte' : 'zi';
 }
 
 function workedSeconds(shift: any, now = new Date()) {
@@ -2154,15 +2174,7 @@ async function myStats(db: any, context: any) {
 async function handleButton(db: any, interaction: any, context: any, action: string) {
   const orgId = String(context.organization.id);
   if (action === 'shift_day' || action === 'shift_night') {
-    const shiftType = action === 'shift_day' ? 'zi' : 'noapte';
-    if (!shiftAllowed(shiftType)) {
-      return interactionMessage(shiftType === 'noapte'
-        ? 'Tura de noapte poate fi selectată între **20:00 și 23:00**.'
-        : 'Tura de zi nu poate fi selectată în intervalul configurat pentru tura de noapte.');
-    }
-    await saveSelection(db, context, shiftType);
-    await updateControlPanel(db, context, interaction.message, shiftType === 'zi' ? 'a selectat tura de zi' : 'a selectat tura de noapte');
-    return interactionMessage(`Ai selectat tura de **${shiftType}**. Acum poți apăsa **Start**.`);
+    return interactionMessage('Tura se stabilește automat când apeși **Start**, după ora României și programul configurat în panel.');
   }
   if (action === 'my_stats') return myStats(db, context);
   if (!['start', 'pause', 'stop'].includes(action)) return interactionMessage('Acest buton Pontaj nu este încă disponibil.');
@@ -2170,11 +2182,9 @@ async function handleButton(db: any, interaction: any, context: any, action: str
   const current = await activeShift(db, orgId, context.discordId);
   if (action === 'start') {
     if (current) return interactionMessage('Ai deja o tură activă. Folosește **Pauză** sau **Stop**.');
-    const shiftType = await selectedShift(db, context);
-    if (!shiftType) return interactionMessage('Selectează mai întâi **Tura de zi** sau **Tura de noapte**.');
-    if (!shiftAllowed(shiftType)) return interactionMessage(shiftType === 'noapte' ? 'Tura de noapte poate fi pornită între **20:00 și 23:00**.' : 'Tura de zi nu poate fi pornită în intervalul configurat pentru tura de noapte.');
     const now = new Date();
     const { data: pontajSetting } = await db.from('app_settings').select('value').eq('organization_id', orgId).eq('key', 'pontaj_config').maybeSingle();
+    const shiftType = automaticShiftType(pontajSetting?.value || {}, now);
     const configuredTime = shiftType === 'noapte'
       ? String(pontajSetting?.value?.nightEndTime || '23:00')
       : String(pontajSetting?.value?.dayEndTime || '19:59');

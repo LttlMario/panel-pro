@@ -35,14 +35,7 @@
                             <h3 class="text-base font-bold text-slate-100">Pontaj Activ & Gestionare</h3>
                             <p class="text-xs text-slate-400 mt-0.5">Pornește o tură nouă direct de aici sau gestionează pontajele existente.</p>
                         </div>
-                        <div class="flex space-x-3">
-                            <button id="btn-shift-day" onclick="selectShiftType('zi')" class="px-4 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700">
-                                ☀️ Tură de Zi
-                            </button>
-                            <button id="btn-shift-night" onclick="selectShiftType('noapte')" class="px-4 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700">
-                                🌙 Tură de Noapte
-                            </button>
-                        </div>
+                        <span class="text-xs text-cyan-300">Tura se stabilește automat după ora României și programul organizației.</span>
                     </div>
 
                     <div id="alert-box" class="hidden p-3 rounded-xl border text-xs transition-all duration-300"></div>
@@ -315,6 +308,7 @@
         let reportsAreOrganizationScoped = false;
         let adminAbsences = [];
         let activeShiftsData = [];
+        let organizationPontajConfig = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             ['admin-absence-start', 'admin-absence-end'].forEach(id => {
@@ -375,6 +369,14 @@
                 if (!currentUser.organization_id) throw new Error('Organizația activă nu are un UUID valid.');
                 activeUser.organization_id = currentUser.organization_id;
 
+                const { data: pontajConfigRow } = await supabaseClient
+                    .from('app_settings')
+                    .select('value')
+                    .eq('organization_id', currentUser.organization_id)
+                    .eq('key', 'pontaj_config')
+                    .maybeSingle();
+                organizationPontajConfig = pontajConfigRow?.value || null;
+
                 currentUser.platform_admin =
                     activeUser.platform_admin === true ||
                     localData.platform_admin === true;
@@ -419,62 +421,32 @@
         }
 
         // --- FUNCȚII PONTAJ ACTIV ---
-        function selectShiftType(type) {
-            if (isActionProcessing) return;
-
-            const now = new Date();
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
-            const currentTimeNum = hours * 100 + minutes;
-
-            const alertBox = document.getElementById('alert-box');
-            alertBox.classList.remove('hidden', 'bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400', 'bg-rose-500/10', 'border-rose-500/20', 'text-rose-400');
-
-            if (type === 'zi') {
-                const isDayAllowed = (currentTimeNum > 2300 || currentTimeNum <= 1959);
-                if (!isDayAllowed) {
-                    alertBox.classList.add('bg-rose-500/10', 'border-rose-500/20', 'text-rose-400');
-                    alertBox.innerHTML = `⚠️ <strong>Restricție Tura de Zi:</strong> Nu te poți ponta pe programul de zi în acest interval!`;
-                    selectedShiftType = null;
-                    resetUIButtons();
-                    return;
-                }
-            } else if (type === 'noapte') {
-                const isNightAllowed = (currentTimeNum >= 2000 && currentTimeNum <= 2300);
-                if (!isNightAllowed) {
-                    alertBox.classList.add('bg-rose-500/10', 'border-rose-500/20', 'text-rose-400');
-                    alertBox.innerHTML = `⚠️ <strong>Restricție Tura de Noapte:</strong> Nu te poți ponta pe programul de noapte în afara intervalului 20:00 - 23:00!`;
-                    selectedShiftType = null;
-                    resetUIButtons();
-                    return;
-                }
-            }
-
-            selectedShiftType = type;
-            alertBox.classList.add('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400');
-            alertBox.innerHTML = `✅ Ai selectat cu succes <strong>Tură de ${type.toUpperCase()}</strong>. Poți porni pontajul.`;
-
-            document.getElementById('btn-shift-day').className = type === 'zi' ? 'px-4 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-emerald-600 border-emerald-500 text-white shadow-md' : 'px-4 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700';
-            document.getElementById('btn-shift-night').className = type === 'noapte' ? 'px-4 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-indigo-600 border-indigo-500 text-white shadow-md' : 'px-4 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700';
+        function parsePontajTime(value, fallbackMinutes) {
+            const match = String(value || '').match(/^(\d{1,2}):(\d{2})$/);
+            if (!match) return fallbackMinutes;
+            const hour = Number(match[1]);
+            const minute = Number(match[2]);
+            return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 ? hour * 60 + minute : fallbackMinutes;
         }
 
-        function resetUIButtons() {
-            document.getElementById('btn-shift-day').className = 'px-4 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700';
-            document.getElementById('btn-shift-night').className = 'px-4 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700';
+        function getAutomaticShiftType(now = new Date()) {
+            const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+            const currentMinutes = Number(parts.find((part) => part.type === 'hour')?.value || 0) * 60 + Number(parts.find((part) => part.type === 'minute')?.value || 0);
+            const dayEnd = parsePontajTime(organizationPontajConfig?.dayEndTime, 19 * 60 + 59);
+            const nightEnd = parsePontajTime(organizationPontajConfig?.nightEndTime, 23 * 60);
+            const nightStart = (dayEnd + 1) % 1440;
+            const isNight = nightStart <= nightEnd ? currentMinutes >= nightStart && currentMinutes <= nightEnd : currentMinutes >= nightStart || currentMinutes <= nightEnd;
+            return isNight ? 'noapte' : 'zi';
         }
 
         async function startShift() {
             if (isActionProcessing) return;
 
-            if (!selectedShiftType) {
-                alert('Te rog selectează mai întâi o tură validă!');
-                return;
-            }
-
             isActionProcessing = true;
             document.getElementById('btn-start').disabled = true;
 
             shiftStartTime = new Date();
+            selectedShiftType = getAutomaticShiftType(shiftStartTime);
             activeShiftMessageKey = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${currentUser.discord_id || 'shift'}`;
             secondsElapsed = 0;
             isPaused = false;
@@ -622,7 +594,6 @@
             document.getElementById('btn-stop').disabled = true;
             document.getElementById('pause-btn-text').textContent = 'Pauză';
             selectedShiftType = null;
-            resetUIButtons();
         }
 
         function updateTimerDisplay() {
