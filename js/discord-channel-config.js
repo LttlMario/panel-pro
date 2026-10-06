@@ -119,10 +119,24 @@
   section.id = 'discord-channel-routes';
   section.className = 'mt-4 rounded-xl border border-emerald-700/60 bg-emerald-950/20 p-4';
   const canPublishDiscordPanels = root.id === 'webhooks' || root.id === 'owner-webhooks';
-  section.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-bold">Canale Discord pentru bot</h2><p class="mt-1 text-xs text-slate-400">Selectează unde trimite botul toate mesajele și embed-urile. Canalele sunt afișate în ordinea serverului, grupate după categorie.</p></div><button id="discord-channel-discover" type="button" class="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-black text-white">Încarcă canalele Discord</button></div><p id="discord-channel-status" class="mt-2 text-xs text-slate-400">Nu s-au încărcat încă canalele.</p><div id="discord-channel-grid" class="mt-3 grid gap-3 md:grid-cols-2"></div>`;
+  section.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-bold">Canale Discord pentru bot</h2><p class="mt-1 text-xs text-slate-400">Selectează unde trimite botul toate mesajele și embed-urile. Canalele sunt afișate în ordinea serverului, grupate după categorie.</p></div><div class="flex flex-wrap gap-2"><button id="discord-channel-discover" type="button" class="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-black text-white">Încarcă canalele Discord</button><button id="discord-spam-configure" type="button" class="rounded-xl border border-rose-500/70 bg-rose-950/40 px-4 py-2 text-xs font-black text-rose-100">🛡️ Activează anti-spam</button></div></div><p id="discord-channel-status" class="mt-2 text-xs text-slate-400">Nu s-au încărcat încă canalele.</p><p id="discord-spam-status" class="mt-1 text-xs text-rose-200">Anti-spam-ul Discord nu a fost configurat din acest panel.</p><div id="discord-channel-grid" class="mt-3 grid gap-3 md:grid-cols-2"></div>`;
   root.closest('details')?.before(section);
   const grid = section.querySelector('#discord-channel-grid');
   const status = section.querySelector('#discord-channel-status');
+  const spamStatus = section.querySelector('#discord-spam-status');
+  const spamButton = section.querySelector('#discord-spam-configure');
+  if (spamButton) spamButton.onclick = async () => {
+    const selectedOrganizationId = String(organizationId() || '').trim();
+    const activeOrganizationId = String(window.getActiveOrganizationId?.() || '').trim();
+    if (!selectedOrganizationId || !activeOrganizationId || selectedOrganizationId !== activeOrganizationId) { if (spamStatus) spamStatus.textContent = 'Intră mai întâi în organizația aleasă din „Administrare organizații”, folosind modul de test.'; return; }
+    spamButton.disabled = true; if (spamStatus) spamStatus.textContent = 'Se configurează protecția anti-spam în Discord…';
+    try {
+      const result = await window.panelRequestJson('manage-discord-config', { method: 'POST', body: JSON.stringify({ action: 'configure_spam_protection' }), timeoutMs: 30000, retry: false });
+      const count = Number(result.spam_protection?.rules?.length || 0);
+      if (spamStatus) spamStatus.textContent = `Protecția anti-spam este activă pe ${count} server${count === 1 ? '' : 'e'}: mesajele spam sunt blocate, utilizatorul primește timeout 10 minute, iar alerta este trimisă în primul canal de log configurat.`;
+    } catch (error) { if (spamStatus) spamStatus.textContent = error.message || 'Protecția anti-spam nu a putut fi configurată.'; }
+    finally { spamButton.disabled = false; }
+  };
   const channelIsAccessible = (target, key) => {
     const channelId = selectedChannel(key, target);
     if (!validChannel(channelId)) return false;

@@ -5,6 +5,33 @@ import {getPlatformSecret} from '../_shared/platform-secrets.ts';
 const headers={'Access-Control-Allow-Origin':'https://panel-pro.ro','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-panel-session','Content-Type':'application/json'};
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers});
 const safeFetch=async(url:string,init:RequestInit={},timeout=8000)=>{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);try{return await fetch(url,{...init,signal:controller.signal})}finally{clearTimeout(timer)}};
+const DISCORD_API='https://discord.com/api/v10';
+const SPAM_RULE_NAME='Panel Pro · Protecție anti-spam';
+
+async function configureSpamProtection(db:any, organizationId:string, guilds:any[], routes:any){
+ const bot=await getPlatformSecret(db,'discord_bot_token');if(!bot)throw new Error('DISCORD_BOT_TOKEN lipsește.');
+ const preferredRoutes=['log_announcements_organization','log_announcements_departments','organization','departments','log_pontaj'];
+ const alertChannelId=preferredRoutes.map((key)=>['primary','secondary'].map((target)=>String(routes?.[key]?.[target]?.channel_id||'')).find(Boolean)).find(Boolean)||'';
+ const headers={Authorization:`Bot ${bot}`,'Content-Type':'application/json'};
+ const results:any[]=[];
+ for(const guild of guilds.filter((item)=>item.enabled!==false&&/^\d{15,22}$/.test(String(item.guild_id||'')))){
+  const guildId=String(guild.guild_id);
+  const listResponse=await safeFetch(`${DISCORD_API}/guilds/${guildId}/auto-moderation/rules`,{headers});
+  if(!listResponse.ok)throw new Error(`Nu pot citi regulile AutoMod pentru ${guild.guild_name||guildId} (HTTP ${listResponse.status}).`);
+  const existingRules=await listResponse.json().catch(()=>[]);
+  const existing=Array.isArray(existingRules)?existingRules.find((rule:any)=>String(rule.name||'')===SPAM_RULE_NAME):null;
+  const actions:any[]=[{type:1},{type:3,metadata:{duration_seconds:600}}];
+  if(/^\d{15,22}$/.test(alertChannelId))actions.splice(1,0,{type:2,metadata:{channel_id:alertChannelId}});
+  const payload={name:SPAM_RULE_NAME,event_type:1,trigger_type:3,trigger_metadata:{},actions,enabled:true,exempt_roles:[],exempt_channels:[]};
+  const response=await safeFetch(existing?`${DISCORD_API}/guilds/${guildId}/auto-moderation/rules/${existing.id}`:`${DISCORD_API}/guilds/${guildId}/auto-moderation/rules`,{method:existing?'PATCH':'POST',headers,body:JSON.stringify(payload)});
+  if(!response.ok){const details=await response.text().catch(()=> '');throw new Error(`Discord nu a putut configura AutoMod pentru ${guild.guild_name||guildId} (HTTP ${response.status}${details?`: ${details.slice(0,180)}`:''}).`);}
+  const rule=await response.json().catch(()=>existing||{});
+  results.push({guild_id:guildId,guild_name:guild.guild_name||guildId,rule_id:String(rule.id||existing?.id||''),action:existing?'updated':'created',alert_channel_id:alertChannelId||null});
+ }
+ const setting={enabled:true,rule_name:SPAM_RULE_NAME,timeout_seconds:600,alert_channel_id:alertChannelId||null,rules:results,updated_at:new Date().toISOString()};
+ const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'discord_spam_protection',value:setting,updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;
+ return setting;
+}
 
 Deno.serve(async request=>{
  if(request.method==='OPTIONS')return new Response('ok',{headers});if(request.method!=='POST')return reply({error:'Metodă invalidă.'},405);
@@ -19,6 +46,11 @@ Deno.serve(async request=>{
    const state=await load(),primary=state.guilds.find((g:any)=>g.kind==='primary'),secondary=state.guilds.find((g:any)=>g.kind==='secondary');
    const mappings=[...new Set(state.roles.map((role:any)=>Number(role.permission_level)).filter((level:number)=>level>=1&&level<=99))].sort((a,b)=>a-b).map(level=>{const p=state.roles.find((r:any)=>r.guild_id===primary?.guild_id&&Number(r.permission_level)===level),s=state.roles.find((r:any)=>r.guild_id===secondary?.guild_id&&Number(r.permission_level)===level);return{permission_level:level,discord_role_id:p?.discord_role_id||'',discord_role_name:p?.discord_role_name||'',discord_role_id_secondary:s?.discord_role_id||'',discord_role_name_secondary:s?.discord_role_name||'',panel_role:p?.panel_role||s?.panel_role||'',enabled:true};});
    return reply({config:{...(state.settings||{}),organization_name:state.organization.name,organization_code:state.organization.code,organization_description:state.organization.description,organization_logo:state.organization.logo_url,organization_banner:state.organization.banner_url,guild_id:primary?.guild_id||'',guild_id_secondary:secondary?.guild_id||''},mappings});
+  }
+  if(body.action==='configure_spam_protection'){
+   const state=await load();
+   const spam=await configureSpamProtection(db,organizationId,state.guilds,state.settings?.discord_channel_routes||{});
+   return reply({ok:true,spam_protection:spam});
   }
   if(body.action==='discover_discord_roles'){
    const guildId=String(body.guild_id||'').trim(),bot=await getPlatformSecret(db,'discord_bot_token');if(!/^\d{15,22}$/.test(guildId))return reply({error:'Guild ID invalid.'},400);if(!bot)throw new Error('DISCORD_BOT_TOKEN lipsește.');
