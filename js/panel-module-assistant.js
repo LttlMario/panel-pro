@@ -168,6 +168,18 @@
       if (fieldMatch) { addField(fieldMatch[1].trim(), document.querySelectorAll('[data-builder-field]').length); changed = true; }
       const buttonMatch = clean.match(/(?:adauga|adaugă) (?:un )?buton(?:ul)?(?: numit| cu numele)? (.+)$/i);
       if (buttonMatch) { addButton(buttonMatch[1].trim()); changed = true; }
+      const removeField = clean.match(/(?:sterge|șterge|elimina|elimină) (?:campul|câmpul|camp|câmp)\s*(.*)$/i);
+      if (removeField) { const query = normalized(removeField[1]).trim(); const rows = [...document.querySelectorAll('[data-builder-field]')]; const row = rows.find((item) => normalized(item.querySelector('[data-field-label]')?.value || '').includes(query) || normalized(item.querySelector('[data-field-id]')?.value || '').includes(query)) || (query ? null : rows.at(-1)); if (row) { row.remove(); changed = true; } }
+      const removeButton = clean.match(/(?:sterge|șterge|elimina|elimină) (?:butonul|buton)\s*(.*)$/i);
+      if (removeButton) { const query = normalized(removeButton[1]).trim(); const rows = [...document.querySelectorAll('[data-builder-button]')]; const row = rows.find((item) => normalized(item.querySelector('[data-button-label]')?.value || '').includes(query)) || (query ? null : rows.at(-1)); if (row) { row.remove(); changed = true; } }
+      const descriptionMatch = clean.match(/(?:schimba|seteaza|actualizeaza|actualizează) (?:descrierea|descrierea modulului)\s*(?:in|în|cu|la|:)?\s*["“]?(.+?)["”]?$/i);
+      if (descriptionMatch) { setValue('module-description', descriptionMatch[1].trim()); setValue('module-response-success', `Modulul ${descriptionMatch[1].trim().slice(0, 80)} a fost actualizat.`); changed = true; }
+      if (/activeaza|activează|porneste|pornește/.test(text) && /slash|comanda/.test(text)) { setChecked('module-slash-enabled', true); changed = true; }
+      if (/dezactiveaza|dezactivează|opreste|oprește/.test(text) && /slash|comanda/.test(text)) { setChecked('module-slash-enabled', false); changed = true; }
+      if (/premium|platit|plătit/.test(text)) { state.premium = true; changed = true; }
+      if (/gratuit|free/.test(text)) { state.premium = false; changed = true; }
+      if (/manager|staff|conducere/.test(text)) { state.permission = 'manager'; changed = true; }
+      if (/toti|toți|oricine|membri/.test(text)) { state.permission = 'everyone'; changed = true; }
       if (/raspuns privat|raspuns public|ephemeral/.test(text)) { state.resultMode = /privat|ephemeral/.test(text) ? 'private' : 'log'; state.responseMessage = state.resultMode === 'private' ? 'Răspunsul a fost trimis privat.' : 'Rezultatul a fost trimis în canalul configurat.'; setValue('module-response-button', state.responseMessage); changed = true; }
       if (changed) { value('module-preview')?.click(); say('Am aplicat modificarea în editor. Mai poți cere ajustări sau poți salva draftul.'); saveMemory(); return; }
       say('Draftul este pregătit. Poți cere „schimbă numele în…”, „adaugă câmp…”, „adaugă buton…” sau poți salva modulul.');
