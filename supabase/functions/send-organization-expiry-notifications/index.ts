@@ -1,10 +1,11 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
+import { requirePanelSession } from '../_shared/panel-session.ts';
 import { deliverDiscordRoute, routeCandidates } from '../_shared/discord-delivery.ts';
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://panel-pro.ro',
-  'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-cron-secret',
+  'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-cron-secret,x-panel-session',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json',
 };
@@ -88,6 +89,51 @@ async function finishRun(db: any, id: string, status: string, error: string | nu
   }).eq('id', id);
 }
 
+async function syncLiveCountdown(db: any, organization: any, settings: any, now: Date) {
+  const expiresAt = String(organization.expires_at || '').trim();
+  const expiresAtMs = Date.parse(expiresAt);
+  const routeKey = 'organization_expiration';
+  if (!expiresAt || !Number.isFinite(expiresAtMs)) return { status: 'skipped_no_expiry' };
+  const remainingMs = expiresAtMs - now.getTime();
+  const expired = remainingMs <= 0;
+  const remainingLabel = expired
+    ? 'expirat'
+    : `${Math.floor(remainingMs / DAY_MS)} zile, ${Math.floor((remainingMs % DAY_MS) / 3600000)} ore și ${Math.floor((remainingMs % 3600000) / 60000)} minute`;
+  const actionLinks = links(settings);
+  const payload = {
+    allowed_mentions: { parse: [] },
+    embeds: [{
+      title: expired ? '🔴 Organizație expirată' : '⏳ Expirare organizație',
+      description: expired
+        ? `Accesul organizației **${String(organization.name || 'Organizația').trim()}** a expirat. Pentru reactivare, contactează administratorul Panel Pro.`
+        : `Organizația **${String(organization.name || 'Organizația').trim()}** mai are **${remainingLabel}** de acces activ în panel.`,
+      color: expired ? 0xef4444 : 0xf59e0b,
+      fields: [
+        { name: '📅 Expiră la', value: formattedDate(expiresAt), inline: true },
+        { name: '⏱️ Timp rămas', value: expired ? 'Expirat' : `<t:${Math.floor(expiresAtMs / 1000)}:R>`, inline: true },
+      ],
+      footer: { text: 'Panel Pro - By Little Mario' },
+      timestamp: now.toISOString(),
+    }],
+    components: [{ type: 1, components: [{ type: 2, style: 5, label: expired ? 'Contactează pentru reactivare' : 'Vezi administrarea', url: expired ? actionLinks.voucher : actionLinks.administration }] }],
+  };
+  const { data: registryRows, error: registryError } = await db.from('discord_message_registry')
+    .select('target,channel_id,message_id')
+    .eq('organization_id', organization.id)
+    .eq('route_key', routeKey)
+    .eq('message_key', `organization-expiration-live-${String(organization.id)}`)
+    .eq('status', 'active');
+  if (registryError) throw registryError;
+  const messageIds = Object.fromEntries((registryRows || []).filter((row: any) => row.message_id).map((row: any) => [String(row.target), String(row.message_id)]));
+  const delivery = await deliverDiscordRoute(db, settings, routeKey, JSON.stringify(payload), {
+    organizationId: String(organization.id),
+    messageKey: `organization-expiration-live-${String(organization.id)}`,
+    messageIds,
+    retryPayload: payload,
+  });
+  return { status: delivery.results.length ? 'synced' : 'failed', results: delivery.results, failures: delivery.failures };
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
@@ -96,8 +142,30 @@ Deno.serve(async (request) => {
     const key = serviceKey();
     if (!key) throw new Error('Cheia secretă Supabase lipsește.');
     const db = createClient(Deno.env.get('SUPABASE_URL')!, key);
+    const body = await request.json().catch(() => ({}));
     const cronSecret = await getPlatformSecret(db, 'cron_secret');
-    if (!cronSecret || request.headers.get('x-cron-secret') !== cronSecret) return reply({ error: 'Unauthorized' }, 401);
+    const isCron = Boolean(cronSecret && request.headers.get('x-cron-secret') === cronSecret);
+    let panelSession: any = null;
+    if (!isCron) panelSession = await requirePanelSession(db, request, 0, true);
+    if (!isCron && body.action !== 'sync_live') return reply({ error: 'Unauthorized' }, 401);
+    if (!isCron && body.organization_id && String(body.organization_id) !== String(panelSession.organization_id) && !panelSession.is_platform_admin) return reply({ error: 'Organizația nu corespunde sesiunii active.' }, 403);
+    if (!isCron && body.action === 'sync_live') {
+      const organizationId = String(body.organization_id || panelSession.organization_id);
+      const [{ data: organization, error: organizationError }, { data: currentSettings, error: settingsError }, { data: accessSetting, error: accessError }] = await Promise.all([
+        db.from('organizations').select('id,name,active').eq('id', organizationId).maybeSingle(),
+        db.from('organization_settings').select('panel_public_url,discord_channel_routes').eq('organization_id', organizationId).maybeSingle(),
+        db.from('app_settings').select('value').eq('organization_id', organizationId).eq('key', 'organization_access').maybeSingle(),
+      ]);
+      if (organizationError) throw organizationError;
+      if (settingsError) throw settingsError;
+      if (accessError) throw accessError;
+      if (!organization) return reply({ error: 'Organizația nu există.' }, 404);
+      const settings = body.discord_channel_routes && typeof body.discord_channel_routes === 'object'
+        ? { ...(currentSettings || {}), discord_channel_routes: body.discord_channel_routes }
+        : (currentSettings || {});
+      const result = await syncLiveCountdown(db, { ...organization, expires_at: String(accessSetting?.value?.expires_at || '') }, settings, new Date());
+      return reply({ ok: true, result });
+    }
     const now = Date.now();
     const { data: organizations, error: organizationsError } = await db
       .from('organizations')
@@ -132,6 +200,8 @@ Deno.serve(async (request) => {
         continue;
       }
 
+      const settings = settingsByOrg.get(organizationId) || {};
+      await syncLiveCountdown(db, { ...organization, expires_at: expiresAt }, settings, new Date(now));
       const daysRemaining = Math.ceil((expiresAtMs - now) / DAY_MS);
       const thresholdDays = THRESHOLDS.find((threshold) => threshold === daysRemaining);
       if (!thresholdDays) {
@@ -139,7 +209,6 @@ Deno.serve(async (request) => {
         continue;
       }
 
-      const settings = settingsByOrg.get(organizationId) || {};
       if (!routeCandidates(settings, 'organization_expiration').some((item) => item.candidates.length)) {
         results.push({ organization_id: organizationId, status: 'skipped_no_destination', days_remaining: daysRemaining });
         skipped++;

@@ -404,6 +404,23 @@
       button.disabled = false;
     }
   };
+  const publishOrganizationExpirationEmbed = async () => {
+    const button = section.querySelector('[data-expiration-live-publish]');
+    const statusNode = section.querySelector('[data-expiration-live-publish-status]');
+    if (!button || !statusNode) return;
+    const targets = selectedRouteTargets('organization_expiration');
+    const selectedOrganizationId = String(organizationId() || '').trim();
+    const activeOrganizationId = String(window.getActiveOrganizationId?.() || '').trim();
+    if (!targets.length) { statusNode.textContent = 'Selectează cel puțin un canal pentru expirarea organizației.'; return; }
+    if (!selectedOrganizationId || selectedOrganizationId !== activeOrganizationId) { statusNode.textContent = 'Intră mai întâi în organizația aleasă din „Administrare organizații”.'; return; }
+    button.disabled = true;
+    statusNode.textContent = 'Se trimite / actualizează countdown-ul expirării...';
+    try {
+      await window.panelRequestJson('send-organization-expiry-notifications', { method: 'POST', body: JSON.stringify({ action: 'sync_live', organization_id: selectedOrganizationId, discord_channel_routes: window.getDiscordChannelRoutes?.() || {} }), timeoutMs: 15000 });
+      statusNode.textContent = 'Embedul countdown a fost trimis sau actualizat fără duplicate.';
+    } catch (error) { statusNode.textContent = error.message || 'Embedul countdown nu a putut fi publicat.'; }
+    finally { button.disabled = false; }
+  };
   const buildAdditionalPanelPayload = (key) => {
     const definitions = {
       marketplace: { title: '🛒 Marketplace', description: 'Publică și consultă anunțuri pentru vehicule, bunuri și servicii.', color: 0x2563eb, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:marketplace:legal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:legal:mine' }] },
@@ -513,9 +530,13 @@
       if (!fieldset) return;
       fieldset.insertAdjacentHTML('beforeend', `<div class="mt-3 flex flex-wrap items-center gap-2"><button type="button" data-absence-live-publish="${esc(key)}" class="rounded-lg border border-amber-700/70 bg-amber-950/40 px-3 py-2 text-xs font-bold text-amber-100 disabled:cursor-not-allowed disabled:opacity-40">📋 Trimite / actualizează învoirile active</button><span data-absence-live-publish-status="${esc(key)}" class="text-[11px] text-slate-400">Un singur embed live, actualizat fără duplicate.</span></div>`);
     });
-    grid.querySelectorAll('[data-discord-channel-route]').forEach((select) => { select.onchange = () => { const key = select.dataset.discordChannelRoute; setRoute(key, select.dataset.discordChannelTarget, select.value); syncBulkPublishState(); syncIndividualPublishState(key); const liveButton = grid.querySelector(`[data-absence-live-publish="${key}"]`); if (liveButton) liveButton.disabled = !selectedRouteTargets(key).length; }; });
+    const expirationFieldset = grid.querySelector('[data-discord-channel-route="organization_expiration"]')?.closest('fieldset');
+    if (expirationFieldset) expirationFieldset.insertAdjacentHTML('beforeend', `<div class="mt-3 flex flex-wrap items-center gap-2"><button type="button" data-expiration-live-publish class="rounded-lg border border-amber-700/70 bg-amber-950/40 px-3 py-2 text-xs font-bold text-amber-100 disabled:cursor-not-allowed disabled:opacity-40">⏳ Trimite / actualizează countdown-ul</button><span data-expiration-live-publish-status class="text-[11px] text-slate-400">Un singur embed permanent, actualizat automat.</span></div>`);
+    grid.querySelectorAll('[data-discord-channel-route]').forEach((select) => { select.onchange = () => { const key = select.dataset.discordChannelRoute; setRoute(key, select.dataset.discordChannelTarget, select.value); syncBulkPublishState(); syncIndividualPublishState(key); const liveButton = grid.querySelector(`[data-absence-live-publish="${key}"]`); if (liveButton) liveButton.disabled = !selectedRouteTargets(key).length; const expirationButton = grid.querySelector('[data-expiration-live-publish]'); if (expirationButton && key === 'organization_expiration') expirationButton.disabled = !selectedRouteTargets(key).length; }; });
     grid.querySelectorAll('[data-publish-individual]').forEach((button) => { const key = button.dataset.publishIndividual; button.onclick = () => publishIndividualPanel(key); syncIndividualPublishState(key); });
     grid.querySelectorAll('[data-absence-live-publish]').forEach((button) => { const key = button.dataset.absenceLivePublish; button.onclick = () => publishAbsenceLiveEmbed(key); button.disabled = !selectedRouteTargets(key).length; });
+    const expirationButton = grid.querySelector('[data-expiration-live-publish]');
+    if (expirationButton) { expirationButton.onclick = publishOrganizationExpirationEmbed; expirationButton.disabled = !selectedRouteTargets('organization_expiration').length; }
     const stashFieldset = grid.querySelector('[data-discord-channel-route="stash"]')?.closest('fieldset');
     grid.querySelector('[data-discord-channel-route="actions_organization"]')?.closest('fieldset')?.classList.remove('md:col-span-2');
     grid.querySelectorAll('[data-discord-channel-route]').forEach((select) => {
