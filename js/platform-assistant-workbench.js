@@ -270,12 +270,14 @@
   const syncWizardProgress=()=>{const host=$('platform-wizard-steps');if(!host)return;const publication=state.draft?.content?.settings?.publication;const current=!state.viewStarted?0:publication==='published'?4:state.draft?3:1;host.setAttribute('aria-label',`Etapa ${current} din 4`);host.querySelectorAll('span').forEach((node,index)=>{const step=index+1;node.classList.toggle('active',step===current);node.classList.toggle('opacity-50',current>0&&step>current);node.setAttribute('aria-current',step===current?'step':'false');});};
   const syncWorkbenchSections = () => {
     ensureFocusNavigation();
-    const pageComposer = [$('platform-template-select')?.parentElement, $('platform-quick-starts'), log, actions, form, $('platform-page-options')].filter(Boolean);
+    const pageComposer = [$('platform-template-select')?.parentElement, $('platform-quick-starts'), log, actions, form].filter(Boolean);
+    const pageQuickSettings = [$('platform-page-options')].filter(Boolean);
     const draftSettings = [$('platform-page-metadata'), $('platform-page-audience'), $('platform-page-permissions'), $('platform-page-design'), $('platform-page-seo'), $('platform-settings-visibility')].filter(Boolean);
     const showPage = state.viewStarted && state.mode === 'page';
     const showManage = state.viewStarted && state.mode === 'manage';
     const showModule = state.viewStarted && state.mode === 'module';
     pageComposer.forEach((node) => { node.hidden = !showPage; });
+    pageQuickSettings.forEach((node) => { node.hidden = !(showPage && !!state.draft && state.advancedOpen); });
     const startTools = [$('platform-template-select')?.parentElement, $('platform-quick-starts')].filter(Boolean);
     startTools.forEach((node) => { node.hidden = !(showPage && !state.draft); });
     draftSettings.forEach((node) => { node.hidden = !(showPage && !!state.draft && state.advancedOpen); });
