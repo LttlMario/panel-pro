@@ -106,7 +106,7 @@ async function syncLiveCountdown(db: any, organization: any, settings: any, now:
       title: expired ? '🔴 Acces Panel Pro · Expirat' : '⏳ Acces Panel Pro · Status',
       description: expired
         ? `Perioada de acces pentru **${String(organization.name || 'Organizația').trim()}** s-a încheiat. Pentru reactivare, contactează administratorul Panel Pro.`
-        : `Accesul pentru **${String(organization.name || 'Organizația').trim()}** este activ încă **${remainingLabel}**.`,
+        : `Perioada de acces este monitorizată automat. Pentru prelungire, folosește butonul de mai jos.`,
       color: expired ? 0xef4444 : 0xf59e0b,
       fields: [
         { name: '📅 Expiră la', value: formattedDate(expiresAt), inline: true },
