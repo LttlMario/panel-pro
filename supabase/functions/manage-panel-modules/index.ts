@@ -40,15 +40,25 @@ Deno.serve(async (request) => {
       if (moduleError || publicationError || guildError || organizationError) throw moduleError || publicationError || guildError || organizationError;
       const botToken = await getPlatformSecret(db, 'discord_bot_token');
       const roles: any[] = [];
+      const channels: any[] = [];
       if (botToken) {
         for (const guild of guilds || []) {
           const response = await fetch(`https://discord.com/api/v10/guilds/${encodeURIComponent(String(guild.guild_id))}/roles`, { headers: { Authorization: `Bot ${botToken}` } });
-          if (!response.ok) continue;
-          const rows = await response.json().catch(() => []);
+          const rows = response.ok ? await response.json().catch(() => []) : [];
           if (Array.isArray(rows)) rows.filter((role: any) => !role?.managed && String(role?.id || '') !== String(guild.guild_id)).forEach((role: any) => roles.push({ guild_id: String(guild.guild_id), guild_name: String(guild.guild_name || guild.guild_id), kind: String(guild.kind || 'primary'), id: String(role.id), name: String(role.name || role.id), position: Number(role.position || 0) }));
+          const channelResponse = await fetch(`https://discord.com/api/v10/guilds/${encodeURIComponent(String(guild.guild_id))}/channels`, { headers: { Authorization: `Bot ${botToken}` } });
+          if (channelResponse.ok) {
+            const channelRows = await channelResponse.json().catch(() => []);
+            if (Array.isArray(channelRows)) channelRows.filter((channel: any) => [0, 5].includes(Number(channel?.type))).forEach((channel: any) => channels.push({ guild_id: String(guild.guild_id), guild_name: String(guild.guild_name || guild.guild_id), kind: String(guild.kind || 'primary'), id: String(channel.id), name: String(channel.name || channel.id), type: Number(channel.type || 0), parent_id: channel.parent_id ? String(channel.parent_id) : null, position: Number(channel.position || 0) }));
+          }
         }
       }
-      return reply({ modules: modules || [], publications: publications || [], guilds: guilds || [], organizations: organizations || [], roles, organization_id: session.organization_id, platform_admin: platformAdmin });
+      return reply({ modules: modules || [], publications: publications || [], guilds: guilds || [], organizations: organizations || [], roles, channels, organization_id: session.organization_id, platform_admin: platformAdmin });
+    }
+    if (action === 'activity') {
+      const { data, error } = await db.from('platform_module_events').select('id,module_key,organization_id,guild_id,event_type,payload,discord_id,created_at').order('created_at', { ascending: false }).limit(100);
+      if (error) throw error;
+      return reply({ ok: true, activity: data || [] });
     }
     const moduleKey = key(body.module_key); if (!moduleKey) return reply({ error: 'Modul invalid.' }, 400);
     const { data: module, error: moduleError } = await db.from('platform_module_templates').select('module_key,label,description,definition,enabled').eq('module_key', moduleKey).eq('enabled', true).maybeSingle();
