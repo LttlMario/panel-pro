@@ -35,10 +35,20 @@ async function configureSpamProtection(db:any, organizationId:string, guilds:any
   const actions:any[]=[{type:1},{type:3,metadata:{duration_seconds:600}}];
   if(/^\d{15,22}$/.test(alertChannelId))actions.splice(1,0,{type:2,metadata:{channel_id:alertChannelId}});
   const payload={name:SPAM_RULE_NAME,event_type:1,trigger_type:3,trigger_metadata:{},actions,enabled:true,exempt_roles:[],exempt_channels:[]};
-  const response=await safeFetch(existing?`${DISCORD_API}/guilds/${guildId}/auto-moderation/rules/${existing.id}`:`${DISCORD_API}/guilds/${guildId}/auto-moderation/rules`,{method:existing?'PATCH':'POST',headers,body:JSON.stringify(payload)});
+  const url=existing?`${DISCORD_API}/guilds/${guildId}/auto-moderation/rules/${existing.id}`:`${DISCORD_API}/guilds/${guildId}/auto-moderation/rules`;
+  let timeoutEnabled=true;
+  let response=await safeFetch(url,{method:existing?'PATCH':'POST',headers,body:JSON.stringify(payload)});
+  if(!response.ok){
+   const details=await response.text().catch(()=> '');
+   if(response.status===400&&details.includes('AUTO_MODERATION_ACTION_TYPE_DISALLOWED')&&payload.actions.some((action:any)=>action.type===3)){
+    timeoutEnabled=false;
+    const fallbackPayload={...payload,actions:payload.actions.filter((action:any)=>action.type!==3)};
+    response=await safeFetch(url,{method:existing?'PATCH':'POST',headers,body:JSON.stringify(fallbackPayload)});
+   }else throw new Error(`Discord nu a putut configura AutoMod pentru ${guild.guild_name||guildId} (HTTP ${response.status}${details?`: ${details.slice(0,180)}`:''}).`);
+  }
   if(!response.ok){const details=await response.text().catch(()=> '');throw new Error(`Discord nu a putut configura AutoMod pentru ${guild.guild_name||guildId} (HTTP ${response.status}${details?`: ${details.slice(0,180)}`:''}).`);}
   const rule=await response.json().catch(()=>existing||{});
-  results.push({guild_id:guildId,guild_name:guild.guild_name||guildId,rule_id:String(rule.id||existing?.id||''),action:existing?'updated':'created',alert_channel_id:alertChannelId||null});
+  results.push({guild_id:guildId,guild_name:guild.guild_name||guildId,rule_id:String(rule.id||existing?.id||''),action:existing?'updated':'created',alert_channel_id:alertChannelId||null,timeout_enabled:timeoutEnabled});
  }
  const setting={enabled:true,rule_name:SPAM_RULE_NAME,timeout_seconds:600,rules:results,updated_at:new Date().toISOString()};
  const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'discord_spam_protection',value:setting,updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;

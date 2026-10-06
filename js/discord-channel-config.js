@@ -132,8 +132,12 @@
     spamButton.disabled = true; if (spamStatus) spamStatus.textContent = 'Se configurează protecția anti-spam în Discord…';
     try {
       const result = await window.panelRequestJson('manage-discord-config', { method: 'POST', body: JSON.stringify({ action: 'configure_spam_protection' }), timeoutMs: 30000, retry: false });
-      const count = Number(result.spam_protection?.rules?.length || 0);
-      if (spamStatus) spamStatus.textContent = `Protecția anti-spam este activă pe ${count} server${count === 1 ? '' : 'e'}: mesajele spam sunt blocate, utilizatorul primește timeout 10 minute, iar alerta este trimisă în primul canal de log configurat.`;
+      const rules = result.spam_protection?.rules || [];
+      const count = Number(rules.length || 0);
+      const timeoutDisabled = rules.some((rule) => rule.timeout_enabled === false);
+      if (spamStatus) spamStatus.textContent = timeoutDisabled
+        ? `Protecția anti-spam este activă pe ${count} server${count === 1 ? '' : 'e'}: mesajele spam sunt blocate și alerta este trimisă în primul canal de log configurat. Discord nu permite timeout automat pe cel puțin un server.`
+        : `Protecția anti-spam este activă pe ${count} server${count === 1 ? '' : 'e'}: mesajele spam sunt blocate, utilizatorul primește timeout 10 minute, iar alerta este trimisă în primul canal de log configurat.`;
     } catch (error) { if (spamStatus) spamStatus.textContent = error.message || 'Protecția anti-spam nu a putut fi configurată.'; }
     finally { spamButton.disabled = false; }
   };
