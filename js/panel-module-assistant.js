@@ -52,6 +52,42 @@
   const typeLabel = { announcement: 'anunț', request: 'cerere / formular', approval: 'cerere cu aprobare', report: 'raport / statistici' };
   const colorMap = { verde:'#22c55e', albastru:'#3b82f6', rosu:'#ef4444', mov:'#8b5cf6', violet:'#8b5cf6', galben:'#f59e0b', cyan:'#06b6d4', gri:'#64748b' };
 
+  const parseInitialRequest = (clean) => {
+    const text = normalized(clean);
+    const result = {};
+    const type = typeOf(clean);
+    const hasIntent = /modul|anunt|comunicat|cerere|formular|aprobare|recrut|aplica|sondaj|vot|raport|statistic|buton|embed|discord|flux/.test(text);
+    if (!hasIntent && clean.length < 18) return { confidence: 0 };
+    result.type = type;
+    result.raw = clean;
+    const name = clean.match(/(?:numit|denumit|numele(?: lui)?|titlul(?: lui)?)\s*(?:este|:|sa fie)?\s*["“]?([^"”.,;]+)["”]?/i)
+      || clean.match(/(?:modul|pagina|formularul|cererea)\s+(?:pentru|de|de tipul)\s+([^,.;]+)/i);
+    if (name?.[1]) result.name = name[1].trim().replace(/\s+(?:cu|care|si|și)\s+.*$/i, '').slice(0, 80);
+    const color = text.match(/(?:culoare|color)\s*(?:este|:|in|în|sa fie|să fie)?\s*(#[0-9a-f]{6}|verde|albastru|rosu|mov|violet|galben|cyan|gri)/i);
+    if (color) result.color = color[1].startsWith('#') ? color[1] : colorMap[normalized(color[1])] || '#5865f2';
+    const fields = clean.match(/(?:campuri|câmpuri|formular cu|datele necesare)\s*(?:sunt|:|cu)?\s*([^.;]+)/i);
+    if (fields?.[1] && !/fara|niciun|nu are nevoie/i.test(fields[1])) result.fields = splitList(fields[1].replace(/\s+(?:buton|butoane|rezultat|acces)\s+.*$/i, ''));
+    else if (/fara campuri|fără câmpuri|fara formular|fără formular/i.test(text)) result.fields = [];
+    const buttons = clean.match(/(?:butoane|buton)\s*(?:sunt|:|cu)?\s*([^.;]+)/i);
+    if (buttons?.[1] && !/recomand|automat/i.test(buttons[1])) result.buttons = splitList(buttons[1].replace(/\s+(?:rezultat|acces)\s+.*$/i, ''));
+    else if (/fara butoane|fără butoane/i.test(text)) result.buttons = [];
+    result.resultMode = /ambele|amandoua|și în canal|si in canal/.test(text) && /privat|dm|mesaj direct/.test(text) ? 'both' : /privat|dm|mesaj direct|ephemeral/.test(text) ? 'private' : /log|canal(?:ul)? de rezultate|public/.test(text) ? 'log' : undefined;
+    result.responseMessage = result.resultMode === 'private' ? 'Răspunsul a fost trimis privat.' : 'Rezultatul a fost trimis în canalul configurat.';
+    result.premium = /premium|platit|plătit/.test(text);
+    result.permission = /owner/.test(text) ? 'owner' : /manager|conduc/.test(text) ? 'manager' : /rol/.test(text) ? 'mapped_role' : /toti|toți|oricine|membri/.test(text) ? 'everyone' : undefined;
+    result.slash = /slash|comanda/.test(text);
+    return { confidence: hasIntent ? 1 : 0, ...result };
+  };
+  const askNextMissing = () => {
+    if (!state.name) { step = 'name'; say('Am înțeles fluxul. Cum vrei să se numească modulul?'); return true; }
+    if (!state.color) { step = 'color'; say('Ce culoare vrei pentru embed? Poți spune „verde”, „albastru”, „mov” sau un cod HEX.'); return true; }
+    if (state.fields === undefined) { step = 'fields'; say('Ce câmpuri trebuie completate? Scrie-le separate prin virgulă sau spune „fără câmpuri”.'); return true; }
+    if (state.buttons === undefined) { step = 'buttons'; say('Ce butoane vrei? Scrie-le separate prin virgulă sau spune „recomandă”.'); return true; }
+    if (!state.resultMode) { step = 'result'; say('Rezultatul merge în canalul de log, ca răspuns privat sau în ambele locuri?'); return true; }
+    if (!state.permission) { step = 'access'; say('Cine poate folosi modulul: toți membrii, un rol configurat, managerii sau ownerul? Spune și dacă este Gratuit sau Premium.'); return true; }
+    step = 'confirm'; say(`Am înțeles: <b>${escapeHtml(state.name)}</b>, ${typeLabel[state.type]}, ${state.fields?.length || 0} câmpuri, ${state.buttons?.length || 0} butoane, rezultat ${state.resultMode === 'private' ? 'privat' : state.resultMode === 'both' ? 'privat și în log' : 'în log'}, acces ${state.premium ? 'Premium' : 'Gratuit'}. Confirmi?`); showConfirm(); saveMemory(); return false;
+  };
+
   const value = (id) => document.getElementById(id);
   const setValue = (id, next) => { const element = value(id); if (element) { element.value = next; element.dispatchEvent(new Event('input', { bubbles: true })); } };
   const setChecked = (id, next) => { const element = value(id); if (element) { element.checked = Boolean(next); element.dispatchEvent(new Event('change', { bubbles: true })); } };
@@ -114,13 +150,13 @@
     say(escapeHtml(clean), true);
     if (/^(resetare|reseteaza|reset)( asistent| modul)?$/.test(text)) { clearMemory(); Object.keys(state).forEach((key) => delete state[key]); step = 'goal'; log.replaceChildren(); clearActions(); say('Am resetat conversația. Spune-mi ce vrei să construiască modulul.'); return; }
 
-    if (step === 'goal') { state.type = typeOf(clean); state.raw = clean; step = 'name'; say(`Am identificat un modul de <b>${typeLabel[state.type]}</b>. Cum vrei să se numească?`); saveMemory(); return; }
-    if (step === 'name') { state.name = clean; step = 'color'; say('Ce culoare vrei pentru embed? Spune o culoare (verde, albastru, mov, roșu) sau un cod HEX.'); saveMemory(); return; }
-    if (step === 'color') { state.color = (clean.match(/#[0-9a-f]{6}/i) || [])[0] || colorMap[text] || '#5865f2'; step = 'fields'; say('Ce câmpuri trebuie completate? Scrie-le separate prin virgulă sau spune „fără câmpuri”.'); saveMemory(); return; }
-    if (step === 'fields') { state.fields = /fara|niciun|nu are nevoie/.test(text) ? [] : splitList(clean); step = 'buttons'; say('Ce butoane vrei? Scrie-le separate prin virgulă sau spune „recomandă”.'); saveMemory(); return; }
-    if (step === 'buttons') { state.buttons = /recomand|automat/.test(text) ? [] : splitList(clean); step = 'result'; say('Unde trebuie să ajungă rezultatul acțiunii: în canalul de rezultate/log, ca răspuns privat sau ambele?'); saveMemory(); return; }
-    if (step === 'result') { state.resultMode = /privat|ephemeral/.test(text) ? 'private' : /ambele|amandoua/.test(text) ? 'both' : 'log'; state.responseMessage = state.resultMode === 'private' ? 'Răspunsul a fost trimis privat.' : 'Rezultatul a fost trimis în canalul configurat.'; step = 'access'; say('Cine poate folosi modulul: toți membrii, un rol configurat, managerii sau doar ownerul? Și este Gratuit sau Premium?'); saveMemory(); return; }
-    if (step === 'access') { state.premium = /premium|platit/.test(text); state.permission = /owner/.test(text) ? 'owner' : /manager|conduc/.test(text) ? 'manager' : /rol/.test(text) ? 'mapped_role' : 'everyone'; state.slash = /slash|comanda/.test(text); step = 'confirm'; say(`Am pregătit un draft: <b>${escapeHtml(state.name)}</b>, tip ${typeLabel[state.type]}, ${state.fields?.length || 0} câmpuri, ${state.buttons?.length || 0} butoane, rezultat ${state.resultMode === 'private' ? 'privat' : 'în canalul configurat'}, acces ${state.premium ? 'Premium' : 'Gratuit'}. Confirmi?`); showConfirm(); saveMemory(); return; }
+    if (step === 'goal') { const parsed = parseInitialRequest(clean); if (!parsed.confidence) { say('Pot crea anunțuri, formulare, cereri cu aprobare, rapoarte sau embeduri cu butoane. Spune-mi ce vrei să facă și pentru cine.'); clearActions(); actionButton('📢 Anunț', () => { input.value = 'Creează un modul de anunț'; form.requestSubmit(); }); actionButton('✅ Cerere cu aprobare', () => { input.value = 'Creează un modul de cerere cu aprobare'; form.requestSubmit(); }); actionButton('📊 Raport', () => { input.value = 'Creează un modul de raport'; form.requestSubmit(); }); return; } Object.assign(state, parsed); askNextMissing(); saveMemory(); return; }
+    if (step === 'name') { state.name = clean; askNextMissing(); saveMemory(); return; }
+    if (step === 'color') { state.color = (clean.match(/#[0-9a-f]{6}/i) || [])[0] || colorMap[text] || '#5865f2'; askNextMissing(); saveMemory(); return; }
+    if (step === 'fields') { state.fields = /fara|niciun|nu are nevoie/.test(text) ? [] : splitList(clean); askNextMissing(); saveMemory(); return; }
+    if (step === 'buttons') { state.buttons = /recomand|automat/.test(text) ? [] : splitList(clean); askNextMissing(); saveMemory(); return; }
+    if (step === 'result') { state.resultMode = /privat|ephemeral/.test(text) ? 'private' : /ambele|amandoua/.test(text) ? 'both' : 'log'; state.responseMessage = state.resultMode === 'private' ? 'Răspunsul a fost trimis privat.' : 'Rezultatul a fost trimis în canalul configurat.'; askNextMissing(); saveMemory(); return; }
+    if (step === 'access') { state.premium = /premium|platit/.test(text); state.permission = /owner/.test(text) ? 'owner' : /manager|conduc/.test(text) ? 'manager' : /rol/.test(text) ? 'mapped_role' : 'everyone'; state.slash = /slash|comanda/.test(text); askNextMissing(); saveMemory(); return; }
     if (step === 'confirm') { say('Alege „Creează draftul complet” sau spune ce vrei să schimb înainte de creare.'); return; }
     if (step === 'done') {
       let changed = false;
