@@ -103,10 +103,10 @@ async function syncLiveCountdown(db: any, organization: any, settings: any, now:
   const payload = {
     allowed_mentions: { parse: [] },
     embeds: [{
-      title: expired ? '🔴 Organizație expirată' : '⏳ Expirare organizație',
+      title: expired ? '🔴 Acces Panel Pro · Expirat' : '⏳ Acces Panel Pro · Status',
       description: expired
-        ? `Accesul organizației **${String(organization.name || 'Organizația').trim()}** a expirat. Pentru reactivare, contactează administratorul Panel Pro.`
-        : `Organizația **${String(organization.name || 'Organizația').trim()}** mai are **${remainingLabel}** de acces activ în panel.`,
+        ? `Perioada de acces pentru **${String(organization.name || 'Organizația').trim()}** s-a încheiat. Pentru reactivare, contactează administratorul Panel Pro.`
+        : `Accesul pentru **${String(organization.name || 'Organizația').trim()}** este activ încă **${remainingLabel}**.`,
       color: expired ? 0xef4444 : 0xf59e0b,
       fields: [
         { name: '📅 Expiră la', value: formattedDate(expiresAt), inline: true },
