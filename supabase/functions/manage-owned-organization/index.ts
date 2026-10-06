@@ -453,6 +453,14 @@ Deno.serve(async (request) => {
     const channelRoutes = body.discord_channel_routes === undefined
       ? (settings.discord_channel_routes || {})
       : sanitizeDiscordChannelRoutes(body.discord_channel_routes);
+    for (const [routeKey, route] of Object.entries(channelRoutes as Record<string, any>)) {
+      const previousRoute = (settings.discord_channel_routes || {})[routeKey] || {};
+      for (const target of ['primary', 'secondary']) {
+        const current = route?.[target];
+        const previous = previousRoute?.[target];
+        if (current && previous?.channel_id === current.channel_id && validDiscordChannelId(previous.absence_live_message_id)) current.absence_live_message_id = String(previous.absence_live_message_id);
+      }
+    }
     const packageWebhookRoutes = {};
     const settingsPatch = {
       organization_id: organizationId,

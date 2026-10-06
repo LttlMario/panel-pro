@@ -110,7 +110,17 @@ Deno.serve(async (req) => {
     }
     if (body.discord_channel_routes) {
       const { data: currentSettings } = await db.from('organization_settings').select('discord_client_id,panel_public_url,discord_channel_routes').eq('organization_id', id).maybeSingle();
-       const { error } = await db.from('organization_settings').upsert({ organization_id: id, discord_client_id: String(body.discord_client_id || currentSettings?.discord_client_id || ''), panel_public_url: String(body.panel_public_url || currentSettings?.panel_public_url || ''), discord_channel_routes: sanitizeDiscordChannelRoutes(body.discord_channel_routes), updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
+       const nextRoutes = sanitizeDiscordChannelRoutes(body.discord_channel_routes);
+       const previousRoutes = currentSettings?.discord_channel_routes || {};
+       for (const [routeKey, route] of Object.entries(nextRoutes as Record<string, any>)) {
+         const previousRoute = previousRoutes?.[routeKey] || {};
+         for (const target of ['primary', 'secondary']) {
+           const current = (route as any)?.[target];
+           const previous = previousRoute?.[target];
+           if (current && previous?.channel_id === current.channel_id && validDiscordChannelId(previous.absence_live_message_id)) current.absence_live_message_id = String(previous.absence_live_message_id);
+         }
+       }
+       const { error } = await db.from('organization_settings').upsert({ organization_id: id, discord_client_id: String(body.discord_client_id || currentSettings?.discord_client_id || ''), panel_public_url: String(body.panel_public_url || currentSettings?.panel_public_url || ''), discord_channel_routes: nextRoutes, updated_at: new Date().toISOString() }, { onConflict: 'organization_id' });
       if (error) throw error;
     }
     if (body.page_permissions) {

@@ -84,11 +84,21 @@ Deno.serve(async request=>{
    const guildRows=[{organization_id:organizationId,guild_id:primaryId,kind:'primary',enabled:true},...(secondaryId?[{organization_id:organizationId,guild_id:secondaryId,kind:'secondary',enabled:true}]:[])];
    for(const row of guildRows){const {error}=await db.from('organization_guilds').upsert(row,{onConflict:'guild_id'});if(error)throw error;}
    const { data: existingSettings } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
+   const nextRoutes = config.discord_channel_routes ?? existingSettings?.discord_channel_routes ?? {};
+   const previousRoutes = existingSettings?.discord_channel_routes || {};
+   for (const [routeKey, route] of Object.entries(nextRoutes as Record<string, any>)) {
+    const previousRoute = previousRoutes?.[routeKey] || {};
+    for (const target of ['primary', 'secondary']) {
+     const current = (route as any)?.[target];
+     const previous = previousRoute?.[target];
+     if (current && previous?.channel_id === current.channel_id && /^\d{15,22}$/.test(String(previous.absence_live_message_id || ''))) current.absence_live_message_id = String(previous.absence_live_message_id);
+    }
+   }
    const {error:settingsError}=await db.from('organization_settings').upsert({
     organization_id:organizationId,
     discord_client_id:String(config.discord_client_id||'').trim(),
     panel_public_url:String(config.panel_public_url||'').replace(/\/$/,''),
-    discord_channel_routes:config.discord_channel_routes ?? existingSettings?.discord_channel_routes ?? {},
+    discord_channel_routes:nextRoutes,
     updated_by_discord_id:session.discord_id,
     updated_at:new Date().toISOString()
    },{onConflict:'organization_id'});if(settingsError)throw settingsError;

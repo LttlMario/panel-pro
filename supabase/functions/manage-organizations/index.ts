@@ -587,6 +587,14 @@ const existingChannelRoutes = currentOrganizationSettings?.discord_channel_route
 const discord_channel_routes = settings.discord_channel_routes === undefined
   ? existingChannelRoutes
   : sanitizeDiscordChannelRoutes(rawChannelRoutes);
+for (const [routeKey, route] of Object.entries(discord_channel_routes as Record<string, any>)) {
+  const previousRoute = existingChannelRoutes?.[routeKey] || {};
+  for (const target of ['primary', 'secondary']) {
+    const current = (route as any)?.[target];
+    const previous = previousRoute?.[target];
+    if (current && previous?.channel_id === current.channel_id && validDiscordChannelId(previous.absence_live_message_id)) current.absence_live_message_id = String(previous.absence_live_message_id);
+  }
+}
 const { error: settingsError } =
   await db
     .from('organization_settings')
