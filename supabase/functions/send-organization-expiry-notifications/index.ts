@@ -110,12 +110,12 @@ async function syncLiveCountdown(db: any, organization: any, settings: any, now:
       color: expired ? 0xef4444 : 0xf59e0b,
       fields: [
         { name: '📅 Expiră la', value: formattedDate(expiresAt), inline: true },
-        { name: '⏱️ Timp rămas', value: expired ? 'Expirat' : `<t:${Math.floor(expiresAtMs / 1000)}:R>`, inline: true },
+        { name: '⏱️ Timp rămas', value: expired ? 'Expirat' : remainingLabel, inline: true },
       ],
       footer: { text: 'Panel Pro - By Little Mario' },
       timestamp: now.toISOString(),
     }],
-    components: [{ type: 1, components: [{ type: 2, style: 5, label: expired ? 'Contactează pentru reactivare' : 'Vezi administrarea', url: expired ? actionLinks.voucher : actionLinks.administration }] }],
+    components: [{ type: 1, components: [{ type: 2, style: 5, label: expired ? 'Contactează pentru reactivare' : 'Vezi administrarea / prelungirea', url: actionLinks.voucher }] }],
   };
   const { data: registryRows, error: registryError } = await db.from('discord_message_registry')
     .select('target,channel_id,message_id')
