@@ -84,6 +84,8 @@
   document.querySelectorAll('#module-key,#module-label,#module-description,#module-handler,#module-cooldown,#module-max-requests,#module-title,#module-color,#module-slash-enabled,#module-response-button,#module-response-success,#module-response-error,#module-response-review').forEach((node)=>node.addEventListener('input',()=>{saveLocalDraft();checkLocalDraft();}));
   $('module-form')?.addEventListener('input',()=>{saveLocalDraft();checkLocalDraft();});
   $('module-buttons-builder')?.addEventListener('input',()=>{saveLocalDraft();checkLocalDraft();});
+  $('module-fields-builder')?.addEventListener('input',()=>{saveLocalDraft();checkLocalDraft();});
+  $('module-editor-title')?.parentElement?.parentElement?.addEventListener('change',(event)=>{if(event.target.matches('input,select,textarea')){saveLocalDraft();checkLocalDraft();}});
   checkLocalDraft();
   historyButton.onclick=showModuleHistory;
   $('module-search')?.addEventListener('input', (event) => { state.moduleSearch = event.target.value || ''; renderList(); });
