@@ -11,11 +11,23 @@ const SPAM_RULE_NAME='Panel Pro · Protecție anti-spam';
 async function configureSpamProtection(db:any, organizationId:string, guilds:any[], routes:any){
  const bot=await getPlatformSecret(db,'discord_bot_token');if(!bot)throw new Error('DISCORD_BOT_TOKEN lipsește.');
  const preferredRoutes=['log_announcements_organization','log_announcements_departments','organization','departments','log_pontaj'];
- const alertChannelId=preferredRoutes.map((key)=>['primary','secondary'].map((target)=>String(routes?.[key]?.[target]?.channel_id||'')).find(Boolean)).find(Boolean)||'';
  const headers={Authorization:`Bot ${bot}`,'Content-Type':'application/json'};
  const results:any[]=[];
+ const alertChannelForGuild=async(guildId:string,target:string)=>{
+  for(const key of preferredRoutes){
+   const channelId=String(routes?.[key]?.[target]?.channel_id||'').trim();
+   if(!/^\d{15,22}$/.test(channelId))continue;
+   const channelResponse=await safeFetch(`${DISCORD_API}/channels/${channelId}`,{headers});
+   if(!channelResponse.ok)continue;
+   const channel=await channelResponse.json().catch(()=>({}));
+   if(String(channel?.guild_id||'')===guildId)return channelId;
+  }
+  return '';
+ };
  for(const guild of guilds.filter((item)=>item.enabled!==false&&/^\d{15,22}$/.test(String(item.guild_id||'')))){
   const guildId=String(guild.guild_id);
+  const target=String(guild.kind||'')==='secondary'?'secondary':'primary';
+  const alertChannelId=await alertChannelForGuild(guildId,target);
   const listResponse=await safeFetch(`${DISCORD_API}/guilds/${guildId}/auto-moderation/rules`,{headers});
   if(!listResponse.ok)throw new Error(`Nu pot citi regulile AutoMod pentru ${guild.guild_name||guildId} (HTTP ${listResponse.status}).`);
   const existingRules=await listResponse.json().catch(()=>[]);
@@ -28,7 +40,7 @@ async function configureSpamProtection(db:any, organizationId:string, guilds:any
   const rule=await response.json().catch(()=>existing||{});
   results.push({guild_id:guildId,guild_name:guild.guild_name||guildId,rule_id:String(rule.id||existing?.id||''),action:existing?'updated':'created',alert_channel_id:alertChannelId||null});
  }
- const setting={enabled:true,rule_name:SPAM_RULE_NAME,timeout_seconds:600,alert_channel_id:alertChannelId||null,rules:results,updated_at:new Date().toISOString()};
+ const setting={enabled:true,rule_name:SPAM_RULE_NAME,timeout_seconds:600,rules:results,updated_at:new Date().toISOString()};
  const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'discord_spam_protection',value:setting,updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;
  return setting;
 }
