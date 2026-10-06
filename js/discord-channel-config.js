@@ -70,7 +70,7 @@
     };
     return [key, input?.closest('fieldset')?.querySelector('legend')?.textContent?.trim() || fallbackLabels[key] || key];
   }));
- const state = { routes: {}, channelsByGuild: {}, guildNames: {} };
+ const state = { routes: {}, channelsByGuild: {}, guildNames: {}, spamAlertChannels: { primary: '', secondary: '' } };
   state.guildAvailability = { primary: false, secondary: false };
   state.discoveryAttempted = false;
   const getConfig = () => window.PANEL_SUPABASE_CONFIG || window.config || {};
@@ -119,11 +119,18 @@
   section.id = 'discord-channel-routes';
   section.className = 'mt-4 rounded-xl border border-emerald-700/60 bg-emerald-950/20 p-4';
   const canPublishDiscordPanels = root.id === 'webhooks' || root.id === 'owner-webhooks';
-  section.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-bold">Canale Discord pentru bot</h2><p class="mt-1 text-xs text-slate-400">Selectează unde trimite botul toate mesajele și embed-urile. Canalele sunt afișate în ordinea serverului, grupate după categorie.</p></div><div class="flex flex-wrap gap-2"><button id="discord-channel-discover" type="button" class="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-black text-white">Încarcă canalele Discord</button><button id="discord-spam-configure" type="button" class="rounded-xl border border-rose-500/70 bg-rose-950/40 px-4 py-2 text-xs font-black text-rose-100">🛡️ Activează anti-spam</button></div></div><p id="discord-channel-status" class="mt-2 text-xs text-slate-400">Nu s-au încărcat încă canalele.</p><p id="discord-spam-status" class="mt-1 text-xs text-rose-200">Anti-spam-ul Discord nu a fost configurat din acest panel.</p><div id="discord-channel-grid" class="mt-3 grid gap-3 md:grid-cols-2"></div>`;
+  section.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-bold">Canale Discord pentru bot</h2><p class="mt-1 text-xs text-slate-400">Selectează unde trimite botul toate mesajele și embed-urile. Canalele sunt afișate în ordinea serverului, grupate după categorie.</p></div><div class="flex flex-wrap gap-2"><button id="discord-channel-discover" type="button" class="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-black text-white">Încarcă canalele Discord</button><button id="discord-spam-configure" type="button" class="rounded-xl border border-rose-500/70 bg-rose-950/40 px-4 py-2 text-xs font-black text-rose-100">🛡️ Activează anti-spam</button></div></div><p id="discord-channel-status" class="mt-2 text-xs text-slate-400">Nu s-au încărcat încă canalele.</p><div id="discord-spam-channel-controls" class="mt-3 grid gap-2 md:grid-cols-2"><label class="text-xs text-slate-300">Canal log anti-spam · principal<select id="discord-spam-log-primary" class="field mt-1 w-full"></select></label><label class="text-xs text-slate-300">Canal log anti-spam · secundar<select id="discord-spam-log-secondary" class="field mt-1 w-full"></select></label></div><p id="discord-spam-status" class="mt-1 text-xs text-rose-200">Încarcă mai întâi canalele, apoi alege unde vor apărea alertele anti-spam.</p><div id="discord-channel-grid" class="mt-3 grid gap-3 md:grid-cols-2"></div>`;
   root.closest('details')?.before(section);
   const grid = section.querySelector('#discord-channel-grid');
   const status = section.querySelector('#discord-channel-status');
   const spamStatus = section.querySelector('#discord-spam-status');
+  const renderSpamChannelSelectors = () => ['primary', 'secondary'].forEach((target) => {
+    const select = section.querySelector(`#discord-spam-log-${target}`);
+    if (!select) return;
+    select.innerHTML = options(state.spamAlertChannels[target], target);
+    select.disabled = !guildIdForTarget(target) || !state.discoveryAttempted || state.guildAvailability[target] === false;
+    select.onchange = () => { state.spamAlertChannels[target] = select.value; };
+  });
   const spamButton = section.querySelector('#discord-spam-configure');
   if (spamButton) spamButton.onclick = async () => {
     const selectedOrganizationId = String(organizationId() || '').trim();
@@ -131,7 +138,7 @@
     if (!selectedOrganizationId || !activeOrganizationId || selectedOrganizationId !== activeOrganizationId) { if (spamStatus) spamStatus.textContent = 'Intră mai întâi în organizația aleasă din „Administrare organizații”, folosind modul de test.'; return; }
     spamButton.disabled = true; if (spamStatus) spamStatus.textContent = 'Se configurează protecția anti-spam în Discord…';
     try {
-      const result = await window.panelRequestJson('manage-discord-config', { method: 'POST', body: JSON.stringify({ action: 'configure_spam_protection' }), timeoutMs: 30000, retry: false });
+      const result = await window.panelRequestJson('manage-discord-config', { method: 'POST', body: JSON.stringify({ action: 'configure_spam_protection', alert_channels: state.spamAlertChannels }), timeoutMs: 30000, retry: false });
       const rules = result.spam_protection?.rules || [];
       const count = Number(rules.length || 0);
       const timeoutDisabled = rules.some((rule) => rule.timeout_enabled === false);
@@ -494,6 +501,7 @@
     finally { syncIndividualPublishState(key); }
   };
   const render = () => {
+    renderSpamChannelSelectors();
     grid.innerHTML = routeKeys.map((key) => `<fieldset class="rounded-lg border border-emerald-900/70 bg-slate-950/50 p-3${key === 'actions_organization' ? ' md:col-span-2' : ''}"><legend class="px-1 text-xs font-bold text-slate-200">${esc(labels[key])}</legend>${['primary', 'secondary'].map((target) => `<label class="mt-2 block text-xs text-slate-400">${target === 'primary' ? 'Canal principal' : 'Canal secundar'}<select class="field mt-1" data-discord-channel-route="${esc(key)}" data-discord-channel-target="${target}">${options(selectedChannel(key, target))}</select></label>`).join('')}</fieldset>`).join('');
     individualPublishDefinitions().forEach((definition) => {
       const fieldset = grid.querySelector(`[data-discord-channel-route="${definition.key}"]`)?.closest('fieldset');

@@ -8,15 +8,14 @@ const safeFetch=async(url:string,init:RequestInit={},timeout=8000)=>{const contr
 const DISCORD_API='https://discord.com/api/v10';
 const SPAM_RULE_NAME='Panel Pro · Protecție anti-spam';
 
-async function configureSpamProtection(db:any, organizationId:string, guilds:any[], routes:any){
+async function configureSpamProtection(db:any, organizationId:string, guilds:any[], routes:any, requestedAlertChannels:any={}){
  const bot=await getPlatformSecret(db,'discord_bot_token');if(!bot)throw new Error('DISCORD_BOT_TOKEN lipsește.');
  const preferredRoutes=['log_announcements_organization','log_announcements_departments','organization','departments','log_pontaj'];
  const headers={Authorization:`Bot ${bot}`,'Content-Type':'application/json'};
  const results:any[]=[];
  const alertChannelForGuild=async(guildId:string,target:string)=>{
-  for(const key of preferredRoutes){
-   const channelId=String(routes?.[key]?.[target]?.channel_id||'').trim();
-   if(!/^\d{15,22}$/.test(channelId))continue;
+  const candidates=[String(requestedAlertChannels?.[target]||'').trim(),...preferredRoutes.map((key)=>String(routes?.[key]?.[target]?.channel_id||'').trim())].filter((value,index,list)=>/^\d{15,22}$/.test(value)&&list.indexOf(value)===index);
+  for(const channelId of candidates){
    const channelResponse=await safeFetch(`${DISCORD_API}/channels/${channelId}`,{headers});
    if(!channelResponse.ok)continue;
    const channel=await channelResponse.json().catch(()=>({}));
@@ -71,7 +70,7 @@ Deno.serve(async request=>{
   }
   if(body.action==='configure_spam_protection'){
    const state=await load();
-   const spam=await configureSpamProtection(db,organizationId,state.guilds,state.settings?.discord_channel_routes||{});
+   const spam=await configureSpamProtection(db,organizationId,state.guilds,state.settings?.discord_channel_routes||{},body.alert_channels||{});
    return reply({ok:true,spam_protection:spam});
   }
   if(body.action==='discover_discord_roles'){
