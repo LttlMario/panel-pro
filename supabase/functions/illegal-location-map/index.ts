@@ -3,6 +3,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 const PROJECT_URL = 'https://vkvsabbbawyiurnaiugo.supabase.co';
 const serviceKey = () => String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '').trim() || (() => { try { return String(JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default || '').trim(); } catch (_) { return ''; } })();
 const maps: Record<string, { width: number; height: number; image: string; label: string }> = {
+  // Redimensionăm fundalul înainte să îl introducem în SVG. URL-urile sunt
+  // stabile, astfel încât proxy-ul să poată refolosi rezultatul și să nu apară
+  // timeout-uri la fiecare apăsare pe buton.
   ls: { width: 2560, height: 2560, image: 'https://wsrv.nl/?url=https%3A%2F%2Fpanel-pro.ro%2Fimg%2Fgtav.jpg&w=1280&q=60&output=jpg', label: 'Los Santos & Blaine County' },
   cayo: { width: 1122, height: 1060, image: 'https://wsrv.nl/?url=https%3A%2F%2Fpanel-pro.ro%2Fimg%2Fcayo.jpg&w=1122&q=65&output=jpg', label: 'Cayo Perico' },
   maldive: { width: 1440, height: 864, image: 'https://wsrv.nl/?url=https%3A%2F%2Fpanel-pro.ro%2Fimg%2Fmaldive.jpg&w=1200&q=65&output=jpg', label: 'Maldive' },
@@ -64,8 +67,9 @@ Deno.serve(async (request) => {
       return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><path d="M0 -23 C-13 -23 -21 -14 -21 -3 C-21 10 -10 19 0 29 C10 19 21 10 21 -3 C21 -14 13 -23 0 -23Z" fill="#0b1220" stroke="${category.color}" stroke-width="4"/><text x="0" y="4" text-anchor="middle" font-family="Segoe UI Emoji,Arial,sans-serif" font-size="18">${icon}</text>${label}</g>`;
     }).join('');
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${map.width}" height="${map.height}" viewBox="0 0 ${map.width} ${map.height}"><image href="${backgroundData}" xlink:href="${backgroundData}" x="0" y="0" width="${map.width}" height="${map.height}" preserveAspectRatio="none"/>${pins}</svg>`;
-    return new Response(svg, { status: 200, headers: { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
+    return new Response(svg, { status: 200, headers: { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'public, max-age=300, s-maxage=300', 'Access-Control-Allow-Origin': '*' } });
   } catch (error) {
+    console.error('[illegal-location-map] render failed', error);
     return new Response(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="300"><rect width="100%" height="100%" fill="#111827"/><text x="30" y="150" fill="#fff" font-family="Arial" font-size="28">Harta nu a putut fi încărcată.</text></svg>`, { status: 200, headers: { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'no-store' } });
   }
 });

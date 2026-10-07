@@ -949,7 +949,13 @@ const wheelRemainingText = (completesAt: string) => {
 };
 
 const ILLEGAL_LOCATION_MAP_ENDPOINT = 'https://vkvsabbbawyiurnaiugo.supabase.co/functions/v1/illegal-location-map';
-const renderedIllegalMap = (key: string) => `https://wsrv.nl/?url=${encodeURIComponent(`${ILLEGAL_LOCATION_MAP_ENDPOINT}?map=${key}&v=${Date.now()}`)}&output=png&w=1280&q=80`;
+// URL-ul trebuie să rămână stabil pentru ca Discord și proxy-ul de imagine să
+// poată reutiliza rezultatul. Date.now() genera o imagine nouă la fiecare click,
+// ceea ce ducea uneori la timeout / imagine lipsă în embed.
+const ILLEGAL_LOCATION_MAP_VERSION = '20261007-1';
+// 1024 evită răspunsurile 404 ale proxy-ului pentru harta mare Los Santos,
+// păstrând totuși suficientă rezoluție pentru textul și pinurile afișate.
+const renderedIllegalMap = (key: string) => `https://wsrv.nl/?url=${encodeURIComponent(`${ILLEGAL_LOCATION_MAP_ENDPOINT}?map=${key}&v=${ILLEGAL_LOCATION_MAP_VERSION}`)}&output=png&w=1024&q=80`;
 const illegalLocationMap = (value: string) => {
   const maps: Record<string, { label: string; image: string; url: string; description: string }> = {
     ls: { label: 'Los Santos', image: renderedIllegalMap('ls'), url: 'https://panel-pro.ro/locatiiilegale.html?map=ls', description: 'Harta Los Santos și Blaine County cu locațiile ilegale disponibile.' },
