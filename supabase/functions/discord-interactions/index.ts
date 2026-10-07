@@ -176,14 +176,15 @@ const calculatorId = (value: unknown) => String(value || '').replace(/[^a-z0-9_-
 const calculatorRows = (kind: 'legal' | 'illegal', categoryId = '', page = 0) => {
   const categories = allCategories(kind);
   if (!categoryId) {
-    return [{ type: 1, components: [{ type: 3, custom_id: `panel:calculator:${kind}:category`, placeholder: 'Alege categoria calculatorului', min_values: 1, max_values: 1, options: categories.map((category) => ({ label: category.label.slice(0, 100), value: category.id, description: `${category.recipes.length} articole disponibile`.slice(0, 100) })) }] }];
+    return [{ type: 1, components: [{ type: 3, custom_id: `panel:calculator:${kind}:category`, placeholder: 'Alege categoria calculatorului', min_values: 1, max_values: 1, options: categories.map((category) => ({ label: category.label.slice(0, 100), value: category.id, description: `${category.recipes.filter((item) => !item.componentOnly).length} articole disponibile`.slice(0, 100) })) }] }];
   }
   const category = findCategory(kind, categoryId);
   if (!category) return calculatorRows(kind);
   const pageSize = 25;
-  const pageCount = Math.max(1, Math.ceil(category.recipes.length / pageSize));
+  const visibleRecipes = category.recipes.filter((item) => !item.componentOnly);
+  const pageCount = Math.max(1, Math.ceil(visibleRecipes.length / pageSize));
   const safePage = Math.max(0, Math.min(pageCount - 1, page));
-  const options = category.recipes.slice(safePage * pageSize, (safePage + 1) * pageSize).map((item) => ({ label: item.name.slice(0, 100), value: item.id, description: `1 craft = ${item.produces || 1} produs(e)`.slice(0, 100) }));
+  const options = visibleRecipes.slice(safePage * pageSize, (safePage + 1) * pageSize).map((item) => ({ label: item.name.slice(0, 100), value: item.id, description: `1 craft = ${item.produces || 1} produs(e)`.slice(0, 100) }));
   const rows: any[] = [{ type: 1, components: [{ type: 3, custom_id: `panel:calculator:${kind}:item:${calculatorId(category.id)}:${safePage}`, placeholder: `${category.label} · alege articolul`, min_values: 1, max_values: 1, options }] }];
   if (kind === 'illegal' && category.id === 'ciuperci') {
     rows.push({ type: 1, components: [{ type: 2, style: 1, label: 'Calculează după material disponibil', custom_id: 'panel:calculator:illegal:mushroom_mode' }] });

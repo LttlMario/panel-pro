@@ -4,6 +4,7 @@ export type CalculatorRecipe = {
   base: Record<string, number>;
   produces?: number;
   ratio?: boolean;
+  componentOnly?: boolean;
 };
 
 export type CalculatorCategory = {
@@ -12,7 +13,7 @@ export type CalculatorCategory = {
   recipes: CalculatorRecipe[];
 };
 
-const recipe = (id: string, name: string, base: Record<string, number>, produces = 1, ratio = false): CalculatorRecipe => ({ id, name, base, produces, ratio });
+const recipe = (id: string, name: string, base: Record<string, number>, produces = 1, ratio = false, componentOnly = false): CalculatorRecipe => ({ id, name, base, produces, ratio, componentOnly });
 
 const legalCategories: CalculatorCategory[] = [
   {
@@ -40,25 +41,27 @@ const legalCategories: CalculatorCategory[] = [
     ],
   },
   { id: 'mecanic', label: '🔧 Craft Mecanic', recipes: [
-    recipe('unelte_x10', 'Unelte x10', { Oțel: 1, Arc: 1 }), recipe('cabluri_x10', 'Cabluri x10', { Cupru: 1, Plastic: 1 }), recipe('cabluri', 'Cabluri', { 'Cabluri x10': 1 }, 10), recipe('bujii_x10', 'Bujii x10', { Plumb: 1, Arc: 1 }),
-    recipe('kit_reparatii', 'Kit de reparații', { 'Unelte x10': 1, Cabluri: 1, 'Bujii x10': 1 }), recipe('limitator_viteza', 'Limitator de viteză', { 'Cip vechi': 5, Plastic: 15 }), recipe('set_cauciucuri', 'Set cauciucuri', { Cauciuc: 120 }),
-    recipe('kit_reparat_avansat', 'Kit de reparat avansat', { 'Unelte x10': 2, Cabluri: 2, 'Bujii x10': 2, Oțel: 1, Cauciuc: 1, Plastic: 1 }),
+    recipe('unelte_x10', 'Unelte x10', { Oțel: 1, Arc: 1 }), recipe('cabluri_x10', 'Cabluri x10', { Cupru: 1, Plastic: 1 }), recipe('cabluri', 'Cabluri', { 'Cabluri x10': 1 }, 10, false, true), recipe('bujii_x10', 'Bujii x10', { Plumb: 1, Arc: 1 }),
+    recipe('kit_reparatii', 'Kit de reparații', { 'Unelte x10': 1, Cabluri: 1, 'Bujii x10': 1 }), recipe('limitator_viteza', 'Limitator de viteză', { 'Cip vechi': 5, Plastic: 15 }), recipe('set_cauciucuri', 'Set cauciucuri', { Cauciuc: 120 }), recipe('kit_reparat_avansat', 'Kit de reparat avansat', { 'Unelte x10': 2, Cabluri: 2, 'Bujii x10': 2, Oțel: 1, Cauciuc: 1, Plastic: 1 }),
     recipe('jante_addon_80', 'Jante addon 80', { Blueprint: 1, Oțel: 15, Aluminiu: 5 }), recipe('jante_addon_85', 'Jante addon 85', { Blueprint: 1, Oțel: 15, Aluminiu: 5 }), recipe('jante_addon_98', 'Jante addon 98', { Blueprint: 1, Oțel: 15, Aluminiu: 5 }),
-    recipe('xenon_albastru', 'Xenon albastru', { Safir: 3, Plastic: 20, Cabluri: 4 }), recipe('xenon_albastru_deschis', 'Xenon albastru deschis', { Safir: 2, Diamant: 1, Plastic: 20, Cabluri: 3 }),
-    recipe('xenon_verde', 'Xenon verde', { Emerald: 3, Plastic: 20, Cabluri: 3 }), recipe('xenon_verde_deschis', 'Xenon verde deschis', { Emerald: 2, Diamant: 1, Plastic: 20, Cabluri: 4 }),
-    recipe('xenon_galben_deschis', 'Xenon galben deschis', { Rubin: 1, Emerald: 1, Diamant: 1, Plastic: 20, Cabluri: 4 }), recipe('xenon_galben', 'Xenon galben', { Rubin: 2, Diamant: 1, Plastic: 20, Cabluri: 4 }),
-    recipe('xenon_portocaliu', 'Xenon portocaliu', { Rubin: 2, Diamant: 1, Plastic: 20, Cabluri: 4 }), recipe('xenon_rosu', 'Xenon roșu', { Rubin: 3, Plastic: 20, Cabluri: 4 }),
-    recipe('xenon_roz_deschis', 'Xenon roz deschis', { Rubin: 1, Diamant: 2, Plastic: 20, Cabluri: 4 }), recipe('xenon_roz', 'Xenon roz', { Rubin: 2, Diamant: 1, Plastic: 20, Cabluri: 4 }),
-    recipe('xenon_mov', 'Xenon mov', { Rubin: 2, Safir: 1, Plastic: 20, Cabluri: 4 }), recipe('xenon_mov_deschis', 'Xenon mov deschis', { Rubin: 2, Safir: 1, Diamant: 1, Plastic: 20, Cabluri: 4 }),
+    recipe('xenon_albastru', 'Xenon albastru', { Safir: 6, Plastic: 20, Cabluri: 4 }), recipe('xenon_albastru_deschis', 'Xenon albastru deschis', { Safir: 4, Diamant: 2, Plastic: 20, Cabluri: 4 }),
+    recipe('xenon_verde', 'Xenon verde', { Emerald: 6, Plastic: 20, Cabluri: 4 }), recipe('xenon_verde_deschis', 'Xenon verde deschis', { Emerald: 4, Diamant: 2, Plastic: 20, Cabluri: 4 }),
+    recipe('xenon_galben_deschis', 'Xenon galben deschis', { Rubin: 2, Emerald: 2, Diamant: 2, Plastic: 20, Cabluri: 4 }), recipe('xenon_galben', 'Xenon galben', { Rubin: 4, Diamant: 2, Plastic: 20, Cabluri: 4 }),
+    recipe('xenon_portocaliu', 'Xenon portocaliu', { Rubin: 4, Diamant: 2, Plastic: 20, Cabluri: 4 }), recipe('xenon_rosu', 'Xenon roșu', { Rubin: 6, Plastic: 20, Cabluri: 4 }),
+    recipe('xenon_roz_deschis', 'Xenon roz deschis', { Rubin: 2, Diamant: 4, Plastic: 20, Cabluri: 4 }), recipe('xenon_roz', 'Xenon roz', { Rubin: 4, Diamant: 2, Plastic: 20, Cabluri: 4 }),
+    recipe('xenon_mov', 'Xenon mov', { Rubin: 4, Safir: 2, Plastic: 20, Cabluri: 4 }), recipe('xenon_mov_deschis', 'Xenon mov deschis', { Rubin: 4, Safir: 2, Diamant: 2, Plastic: 20, Cabluri: 4 }),
     recipe('turometru_tb_numeric', 'Turometru TB numeric', { Tabletă: 1, 'Cip nou': 30, Cabluri: 20, Diamant: 1 }), recipe('turometru_gmc', 'Turometru GMC', { Tabletă: 1, 'Cip nou': 30, Cabluri: 20, Diamant: 1 }),
-    ...Array.from({ length: 4 }, (_, index) => recipe(`jante_addon_${55 + index}`, `Jante addon ${55 + index}`, { Blueprint: 1, Oțel: 15, Aluminiu: 5, ...(index % 2 ? { Plastic: 30 } : {}) })),
-    ...Array.from({ length: 8 }, (_, index) => recipe(`jante_addon_${59 + index}`, `Jante addon ${59 + index}`, { Blueprint: 1, Oțel: index < 2 ? 15 : 20, Aluminiu: index < 2 ? 5 : 10, ...(index % 2 ? { Plastic: 30 } : {}) })),
+    ...Array.from({ length: 18 }, (_, index) => {
+      const number = 55 + index;
+      const premium = number >= 65;
+      return recipe(`jante_addon_${number}`, `Jante addon ${number}`, { Blueprint: 1, Oțel: premium ? 20 : 15, Aluminiu: premium ? 10 : 5, ...(number % 2 === 0 ? {} : { Plastic: 30 }) });
+    }),
     recipe('jante_addon_92', 'Jante addon 92', { Blueprint: 1, Oțel: 15, Aluminiu: 5, Plastic: 30 }), recipe('set_roti', 'Set roți', { 'Set cauciucuri': 1, 'Set jante aluminiu': 1 }), recipe('set_roti_runflat', 'Set roți runflat', { 'Set roți': 1, Oțel: 50 }),
     recipe('jante_addon_79', 'Jante addon 79', { Blueprint: 1, Oțel: 20, Aluminiu: 15, Plastic: 40 }), recipe('jante_addon_96', 'Jante addon 96', { Blueprint: 1, Oțel: 20, Aluminiu: 10 }),
     recipe('jante_addon_97', 'Jante addon 97', { Blueprint: 1, Oțel: 20, Aluminiu: 15, Plastic: 40 }), recipe('jante_addon_100', 'Jante addon 100', { Blueprint: 1, Oțel: 25, Aluminiu: 15 }),
     recipe('jante_addon_101', 'Jante addon 101', { Blueprint: 1, Oțel: 25, Aluminiu: 15 }), recipe('jante_addon_124', 'Jante addon 124', { Blueprint: 1, Oțel: 20, Aluminiu: 15, Plastic: 40 }),
     recipe('jante_addon_125', 'Jante addon 125', { Blueprint: 1, Oțel: 20, Aluminiu: 15, Plastic: 40 }), recipe('jante_addon_126', 'Jante addon 126', { Blueprint: 1, Oțel: 25, Aluminiu: 15 }), recipe('jante_addon_191', 'Jante addon 191', { Blueprint: 1, Oțel: 20, Aluminiu: 15, Plastic: 40 }),
-    recipe('set_jante_aluminiu', 'Set jante aluminiu', { Aluminiu: 40 }),
+    recipe('set_jante_aluminiu', 'Set jante aluminiu', { Aluminiu: 40 }, 1, false, true),
   ] },
   {
     id: 'bucatarie', label: '🍳 Calculator Bucătărie', recipes: [
