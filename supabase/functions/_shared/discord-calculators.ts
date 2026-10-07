@@ -105,7 +105,7 @@ const illegalCategories: CalculatorCategory[] = [
     ],
   },
   {
-    id: 'piese_arma', label: '🔩 Piese de armă', recipes: [
+    id: 'piese_arma', label: '⚙️ Piese de Armă', recipes: [
       recipe('piese_arma', 'Piese de armă', { Arc: 1, Oțel: 1, Plastic: 1, Scrap: 2 }, 2),
       recipe('teava_pistol', 'Țeavă Pistol', { 'Piese de armă': 1 }), recipe('corp_pistol', 'Corp Pistol', { 'Piese de armă': 1 }),
       recipe('teava_smg', 'Țeavă SMG', { 'Piese de armă': 2 }), recipe('corp_smg', 'Corp SMG', { 'Piese de armă': 2 }),
@@ -113,7 +113,7 @@ const illegalCategories: CalculatorCategory[] = [
     ],
   },
   {
-    id: 'munitie', label: '📦 Muniție', recipes: [
+    id: 'munitie', label: '📦 Muniție (Gloanțe)', recipes: [
       recipe('ammo_44', '.44 Marlin · set x30', { Cupru: 2, Plumb: 1, 'Praf de Pusca': 2, 'Casing-uri': 30 }, 30), recipe('ammo_762', '7.62mm · set x30', { Cupru: 2, Plumb: 2, 'Praf de Pusca': 2, 'Casing-uri': 30 }, 30),
       recipe('ammo_45', '.45 ACP · set x30', { Cupru: 1, Plumb: 1, 'Praf de Pusca': 1, 'Casing-uri': 30 }, 30), recipe('ammo_9pbm', '9mm PBM · set x30', { Cupru: 1, Plumb: 1, 'Praf de Pusca': 1, 'Casing-uri': 30 }, 30),
       recipe('ammo_9acp', '9mm ACP · set x30', { Cupru: 2, Plumb: 1, 'Praf de Pusca': 1, 'Casing-uri': 30 }, 30), recipe('ammo_38', '.38 Magnum · set x20', { Cupru: 2, Plumb: 2, 'Praf de Pusca': 3, 'Casing-uri': 20 }, 20),
@@ -131,12 +131,13 @@ const illegalCategories: CalculatorCategory[] = [
     recipe('tava_x2', 'Tavă x2', { Oțel: 1 }, 2), recipe('janta_aluminiu', 'Jantă aluminiu', { Aluminiu: 10 }),
   ] },
   { id: 'plicuri', label: '💊 Plicuri Cocaină', recipes: [
-    recipe('plicuri_facute', 'Plicuri Coca', { Frunze: 1000, Tăvi: 50, Ape: 50, Brichete: 50, 'Plicuri goale': 100 }, 100),
+    recipe('plicuri_frunze', 'Frunze', {}), recipe('plicuri_tavi', 'Tăvi', {}), recipe('plicuri_ape', 'Ape (Sticle)', {}),
+    recipe('plicuri_brichete', 'Brichete', {}), recipe('plicuri_goale', 'Plicuri Goale', {}), recipe('plicuri_facute', 'Plicuri Făcute', {}),
   ] },
   { id: 'marijuana', label: '🌿 Marijuana (Joint-uri)', recipes: [
-    recipe('jointuri', 'Joint-uri', { Frunze: 20, 'Foițe': 1 }, 1),
+    recipe('marijuana_frunze', 'Frunze', {}), recipe('marijuana_foite', 'Foițe', {}), recipe('jointuri', 'Joint-uri', {}),
   ] },
-  { id: 'ciuperci', label: '🍄 Plicuri Ciuperci', recipes: [recipe('red_fire_x3', 'Red Fire x3', { Acetonă: 1, 'Pink Light': 3, 'Oyster roșu': 3, 'Amanita roșie': 3, 'Plicuri goale': 3 }), recipe('green_haze', 'Green Haze x3', { Acetonă: 1, 'Blue Light': 3, 'Oyster galben': 3, 'Amanita verde': 3, 'Plicuri goale': 3 }), recipe('blue_current_x3', 'Blue Current x3', { Acetonă: 1, 'Purple Light': 3, 'Oyster albastru': 3, Psilocybe: 3, 'Plicuri goale': 3 })] },
+  { id: 'ciuperci', label: '🍄 Plicuri Ciuperci', recipes: [recipe('red_fire_x3', 'Red Fire x3', { Acetonă: 1, 'Pink Light': 3, 'Oyster roșu': 3, 'Amanita roșie': 3, 'Plicuri goale': 3 }, 3), recipe('green_haze', 'Green Haze x3', { Acetonă: 1, 'Blue Light': 3, 'Oyster galben': 3, 'Amanita verde': 3, 'Plicuri goale': 3 }, 3), recipe('blue_current_x3', 'Blue Current x3', { Acetonă: 1, 'Purple Light': 3, 'Oyster albastru': 3, Psilocybe: 3, 'Plicuri goale': 3 }, 3)] },
 ];
 
 const allCategories = (kind: 'legal' | 'illegal') => kind === 'legal' ? legalCategories : illegalCategories;

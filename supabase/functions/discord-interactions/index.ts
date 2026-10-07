@@ -209,6 +209,7 @@ const mushroomAvailableMaterials = [
 const mushroomMaterialRows = () => [{ type: 1, components: [{ type: 3, custom_id: 'panel:calculator:illegal:mushroom_material', placeholder: 'Alege materialul disponibil', min_values: 1, max_values: 1, options: mushroomAvailableMaterials.map((item) => ({ label: item.label, value: item.id, description: `Calculează ${item.recipeId === 'red_fire_x3' ? 'Red Fire' : item.recipeId === 'green_haze' ? 'Green Haze' : 'Blue Current'} x3`.slice(0, 100) })) }] }, { type: 1, components: [{ type: 2, style: 2, label: 'Înapoi la articole', custom_id: 'panel:calculator:illegal:page:ciuperci:0' }] }];
 const calculatorStartMessage = (kind: 'legal' | 'illegal') => interactionMessage('', { embeds: [{ title: kind === 'legal' ? '🧮 Calculator legal' : '🚨 Calculator ilegal', description: 'Selectează întâi categoria. După articol poți introduce cantitatea dorită, iar rezultatul va apărea doar pentru tine.', color: kind === 'legal' ? 0x22c55e : 0xef4444, footer: { text: 'Panel Pro · calcul interactiv Discord' } }], components: calculatorRows(kind) });
 const calculatorQuantityModal = (kind: 'legal' | 'illegal', categoryId: string, recipeId: string) => ({ type: 9, data: { custom_id: `panel:calculator:${kind}:quantity:${calculatorId(categoryId)}:${calculatorId(recipeId)}`, title: 'Cantitate de calculat', components: [{ type: 1, components: [{ type: 4, custom_id: 'quantity', label: 'Cantitate dorită', style: 1, required: true, value: '1', placeholder: 'Ex: 10', min_length: 1, max_length: 8 }] }] } });
+const calculatorResourceQuantityModal = (categoryId: string, recipeId: string) => ({ type: 9, data: { custom_id: `panel:calculator:illegal:resource_quantity:${calculatorId(categoryId)}:${calculatorId(recipeId)}`, title: 'Material disponibil', components: [{ type: 1, components: [{ type: 4, custom_id: 'quantity', label: 'Cantitatea disponibilă', style: 1, required: true, value: '1', placeholder: 'Ex: 1000', min_length: 1, max_length: 8 }] }] } });
 const calculatorAvailableQuantityModal = (materialId: string) => ({ type: 9, data: { custom_id: `panel:calculator:illegal:quantity_available:${materialId}`, title: 'Material disponibil', components: [{ type: 1, components: [{ type: 4, custom_id: 'quantity', label: 'Cantitatea materialului disponibil', style: 1, required: true, value: '1', placeholder: 'Ex: 3', min_length: 1, max_length: 8 }] }] } });
 const calculatorResultMessage = (kind: 'legal' | 'illegal', categoryId: string, recipeId: string, quantity: number) => {
   const item = findRecipe(kind, categoryId, recipeId);
@@ -217,6 +218,21 @@ const calculatorResultMessage = (kind: 'legal' | 'illegal', categoryId: string, 
   const list = (values: Record<string, number>) => Object.entries(values).filter(([, amount]) => amount > 0).map(([name, amount]) => `• ${name}: **${amount}**`).join('\n') || '—';
   const embed = { title: `${kind === 'legal' ? '🧮' : '🚨'} Rezultat calculator · ${item.name}`, description: `Ai ales **${quantity}** bucăți. Sunt necesare **${result.crafts}** craft-uri pentru rețeta selectată.`, color: kind === 'legal' ? 0x22c55e : 0xef4444, fields: [{ name: 'Materiale necesare', value: list(result.direct).slice(0, 1024), inline: false }], footer: { text: 'Panel Pro · rezultatul este vizibil doar pentru tine' } };
   return interactionMessage('', { embeds: [embed], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Schimbă articolul', custom_id: `panel:calculator:${kind}:categories` }, { type: 2, style: 2, label: 'Schimbă cantitatea', custom_id: `panel:calculator:${kind}:quantity_again:${calculatorId(categoryId)}:${calculatorId(recipeId)}` }] }] });
+};
+const calculatorResourceResultMessage = (categoryId: string, recipeId: string, available: number) => {
+  const format = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
+  const list = (values: Record<string, number>) => Object.entries(values).map(([name, amount]) => `• ${name}: **${format(amount)}**`).join('\n');
+  if (categoryId === 'plicuri') {
+    const factor = recipeId === 'plicuri_frunze' ? available / 1000 : ['plicuri_tavi', 'plicuri_ape', 'plicuri_brichete'].includes(recipeId) ? available / 50 : available / 100;
+    const direct = { Frunze: factor * 1000, 'Tăvi': factor * 50, 'Ape (Sticle)': factor * 50, Brichete: factor * 50, 'Plicuri goale': factor * 100, 'Plicuri făcute': factor * 100 };
+    const weight = direct.Frunze * 0.04 + direct['Tăvi'] * 0.3 + direct['Ape (Sticle)'] * 0.4 + direct.Brichete * 0.2 + direct['Plicuri goale'] * 0.03;
+    const profit = Math.round(direct['Plicuri făcute']) * 13600;
+    return interactionMessage('', { embeds: [{ title: '🚨 Rezultat calculator · Plicuri Cocaină', description: `Ai introdus **${format(available)}** × **${findRecipe('illegal', categoryId, recipeId)?.name || 'material'}**.`, color: 0xef4444, fields: [{ name: 'Necesar / rezultat', value: list(direct).slice(0, 1024), inline: false }, { name: 'Greutate totală', value: `${format(weight)} kg`, inline: true }, { name: 'Profit estimat', value: `${profit.toLocaleString('ro-RO')} $`, inline: true }], footer: { text: 'Panel Pro · rezultatul este vizibil doar pentru tine' } }], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Schimbă materialul', custom_id: 'panel:calculator:illegal:categories' }] }] });
+  }
+  const factor = recipeId === 'marijuana_frunze' ? available / 20 : available;
+  const direct = { Frunze: factor * 20, Foițe: factor, 'Joint-uri': factor };
+  const weight = direct.Frunze * 0.04 + direct.Foițe * 0.01;
+  return interactionMessage('', { embeds: [{ title: '🚨 Rezultat calculator · Marijuana', description: `Ai introdus **${format(available)}** × **${findRecipe('illegal', categoryId, recipeId)?.name || 'material'}**.`, color: 0xef4444, fields: [{ name: 'Necesar / rezultat', value: list(direct), inline: false }, { name: 'Greutate totală', value: `${format(weight)} kg`, inline: true }], footer: { text: 'Panel Pro · rezultatul este vizibil doar pentru tine' } }], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Schimbă materialul', custom_id: 'panel:calculator:illegal:categories' }] }] });
 };
 const calculatorAvailableResultMessage = (materialId: string, available: number) => {
   const selected = mushroomAvailableMaterials.find((item) => item.id === materialId);
@@ -2444,6 +2460,7 @@ Deno.serve(async (request) => {
       const categoryId = String(parts[4] || '');
       const recipeId = String(interaction.data?.values?.[0] || '');
       if (!findRecipe(kind, categoryId, recipeId)) return reply(interactionMessage('Articolul selectat nu este valid.'));
+      if (kind === 'illegal' && ['plicuri', 'marijuana'].includes(categoryId)) return reply(calculatorResourceQuantityModal(categoryId, recipeId));
       return reply(calculatorQuantityModal(kind, categoryId, recipeId));
     }
     if (parts[3] === 'quantity_again' && isButton) return reply(calculatorQuantityModal(kind, String(parts[4] || ''), String(parts[5] || '')));
@@ -2453,6 +2470,13 @@ Deno.serve(async (request) => {
       const quantity = Math.floor(Number(modalValues(interaction).quantity || 0));
       if (!findRecipe(kind, categoryId, recipeId) || !Number.isFinite(quantity) || quantity < 1 || quantity > 100000) return reply(interactionMessage('Introdu o cantitate între 1 și 100.000.'));
       return reply(calculatorResultMessage(kind, categoryId, recipeId, quantity));
+    }
+    if (parts[3] === 'resource_quantity' && isModalSubmit && kind === 'illegal') {
+      const categoryId = String(parts[4] || '');
+      const recipeId = String(parts[5] || '');
+      const quantity = Number(modalValues(interaction).quantity || 0);
+      if (!['plicuri', 'marijuana'].includes(categoryId) || !findRecipe(kind, categoryId, recipeId) || !Number.isFinite(quantity) || quantity < 1 || quantity > 1000000) return reply(interactionMessage('Introdu o cantitate între 1 și 1.000.000.'));
+      return reply(calculatorResourceResultMessage(categoryId, recipeId, quantity));
     }
     if (parts[3] === 'quantity_available' && isModalSubmit && kind === 'illegal') {
       const materialId = String(parts[4] || '');
