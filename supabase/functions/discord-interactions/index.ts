@@ -184,6 +184,18 @@ const calculatorRows = (kind: 'legal' | 'illegal', categoryId = '', page = 0) =>
   const visibleRecipes = category.recipes.filter((item) => !item.componentOnly);
   const pageCount = Math.max(1, Math.ceil(visibleRecipes.length / pageSize));
   const safePage = Math.max(0, Math.min(pageCount - 1, page));
+  // Discord acceptă maximum 25 de opțiuni într-un select. Bucătăria are 28
+  // de rețete pe web, așa că le afișăm în două meniuri în aceeași interacțiune
+  // pentru ca rețetele de rechin, balenă și Fursex să nu pară lipsă.
+  if (category.id === 'bucatarie') {
+    const rows = [] as any[];
+    for (let offset = 0; offset < visibleRecipes.length; offset += pageSize) {
+      const options = visibleRecipes.slice(offset, offset + pageSize).map((item) => ({ label: item.name.slice(0, 100), value: item.id, description: `1 craft = ${item.produces || 1} produs(e)`.slice(0, 100) }));
+      rows.push({ type: 1, components: [{ type: 3, custom_id: `panel:calculator:${kind}:item:${calculatorId(category.id)}:${Math.floor(offset / pageSize)}`, placeholder: `${category.label} · rețete ${offset + 1}-${Math.min(offset + pageSize, visibleRecipes.length)}`, min_values: 1, max_values: 1, options }] });
+    }
+    rows.push({ type: 1, components: [{ type: 2, style: 2, label: 'Categorii', custom_id: `panel:calculator:${kind}:categories` }] });
+    return rows;
+  }
   const options = visibleRecipes.slice(safePage * pageSize, (safePage + 1) * pageSize).map((item) => ({ label: item.name.slice(0, 100), value: item.id, description: `1 craft = ${item.produces || 1} produs(e)`.slice(0, 100) }));
   const rows: any[] = [{ type: 1, components: [{ type: 3, custom_id: `panel:calculator:${kind}:item:${calculatorId(category.id)}:${safePage}`, placeholder: `${category.label} · alege articolul`, min_values: 1, max_values: 1, options }] }];
   if (kind === 'illegal' && category.id === 'ciuperci') {
