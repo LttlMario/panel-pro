@@ -331,7 +331,9 @@ async function presenceEventPayload(db: any, module: any, context: any, event: a
   if (error) throw error;
   const rows = Array.isArray(attendees) ? attendees : [];
   const names = rows.length ? rows.map((attendee: any, index: number) => `${index + 1}. **${String(attendee.display_name || attendee.discord_id || 'Membru').slice(0, 120)}**`).join('\n') : '_Nimeni nu s-a înscris încă._';
-  payload.embeds = [{ title: String(definition.title || `🟢 ${event.title}`).slice(0, 256), description: String(event.details || 'Fără detalii.').slice(0, 4096), color: Number(definition.color || 0x22c55e), fields: [{ name: 'Tip', value: String(event.event_type || 'Activitate').slice(0, 1024), inline: true }, { name: 'Creat de', value: `<@${String(event.created_by_discord_id || '')}>`, inline: true }, { name: `✅ Prezenți (${rows.length})`, value: names.slice(0, 1024), inline: false }], timestamp: new Date().toISOString(), footer: { text: String(definition.footer || 'Panel Pro - By Little Mario').slice(0, 2048) } }];
+  const isPresenceEventModule = String(module?.module_key || '') === 'presence_events' || String(definition.handler || '').toLowerCase() === 'prezenta_eveniment';
+  const eventTitle = isPresenceEventModule ? String(event.event_type || event.title || 'Activitate') : String(definition.title || `🟢 ${event.title}`);
+  payload.embeds = [{ title: eventTitle.slice(0, 256), description: String(event.details || 'Fără detalii.').slice(0, 4096), color: Number(definition.color || 0x22c55e), fields: [{ name: 'Tip', value: String(event.event_type || 'Activitate').slice(0, 1024), inline: true }, { name: 'Creat de', value: `<@${String(event.created_by_discord_id || '')}>`, inline: true }, { name: `✅ Prezenți (${rows.length})`, value: names.slice(0, 1024), inline: false }], timestamp: new Date().toISOString(), footer: { text: String(definition.footer || 'Panel Pro - By Little Mario').slice(0, 2048) } }];
   return payload;
 }
 
