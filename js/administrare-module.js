@@ -176,7 +176,6 @@
         { label: '🔒 Închide evenimentul', action: 'close_event' },
       ],
       fields: [
-        { id: 'event_title', label: 'Numele evenimentului', type: 'short_text', required: true, placeholder: 'Ex: Patrulă de seară' },
         { id: 'event_type', label: 'Tipul evenimentului', type: 'short_text', required: true, placeholder: 'Ex: Patrulă' },
         { id: 'details', label: 'Detalii', type: 'long_text', required: false, placeholder: 'Instrucțiuni, ora și locul întâlnirii' },
       ],

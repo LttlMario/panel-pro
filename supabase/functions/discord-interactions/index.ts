@@ -307,7 +307,6 @@ async function customPresencePayload(db: any, module: any, context: any) {
 
 const standardPresenceEventModule = () => ({ module_key: 'presence_events', label: 'Evenimente cu prezență', definition: { handler: 'prezenta_eveniment', title: '🟢 Eveniment cu prezență', color: 0x22c55e, footer: PANEL_FOOTER } });
 const standardPresenceEventModal = () => ({ type: 9, data: { custom_id: 'panel:presence_events:submit', title: 'Creează eveniment', components: [
-  { type: 1, components: [universalTextInput('event_title', 'Numele evenimentului', 1, true, 'Ex: Patrulă de seară', 160)] },
   { type: 1, components: [universalTextInput('event_type', 'Tipul evenimentului', 1, true, 'Ex: Patrulă', 80)] },
   { type: 1, components: [universalTextInput('details', 'Detalii', 2, false, 'Ora, locul și instrucțiunile', 1200)] },
 ] } });
@@ -374,10 +373,10 @@ async function sendPresenceEventLog(db: any, context: any, embed: any, messageKe
 }
 
 async function createPresenceEvent(db: any, context: any, module: any, values: Record<string, string>) {
-  const title = String(values.event_title || '').trim();
-  const eventType = String(values.event_type || 'Activitate').trim();
+  const eventType = String(values.event_type || '').trim();
+  const title = eventType || 'Activitate';
   const details = String(values.details || '').trim();
-  if (title.length < 2) throw new Error('Completează numele evenimentului.');
+  if (eventType.length < 2) throw new Error('Completează tipul evenimentului.');
   const current = await loadPresenceEvent(db, context, module.module_key);
   if (current) await db.from('platform_presence_events').update({ status: 'closed', closed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', current.id).eq('status', 'active');
   const { data: event, error } = await db.from('platform_presence_events').insert({ organization_id: context.organization.id, guild_id: context.guildId, module_key: module.module_key, title: title.slice(0, 160), event_type: eventType.slice(0, 80), details: details.slice(0, 4000) || null, created_by_discord_id: context.discordId, embed_message_id: context.publication.message_id || null }).select('*').single();
