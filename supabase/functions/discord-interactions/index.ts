@@ -2704,7 +2704,10 @@ Deno.serve(async (request) => {
       if (isButton && ['present', 'cancel', 'close'].includes(action)) {
         const deferred = await deferInteraction(interaction, false);
         let result;
-        try { result = await handlePresenceEventAction(db, context, module, action === 'close' ? 'close_event' : 'present', interaction); }
+        try {
+          const resolvedAction = action === 'close' ? 'close_event' : action === 'cancel' ? 'cancel' : 'present';
+          result = await handlePresenceEventAction(db, context, module, resolvedAction, interaction);
+        }
         catch (error) { result = interactionMessage(readableError(error, 'Acțiunea de prezență nu a putut fi executată.')); }
         await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
         return new Response(null, { status: 204 });
