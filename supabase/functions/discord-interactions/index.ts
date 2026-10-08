@@ -321,7 +321,7 @@ async function presenceEventPayload(db: any, module: any, context: any, event: a
   const payload = customModulePayload(module);
   const definition = module?.definition && typeof module.definition === 'object' ? module.definition : {};
   if (String(module?.module_key || '') === 'presence_events') payload.components = event?.status === 'active'
-    ? [{ type: 1, components: [{ type: 2, style: 3, label: '✅ Sunt prezent', custom_id: 'panel:presence_events:present' }, { type: 2, style: 4, label: '🔒 Închide evenimentul', custom_id: 'panel:presence_events:close' }] }]
+    ? [{ type: 1, components: [{ type: 2, style: 3, label: '✅ Sunt prezent', custom_id: 'panel:presence_events:present' }, { type: 2, style: 2, label: '↩️ Anulează prezența', custom_id: 'panel:presence_events:cancel' }, { type: 2, style: 4, label: '🔒 Închide evenimentul', custom_id: 'panel:presence_events:close' }] }]
     : event ? [] : [{ type: 1, components: [{ type: 2, style: 1, label: '➕ Creează eveniment', custom_id: 'panel:presence_events:create' }] }];
   if (!event) {
     payload.embeds = [{ title: String(definition.title || '🟢 Prezență la eveniment').slice(0, 256), description: 'Nu există momentan un eveniment activ. Apasă **Creează eveniment** pentru a publica unul.', color: Number(definition.color || 0x22c55e), footer: { text: String(definition.footer || 'Panel Pro - By Little Mario').slice(0, 2048) } }];
@@ -403,6 +403,12 @@ async function handlePresenceEventAction(db: any, context: any, module: any, act
     if (error) throw error;
     await updatePresenceEventEmbed(db, module, context, closed);
     return interactionMessage(`Evenimentul „${closed.title}” a fost închis. Participanții au rămas în istoric.`);
+  }
+  if (action === 'cancel') {
+    const { error: cancelError } = await db.from('platform_presence_attendees').delete().eq('event_id', event.id).eq('discord_id', context.discordId);
+    if (cancelError) throw cancelError;
+    await updatePresenceEventEmbed(db, module, context, event);
+    return interactionMessage('Prezența ta a fost anulată, iar lista din embed a fost actualizată.');
   }
   if (action !== 'present') return interactionMessage('Acțiunea de prezență nu este disponibilă.');
   const { data: existingAttendance, error: existingError } = await db.from('platform_presence_attendees').select('event_id').eq('event_id', event.id).eq('discord_id', context.discordId).maybeSingle();
@@ -2683,7 +2689,7 @@ Deno.serve(async (request) => {
       try {
         context = await resolveUniversalModuleContext(db, interaction, 'presence_events', 'event_reminders');
       } catch (primaryError) {
-        if (!['present', 'close'].includes(action)) throw primaryError;
+        if (!['present', 'cancel', 'close'].includes(action)) throw primaryError;
         context = await resolveUniversalModuleContext(db, interaction, 'log_presence_events', 'event_reminders');
       }
       const routes = context.settings?.discord_channel_routes || {};
@@ -2693,7 +2699,7 @@ Deno.serve(async (request) => {
       const controlTarget = controlRoute?.[context.target] || Object.values(controlRoute).find((route: any) => String(route?.channel_id || '').trim());
       context.publication = { embed_channel_id: String((controlTarget as any)?.channel_id || context.channelId), result_channel_id: String((logTarget as any)?.channel_id || ''), message_id: String(interaction.message?.id || '') };
       if (isButton && action === 'create') return reply(standardPresenceEventModal());
-      if (isButton && ['present', 'close'].includes(action)) {
+      if (isButton && ['present', 'cancel', 'close'].includes(action)) {
         const deferred = await deferInteraction(interaction, false);
         let result;
         try { result = await handlePresenceEventAction(db, context, module, action === 'close' ? 'close_event' : 'present', interaction); }

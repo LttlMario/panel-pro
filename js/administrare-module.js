@@ -173,6 +173,7 @@
       buttons: [
         { label: '➕ Creează eveniment', action: 'create_event' },
         { label: '✅ Sunt prezent', action: 'present' },
+        { label: '↩️ Anulează prezența', action: 'cancel' },
         { label: '🔒 Închide evenimentul', action: 'close_event' },
       ],
       fields: [
@@ -181,7 +182,7 @@
       ],
     },
   };
-  const actionLabels = { start_shift: 'Pornește pontajul', pause_shift: 'Pauză / reia pontajul', stop_shift: 'Oprește pontajul', my_stats: 'Vezi pontajul meu', presence: 'Actualizează prezența', presence_report: 'Raport prezență', create_event: 'Creează eveniment', present: 'Confirmă prezența', close_event: 'Închide evenimentul' };
+  const actionLabels = { start_shift: 'Pornește pontajul', pause_shift: 'Pauză / reia pontajul', stop_shift: 'Oprește pontajul', my_stats: 'Vezi pontajul meu', presence: 'Actualizează prezența', presence_report: 'Raport prezență', create_event: 'Creează eveniment', present: 'Confirmă prezența', cancel: 'Anulează prezența', close_event: 'Închide evenimentul' };
   const addOption = (select, value, label) => { if (!select || [...select.options].some((option) => option.value === value)) select.add(new Option(label, value)); };
   const handler = $('module-handler');
   addOption(handler, 'pontaj', 'Pontaj și ture');
