@@ -27,6 +27,8 @@
   insertSyntheticAfter('illegal_marketplace', 'log_illegal_marketplace');
   insertSyntheticAfter('event_reminders', 'log_event_reminders');
   insertSyntheticAfter('event_reminders', 'wheel_timer');
+  insertSyntheticAfter('event_reminders', 'presence_events');
+  insertSyntheticAfter('presence_events', 'log_presence_events');
   insertSyntheticAfter('contract_identity_weekly', 'log_contract_identity_weekly');
   insertSyntheticAfter('actions_organization', 'log_actions_organization');
   insertSyntheticAfter('log_announcements_organization', 'log_actions_organization');
@@ -36,7 +38,7 @@
   insertSyntheticAfter('stash_requests', 'stash_donations');
   insertSyntheticAfter('stash_donations', 'log_stash_donations');
   insertSyntheticAfter('comenzi', 'log_comenzi');
-  const preferredRouteOrder = ['organization', 'log_announcements_organization', 'departments', 'log_announcements_departments', 'pontaj', 'log_pontaj', 'requests_organization', 'log_requests_organization', 'requests_departments', 'log_requests_departments', 'contracts', 'log_contracts', 'calculator', 'illegal_calculator', 'marketplace', 'log_marketplace', 'illegal_marketplace', 'log_illegal_marketplace', 'illegal_locations', 'event_reminders', 'wheel_timer', 'log_event_reminders', 'contract_identity_weekly', 'log_contract_identity_weekly', 'actions_organization', 'log_actions_organization', 'status_live', 'stash', 'log_stash', 'stash_requests', 'log_stash_requests', 'stash_donations', 'log_stash_donations', 'comenzi', 'log_comenzi'];
+  const preferredRouteOrder = ['organization', 'log_announcements_organization', 'departments', 'log_announcements_departments', 'pontaj', 'log_pontaj', 'requests_organization', 'log_requests_organization', 'requests_departments', 'log_requests_departments', 'contracts', 'log_contracts', 'calculator', 'illegal_calculator', 'marketplace', 'log_marketplace', 'illegal_marketplace', 'log_illegal_marketplace', 'illegal_locations', 'event_reminders', 'presence_events', 'log_presence_events', 'wheel_timer', 'log_event_reminders', 'contract_identity_weekly', 'log_contract_identity_weekly', 'actions_organization', 'log_actions_organization', 'status_live', 'stash', 'log_stash', 'stash_requests', 'log_stash_requests', 'stash_donations', 'log_stash_donations', 'comenzi', 'log_comenzi'];
   const preferredRoutes = preferredRouteOrder.filter((key) => routeKeys.includes(key));
   const remainingRoutes = routeKeys.filter((key) => !preferredRoutes.includes(key));
   routeKeys.splice(0, routeKeys.length, ...preferredRoutes, ...remainingRoutes);
@@ -54,6 +56,8 @@
       log_marketplace: 'Log Marketplace legal',
       log_illegal_marketplace: 'Log Marketplace ilegal',
       log_event_reminders: 'Log evenimente și remindere',
+      presence_events: 'Evenimente cu prezență · Embed cu butoane',
+      log_presence_events: 'Log evenimente cu prezență',
       log_contract_identity_weekly: 'Log raport săptămânal contracte',
       calculator: 'Calculator legal · Embed cu butoane',
       illegal_calculator: 'Calculator ilegal · Embed cu butoane',
@@ -427,6 +431,7 @@
       illegal_marketplace: { title: '🚨 Marketplace · Ilegal', description: 'Publică și consultă anunțuri Black Market, cu acces controlat.', color: 0xef4444, buttons: [{ label: 'Publică anunț', style: 4, id: 'panel:marketplace:illegal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:illegal:mine' }] },
       illegal_locations: { title: '🗺️ Locații ilegale · Panel Pro', description: 'Alege harta. Embedul se actualizează direct în Discord și păstrează butoanele pentru cele 3 zone.', color: 0xef4444, buttons: [{ label: 'Los Santos', style: 4, id: 'panel:illegal_locations:map:ls' }, { label: 'Cayo Perico', style: 4, id: 'panel:illegal_locations:map:cayo' }, { label: 'Maldive', style: 4, id: 'panel:illegal_locations:map:maldive' }] },
       event_reminders: { title: '🗓️ Evenimente și remindere', description: 'Înregistrează evenimente și trimite remindere automate pe durata aleasă.', color: 0xf59e0b, buttons: [{ label: 'Adaugă eveniment', style: 1, id: 'panel:discovery:reminder_create' }, { label: 'Info remindere', style: 2, id: 'panel:discovery:reminder_info' }] },
+      presence_events: { title: '🟢 Evenimente cu prezență', description: 'Creează un eveniment, colectează participanții live și păstrează istoricul în Supabase.', color: 0x22c55e, buttons: [{ label: 'Creează eveniment', style: 1, id: 'panel:presence_events:create' }, { label: 'Sunt prezent', style: 3, id: 'panel:presence_events:present' }, { label: 'Închide evenimentul', style: 4, id: 'panel:presence_events:close' }] },
       wheel_timer: { title: '🎡 Roată · timer personal', description: 'Pornește timerul personal de 6 ore și verifică timpul rămas. Răspunsurile sunt private pentru fiecare utilizator.', color: 0x06b6d4, buttons: [{ label: 'Am dat la roată', style: 1, id: 'panel:wheel:start' }, { label: 'Verifică timpul', style: 2, id: 'panel:wheel:status' }] },
       contract_identity_weekly: { title: '📋 Raport săptămânal contracte', description: 'Generează exportul săptămânal cu numele și CNP-ul angajaților.', color: 0x14b8a6, buttons: [{ label: 'Generează raport', style: 1, id: 'panel:discovery:weekly_report' }, { label: 'Info raport', style: 2, id: 'panel:discovery:report_info' }] },
       actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
@@ -449,7 +454,7 @@
     { key: 'stash', label: 'Stash', messageKey: 'stash-control', payload: buildStashPanelPayload },
     { key: 'stash_requests', label: 'Cereri Stash', messageKey: 'stash-requests-control', payload: () => ({ allowed_mentions: { parse: [] }, embeds: [{ title: '📨 Cereri Stash', description: 'Solicită articole și urmărește cererile trimise pentru aprobare.', color: 0x3b82f6, footer: { text: 'Panel Pro · Cereri Stash' } }], components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Solicită articol', custom_id: 'panel:stash:request' }, { type: 2, style: 2, label: 'Cereri în așteptare', custom_id: 'panel:stash:pending_requests' }] }] }) },
     { key: 'stash_donations', label: 'Donații Stash', messageKey: 'stash-donations-control', payload: () => ({ allowed_mentions: { parse: [] }, embeds: [{ title: '🎁 Donații Stash', description: 'Înregistrează donații și trimite-le spre aprobare administrativă.', color: 0x22c55e, footer: { text: 'Panel Pro · Donații Stash' } }], components: [{ type: 1, components: [{ type: 2, style: 3, label: 'Donează articol', custom_id: 'panel:stash:donate' }, { type: 2, style: 2, label: 'Donații în așteptare', custom_id: 'panel:stash:pending_donations' }] }] }) },
-    ...['calculator', 'illegal_calculator', 'marketplace', 'illegal_marketplace', 'illegal_locations', 'event_reminders', 'wheel_timer', 'contract_identity_weekly', 'actions_organization', 'status_live', 'comenzi'].map((key) => ({ key, label: labels[key] || key, messageKey: `${key}-control`, payload: () => buildAdditionalPanelPayload(key) })).filter((definition) => definition.payload()),
+    ...['calculator', 'illegal_calculator', 'marketplace', 'illegal_marketplace', 'illegal_locations', 'event_reminders', 'presence_events', 'wheel_timer', 'contract_identity_weekly', 'actions_organization', 'status_live', 'comenzi'].map((key) => ({ key, label: labels[key] || key, messageKey: `${key}-control`, payload: () => buildAdditionalPanelPayload(key) })).filter((definition) => definition.payload()),
   ].filter((definition) => routeKeys.includes(definition.key));
   const selectedBulkDefinitions = () => bulkPublishDefinitions().filter((definition) => selectedRouteTargets(definition.key).length);
   const syncBulkPublishState = () => {

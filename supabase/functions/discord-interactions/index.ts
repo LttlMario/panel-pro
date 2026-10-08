@@ -53,13 +53,13 @@ const PANEL_ROUTE_LABELS: Record<string, string> = {
   requests_organization: 'Învoiri organizație', requests_departments: 'Învoiri angajați', log_requests_organization: 'Log învoiri organizație', log_requests_departments: 'Log învoiri angajați',
   contracts: 'Contracte', log_contracts: 'Log contracte', log_discipline_organization: 'Log avertismente și amenzi organizație', log_discipline_departments: 'Log avertismente și amenzi angajați', log_actions_organization: 'Log acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
   stash: 'Stash', log_stash: 'Log Stash', stash_requests: 'Cereri Stash', log_stash_requests: 'Log cereri Stash', stash_donations: 'Donații Stash', log_stash_donations: 'Log donații Stash',
-  marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
+  marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', presence_events: 'Evenimente cu prezență', log_presence_events: 'Log evenimente cu prezență', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
   calculator: 'Calculator legal', illegal_calculator: 'Calculator ilegal', illegal_locations: 'Locații ilegale', wheel_timer: 'Roată · timer personal',
 };
 const panelRouteKeys = Object.keys(PANEL_ROUTE_LABELS);
 const PANEL_LOG_ROUTES: Record<string, string> = {
   organization: 'log_announcements_organization', departments: 'log_announcements_departments', pontaj: 'log_pontaj',
-  requests_organization: 'log_requests_organization', requests_departments: 'log_requests_departments', contracts: 'log_contracts',
+  requests_organization: 'log_requests_organization', requests_departments: 'log_requests_departments', contracts: 'log_contracts', presence_events: 'log_presence_events',
   actions_organization: 'log_actions_organization', fines_organization: 'log_announcements_organization', fines_departments: 'log_announcements_departments', warnings_organization: 'log_announcements_organization', warnings_departments: 'log_announcements_departments', sanctions_organization: 'log_announcements_organization', sanctions_departments: 'log_announcements_departments', marketplace: 'log_marketplace', illegal_marketplace: 'log_illegal_marketplace', event_reminders: 'log_event_reminders', contract_identity_weekly: 'log_contract_identity_weekly', stash: 'log_stash', stash_requests: 'log_stash', stash_donations: 'log_stash',
 };
 const DISCIPLINE_LOG_ROUTES: Record<string, string> = {
@@ -287,6 +287,110 @@ function customModulePayload(module: any) {
   return { allowed_mentions: { parse: [] }, embeds: [{ title: String(definition.title || module?.label || 'Modul Panel Pro').slice(0, 256), description: String(definition.description || module?.description || 'Folosește butoanele de mai jos.').slice(0, 4096), color: Number(definition.color || 0x5865f2), fields: Array.isArray(definition.fields) ? definition.fields.slice(0, 25) : [], footer: { text: String(definition.footer || 'Panel Pro · modul custom').slice(0, 2048) } }], components };
 }
 
+async function customPresencePayload(db: any, module: any, context: any) {
+  const { data: shifts, error } = await db.from('shifts').select('discord_id,colleague_name,status,started_at,duration_ms,paused_seconds,paused_at,shift_type').eq('organization_id', context.organization.id).in('status', ['active', 'paused']).is('end_time', null).order('started_at', { ascending: true });
+  if (error) throw error;
+  const rows = Array.isArray(shifts) ? shifts : [];
+  const ids = [...new Set(rows.map((shift: any) => String(shift.discord_id || '')).filter(Boolean))];
+  const { data: users } = ids.length ? await db.from('users').select('discord_id,display_name,username').in('discord_id', ids) : { data: [] };
+  const names = new Map((users || []).map((user: any) => [String(user.discord_id), user.display_name || user.username || user.discord_id]));
+  const now = new Date();
+  const line = (shift: any, icon: string) => `${icon} **${String(shift.colleague_name || names.get(String(shift.discord_id)) || 'Utilizator').slice(0, 120)}** — ${formatDuration(workedSeconds(shift, now))}`;
+  const active = rows.filter((shift: any) => String(shift.status) !== 'paused');
+  const paused = rows.filter((shift: any) => String(shift.status) === 'paused');
+  const section = (title: string, items: any[], icon: string) => `${title} (${items.length})\n${items.length ? items.map((shift) => line(shift, icon)).join('\n') : '_Nimeni_'}`;
+  const definition = module?.definition && typeof module.definition === 'object' ? module.definition : {};
+  const payload = customModulePayload(module);
+  payload.embeds = [{ title: String(definition.title || `📡 Prezență live · ${context.organization.name || 'Organizație'}`).slice(0, 256), description: `${section('🟢 Prezenți', active, '🟢')}\n\n${section('☕ În pauză', paused, '☕')}\n\n📊 **Total:** ${rows.length}\n⏱️ **Actualizat:** <t:${Math.floor(now.getTime() / 1000)}:R>`, color: Number(definition.color || 0x22c55e), timestamp: now.toISOString(), footer: { text: String(definition.footer || 'Panel Pro - By Little Mario').slice(0, 2048) } }];
+  return payload;
+}
+
+const standardPresenceEventModule = () => ({ module_key: 'presence_events', label: 'Evenimente cu prezență', definition: { handler: 'prezenta_eveniment', title: '🟢 Eveniment cu prezență', color: 0x22c55e, footer: PANEL_FOOTER } });
+const standardPresenceEventModal = () => ({ type: 9, data: { custom_id: 'panel:presence_events:submit', title: 'Creează eveniment', components: [
+  { type: 1, components: [universalTextInput('event_title', 'Numele evenimentului', 1, true, 'Ex: Patrulă de seară', 160)] },
+  { type: 1, components: [universalTextInput('event_type', 'Tipul evenimentului', 1, true, 'Ex: Patrulă', 80)] },
+  { type: 1, components: [universalTextInput('details', 'Detalii', 2, false, 'Ora, locul și instrucțiunile', 1200)] },
+] } });
+
+async function loadPresenceEvent(db: any, context: any, moduleKey: string, status = 'active') {
+  const { data, error } = await db.from('platform_presence_events').select('*').eq('organization_id', context.organization.id).eq('guild_id', context.guildId).eq('module_key', moduleKey).eq('status', status).order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
+async function presenceEventPayload(db: any, module: any, context: any, event: any = null) {
+  const payload = customModulePayload(module);
+  const definition = module?.definition && typeof module.definition === 'object' ? module.definition : {};
+  if (String(module?.module_key || '') === 'presence_events') payload.components = [{ type: 1, components: [
+    { type: 2, style: 1, label: '➕ Creează eveniment', custom_id: 'panel:presence_events:create' },
+    { type: 2, style: 3, label: '✅ Sunt prezent', custom_id: 'panel:presence_events:present' },
+    { type: 2, style: 4, label: '🔒 Închide evenimentul', custom_id: 'panel:presence_events:close' },
+  ] }];
+  if (!event) {
+    payload.embeds = [{ title: String(definition.title || '🟢 Prezență la eveniment').slice(0, 256), description: 'Nu există momentan un eveniment activ. Apasă **Creează eveniment** pentru a publica unul.', color: Number(definition.color || 0x22c55e), footer: { text: String(definition.footer || 'Panel Pro - By Little Mario').slice(0, 2048) } }];
+    return payload;
+  }
+  const { data: attendees, error } = await db.from('platform_presence_attendees').select('discord_id,display_name,joined_at').eq('event_id', event.id).order('joined_at', { ascending: true });
+  if (error) throw error;
+  const rows = Array.isArray(attendees) ? attendees : [];
+  const names = rows.length ? rows.map((attendee: any, index: number) => `${index + 1}. **${String(attendee.display_name || attendee.discord_id || 'Membru').slice(0, 120)}**`).join('\n') : '_Nimeni nu s-a înscris încă._';
+  payload.embeds = [{ title: String(definition.title || `🟢 ${event.title}`).slice(0, 256), description: String(event.details || 'Fără detalii.').slice(0, 4096), color: Number(definition.color || 0x22c55e), fields: [{ name: 'Tip', value: String(event.event_type || 'Activitate').slice(0, 1024), inline: true }, { name: 'Creat de', value: `<@${String(event.created_by_discord_id || '')}>`, inline: true }, { name: `✅ Prezenți (${rows.length})`, value: names.slice(0, 1024), inline: false }], timestamp: new Date().toISOString(), footer: { text: String(definition.footer || 'Panel Pro - By Little Mario').slice(0, 2048) } }];
+  return payload;
+}
+
+async function updatePresenceEventEmbed(db: any, module: any, context: any, event: any = null) {
+  if (!context.publication.message_id) throw new Error('Embedul de prezență nu are încă un mesaj publicat.');
+  const payload = await presenceEventPayload(db, module, context, event);
+  const response = await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: context.publication.embed_channel_id }, JSON.stringify(payload), { method: 'PATCH', messageId: String(context.publication.message_id) });
+  if (!response.ok) throw new Error(`Embedul de prezență nu a putut fi actualizat (HTTP ${response.status}).`);
+  return payload;
+}
+
+async function sendPresenceEventLog(db: any, context: any, embed: any, messageKey: string) {
+  const channelId = String(context.publication.result_channel_id || '').trim();
+  if (!channelId) return null;
+  const payload = { allowed_mentions: { parse: [] }, embeds: [{ ...embed, footer: { text: 'Panel Pro - Log prezență' }, timestamp: new Date().toISOString() }] };
+  const response = await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'POST' });
+  if (!response.ok) throw new Error(`Logul evenimentului nu a putut fi trimis (HTTP ${response.status}).`);
+  return response.json().catch(() => ({}));
+}
+
+async function createPresenceEvent(db: any, context: any, module: any, values: Record<string, string>) {
+  const title = String(values.event_title || '').trim();
+  const eventType = String(values.event_type || 'Activitate').trim();
+  const details = String(values.details || '').trim();
+  if (title.length < 2) throw new Error('Completează numele evenimentului.');
+  const current = await loadPresenceEvent(db, context, module.module_key);
+  if (current) await db.from('platform_presence_events').update({ status: 'closed', closed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', current.id).eq('status', 'active');
+  const { data: event, error } = await db.from('platform_presence_events').insert({ organization_id: context.organization.id, guild_id: context.guildId, module_key: module.module_key, title: title.slice(0, 160), event_type: eventType.slice(0, 80), details: details.slice(0, 4000) || null, created_by_discord_id: context.discordId, embed_message_id: context.publication.message_id || null }).select('*').single();
+  if (error) throw error;
+  await updatePresenceEventEmbed(db, module, context, event);
+  await sendPresenceEventLog(db, context, { title: `🟢 Eveniment de prezență creat · ${event.title}`, description: details || 'Fără detalii.', color: 0x22c55e, fields: [{ name: 'Tip', value: event.event_type, inline: true }, { name: 'Creat de', value: `<@${context.discordId}>`, inline: true }] }, `presence-event-${event.id}-created`);
+  return interactionMessage('Evenimentul a fost creat, embedul a fost actualizat și evenimentul a fost salvat în istoric.');
+}
+
+async function handlePresenceEventAction(db: any, context: any, module: any, action: string, interaction: any) {
+  const event = await loadPresenceEvent(db, context, module.module_key);
+  if (action === 'create_event') return null;
+  if (!event) return interactionMessage('Nu există niciun eveniment activ. Creează mai întâi un eveniment.');
+  if (action === 'close_event') {
+    if (!isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, context.discordId))) throw new Error('Doar un administrator poate închide evenimentul.');
+    const { data: closed, error } = await db.from('platform_presence_events').update({ status: 'closed', closed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', event.id).eq('status', 'active').select('*').single();
+    if (error) throw error;
+    await updatePresenceEventEmbed(db, module, context, null);
+    await sendPresenceEventLog(db, context, { title: `🔴 Eveniment închis · ${event.title}`, description: `Evenimentul a fost închis de **${context.displayName}**.`, color: 0xef4444, fields: [{ name: 'Participanți', value: 'Lista rămâne salvată în Supabase.', inline: false }] }, `presence-event-${event.id}-closed`);
+    return interactionMessage(`Evenimentul „${closed.title}” a fost închis. Participanții au rămas în istoric.`);
+  }
+  if (action !== 'present') return interactionMessage('Acțiunea de prezență nu este disponibilă.');
+  const { data: existingAttendance, error: existingError } = await db.from('platform_presence_attendees').select('event_id').eq('event_id', event.id).eq('discord_id', context.discordId).maybeSingle();
+  if (existingError) throw existingError;
+  const { error: attendanceError } = await db.from('platform_presence_attendees').upsert({ event_id: event.id, organization_id: context.organization.id, discord_id: context.discordId, display_name: context.displayName, joined_at: new Date().toISOString() }, { onConflict: 'event_id,discord_id' });
+  if (attendanceError) throw attendanceError;
+  await updatePresenceEventEmbed(db, module, context, event);
+  if (!existingAttendance) await sendPresenceEventLog(db, context, { title: `✅ Prezență înregistrată · ${event.title}`, description: `**${context.displayName}** a confirmat prezența.`, color: 0x3b82f6 }, `presence-event-${event.id}-attendee-${context.discordId}`);
+  return interactionMessage(existingAttendance ? 'Prezența ta era deja înregistrată. Embedul a fost actualizat.' : 'Prezența ta a fost salvată și embedul a fost actualizat.');
+}
+
 function customModuleModal(module: any, actionId: string) {
   const definition = module?.definition && typeof module.definition === 'object' ? module.definition : {};
   const fields = Array.isArray(definition.form_schema) ? definition.form_schema.slice(0, 5) : [];
@@ -305,6 +409,8 @@ async function resolveCustomModulePublication(db: any, interaction: any, moduleK
   const { data: organization, error: organizationError } = await db.from('organizations').select('id,name,active').eq('id', guild.organization_id).maybeSingle();
   if (organizationError) throw organizationError;
   await requireActiveOrganizationAccess(db, organization);
+  const { data: settings, error: settingsError } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', guild.organization_id).maybeSingle();
+  if (settingsError) throw settingsError;
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
   const { data: publications, error: publicationError } = await db.from('platform_module_publications').select('*').eq('module_key', moduleKey).eq('organization_id', guild.organization_id).eq('status', 'published');
   if (publicationError) throw publicationError;
@@ -316,7 +422,7 @@ async function resolveCustomModulePublication(db: any, interaction: any, moduleK
   if (memberError) throw memberError;
   if (!member && !isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, discordId))) throw new Error('Nu ai acces la acest modul în organizație.');
   const displayName = String(interaction.member?.nick || interaction.member?.user?.global_name || interaction.member?.user?.username || discordId).slice(0, 120);
-  return { guildId, target, discordId, displayName, organization, publication };
+  return { guildId, channelId, target, discordId, displayName, organization, settings, publication };
 }
 
 function customModuleEmbed(module: any, context: any, values: Record<string, string>, status = 'submitted') {
@@ -2426,6 +2532,7 @@ Deno.serve(async (request) => {
   const isCalculator = customId.startsWith('panel:calculator:');
   const isIllegalLocations = customId.startsWith('panel:illegal_locations:');
   const isWheel = customId.startsWith('panel:wheel:');
+  const isPresenceEvents = customId.startsWith('panel:presence_events:');
   const isCustomModule = customId.startsWith('panel:custom:');
   if (isCommand) {
     const commandKey = customModuleKey(interaction?.data?.name);
@@ -2442,7 +2549,7 @@ Deno.serve(async (request) => {
     return reply(interactionMessage('Comanda Panel Pro nu este disponibilă.'));
   }
   if (!isComponent && !isModalSubmit) return reply(interactionMessage('Acest tip de interacțiune nu este disponibil.'));
-  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isIllegalLocations && !isWheel && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isIllegalLocations && !isWheel && !isPresenceEvents && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
 
   if (isCalculator) {
     const parts = customId.split(':');
@@ -2542,6 +2649,39 @@ Deno.serve(async (request) => {
     return new Response(null, { status: 204 });
   }
 
+  if (isPresenceEvents) {
+    const secret = serviceKey();
+    if (!secret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, secret);
+    const module = standardPresenceEventModule();
+    try {
+      const context: any = await resolveUniversalModuleContext(db, interaction, 'presence_events', 'event_reminders');
+      const logRoute = context.settings?.discord_channel_routes?.log_presence_events || {};
+      const logTarget = logRoute?.[context.target] || Object.values(logRoute).find((route: any) => String(route?.channel_id || '').trim());
+      context.publication = { embed_channel_id: context.channelId, result_channel_id: String((logTarget as any)?.channel_id || ''), message_id: String(interaction.message?.id || '') };
+      const action = String(customId.split(':')[2] || '');
+      if (isButton && action === 'create') return reply(standardPresenceEventModal());
+      if (isButton && ['present', 'close'].includes(action)) {
+        const deferred = await deferInteraction(interaction, false);
+        let result;
+        try { result = await handlePresenceEventAction(db, context, module, action === 'close' ? 'close_event' : 'present', interaction); }
+        catch (error) { result = interactionMessage(readableError(error, 'Acțiunea de prezență nu a putut fi executată.')); }
+        await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+        return new Response(null, { status: 204 });
+      }
+      if (isModalSubmit && action === 'submit') {
+        const deferred = await deferInteraction(interaction, false);
+        let result;
+        try { result = await createPresenceEvent(db, context, module, modalValues(interaction)); }
+        catch (error) { result = interactionMessage(readableError(error, 'Evenimentul nu a putut fi creat.')); }
+        await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+        return new Response(null, { status: 204 });
+      }
+    } catch (error) {
+      return reply(interactionMessage(readableError(error, 'Evenimentele cu prezență nu sunt disponibile pe acest canal.')));
+    }
+  }
+
   if (isCustomModule) {
     const key = customModuleKey(customId.split(':')[2]);
     if (!key) return reply(interactionMessage('Modulul Panel Pro nu este valid.'));
@@ -2579,6 +2719,41 @@ Deno.serve(async (request) => {
       const context = await resolveCustomModulePublication(customDb, interaction, key);
       try { assertCustomModulePermission(interaction, module, 'use', context.publication); } catch (error) { return reply(interactionMessage(readableError(error, 'Nu ai acces la această acțiune.'))); }
       const definition = module.definition && typeof module.definition === 'object' ? module.definition : {};
+      const handler = String(definition.handler || '').toLowerCase();
+      if (handler === 'prezenta_eveniment' && ['present', 'close_event'].includes(action)) {
+        const deferred = await deferInteraction(interaction, false);
+        let result;
+        try { result = await handlePresenceEventAction(customDb, context, module, action, interaction); }
+        catch (error) { console.error('[discord-interactions] presence event action failed', error); result = interactionMessage(readableError(error, 'Acțiunea de prezență nu a putut fi executată.')); }
+        await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+        return new Response(null, { status: 204 });
+      }
+      const pontajActions: Record<string, string> = { start_shift: 'start', pause_shift: 'pause', stop_shift: 'stop', my_stats: 'my_stats' };
+      if (handler === 'pontaj' && pontajActions[action]) {
+        const deferred = await deferInteraction(interaction, pontajActions[action] === 'my_stats');
+        let result;
+        try { result = await handleButton(customDb, interaction, context, pontajActions[action]); }
+        catch (error) { console.error('[discord-interactions] custom pontaj failed', error); result = interactionMessage(readableError(error, 'Acțiunea Pontaj nu a putut fi executată.')); }
+        const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+        if (followupId && pontajActions[action] !== 'my_stats') { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+        return new Response(null, { status: 204 });
+      }
+      if (handler === 'prezenta' && ['presence', 'presence_report'].includes(action)) {
+        const deferred = await deferInteraction(interaction, false);
+        let result;
+        try {
+          if (!context.publication.message_id) throw new Error('Embedul de prezență nu are încă un mesaj publicat.');
+          const payload = await customPresencePayload(customDb, module, context);
+          const response = await requestDiscordTarget(customDb, { target: context.target, transport: 'bot', channel_id: context.publication.embed_channel_id }, JSON.stringify(payload), { method: 'PATCH', messageId: String(context.publication.message_id) });
+          if (!response.ok) throw new Error(`Embedul de prezență nu a putut fi actualizat (HTTP ${response.status}).`);
+          result = interactionMessage('Prezența a fost actualizată în embed.');
+        } catch (error) { console.error('[discord-interactions] custom presence failed', error); result = interactionMessage(readableError(error, 'Prezența nu a putut fi actualizată.')); }
+        await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+        return new Response(null, { status: 204 });
+      }
+      if (handler === 'prezenta_eveniment' && action === 'create_event') {
+        return reply(customModuleModal(module, String(parts[3] || '0')) || interactionMessage('Formularul evenimentului nu este disponibil.'));
+      }
       if (action === 'open_form') {
         const modal = customModuleModal(module, String(parts[3] || '0'));
         if (modal) return reply(modal);
@@ -2627,7 +2802,14 @@ Deno.serve(async (request) => {
     if (isModalSubmit && parts[3] === 'submit') {
       const deferred = await deferInteraction(interaction, false);
       let result;
-      try { const context = await resolveCustomModulePublication(customDb, interaction, key); assertCustomModulePermission(interaction, module, 'use', context.publication); result = await handleCustomModuleSubmit(customDb, context, module, modalValues(interaction)); }
+      try {
+        const context = await resolveCustomModulePublication(customDb, interaction, key);
+        assertCustomModulePermission(interaction, module, 'use', context.publication);
+        const definition = module.definition && typeof module.definition === 'object' ? module.definition : {};
+        result = String(definition.handler || '').toLowerCase() === 'prezenta_eveniment'
+          ? await createPresenceEvent(customDb, context, module, modalValues(interaction))
+          : await handleCustomModuleSubmit(customDb, context, module, modalValues(interaction));
+      }
       catch (error) { const definition = module.definition && typeof module.definition === 'object' ? module.definition : {}; const responses = definition.responses && typeof definition.responses === 'object' ? definition.responses : {}; result = interactionMessage(String(responses.error || readableError(error, 'Formularul modulului nu a putut fi procesat.'))); }
       await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
       return new Response(null, { status: 204 });

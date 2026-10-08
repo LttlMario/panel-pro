@@ -145,3 +145,109 @@
   ensureModuleTools();
   load();
 })();
+
+// Preseturi funcționale pentru creatorul de embeduri. Sunt adăugate separat
+// pentru a păstra compatibilitatea cu modulele deja salvate.
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const presets = {
+    pontaj: {
+      label: 'Pontaj și ture',
+      description: 'Pornește, pune pe pauză și încheie pontajul. Tura se stabilește automat după programul configurat în panel.',
+      buttons: [
+        { label: '▶️ Start pontaj', action: 'start_shift' },
+        { label: '⏸️ Pauză / reia', action: 'pause_shift' },
+        { label: '⏹️ Stop pontaj', action: 'stop_shift' },
+        { label: '📊 Pontajul meu', action: 'my_stats' },
+      ],
+    },
+    prezenta: {
+      label: 'Prezență live',
+      description: 'Afișează membrii aflați în pontaj și membrii aflați în pauză. Embedul se actualizează la apăsarea butonului.',
+      buttons: [{ label: '🔄 Actualizează prezența', action: 'presence' }],
+    },
+    prezenta_eveniment: {
+      label: 'Eveniment cu prezență',
+      description: 'Creează un eveniment, colectează confirmările de prezență și păstrează istoricul participanților în Supabase.',
+      buttons: [
+        { label: '➕ Creează eveniment', action: 'create_event' },
+        { label: '✅ Sunt prezent', action: 'present' },
+        { label: '🔒 Închide evenimentul', action: 'close_event' },
+      ],
+      fields: [
+        { id: 'event_title', label: 'Numele evenimentului', type: 'short_text', required: true, placeholder: 'Ex: Patrulă de seară' },
+        { id: 'event_type', label: 'Tipul evenimentului', type: 'short_text', required: true, placeholder: 'Ex: Patrulă' },
+        { id: 'details', label: 'Detalii', type: 'long_text', required: false, placeholder: 'Instrucțiuni, ora și locul întâlnirii' },
+      ],
+    },
+  };
+  const actionLabels = { start_shift: 'Pornește pontajul', pause_shift: 'Pauză / reia pontajul', stop_shift: 'Oprește pontajul', my_stats: 'Vezi pontajul meu', presence: 'Actualizează prezența', presence_report: 'Raport prezență', create_event: 'Creează eveniment', present: 'Confirmă prezența', close_event: 'Închide evenimentul' };
+  const addOption = (select, value, label) => { if (!select || [...select.options].some((option) => option.value === value)) select.add(new Option(label, value)); };
+  const handler = $('module-handler');
+  addOption(handler, 'pontaj', 'Pontaj și ture');
+  addOption(handler, 'prezenta', 'Prezență live');
+  addOption(handler, 'prezenta_eveniment', 'Eveniment cu prezență');
+  const quick = $('module-quick-template');
+  addOption(quick, 'pontaj', 'Pontaj și ture');
+  addOption(quick, 'prezenta', 'Prezență live');
+  addOption(quick, 'prezenta_eveniment', 'Eveniment cu prezență');
+  const intent = $('module-intent');
+  addOption(intent, 'pontaj', 'Creez un pontaj');
+  addOption(intent, 'prezenta', 'Creez un sistem de prezență');
+  addOption(intent, 'prezenta_eveniment', 'Creez evenimente cu prezență');
+  const ensureActionOptions = () => document.querySelectorAll('[data-button-action]').forEach((select) => Object.entries(actionLabels).forEach(([value, label]) => addOption(select, value, label)));
+  const fillBuilders = (buttons) => {
+    const add = $('add-module-button');
+    const builder = $('module-buttons-builder');
+    if (!add || !builder) return;
+    builder.replaceChildren();
+    buttons.forEach((button) => {
+      add.click();
+      const row = builder.lastElementChild;
+      if (!row) return;
+      const label = row.querySelector('[data-button-label]');
+      const action = row.querySelector('[data-button-action]');
+      if (label) label.value = button.label;
+      if (action) { addOption(action, button.action, actionLabels[button.action] || button.action); action.value = button.action; }
+    });
+  };
+  const apply = (type) => {
+    const preset = presets[type];
+    if (!preset || !handler) return;
+    const suffix = Date.now().toString().slice(-5);
+    const key = $('module-key');
+    const label = $('module-label');
+    const title = $('module-title');
+    const description = $('module-description');
+    if (key && (!key.value.trim() || key.value.startsWith('custom_'))) key.value = `custom_${type}_${suffix}`;
+    if (label) label.value = preset.label;
+    if (title) title.value = preset.label;
+    if (description) description.value = preset.description;
+    handler.value = type;
+    ensureActionOptions();
+    fillBuilders(preset.buttons);
+    const fields = $('module-fields-builder');
+    const addField = $('add-module-field');
+    if (fields && addField && Array.isArray(preset.fields)) {
+      fields.replaceChildren();
+      preset.fields.forEach((field) => {
+        addField.click();
+        const row = fields.lastElementChild;
+        if (!row) return;
+        row.querySelector('[data-field-id]')?.setAttribute('value', field.id);
+        row.querySelector('[data-field-id]').value = field.id;
+        row.querySelector('[data-field-label]').value = field.label;
+        row.querySelector('[data-field-type]').value = field.type;
+        row.querySelector('[data-field-placeholder]').value = field.placeholder || '';
+        row.querySelector('[data-field-required]').checked = field.required !== false;
+      });
+    }
+    const status = $('module-status');
+    if (status) { status.textContent = `Presetul ${preset.label} este pregătit. Salvează modulul și publică-l pe canalul dorit.`; status.className = 'status ok'; }
+  };
+  quick?.addEventListener('change', (event) => { if (presets[event.target.value]) apply(event.target.value); });
+  handler?.addEventListener('change', (event) => { if (presets[event.target.value] && !$('module-buttons-builder')?.children.length) apply(event.target.value); });
+  intent?.addEventListener('change', (event) => { if (presets[event.target.value]) { if (quick) quick.value = event.target.value; apply(event.target.value); } });
+  ensureActionOptions();
+})();
