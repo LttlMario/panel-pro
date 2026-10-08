@@ -43,6 +43,8 @@ const levels: Record<string, number> = {
   log_marketplace: 1,
   log_illegal_marketplace: 1,
   log_event_reminders: 1,
+  presence_events: 1,
+  log_presence_events: 1,
   log_discipline_organization: 1,
   log_discipline_departments: 1,
   live_status: 1,
@@ -271,6 +273,8 @@ Deno.serve(async (request) => {
           ? 'log_illegal_marketplace'
         : finalChannel === 'event_reminders'
           ? 'log_event_reminders'
+        : finalChannel === 'presence_events'
+          ? 'log_presence_events'
         : finalChannel === 'contract_identity_weekly'
           ? 'log_contract_identity_weekly'
         : finalChannel === 'actions_organization'
@@ -342,6 +346,7 @@ Deno.serve(async (request) => {
       'illegal_marketplace',
       'illegal_locations',
       'event_reminders',
+      'presence_events',
       'contract_identity_weekly',
       'actions_organization',
       'comenzi',
