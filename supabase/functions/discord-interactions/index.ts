@@ -405,6 +405,9 @@ async function handlePresenceEventAction(db: any, context: any, module: any, act
     return interactionMessage(`Evenimentul „${closed.title}” a fost închis. Participanții au rămas în istoric.`);
   }
   if (action === 'cancel') {
+    const { data: existingAttendance, error: existingError } = await db.from('platform_presence_attendees').select('event_id').eq('event_id', event.id).eq('discord_id', context.discordId).maybeSingle();
+    if (existingError) throw existingError;
+    if (!existingAttendance) return interactionMessage('Nu ești prezent la acest eveniment, deci nu există nimic de anulat.');
     const { error: cancelError } = await db.from('platform_presence_attendees').delete().eq('event_id', event.id).eq('discord_id', context.discordId);
     if (cancelError) throw cancelError;
     await updatePresenceEventEmbed(db, module, context, event);
@@ -2685,8 +2688,10 @@ Deno.serve(async (request) => {
     if (!secret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
     const db = createClient(Deno.env.get('SUPABASE_URL')!, secret);
     const module = standardPresenceEventModule();
+    let deferred: any = null;
     try {
       const action = String(customId.split(':')[2] || '');
+      if (isButton && ['present', 'cancel', 'close'].includes(action)) deferred = await deferInteraction(interaction, false);
       let context: any;
       try {
         context = await resolveUniversalModuleContext(db, interaction, 'presence_events', 'event_reminders');
@@ -2702,7 +2707,6 @@ Deno.serve(async (request) => {
       context.publication = { embed_channel_id: String((controlTarget as any)?.channel_id || context.channelId), result_channel_id: String((logTarget as any)?.channel_id || ''), message_id: String(interaction.message?.id || '') };
       if (isButton && action === 'create') return reply(standardPresenceEventModal());
       if (isButton && ['present', 'cancel', 'close'].includes(action)) {
-        const deferred = await deferInteraction(interaction, false);
         let result;
         try {
           const resolvedAction = action === 'close' ? 'close_event' : action === 'cancel' ? 'cancel' : 'present';
@@ -2721,6 +2725,10 @@ Deno.serve(async (request) => {
         return new Response(null, { status: 204 });
       }
     } catch (error) {
+      if (deferred) {
+        await sendFollowup(deferred.applicationId, deferred.interactionToken, interactionMessage(readableError(error, 'Acțiunea de prezență nu a putut fi executată.')));
+        return new Response(null, { status: 204 });
+      }
       return reply(interactionMessage(readableError(error, 'Evenimentele cu prezență nu sunt disponibile pe acest canal.')));
     }
   }
