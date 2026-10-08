@@ -2670,11 +2670,20 @@ Deno.serve(async (request) => {
     const db = createClient(Deno.env.get('SUPABASE_URL')!, secret);
     const module = standardPresenceEventModule();
     try {
-      const context: any = await resolveUniversalModuleContext(db, interaction, 'presence_events', 'event_reminders');
-      const logRoute = context.settings?.discord_channel_routes?.log_presence_events || {};
-      const logTarget = logRoute?.[context.target] || Object.values(logRoute).find((route: any) => String(route?.channel_id || '').trim());
-      context.publication = { embed_channel_id: context.channelId, result_channel_id: String((logTarget as any)?.channel_id || ''), message_id: String(interaction.message?.id || '') };
       const action = String(customId.split(':')[2] || '');
+      let context: any;
+      try {
+        context = await resolveUniversalModuleContext(db, interaction, 'presence_events', 'event_reminders');
+      } catch (primaryError) {
+        if (!['present', 'close'].includes(action)) throw primaryError;
+        context = await resolveUniversalModuleContext(db, interaction, 'log_presence_events', 'event_reminders');
+      }
+      const routes = context.settings?.discord_channel_routes || {};
+      const logRoute = routes.log_presence_events || {};
+      const controlRoute = routes.presence_events || {};
+      const logTarget = logRoute?.[context.target] || Object.values(logRoute).find((route: any) => String(route?.channel_id || '').trim());
+      const controlTarget = controlRoute?.[context.target] || Object.values(controlRoute).find((route: any) => String(route?.channel_id || '').trim());
+      context.publication = { embed_channel_id: String((controlTarget as any)?.channel_id || context.channelId), result_channel_id: String((logTarget as any)?.channel_id || ''), message_id: String(interaction.message?.id || '') };
       if (isButton && action === 'create') return reply(standardPresenceEventModal());
       if (isButton && ['present', 'close'].includes(action)) {
         const deferred = await deferInteraction(interaction, false);
