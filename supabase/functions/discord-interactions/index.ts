@@ -350,11 +350,17 @@ async function publishPresenceEventLogEmbed(db: any, module: any, context: any, 
   const channelId = String(context.publication.result_channel_id || '').trim();
   if (!channelId) throw new Error('Selectează canalul de log pentru embedul evenimentului cu prezență.');
   const payload = await presenceEventPayload(db, module, context, event);
+  // The log is a single persistent message. When an older event has no
+  // stored log_message_id yet, a button interaction from that log still gives
+  // us the exact message to edit.
   let messageId = String(event?.log_message_id || '').trim();
+  if (!messageId && String(context.channelId || '') === channelId) messageId = String(context.publication.message_id || '').trim();
   let response = messageId
     ? await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'PATCH', messageId })
     : await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'POST' });
-  if (!response.ok && messageId && [400, 404].includes(response.status)) {
+  // Recreate only when Discord confirms that the old message was deleted.
+  // Other errors must not create a duplicate log embed.
+  if (!response.ok && messageId && response.status === 404) {
     response = await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'POST' });
     messageId = '';
   }
