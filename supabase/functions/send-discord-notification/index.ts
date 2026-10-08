@@ -213,6 +213,17 @@ Deno.serve(async (request) => {
       return reply(request, { error: 'Acest canal Discord nu este inclus în pachetul organizației.' }, 403);
     }
 
+    // Embedul inițial pentru evenimentele cu prezență trebuie să conțină
+    // exclusiv butonul de creare. Embedul live cu „Sunt prezent” este trimis
+    // separat în canalul de log după ce evenimentul este creat.
+    if (finalChannel === 'presence_events' && payload && typeof payload === 'object') {
+      payload = {
+        ...payload,
+        components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Creează eveniment', custom_id: 'panel:presence_events:create' }] }],
+      };
+      forwardBody = JSON.stringify(payload);
+    }
+
     const isGlobalMarketplace = ['marketplace', 'illegal_marketplace'].includes(finalChannel);
     const fallbackRouteKey = ['requests_organization', 'requests_departments'].includes(finalChannel) ? 'requests' : '';
 
