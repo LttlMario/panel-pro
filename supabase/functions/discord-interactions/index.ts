@@ -1057,7 +1057,11 @@ async function resolveUniversalModuleContext(db: any, interaction: any, routeKey
     : Object.values(configuredRoute).find((route: any) => String(route?.channel_id || '') === channelId);
   const logRouteKey = PANEL_LOG_ROUTES[routeKey] || routeKey;
   if (configured?.enabled === false || !(await routeChannelMatches(db, guild.organization_id, settings, routeKey, target, channelId, interactionMessageId(interaction)))) throw new Error('Acest canal nu este configurat pentru modulul selectat.');
-  if (!member && !isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, discordId))) throw new Error('Nu ai acces la acest modul în organizația Discord.');
+  // Presence channels are already protected by Discord channel/role
+  // permissions. Do not require a separate Panel Pro membership for users
+  // who can see and use the dedicated event channel.
+  const channelPermissionOnly = ['presence_events', 'log_presence_events'].includes(routeKey);
+  if (!channelPermissionOnly && !member && !isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, discordId))) throw new Error('Nu ai acces la acest modul în organizația Discord.');
   const displayName = String(interaction.member?.nick || interaction.member?.user?.global_name || interaction.member?.user?.username || discordId).slice(0, 120);
   return { guildId, channelId, target, discordId, displayName, organization, settings, logRouteKey };
 }
