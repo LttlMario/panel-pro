@@ -5,7 +5,7 @@
     const PENDING_KEY = 'panel_pending_discord_notification';
 
     window.sendPanelDiscord = async (channel, payload, options = {}) => {
-        if (payload && !(payload instanceof FormData) && String(options?.messageKey || '').endsWith('-control')) {
+        if (payload && !(payload instanceof FormData) && String(options?.messageKey || '').endsWith('-control') && !String(options?.messageKey || '').startsWith('presence_events')) {
             const rows = Array.isArray(payload.components) ? payload.components.map((row) => ({ ...row, components: Array.isArray(row?.components) ? [...row.components] : [] })) : [];
             if (!rows.some((row) => row.components.some((component) => component?.type === 2 && component?.style === 5 && component?.url === 'https://revolut.me/mariomihail'))) rows.push({ type: 1, components: [{ type: 2, style: 5, label: 'Donează pentru dezvoltare', url: 'https://revolut.me/mariomihail' }] });
             payload = { ...payload, components: rows };
