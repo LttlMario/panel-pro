@@ -496,28 +496,22 @@ async function updateTaskPrivateMessage(db: any, task: any) {
 }
 
 async function publishTaskLog(db: any, context: any, tasks: any[], messageId = '') {
-  let routes = context.settings?.discord_channel_routes || context.settings || {};
-  let logRoute = routes.log_tasks || routes.tasks || {};
-  let route = logRoute?.channel_id ? logRoute : logRoute?.[context.target] || Object.values(logRoute).find((item: any) => String(item?.channel_id || '').trim());
-  let channelId = String(route?.channel_id || '').trim();
-  if (!channelId && context.organizationId) {
-    const { data: freshSettings } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', context.organizationId).maybeSingle();
-    routes = freshSettings?.discord_channel_routes || {};
-    logRoute = routes.log_tasks || routes.tasks || {};
-    route = logRoute?.channel_id ? logRoute : logRoute?.[context.target] || Object.values(logRoute).find((item: any) => String(item?.channel_id || '').trim());
-    channelId = String(route?.channel_id || '').trim();
-  }
-  if (!channelId) {
-    console.warn('[discord-interactions] task response saved without a configured log route');
-    return '';
-  }
   const payload = taskDecisionEmbed(tasks[0] || {});
-  const response = messageId
-    ? await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'PATCH', messageId })
-    : await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'POST' });
-  if (!response.ok) throw new Error(`Logul taskului nu a putut fi actualizat (HTTP ${response.status}).`);
-  const body = await response.json().catch(() => ({}));
-  return String(body?.id || messageId || '');
+  let settings = context.settings?.discord_channel_routes ? context.settings : null;
+  if (!settings && context.organizationId) {
+    const { data: freshSettings, error } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', context.organizationId).maybeSingle();
+    if (error) throw error;
+    settings = freshSettings || {};
+  }
+  const delivery = await deliverDiscordRoute(db, settings || {}, 'log_tasks', JSON.stringify(payload), {
+    postOnly: true,
+    organizationId: String(context.organizationId || ''),
+    messageKey: `task-decision-${String(tasks[0]?.id || crypto.randomUUID())}`,
+    retryPayload: payload,
+  });
+  const result = (delivery.results || [])[0];
+  if (!result?.id) throw new Error(delivery.failures?.join(' | ') || 'Logul taskului nu a putut fi trimis.');
+  return String(result.id);
 }
 
 async function createTask(db: any, context: any, values: Record<string, string>) {
