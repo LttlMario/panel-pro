@@ -429,9 +429,14 @@ const taskDeadlineLabel = (value: unknown) => {
   const date = new Date(String(value || ''));
   return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', dateStyle: 'full', timeStyle: 'short' }).format(date) : String(value || 'termen necunoscut');
 };
+const taskDeadlineInput = () => {
+  const parts = new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
+  const get = (type: string) => parts.find((part) => part.type === type)?.value || '';
+  return `${get('day')}/${get('month')}/${get('year')} ${get('hour')}:${get('minute')}`;
+};
 const taskModal = (draftId = '') => ({ type: 9, data: { custom_id: `panel:tasks:submit:${draftId}`, title: 'Creează task', components: [
   { type: 1, components: [universalTextInput('title', 'Task', 1, true, 'Ex: Verifică inventarul', 160)] },
-  { type: 1, components: [universalTextInput('due_at', 'Termen-limită', 1, true, '2026-10-10 23:00', 40)] },
+  { type: 1, components: [universalTextInput('due_at', 'Termen-limită', 1, true, 'zz/ll/yyyy HH:mm', 16, taskDeadlineInput())] },
   { type: 1, components: [universalTextInput('details', 'Detalii', 2, false, 'Instrucțiuni pentru angajat', 1200)] },
 ] } });
 
@@ -507,8 +512,11 @@ async function publishTaskLog(db: any, context: any, tasks: any[], messageId = '
 async function createTask(db: any, context: any, values: Record<string, string>) {
   const assignees = [...new Set(String(values.assignee || '').split(/[\s,;\n]+/).map(taskUserId).filter((value) => /^\d{15,22}$/.test(value)))];
   const title = String(values.title || '').trim();
-  const dueRaw = String(values.due_at || '').trim().replace(' ', 'T');
-  const dueAt = new Date(/Z$|[+-]\d{2}:?\d{2}$/.test(dueRaw) ? dueRaw : `${dueRaw}:00+03:00`);
+  const dueRaw = String(values.due_at || '').trim();
+  const romanianDate = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/.exec(dueRaw);
+  const dueAt = romanianDate
+    ? zonedDateAt(Number(romanianDate[3]), Number(romanianDate[2]), Number(romanianDate[1]), Number(romanianDate[4]), Number(romanianDate[5]))
+    : new Date(/Z$|[+-]\d{2}:?\d{2}$/.test(dueRaw) ? dueRaw : `${dueRaw.replace(' ', 'T')}:00+03:00`);
   if (!assignees.length) throw new Error('Introdu cel puțin un ID sau o mențiune validă pentru angajat.');
   if (title.length < 2) throw new Error('Titlul taskului este obligatoriu.');
   if (!Number.isFinite(dueAt.getTime()) || dueAt.getTime() <= Date.now()) throw new Error('Termenul-limită trebuie să fie o dată viitoare validă.');
@@ -1138,8 +1146,8 @@ function money(value: any) {
   return `${Number(value?.amount ?? value ?? 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${value?.currency || '$'}`;
 }
 
-function universalTextInput(custom_id: string, label: string, style = 1, required = false, placeholder = '', max_length = 1000) {
-  return { type: 4, custom_id, label, style, required, placeholder, max_length };
+function universalTextInput(custom_id: string, label: string, style = 1, required = false, placeholder = '', max_length = 1000, value = '') {
+  return { type: 4, custom_id, label, style, required, placeholder, max_length, ...(value ? { value } : {}) };
 }
 
 function marketplaceModal(kind: 'legal' | 'illegal') {
