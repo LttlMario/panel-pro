@@ -503,9 +503,35 @@ async function publishTaskLog(db: any, context: any, tasks: any[], messageId = '
     if (error) throw error;
     settings = freshSettings || {};
   }
-  const delivery = await deliverDiscordRoute(db, settings || {}, 'log_tasks', JSON.stringify(payload), {
+  const configuredRoutes = settings?.discord_channel_routes && typeof settings.discord_channel_routes === 'object'
+    ? settings.discord_channel_routes
+    : {};
+  const guildId = String(context.guildId || '').trim();
+  const preferredTarget = String(context.target || 'primary') === 'secondary' ? 'secondary' : 'primary';
+  const otherTarget = preferredTarget === 'primary' ? 'secondary' : 'primary';
+  const targetForRoute = (routeKey: string) => {
+    const route = configuredRoutes?.[routeKey] || {};
+    const exactGuildTarget = [preferredTarget, otherTarget].find((target) => {
+      const item = route?.[target];
+      return item?.enabled !== false && validDiscordChannelId(item?.channel_id) && (!guildId || String(item?.guild_id || '') === guildId);
+    });
+    if (exactGuildTarget) return exactGuildTarget;
+    return [preferredTarget, otherTarget].find((target) => {
+      const item = route?.[target];
+      return item?.enabled !== false && validDiscordChannelId(item?.channel_id);
+    }) || '';
+  };
+  const logTarget = targetForRoute('log_tasks');
+  const fallbackTarget = targetForRoute('tasks');
+  const selectedRouteKey = logTarget ? 'log_tasks' : fallbackTarget ? 'tasks' : '';
+  const selectedTarget = logTarget || fallbackTarget;
+  if (!selectedRouteKey || !selectedTarget) {
+    throw new Error('Canalul selectat pentru log task-uri nu este disponibil în configurația organizației. Salvează din nou canalul în organizatii.html.');
+  }
+  const selectedRoute = configuredRoutes?.[selectedRouteKey]?.[selectedTarget];
+  const deliverySettings = { discord_channel_routes: { [selectedRouteKey]: { primary: selectedTarget === 'primary' ? selectedRoute : null, secondary: selectedTarget === 'secondary' ? selectedRoute : null } } };
+  const delivery = await deliverDiscordRoute(db, deliverySettings, selectedRouteKey, JSON.stringify(payload), {
     postOnly: true,
-    fallbackRouteKey: 'tasks',
     organizationId: String(context.organizationId || ''),
     messageKey: `task-decision-${String(tasks[0]?.id || crypto.randomUUID())}`,
     retryPayload: payload,
