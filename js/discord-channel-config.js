@@ -100,7 +100,7 @@
     };
     return [key, input?.closest('fieldset')?.querySelector('legend')?.textContent?.trim() || fallbackLabels[key] || key];
   }));
- const state = { routes: {}, channelsByGuild: {}, guildNames: {}, spamAlertChannels: { primary: '', secondary: '' } };
+ const state = { routes: {}, channelsByGuild: {}, guildNames: {}, spamAlertChannels: { primary: '', secondary: '' }, routeFilter: '', onlyConfiguredRoutes: false };
   state.guildAvailability = { primary: false, secondary: false };
   state.discoveryAttempted = false;
   const getConfig = () => window.PANEL_SUPABASE_CONFIG || window.config || {};
@@ -152,6 +152,15 @@
   section.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-bold">Canale Discord pentru bot</h2><p class="mt-1 text-xs text-slate-400">Selectează unde trimite botul toate mesajele și embed-urile. Canalele sunt afișate în ordinea serverului, grupate după categorie.</p></div><div class="flex flex-wrap gap-2"><button id="discord-channel-discover" type="button" class="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-black text-white">Încarcă canalele Discord</button><button id="discord-spam-configure" type="button" class="rounded-xl border border-rose-500/70 bg-rose-950/40 px-4 py-2 text-xs font-black text-rose-100">🛡️ Activează anti-spam</button></div></div><p id="discord-channel-status" class="mt-2 text-xs text-slate-400">Nu s-au încărcat încă canalele.</p><div id="discord-spam-channel-controls" class="mt-3 grid gap-2 md:grid-cols-2"><label class="text-xs text-slate-300">Canal log anti-spam · principal<select id="discord-spam-log-primary" class="field mt-1 w-full"></select></label><label class="text-xs text-slate-300">Canal log anti-spam · secundar<select id="discord-spam-log-secondary" class="field mt-1 w-full"></select></label></div><p id="discord-spam-status" class="mt-1 text-xs text-rose-200">Încarcă mai întâi canalele, apoi alege unde vor apărea alertele anti-spam.</p><div id="discord-channel-grid" class="mt-3 grid gap-3 md:grid-cols-2"></div>`;
   root.closest('details')?.before(section);
   const grid = section.querySelector('#discord-channel-grid');
+  if (grid && !section.querySelector('#discord-route-search')) {
+    grid.insertAdjacentHTML('beforebegin', '<div class="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]"><label class="text-xs text-slate-300">Caută un modul sau un canal<input id="discord-route-search" class="field mt-1" type="search" placeholder="Ex: task, propuneri, log, pontaj"></label><label class="flex items-end gap-2 pb-2 text-xs text-slate-300"><input id="discord-only-configured" type="checkbox"> Arată doar module configurate</label></div>');
+    const search = section.querySelector('#discord-route-search');
+    const onlyConfigured = section.querySelector('#discord-only-configured');
+    search.value = state.routeFilter;
+    onlyConfigured.checked = state.onlyConfiguredRoutes;
+    search.oninput = () => { state.routeFilter = search.value.trim().toLocaleLowerCase('ro-RO'); render(); requestAnimationFrame(() => section.querySelector('#discord-route-search')?.focus()); };
+    onlyConfigured.onchange = () => { state.onlyConfiguredRoutes = onlyConfigured.checked; render(); };
+  }
   const status = section.querySelector('#discord-channel-status');
   const spamStatus = section.querySelector('#discord-spam-status');
   const renderSpamChannelSelectors = () => ['primary', 'secondary'].forEach((target) => {
@@ -581,7 +590,14 @@
   };
   const render = () => {
     renderSpamChannelSelectors();
-    grid.innerHTML = routeKeys.map((key) => `<fieldset class="rounded-lg border border-emerald-900/70 bg-slate-950/50 p-3${key === 'actions_organization' ? ' md:col-span-2' : ''}"><legend class="px-1 text-xs font-bold text-slate-200">${esc(labels[key])}</legend>${['primary', 'secondary'].map((target) => `<label class="mt-2 block text-xs text-slate-400">${target === 'primary' ? 'Canal principal' : 'Canal secundar'}<select class="field mt-1" data-discord-channel-route="${esc(key)}" data-discord-channel-target="${target}">${options(selectedChannel(key, target))}</select></label>`).join('')}</fieldset>`).join('');
+    const visibleRouteKeys = routeKeys.filter((key) => {
+      const configured = selectedRouteTargets(key).length > 0;
+      const searchable = `${labels[key]} ${key}`.toLocaleLowerCase('ro-RO');
+      return (!state.routeFilter || searchable.includes(state.routeFilter)) && (!state.onlyConfiguredRoutes || configured);
+    });
+    grid.innerHTML = visibleRouteKeys.length
+      ? visibleRouteKeys.map((key) => `<fieldset class="rounded-lg border border-emerald-900/70 bg-slate-950/50 p-3${key === 'actions_organization' ? ' md:col-span-2' : ''}"><legend class="px-1 text-xs font-bold text-slate-200">${esc(labels[key])} <span class="ml-1 rounded-full px-2 py-0.5 text-[10px] ${selectedRouteTargets(key).length ? 'bg-emerald-950/60 text-emerald-300' : 'bg-slate-800 text-slate-500'}">${selectedRouteTargets(key).length ? 'configurat' : 'neconfigurat'}</span></legend>${['primary', 'secondary'].map((target) => `<label class="mt-2 block text-xs text-slate-400">${target === 'primary' ? 'Canal principal' : 'Canal secundar'}<select class="field mt-1" data-discord-channel-route="${esc(key)}" data-discord-channel-target="${target}">${options(selectedChannel(key, target))}</select></label>`).join('')}</fieldset>`).join('')
+      : '<p class="rounded-xl border border-slate-700 bg-slate-950/40 p-4 text-xs text-slate-400">Nu există module care corespund filtrului ales.</p>';
     individualPublishDefinitions().forEach((definition) => {
       const fieldset = grid.querySelector(`[data-discord-channel-route="${definition.key}"]`)?.closest('fieldset');
       if (!fieldset) return;
