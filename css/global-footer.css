@@ -17,7 +17,27 @@ body.panel-global-shell main {
 body.panel-global-shell main :is(.rounded-2xl, .rounded-xl, .card, .panel, .post) {
   border-color: var(--panel-modern-border) !important;
   border-radius: var(--panel-modern-radius) !important;
+  background: linear-gradient(145deg, #111f34 0%, #0b1628 100%) !important;
   box-shadow: 0 1px 0 rgba(255,255,255,.025), var(--panel-modern-shadow);
+}
+
+body.panel-global-shell main :is(.rounded-2xl, .rounded-xl, .card, .panel, .post):hover {
+  border-color: rgba(94, 234, 212, .42) !important;
+  box-shadow: 0 20px 44px rgba(2, 6, 23, .28), 0 0 0 1px rgba(45, 212, 191, .06);
+}
+
+body.panel-global-shell main :is(h1, h2, h3, h4) {
+  color: #f8fafc !important;
+  font-weight: 800;
+}
+
+body.panel-global-shell main :is(p, li, label) {
+  color: #cbd5e1;
+}
+
+body.panel-global-shell .panel-global-header {
+  background: linear-gradient(90deg, #0b1628 0%, #111f34 100%) !important;
+  border-bottom-color: rgba(71, 85, 105, .72) !important;
 }
 
 body.panel-global-shell main :is(input, select, textarea) {
@@ -29,11 +49,13 @@ body.panel-global-shell main :is(input, select, textarea) {
 
 body.panel-global-shell main :is(button, .button, .btn) {
   border-radius: 11px;
+  border-color: rgba(100, 116, 139, .72);
   transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
 }
 
 body.panel-global-shell main :is(button, .button, .btn):hover:not(:disabled) {
   transform: translateY(-1px);
+  border-color: rgba(94, 234, 212, .60);
   box-shadow: 0 8px 20px rgba(2, 6, 23, .18);
 }
 
