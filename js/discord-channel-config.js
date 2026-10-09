@@ -21,6 +21,59 @@
     style.textContent = '.organization-quick-nav{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;padding:6px;border:1px solid rgba(71,85,105,.7);border-radius:12px;background:rgba(15,23,42,.72)}.organization-quick-nav a{border:1px solid rgba(71,85,105,.85);border-radius:8px;padding:6px 9px;color:#cbd5e1;font-size:11px;font-weight:800;text-decoration:none;transition:background .15s ease,border-color .15s ease,color .15s ease}.organization-quick-nav a:hover{border-color:#67e8f9;background:rgba(8,145,178,.2);color:#cffafe}';
     document.head.appendChild(style);
   }
+  const setupOrganizationWizard = () => {
+    if (!organizationEditor || organizationEditor.querySelector('.organization-wizard')) return;
+    const form = document.getElementById('form');
+    const overview = document.getElementById('form-title')?.parentElement;
+    const profile = document.getElementById('name')?.closest('.grid');
+    const primaryGuild = document.getElementById('guild')?.closest('.rounded-xl');
+    const secondaryGuild = document.getElementById('guild-secondary')?.closest('.rounded-xl');
+    const roles = document.getElementById('roles')?.parentElement?.parentElement;
+    const access = [...organizationEditor.querySelectorAll('details')].filter((details) => !details.hidden && !details.closest('#discord-channel-routes'));
+    const routes = document.getElementById('discord-channel-routes');
+    const expiry = document.getElementById('expires')?.closest('.rounded-xl');
+    const saveActions = form?.querySelector('button[type="submit"]')?.closest('.flex');
+    if (!form || !overview || !profile || !primaryGuild || !secondaryGuild || !roles || !expiry || !saveActions) return;
+    const groups = [
+      { label: 'Identitate și servere', description: 'Numele organizației și serverele Discord.', elements: [profile, primaryGuild, secondaryGuild] },
+      { label: 'Roluri Discord', description: 'Rolurile care vor fi folosite în panel.', elements: [roles] },
+      { label: 'Acces și permisiuni', description: 'Paginile și modulele disponibile fiecărui rol.', elements: access },
+      { label: 'Canale și module', description: 'Canalele Discord pentru embeduri, loguri și protecție.', elements: routes ? [routes] : [] },
+      { label: 'Finalizare', description: 'Perioada de activare și salvarea configurației.', elements: [expiry, saveActions] },
+    ];
+    const wizard = document.createElement('section');
+    wizard.className = 'organization-wizard mt-4 rounded-xl border border-cyan-700/60 bg-cyan-950/20 p-3';
+    wizard.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-2"><div><p class="text-[11px] font-black uppercase tracking-wider text-cyan-300">Configurare ghidată</p><p data-wizard-description class="mt-1 text-xs text-slate-300"></p></div><span data-wizard-status class="rounded-full bg-slate-900 px-2 py-1 text-[11px] font-bold text-slate-300"></span></div><div class="mt-3 grid gap-2 sm:grid-cols-5">${groups.map((group, index) => `<button type="button" data-wizard-step="${index}" class="rounded-lg border border-slate-700 bg-slate-900/70 px-2 py-2 text-left text-[11px] font-bold text-slate-300 transition hover:border-cyan-500"><span class="block text-cyan-300">${index + 1}</span>${group.label}</button>`).join('')}</div><div data-wizard-summary class="mt-3 hidden rounded-lg border border-slate-700 bg-slate-950/50 p-3 text-xs text-slate-300"></div><div class="mt-3 flex flex-wrap justify-between gap-2"><button type="button" data-wizard-prev class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-slate-300">← Înapoi</button><button type="button" data-wizard-next class="rounded-lg bg-cyan-600 px-3 py-2 text-xs font-bold text-slate-950">Continuă →</button></div>`;
+    overview.appendChild(wizard);
+    let currentStep = 0;
+    const showStep = (step) => {
+      currentStep = Math.max(0, Math.min(groups.length - 1, step));
+      groups.forEach((group, index) => group.elements.forEach((element) => { if (element) element.hidden = index !== currentStep; }));
+      wizard.querySelectorAll('[data-wizard-step]').forEach((button) => { const active = Number(button.dataset.wizardStep) === currentStep; button.classList.toggle('border-cyan-400', active); button.classList.toggle('bg-cyan-950/70', active); button.classList.toggle('text-cyan-100', active); });
+      const description = wizard.querySelector('[data-wizard-description]');
+      const statusNode = wizard.querySelector('[data-wizard-status]');
+      if (description) description.textContent = groups[currentStep].description;
+      if (statusNode) statusNode.textContent = `Pasul ${currentStep + 1} din ${groups.length}`;
+      const summary = wizard.querySelector('[data-wizard-summary]');
+      if (summary) {
+        const primary = document.getElementById('guild')?.value.trim();
+        const secondary = document.getElementById('guild-secondary')?.value.trim();
+        const configuredRoutes = document.querySelectorAll('#discord-channel-grid [data-discord-channel-route]');
+        const configuredCount = new Set([...configuredRoutes].filter((select) => select.value).map((select) => select.dataset.discordChannelRoute)).size;
+        summary.classList.toggle('hidden', currentStep !== groups.length - 1);
+        summary.innerHTML = currentStep === groups.length - 1 ? `<p class="font-bold text-cyan-200">Rezumat înainte de salvare</p><p class="mt-2">Servere Discord: <b>${secondary ? '2 configurate' : primary ? '1 configurat' : 'lipsește serverul principal'}</b></p><p>Roluri: <b>${document.querySelectorAll('#roles input, #roles select').length ? 'configurate/verifică selecția' : 'neconfigurate'}</b></p><p>Module cu canale selectate: <b>${configuredCount}</b></p><p class="mt-2 text-emerald-300">Dacă datele sunt corecte, apasă „Salvează organizația” de mai jos.</p>` : '';
+      }
+      const previous = wizard.querySelector('[data-wizard-prev]');
+      const next = wizard.querySelector('[data-wizard-next]');
+      if (previous) previous.disabled = currentStep === 0;
+      if (next) next.textContent = currentStep === groups.length - 1 ? 'Configurarea este completă' : 'Continuă →';
+      organizationEditor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    wizard.querySelectorAll('[data-wizard-step]').forEach((button) => { button.onclick = () => showStep(Number(button.dataset.wizardStep)); });
+    wizard.querySelector('[data-wizard-prev]').onclick = () => showStep(currentStep - 1);
+    wizard.querySelector('[data-wizard-next]').onclick = () => showStep(currentStep + 1);
+    showStep(0);
+  };
   const isDraft = root.id === 'draft-webhooks';
   const isOwner = root.id === 'owner-webhooks';
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -151,6 +204,7 @@
   const canPublishDiscordPanels = root.id === 'webhooks' || root.id === 'owner-webhooks';
   section.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-bold">Canale Discord pentru bot</h2><p class="mt-1 text-xs text-slate-400">Selectează unde trimite botul toate mesajele și embed-urile. Canalele sunt afișate în ordinea serverului, grupate după categorie.</p></div><div class="flex flex-wrap gap-2"><button id="discord-channel-discover" type="button" class="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-black text-white">Încarcă canalele Discord</button><button id="discord-spam-configure" type="button" class="rounded-xl border border-rose-500/70 bg-rose-950/40 px-4 py-2 text-xs font-black text-rose-100">🛡️ Activează anti-spam</button></div></div><p id="discord-channel-status" class="mt-2 text-xs text-slate-400">Nu s-au încărcat încă canalele.</p><div id="discord-spam-channel-controls" class="mt-3 grid gap-2 md:grid-cols-2"><label class="text-xs text-slate-300">Canal log anti-spam · principal<select id="discord-spam-log-primary" class="field mt-1 w-full"></select></label><label class="text-xs text-slate-300">Canal log anti-spam · secundar<select id="discord-spam-log-secondary" class="field mt-1 w-full"></select></label></div><p id="discord-spam-status" class="mt-1 text-xs text-rose-200">Încarcă mai întâi canalele, apoi alege unde vor apărea alertele anti-spam.</p><div id="discord-channel-grid" class="mt-3 grid gap-3 md:grid-cols-2"></div>`;
   root.closest('details')?.before(section);
+  setupOrganizationWizard();
   const grid = section.querySelector('#discord-channel-grid');
   if (grid && !section.querySelector('#discord-route-search')) {
     grid.insertAdjacentHTML('beforebegin', '<div class="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]"><label class="text-xs text-slate-300">Caută un modul sau un canal<input id="discord-route-search" class="field mt-1" type="search" placeholder="Ex: task, propuneri, log, pontaj"></label><label class="flex items-end gap-2 pb-2 text-xs text-slate-300"><input id="discord-only-configured" type="checkbox"> Arată doar module configurate</label></div>');
