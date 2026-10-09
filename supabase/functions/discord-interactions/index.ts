@@ -435,9 +435,8 @@ const taskDeadlineInput = () => {
   return `${get('day')}/${get('month')}/${get('year')} ${get('hour')}:${get('minute')}`;
 };
 const taskModal = (draftId = '') => ({ type: 9, data: { custom_id: `panel:tasks:submit:${draftId}`, title: 'Creează task', components: [
-  { type: 1, components: [universalTextInput('title', 'Task', 1, true, 'Ex: Verifică inventarul', 160)] },
+  { type: 1, components: [universalTextInput('title', 'Task', 2, true, 'Scrie taskul și instrucțiunile pentru angajat', 4000)] },
   { type: 1, components: [universalTextInput('due_at', 'Termen-limită', 1, true, 'zz/ll/yyyy HH:mm', 16, taskDeadlineInput())] },
-  { type: 1, components: [universalTextInput('details', 'Detalii', 2, false, 'Instrucțiuni pentru angajat', 1200)] },
 ] } });
 
 const taskEmbed = (task: any, includeButtons = true) => {
@@ -446,7 +445,7 @@ const taskEmbed = (task: any, includeButtons = true) => {
     { type: 2, style: 3, label: '✅ Acceptă taskul', custom_id: `panel:tasks:accept:${task.id}` },
     { type: 2, style: 4, label: '❌ Refuză taskul', custom_id: `panel:tasks:refuse:${task.id}` },
   ] }] : [];
-  return { allowed_mentions: { parse: [] }, embeds: [{ title: `📋 ${String(task.title || 'Task').slice(0, 240)}`, description: String(task.description || 'Fără detalii.').slice(0, 4096), color: task.status === 'accepted' ? 0x22c55e : task.status === 'refused' ? 0xef4444 : 0xf59e0b, fields: [
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: '📋 Task', description: String(task.description || task.title || 'Fără detalii.').slice(0, 4096), color: task.status === 'accepted' ? 0x22c55e : task.status === 'refused' ? 0xef4444 : 0xf59e0b, fields: [
     { name: '👤 Angajat', value: `<@${String(task.assignee_discord_id || '')}>`, inline: true },
     { name: '📅 Termen-limită', value: taskDeadlineLabel(task.due_at), inline: true },
     { name: '📌 Status', value: statusLabels[String(task.status || 'pending')] || String(task.status || 'pending'), inline: false },
@@ -457,7 +456,7 @@ const taskEmbed = (task: any, includeButtons = true) => {
 const taskGroupEmbed = (tasks: any[]) => {
   const rows = (tasks || []).map((task) => `• <@${String(task.assignee_discord_id || '')}> — ${String(task.status || 'pending') === 'accepted' ? '✅ Acceptat' : String(task.status || 'pending') === 'refused' ? '❌ Refuzat' : '⏳ În așteptare'}`).join('\n') || 'Nu există răspunsuri.';
   const first = tasks?.[0] || {};
-  return { allowed_mentions: { parse: [] }, embeds: [{ title: `📋 Task: ${String(first.title || 'Task').slice(0, 230)}`, description: String(first.description || 'Fără detalii.').slice(0, 4096), color: tasks?.some((task) => task.status === 'refused') ? 0xef4444 : tasks?.every((task) => task.status === 'accepted') ? 0x22c55e : 0xf59e0b, fields: [
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: '📋 Task', description: String(first.description || first.title || 'Fără detalii.').slice(0, 4096), color: tasks?.some((task) => task.status === 'refused') ? 0xef4444 : tasks?.every((task) => task.status === 'accepted') ? 0x22c55e : 0xf59e0b, fields: [
     { name: '👥 Destinatari și răspunsuri', value: rows.slice(0, 1024), inline: false },
     { name: '📅 Termen-limită', value: taskDeadlineLabel(first.due_at), inline: true },
     { name: '📌 Progres', value: `${tasks.filter((task) => task.status !== 'pending').length}/${tasks.length} răspunsuri`, inline: true },
@@ -467,7 +466,7 @@ const taskGroupEmbed = (tasks: any[]) => {
 const taskDecisionEmbed = (task: any) => {
   const accepted = String(task.status || '') === 'accepted';
   return { allowed_mentions: { parse: [] }, embeds: [{ title: `${accepted ? '✅' : '❌'} Task ${accepted ? 'acceptat' : 'refuzat'}`, color: accepted ? 0x22c55e : 0xef4444, fields: [
-    { name: '📋 Task', value: String(task.title || 'Task').slice(0, 1024), inline: false },
+    { name: '📋 Task', value: String(task.description || task.title || 'Task').slice(0, 1024), inline: false },
     { name: '👤 Angajat', value: `<@${String(task.assignee_discord_id || '')}>`, inline: true },
     { name: '📅 Termen-limită', value: taskDeadlineLabel(task.due_at), inline: true },
     { name: '💬 Răspuns', value: accepted ? 'Taskul a fost acceptat.' : 'Taskul a fost refuzat.', inline: false },
@@ -553,7 +552,7 @@ async function createTask(db: any, context: any, values: Record<string, string>)
   if (title.length < 2) throw new Error('Titlul taskului este obligatoriu.');
   if (!Number.isFinite(dueAt.getTime()) || dueAt.getTime() <= Date.now()) throw new Error('Termenul-limită trebuie să fie o dată viitoare validă.');
   const taskGroupId = crypto.randomUUID();
-  const { data: tasks, error } = await db.from('platform_tasks').insert(assignees.map((assignee) => ({ task_group_id: taskGroupId, organization_id: context.organization.id, guild_id: context.guildId, title: title.slice(0, 160), description: String(values.details || '').trim().slice(0, 4000) || null, due_at: dueAt.toISOString(), assignee_discord_id: assignee, created_by_discord_id: context.discordId }))).select('*');
+  const { data: tasks, error } = await db.from('platform_tasks').insert(assignees.map((assignee) => ({ task_group_id: taskGroupId, organization_id: context.organization.id, guild_id: context.guildId, title: 'Task', description: title.slice(0, 4000), due_at: dueAt.toISOString(), assignee_discord_id: assignee, created_by_discord_id: context.discordId }))).select('*');
   if (error) throw error;
   const failures: string[] = [];
   for (const task of tasks || []) {
