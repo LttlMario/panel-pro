@@ -31,6 +31,7 @@
   insertSyntheticAfter('presence_events', 'log_presence_events');
   insertSyntheticAfter('log_presence_events', 'tasks');
   insertSyntheticAfter('tasks', 'log_tasks');
+  insertSyntheticAfter('log_tasks', 'log_task_responses');
   insertSyntheticAfter('contract_identity_weekly', 'log_contract_identity_weekly');
   insertSyntheticAfter('actions_organization', 'log_actions_organization');
   insertSyntheticAfter('log_announcements_organization', 'log_actions_organization');
@@ -40,7 +41,7 @@
   insertSyntheticAfter('stash_requests', 'stash_donations');
   insertSyntheticAfter('stash_donations', 'log_stash_donations');
   insertSyntheticAfter('comenzi', 'log_comenzi');
-  const preferredRouteOrder = ['organization', 'log_announcements_organization', 'departments', 'log_announcements_departments', 'pontaj', 'log_pontaj', 'requests_organization', 'log_requests_organization', 'requests_departments', 'log_requests_departments', 'contracts', 'log_contracts', 'calculator', 'illegal_calculator', 'marketplace', 'log_marketplace', 'illegal_marketplace', 'log_illegal_marketplace', 'illegal_locations', 'event_reminders', 'presence_events', 'log_presence_events', 'tasks', 'log_tasks', 'wheel_timer', 'log_event_reminders', 'contract_identity_weekly', 'log_contract_identity_weekly', 'actions_organization', 'log_actions_organization', 'status_live', 'stash', 'log_stash', 'stash_requests', 'log_stash_requests', 'stash_donations', 'log_stash_donations', 'comenzi', 'log_comenzi'];
+  const preferredRouteOrder = ['organization', 'log_announcements_organization', 'departments', 'log_announcements_departments', 'pontaj', 'log_pontaj', 'requests_organization', 'log_requests_organization', 'requests_departments', 'log_requests_departments', 'contracts', 'log_contracts', 'calculator', 'illegal_calculator', 'marketplace', 'log_marketplace', 'illegal_marketplace', 'log_illegal_marketplace', 'illegal_locations', 'event_reminders', 'presence_events', 'log_presence_events', 'tasks', 'log_tasks', 'log_task_responses', 'wheel_timer', 'log_event_reminders', 'contract_identity_weekly', 'log_contract_identity_weekly', 'actions_organization', 'log_actions_organization', 'status_live', 'stash', 'log_stash', 'stash_requests', 'log_stash_requests', 'stash_donations', 'log_stash_donations', 'comenzi', 'log_comenzi'];
   const preferredRoutes = preferredRouteOrder.filter((key) => routeKeys.includes(key));
   const remainingRoutes = routeKeys.filter((key) => !preferredRoutes.includes(key));
   routeKeys.splice(0, routeKeys.length, ...preferredRoutes, ...remainingRoutes);
@@ -62,6 +63,7 @@
       log_presence_events: 'Log evenimente cu prezență',
       tasks: 'Task-uri angajați · Embed cu butoane',
       log_tasks: 'Log task-uri angajați',
+      log_task_responses: 'Log răspunsuri task-uri',
       log_contract_identity_weekly: 'Log raport săptămânal contracte',
       calculator: 'Calculator legal · Embed cu butoane',
       illegal_calculator: 'Calculator ilegal · Embed cu butoane',

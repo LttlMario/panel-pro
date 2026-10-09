@@ -53,7 +53,7 @@ const PANEL_ROUTE_LABELS: Record<string, string> = {
   requests_organization: 'Învoiri organizație', requests_departments: 'Învoiri angajați', log_requests_organization: 'Log învoiri organizație', log_requests_departments: 'Log învoiri angajați',
   contracts: 'Contracte', log_contracts: 'Log contracte', log_discipline_organization: 'Log avertismente și amenzi organizație', log_discipline_departments: 'Log avertismente și amenzi angajați', log_actions_organization: 'Log acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
   stash: 'Stash', log_stash: 'Log Stash', stash_requests: 'Cereri Stash', log_stash_requests: 'Log cereri Stash', stash_donations: 'Donații Stash', log_stash_donations: 'Log donații Stash',
-  marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', presence_events: 'Evenimente cu prezență', log_presence_events: 'Log evenimente cu prezență', tasks: 'Task-uri angajați', log_tasks: 'Log task-uri', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
+  marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', presence_events: 'Evenimente cu prezență', log_presence_events: 'Log evenimente cu prezență', tasks: 'Task-uri angajați', log_tasks: 'Log task-uri', log_task_responses: 'Log răspunsuri task-uri', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
   calculator: 'Calculator legal', illegal_calculator: 'Calculator ilegal', illegal_locations: 'Locații ilegale', wheel_timer: 'Roată · timer personal',
 };
 const panelRouteKeys = Object.keys(PANEL_ROUTE_LABELS);
@@ -485,6 +485,27 @@ async function publishTaskLog(db: any, context: any, task: any, messageId = '') 
   return String(body?.id || messageId || '');
 }
 
+async function publishTaskDecisionLog(db: any, task: any, status: string) {
+  const [{ data: settings }, { data: guild }] = await Promise.all([
+    db.from('organization_settings').select('discord_channel_routes').eq('organization_id', task.organization_id).maybeSingle(),
+    db.from('organization_guilds').select('kind').eq('organization_id', task.organization_id).eq('guild_id', task.guild_id).maybeSingle(),
+  ]);
+  const target = String(guild?.kind || '') === 'secondary' ? 'secondary' : 'primary';
+  const configured = settings?.discord_channel_routes?.log_task_responses || {};
+  const route = configured?.[target] || Object.values(configured).find((item: any) => String(item?.channel_id || '').trim());
+  const channelId = String(route?.channel_id || '').trim();
+  if (!channelId) return;
+  const accepted = status === 'accepted';
+  const payload = { allowed_mentions: { parse: [] }, embeds: [{ title: `${accepted ? '✅' : '❌'} Task ${accepted ? 'acceptat' : 'refuzat'}`, color: accepted ? 0x22c55e : 0xef4444, fields: [
+    { name: 'Task', value: String(task.title || 'Task').slice(0, 1024), inline: false },
+    { name: 'Angajat', value: `<@${String(task.assignee_discord_id || '')}>`, inline: true },
+    { name: 'Termen-limită', value: taskDeadlineLabel(task.due_at), inline: true },
+    { name: 'Răspuns', value: accepted ? 'Taskul a fost acceptat.' : 'Taskul a fost refuzat.', inline: false },
+  ], timestamp: new Date().toISOString(), footer: { text: PANEL_FOOTER } }] };
+  const response = await requestDiscordTarget(db, { target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'POST' });
+  if (!response.ok) console.warn('[discord-interactions] task decision log failed', response.status);
+}
+
 async function createTask(db: any, context: any, values: Record<string, string>) {
   const assignee = taskUserId(values.assignee);
   const title = String(values.title || '').trim();
@@ -526,6 +547,7 @@ async function handleTaskDmAction(db: any, interaction: any, action: string, tas
   const guild = await db.from('organization_guilds').select('kind').eq('organization_id', task.organization_id).eq('guild_id', task.guild_id).maybeSingle();
   const context = { target: String(guild.data?.kind || '') === 'secondary' ? 'secondary' : 'primary', settings: logRoute.data || {} };
   if (updated.log_message_id) await publishTaskLog(db, context, updated, String(updated.log_message_id));
+  await publishTaskDecisionLog(db, updated, updated.status);
   return interactionMessage(accepted ? 'Taskul a fost acceptat și statusul a fost actualizat în log.' : 'Taskul a fost refuzat și statusul a fost actualizat în log.');
 }
 
