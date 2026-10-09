@@ -17,6 +17,7 @@
   let loadPromise = null;
   const communityQueryTimeoutMs = 15000;
   const $=s=>document.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  if ($('#post-type') && !$('#post-type option[value="proposal"]')) $('#post-type').insertAdjacentHTML('beforeend','<option value="proposal">Propunere</option>');
   const invoke=async(body)=>{const token=window.getPanelDiscordAccessToken?.()||'',panelSession=localStorage.getItem('panel_session_token')||'';if(!panelSession){requestFreshLogin();throw new Error('Sesiunea securizată a panelului lipsește. Autentifică-te din nou.')}const controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),communityQueryTimeoutMs);let res;try{res=await fetch(`${URL}/functions/v1/manage-community-posts`,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:`Bearer ${KEY}`,'x-panel-session':panelSession},body:JSON.stringify({...body,...(token?{access_token:token}:{})}),signal:controller.signal})}catch(error){if(error?.name==='AbortError')throw new Error('Verificarea permisiunilor a durat prea mult. Verifică internetul și încearcă din nou.');throw error}finally{window.clearTimeout(timeout)}let json={};try{json=await res.json()}catch{json={}}if(res.status===401){requestFreshLogin();throw new Error('Sesiunea panelului a expirat. Autentifică-te din nou.')}if(!res.ok){
     console.error("EDGE ERROR RESPONSE:", json);
     throw new Error(
@@ -124,11 +125,13 @@ async function loadNow() {
     }
 
     const pollPostIds = (postResult.data || []).filter(post => post.post_type === 'poll').map(post => post.id).filter(Boolean);
-    const [optionResult, reactionResult, voteResult, readResult] = await Promise.all([
+    const proposalPostIds = (postResult.data || []).filter(post => post.post_type === 'proposal').map(post => post.id).filter(Boolean);
+    const [optionResult, reactionResult, voteResult, readResult, proposalVoteResult] = await Promise.all([
         pollPostIds.length ? runCommunityQuery((signal) => db.from('community_poll_options').select('id,post_id,option_text,position').eq('organization_id', organizationId).in('post_id', pollPostIds).abortSignal(signal)) : Promise.resolve({ data: [], error: null }),
         runCommunityQuery((signal) => db.from('community_reactions').select('post_id,user_discord_id,reaction').eq('organization_id', organizationId).in('post_id', postIds).abortSignal(signal)),
         pollPostIds.length ? runCommunityQuery((signal) => db.from('community_poll_votes').select('post_id,option_id,user_discord_id').eq('organization_id', organizationId).in('post_id', pollPostIds).abortSignal(signal)) : Promise.resolve({ data: [], error: null }),
-        runCommunityQuery((signal) => db.from('community_post_reads').select('post_id,user_discord_id,display_name,confirmed_at').eq('organization_id', organizationId).in('post_id', postIds).order('confirmed_at').abortSignal(signal))
+        runCommunityQuery((signal) => db.from('community_post_reads').select('post_id,user_discord_id,display_name,confirmed_at').eq('organization_id', organizationId).in('post_id', postIds).order('confirmed_at').abortSignal(signal)),
+        proposalPostIds.length ? runCommunityQuery((signal) => db.from('community_proposal_votes').select('post_id,user_discord_id,display_name,vote,created_at').eq('organization_id', organizationId).in('post_id', proposalPostIds).abortSignal(signal)) : Promise.resolve({ data: [], error: null })
     ]);
 
     const voterIds = [...new Set((voteResult.data || [])
@@ -144,6 +147,7 @@ async function loadNow() {
         reactionResult.error ||
         voteResult.error ||
         readResult.error ||
+        proposalVoteResult.error ||
         userResult.error;
 
     if (error) {
@@ -176,6 +180,10 @@ async function loadNow() {
 
         community_post_reads:
             (readResult.data || [])
+                .filter(x => x.post_id === post.id),
+
+        community_proposal_votes:
+            (proposalVoteResult.data || [])
                 .filter(x => x.post_id === post.id),
 
         community_voters: voters
@@ -215,7 +223,8 @@ async function load(){
 .filter(Boolean)
 .filter(p =>
     filter==='all' ||
-    (filter==='announcements' && p.post_type!=='poll' && p.post_type!=='fine') ||
+    (filter==='announcements' && p.post_type!=='poll' && p.post_type!=='fine' && p.post_type!=='proposal') ||
+    (filter==='proposal' && p.post_type==='proposal') ||
     (filter==='poll' && p.post_type==='poll') ||
     p.audience===filter ||
     (filter==='fine' && p.post_type==='fine') ||
@@ -232,8 +241,16 @@ async function load(){
           (writeAudiences.includes(p.audience) && own);
 
       const reactions = ['✅','❌','👍','❤️','🤔'];
+      if (p.post_type === 'proposal') {
+        const proposalVotes = p.community_proposal_votes || [];
+        const myProposalVote = proposalVotes.find(v => String(v.user_discord_id) === String(user.discord_id || user.id));
+        const support = proposalVotes.filter(v => v.vote === 'support').length;
+        const against = proposalVotes.filter(v => v.vote === 'against').length;
+        const status = ({new:'Nouă',review:'În analiză',accepted:'Acceptată',rejected:'Respinsă'})[p.proposal_status || 'new'] || 'Nouă';
+        return `<article id="post-${p.id}" class="post"><div class="community-head"><div class="badges"><span class="badge ${p.audience}">${p.audience==='organization'?'Organizație':'Birouri / Angajați'}</span><span class="badge">Propunere · ${status}</span></div></div><h3>${esc(p.title)}</h3><div class="post-body">${esc(p.content)}</div><div class="proposal-votes">✅ Susțin: <b>${support}</b> · ❌ Contra: <b>${against}</b></div><div class="community-actions"><button class="reaction ${myProposalVote?.vote==='support'?'selected':''}" data-proposal-vote="support" data-proposal-id="${p.id}">✅ Susțin</button><button class="reaction ${myProposalVote?.vote==='against'?'selected':''}" data-proposal-vote="against" data-proposal-id="${p.id}">❌ Contra</button>${manage?`<div class="owner-actions"><button class="text-action" data-proposal-status="accepted" data-proposal-id="${p.id}">Acceptă</button><button class="text-action danger" data-proposal-status="rejected" data-proposal-id="${p.id}">Respinge</button></div>`:''}</div></article>`;
+      }
     const reads=p.community_post_reads||[],hasRead=reads.some(x=>String(x.user_discord_id)===String(user.discord_id||user.id)),votes=p.community_poll_votes||[],myVote=votes.find(v=>String(v.user_discord_id)===String(user.discord_id||user.id)),people=p.community_voters||[];const poll=p.post_type==='poll'?`<div class="poll">${(p.community_poll_options||[]).sort((a,b)=>a.position-b.position).map(o=>{const optionVotes=votes.filter(v=>v.option_id===o.id),pc=votes.length?Math.round(optionVotes.length*100/votes.length):0,names=optionVotes.map(v=>{const person=people.find(x=>String(x.discord_id)===String(v.user_discord_id));return esc(person?.display_name||person?.username||v.user_discord_id)});return `<div class="poll-choice"><button class="poll-option" data-vote="${o.id}"><span class="poll-bar" style="width:${pc}%"></span><span class="poll-content"><span>${esc(o.option_text)}${myVote?.option_id===o.id?' ✓':''}</span><b>${pc}% · ${optionVotes.length}</b></span></button><details class="poll-voters"><summary>👥 Vezi cine a votat (${optionVotes.length})</summary><div>${names.length?names.map(n=>`<span>${n}</span>`).join(''):'<em>Nu a votat nimeni.</em>'}</div></details></div>`}).join('')}</div>`:'';const readNames=reads.map(x=>esc(x.display_name||x.user_discord_id));return `<article id="post-${p.id}" class="post"><div class="community-head"><div class="badges"><span class="badge ${p.audience}">${p.audience==='organization'?'Organizație':'Birouri / Angajați'}</span><span class="badge">${p.post_type==='poll'?'Sondaj':p.post_type==='question'?'Întrebare':'Anunț'}</span></div></div><h3>${esc(p.title)}</h3><div class="post-body">${esc(p.content)}</div>${poll}<div class="meta">${esc(p.author_name)} · ${new Date(p.created_at).toLocaleString('ro-RO')}</div><div class="community-actions"><div class="reactions"><button class="reaction ${hasRead?'selected':''}" data-read="${p.id}">✅ Am citit ${reads.length}</button></div>${reads.length?`<details class="poll-voters"><summary>Vezi cine a citit</summary><div>${readNames.map(n=>`<span>${n}</span>`).join('')}</div></details>`:''}${manage?`<div class="owner-actions"><button class="text-action" data-edit="${p.id}">Editează</button><button class="text-action danger" data-delete="${p.id}">Șterge</button></div>`:''}</div></article>`}
-  function bindCards(){$$('[data-read]').forEach(b=>b.onclick=()=>withFeedback(b,act('read',{post_id:b.dataset.read})));$$('[data-vote]').forEach(b=>b.onclick=()=>withFeedback(b,act('vote',{post_id:b.closest('.post').id.slice(5),option_id:b.dataset.vote})));$$('[data-delete]').forEach(b=>b.onclick=async()=>{if(confirm('Ștergi definitiv această postare?'))await act('delete',{post_id:b.dataset.delete})});$$('[data-edit]').forEach(b=>b.onclick=()=>openEdit(b.dataset.edit))}
+  function bindCards(){$$('[data-read]').forEach(b=>b.onclick=()=>withFeedback(b,act('read',{post_id:b.dataset.read})));$$('[data-vote]').forEach(b=>b.onclick=()=>withFeedback(b,act('vote',{post_id:b.closest('.post').id.slice(5),option_id:b.dataset.vote})));$$('[data-proposal-vote]').forEach(b=>b.onclick=()=>withFeedback(b,act('proposal_vote',{post_id:b.dataset.proposalId,vote:b.dataset.proposalVote})));$$('[data-proposal-status]').forEach(b=>b.onclick=()=>withFeedback(b,act('proposal_status',{post_id:b.dataset.proposalId,status:b.dataset.proposalStatus})));$$('[data-delete]').forEach(b=>b.onclick=async()=>{if(confirm('Ștergi definitiv această postare?'))await act('delete',{post_id:b.dataset.delete})});$$('[data-edit]').forEach(b=>b.onclick=()=>openEdit(b.dataset.edit))}
   async function withFeedback(button,promise){button.style.opacity='.55';button.style.pointerEvents='none';button.disabled=true;try{await promise}finally{button.style.opacity='';button.style.pointerEvents='';button.disabled=false}}
   const $$=s=>[...document.querySelectorAll(s)];async function act(action,payload){
     try{

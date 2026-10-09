@@ -13,6 +13,7 @@ const communityReactionChoices = ['✅', '❌', '👍', '❤️', '🤔'];
 const communityPostComponents = (post:any, options:string[] = []) => {
     const audience = post.audience === 'departments' ? 'departments' : 'organization';
     const rows:any[] = [];
+    if (post.post_type === 'proposal') return [{ type: 1, components: [{ type: 2, style: 3, label: '✅ Susțin', custom_id: `panel:proposals:${audience}:support:${post.id}` }, { type: 2, style: 4, label: '❌ Contra', custom_id: `panel:proposals:${audience}:against:${post.id}` }] }, { type: 1, components: [{ type: 2, style: 2, label: '🔎 În analiză', custom_id: `panel:proposals:${audience}:review:${post.id}` }, { type: 2, style: 3, label: '✅ Acceptă', custom_id: `panel:proposals:${audience}:accept:${post.id}` }, { type: 2, style: 4, label: '❌ Respinge', custom_id: `panel:proposals:${audience}:reject:${post.id}` }] }];
     if (post.post_type === 'poll') {
         const pollOptions = options.slice(0, 10);
         for (let index = 0; index < pollOptions.length; index += 5) rows.push({ type: 1, components: pollOptions.slice(index, index + 5).map((option:string, optionIndex:number) => ({ type: 2, style: 1, label: option.slice(0, 80), custom_id: `panel:announcements:${audience}:vote:${post.id}:${index + optionIndex}` })) });
@@ -64,6 +65,7 @@ const { data: permissionSettings, error: permissionSettingsError } =
             'page_permissions',
             'action_permissions',
             'communication_permissions',
+            'proposal_permissions',
             'discipline_permissions',
             'organization_package'
         ]);
@@ -99,6 +101,8 @@ const communicationSetting =
 const communicationPermissions = communicationSetting?.value && typeof communicationSetting.value === 'object'
     ? communicationSetting.value
     : {};
+const proposalSetting = (permissionSettings || []).find(item => item.key === 'proposal_permissions');
+const proposalPermissions = proposalSetting?.value && typeof proposalSetting.value === 'object' ? proposalSetting.value : {};
 const disciplineSetting =
     (permissionSettings || []).find(item => item.key === 'discipline_permissions');
 const disciplinePermissions = disciplineSetting?.value && typeof disciplineSetting.value === 'object'
@@ -571,6 +575,7 @@ const canForAudience = (audience:string, kind:'read'|'write') =>
 const canManageAudience = (audience:string) => communicationSetting
     ? canForAudience(audience, 'write')
     : canPublishAnnouncements;
+const canProposal = (audience:string, kind:'read'|'write') => isPlatformAdmin || effectiveRoleIdsForAudience(audience).some(roleId => (Array.isArray(proposalPermissions?.[audience]?.[kind]) ? proposalPermissions[audience][kind] : []).map(String).includes(String(roleId)));
 const disciplineRoles = (scope:string, action:'read'|'write'|'sanction') =>
     Array.isArray(disciplinePermissions?.[scope]?.[action])
         ? disciplinePermissions[scope][action].map(String)
@@ -644,7 +649,7 @@ const notifyDisciplineDiscord = async (kind:'warning'|'sanction', record:any) =>
         .eq('organization_id', organizationId)
         .maybeSingle();
     const audience = record.target_scope === 'departments' ? 'departments' : 'organization';
-    const routeKey = audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
+    const routeKey = post.post_type === 'proposal' ? 'proposals' : audience === 'departments' ? 'log_announcements_departments' : 'log_announcements_organization';
     if (!routeCandidates(settings, routeKey).some((item) => item.candidates.length)) return null;
     const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
     const detailUrl = `${site}/anunturi.html?discipline=${kind}&id=${record.id}`;
@@ -790,7 +795,10 @@ const own = async (id:string) => {
     if (!['organization', 'departments'].includes(body.audience)) {
         throw new Error('Alege Organizație sau Birouri / Angajați.');
     }
-    if (communicationSetting && !canForAudience(String(body.audience), 'write')) {
+    if (body.post_type === 'proposal' && !canProposal(String(body.audience), 'read')) {
+        return reply({ error: 'Rolul tău nu poate trimite propuneri pentru această audiență.' }, 403);
+    }
+    if (body.post_type !== 'proposal' && communicationSetting && !canForAudience(String(body.audience), 'write')) {
         return reply({ error: 'Rolul tău nu poate publica pentru această audiență.' }, 403);
     }
 
@@ -949,6 +957,8 @@ if(body.action==='marketplace_delete'){
  if(body.action==='read'){const postId=String(body.post_id||'').trim();if(!postId)return reply({error:'Postarea lipsește.'},400);const {data:post,error:postError}=await db.from('community_posts').select('id,audience').eq('organization_id',organizationId).eq('id',postId).maybeSingle();if(postError)throw postError;if(!post)return reply({error:'Postarea nu există.'},404);if(!hasCommunicationFeature(String(post.audience||'organization')))return reply({error:'Modulul Anunțuri nu este disponibil.'},403);const {data:profile}=await db.from('users').select('display_name,username').eq('discord_id',du.id).maybeSingle();const {error}=await db.from('community_post_reads').upsert({organization_id:organizationId,post_id:postId,user_discord_id:du.id,display_name:profile?.display_name||profile?.username||du.id,confirmed_at:new Date().toISOString()},{onConflict:'post_id,user_discord_id'});if(error)throw error;return reply({ok:true})}
  if(body.action==='react'){const reaction=String(body.reaction||'');if(!allowedCommunityReactions.has(reaction))return reply({error:'Reacție invalidă.'},400);const key={organization_id:organizationId,post_id:body.post_id,user_discord_id:du.id,reaction};const {data}=await db.from('community_reactions').select('id').match(key).maybeSingle();const q=data?db.from('community_reactions').delete().eq('organization_id',organizationId).eq('id',data.id):db.from('community_reactions').insert(key);const {error}=await q;if(error)throw error;return reply({ok:true})}
  if(body.action==='vote'){const {data:option}=await db.from('community_poll_options').select('post_id').eq('organization_id',organizationId).eq('id',body.option_id).single();if(!option||option.post_id!==body.post_id)throw new Error('Opțiune invalidă.');const {error}=await db.from('community_poll_votes').upsert({organization_id:organizationId,post_id:body.post_id,option_id:body.option_id,user_discord_id:du.id},{onConflict:'post_id,user_discord_id'});if(error)throw error;await updateDiscordPoll(body.post_id);return reply({ok:true})}
+ if(body.action==='proposal_vote'){const postId=String(body.post_id||'').trim(),vote=String(body.vote||'');if(!['support','against'].includes(vote))return reply({error:'Vot invalid.'},400);const {data:post,error:postError}=await db.from('community_posts').select('id,audience,post_type').eq('organization_id',organizationId).eq('id',postId).maybeSingle();if(postError)throw postError;if(!post||post.post_type!=='proposal')return reply({error:'Propunerea nu există.'},404);if(!canProposal(String(post.audience||'organization'),'read'))return reply({error:'Nu ai acces la această propunere.'},403);const {data:profile}=await db.from('users').select('display_name,username').eq('discord_id',du.id).maybeSingle();const {error}=await db.from('community_proposal_votes').upsert({organization_id:organizationId,post_id:postId,user_discord_id:du.id,display_name:profile?.display_name||profile?.username||du.id,vote,updated_at:new Date().toISOString()},{onConflict:'post_id,user_discord_id'});if(error)throw error;return reply({ok:true})}
+ if(body.action==='proposal_status'){const postId=String(body.post_id||'').trim(),status=String(body.status||'');if(!['review','accepted','rejected'].includes(status))return reply({error:'Status invalid.'},400);const {data:post,error:postError}=await db.from('community_posts').select('id,audience,post_type').eq('organization_id',organizationId).eq('id',postId).maybeSingle();if(postError)throw postError;if(!post||post.post_type!=='proposal')return reply({error:'Propunerea nu există.'},404);if(!canProposal(String(post.audience||'organization'),'write'))return reply({error:'Rolul tău nu poate schimba statusul propunerii.'},403);const {error}=await db.from('community_posts').update({proposal_status:status,proposal_decision_note:`Actualizat de ${du.id}`,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',postId);if(error)throw error;return reply({ok:true})}
  return reply({error:'Acțiune necunoscută.'},400);
 const notifyCommunityLog = async (post:any, action:string) => {
     const { data: settings } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
@@ -1002,6 +1012,12 @@ async function notifyDiscord(post:any, options:string[], audience:string){
 
 
     const fields:Array<{name:string,value:string}> = [];
+    if (post.post_type === 'proposal') {
+        const { data: proposalVotes } = await db.from('community_proposal_votes').select('vote,display_name,user_discord_id').eq('organization_id', organizationId).eq('post_id', post.id);
+        const votes = proposalVotes || [];
+        fields.push({ name: '📌 Status', value: ({new:'🆕 Nouă',review:'🔎 În analiză',accepted:'✅ Acceptată',rejected:'❌ Respinsă'} as any)[post.proposal_status || 'new'] || '🆕 Nouă' });
+        fields.push({ name: '📊 Voturi', value: `✅ Susțin: ${votes.filter((v:any)=>v.vote==='support').length}\n❌ Contra: ${votes.filter((v:any)=>v.vote==='against').length}` });
+    }
     const { data: reads } = await db.from('community_post_reads').select('display_name,user_discord_id').eq('organization_id', organizationId).eq('post_id', post.id).order('confirmed_at');
     const readNames = (reads || []).map((item:any) => String(item.display_name || item.user_discord_id || 'Membru').slice(0, 80));
     fields.push({ name: `✅ Au citit (${readNames.length})`, value: readNames.length ? readNames.map((name:string) => `• ${name}`).join('\n').slice(0, 1024) : 'Nimeni nu a confirmat încă.' });
@@ -1032,7 +1048,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
         embeds: [{
             title: post.title,
             description: post.content,
-            color: audience === 'organization' ? 5865 : 3447003,
+            color: post.post_type === 'proposal' ? 0xa855f7 : audience === 'organization' ? 5865 : 3447003,
             fields,
             url: postUrl,
             footer: { text: `${post.post_type === 'poll' ? 'Sondaj' : post.post_type === 'question' ? 'Întrebare' : 'Anunț'} • ${post.author_name}` }

@@ -5,7 +5,7 @@ import { packageAllowsPage as packagePageAllowed, resolvePackageFeatures } from 
 const headers = { 'Access-Control-Allow-Origin': 'https://panel-pro.ro', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-panel-session', 'Access-Control-Max-Age': '86400', 'Content-Type': 'application/json' };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const validGuild = (value: string) => /^\d{15,22}$/.test(value);
-const webhookChannels = new Set(['organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization', 'requests_departments', 'contracts', 'contract_uploads', 'log_contracts', 'contract_identity_weekly', 'marketplace', 'illegal_marketplace', 'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'sanctions_organization', 'sanctions_departments', 'actions_organization', 'actions_organization_weekly', 'event_reminders', 'presence_events', 'log_presence_events', 'tasks', 'log_tasks', 'status_live', 'organization_expiration']);
+const webhookChannels = new Set(['organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization', 'requests_departments', 'contracts', 'contract_uploads', 'log_contracts', 'contract_identity_weekly', 'marketplace', 'illegal_marketplace', 'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'sanctions_organization', 'sanctions_departments', 'actions_organization', 'actions_organization_weekly', 'event_reminders', 'presence_events', 'log_presence_events', 'tasks', 'log_tasks', 'proposals', 'log_proposals', 'status_live', 'organization_expiration']);
 const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
 const operationsWebhookChannels = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'actions_organization', 'event_reminders', 'illegal_marketplace', 'organization_expiration']);
 const standardWebhookChannels = new Set(['departments', 'pontaj', 'weekly_reports', 'event_reminders', 'contracts', 'contract_uploads', 'log_contracts', 'contract_identity_weekly', 'marketplace', 'fines_departments', 'warnings_departments', 'sanctions_departments', 'status_live', 'organization_expiration', 'tasks', 'log_tasks']);
@@ -151,6 +151,12 @@ Deno.serve(async (req) => {
         departments: packageAllowsFeature('announcements_departments') ? { read: clean('departments', 'read'), write: clean('departments', 'write') } : { read: [], write: [] }
       };
       const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'communication_permissions', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
+      if (error) throw error;
+    }
+    if (body.proposal_permissions && typeof body.proposal_permissions === 'object') {
+      const clean = (audience: string, kind: string) => [...new Set((Array.isArray(body.proposal_permissions[audience]?.[kind]) ? body.proposal_permissions[audience][kind] : []).map(String).filter((id) => /^\d{15,22}$/.test(id)))];
+      const value = { organization: { read: clean('organization', 'read'), write: clean('organization', 'write') }, departments: { read: clean('departments', 'read'), write: clean('departments', 'write') } };
+      const { error } = await db.from('app_settings').upsert({ organization_id: id, key: 'proposal_permissions', value, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
       if (error) throw error;
     }
     if (body.discipline_permissions && typeof body.discipline_permissions === 'object') {

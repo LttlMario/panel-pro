@@ -86,6 +86,8 @@ const channelRoutes=new Set([
   'log_comenzi',
   'tasks',
   'log_tasks',
+  'proposals',
+  'log_proposals',
   'log_actions_organization',
   'log_marketplace',
   'log_illegal_marketplace',
@@ -271,6 +273,7 @@ Deno.serve(async request=>{
               'action_permissions',
               'global_permissions',
               'communication_permissions',
+              'proposal_permissions',
               'discipline_permissions',
               'organization_package',
               'limited_module_roles'
@@ -852,6 +855,12 @@ if(
     value: communicationPermissions,
     updated_at: new Date().toISOString()
   }, { onConflict: 'organization_id,key' });
+  if(error) throw error;
+}
+if (body.proposal_permissions && typeof body.proposal_permissions === 'object') {
+  const clean = (audience:string, kind:string) => [...new Set((Array.isArray(body.proposal_permissions[audience]?.[kind]) ? body.proposal_permissions[audience][kind] : []).map(String).filter(id => /^\d{15,22}$/.test(id)).filter(id => !limitedRoleIds.has(id)))];
+  const proposalPermissions = { organization: { read: clean('organization','read'), write: clean('organization','write') }, departments: { read: clean('departments','read'), write: clean('departments','write') } };
+  const { error } = await db.from('app_settings').upsert({ organization_id: organizationId, key: 'proposal_permissions', value: proposalPermissions, updated_at: new Date().toISOString() }, { onConflict: 'organization_id,key' });
   if(error) throw error;
 }
 if (

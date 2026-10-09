@@ -54,12 +54,14 @@ const PANEL_ROUTE_LABELS: Record<string, string> = {
   contracts: 'Contracte', log_contracts: 'Log contracte', log_discipline_organization: 'Log avertismente și amenzi organizație', log_discipline_departments: 'Log avertismente și amenzi angajați', log_actions_organization: 'Log acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
   stash: 'Stash', log_stash: 'Log Stash', stash_requests: 'Cereri Stash', log_stash_requests: 'Log cereri Stash', stash_donations: 'Donații Stash', log_stash_donations: 'Log donații Stash',
   marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', presence_events: 'Evenimente cu prezență', log_presence_events: 'Log evenimente cu prezență', tasks: 'Task-uri angajați', log_tasks: 'Log task-uri', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
+  proposals: 'Propuneri', log_proposals: 'Log propuneri',
   calculator: 'Calculator legal', illegal_calculator: 'Calculator ilegal', illegal_locations: 'Locații ilegale', wheel_timer: 'Roată · timer personal',
 };
 const panelRouteKeys = Object.keys(PANEL_ROUTE_LABELS);
 const PANEL_LOG_ROUTES: Record<string, string> = {
   organization: 'log_announcements_organization', departments: 'log_announcements_departments', pontaj: 'log_pontaj',
   requests_organization: 'log_requests_organization', requests_departments: 'log_requests_departments', contracts: 'log_contracts', presence_events: 'log_presence_events', tasks: 'log_tasks',
+  proposals: 'log_proposals',
   actions_organization: 'log_actions_organization', fines_organization: 'log_announcements_organization', fines_departments: 'log_announcements_departments', warnings_organization: 'log_announcements_organization', warnings_departments: 'log_announcements_departments', sanctions_organization: 'log_announcements_organization', sanctions_departments: 'log_announcements_departments', marketplace: 'log_marketplace', illegal_marketplace: 'log_illegal_marketplace', event_reminders: 'log_event_reminders', contract_identity_weekly: 'log_contract_identity_weekly', stash: 'log_stash', stash_requests: 'log_stash', stash_donations: 'log_stash',
 };
 const DISCIPLINE_LOG_ROUTES: Record<string, string> = {
@@ -161,6 +163,7 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
     illegal_locations: { title: '🗺️ Locații ilegale · Panel Pro', description: 'Alege harta. Embedul se actualizează direct în Discord și păstrează butoanele pentru cele 3 zone.', color: 0xef4444, buttons: [{ label: 'Los Santos', style: 4, id: 'panel:illegal_locations:map:ls' }, { label: 'Cayo Perico', style: 4, id: 'panel:illegal_locations:map:cayo' }, { label: 'Maldive', style: 4, id: 'panel:illegal_locations:map:maldive' }] },
     wheel_timer: { title: '🎡 Roată · timer personal', description: 'Pornește timerul personal de 6 ore și verifică timpul rămas. Răspunsurile sunt private pentru fiecare utilizator.', color: 0x06b6d4, buttons: [{ label: 'Am dat la roată', style: 1, id: 'panel:wheel:start' }, { label: 'Verifică timpul', style: 2, id: 'panel:wheel:status' }] },
     tasks: { title: '📋 Task-uri angajați · Panel Pro', description: 'Creează taskuri cu termen-limită. Angajatul primește mesaj privat și poate accepta sau refuza taskul.', color: 0xf59e0b, buttons: [{ label: 'Creează task', style: 1, id: 'panel:tasks:create' }] },
+    proposals: { title: '💡 Propuneri · Panel Pro', description: 'Trimite idei, votează propunerile și urmărește statusul lor.', color: 0xa855f7, buttons: [{ label: 'Trimite propunere', style: 1, id: 'panel:proposals:organization:create' }] },
   };
   const definition = definitions[routeKey] || { title: `⚙️ ${PANEL_ROUTE_LABELS[routeKey] || 'Panel Pro'}`, description: 'Embed de administrare Panel Pro.', color: 0x5865f2, buttons: [] };
     const components: any[] = [];
@@ -975,6 +978,24 @@ function announcementRoutes(audience: 'organization' | 'departments') {
     : { control: 'departments', log: 'log_announcements_departments' };
 }
 
+function proposalStatusLabel(status: string) {
+  return ({ new: '🆕 Nouă', review: '🔎 În analiză', accepted: '✅ Acceptată', rejected: '❌ Respinsă' } as Record<string, string>)[String(status || 'new')] || '🆕 Nouă';
+}
+
+function proposalComponents(post: any, audience: 'organization' | 'departments') {
+  return [
+    { type: 1, components: [
+      { type: 2, style: 3, label: '✅ Susțin', custom_id: `panel:proposals:${audience}:support:${post.id}` },
+      { type: 2, style: 4, label: '❌ Contra', custom_id: `panel:proposals:${audience}:against:${post.id}` },
+    ] },
+    { type: 1, components: [
+      { type: 2, style: 2, label: '🔎 În analiză', custom_id: `panel:proposals:${audience}:review:${post.id}` },
+      { type: 2, style: 3, label: '✅ Acceptă', custom_id: `panel:proposals:${audience}:accept:${post.id}` },
+      { type: 2, style: 4, label: '❌ Respinge', custom_id: `panel:proposals:${audience}:reject:${post.id}` },
+    ] },
+  ];
+}
+
 function configuredRouteForChannel(settings: any, routeKey: string, target: string, channelId: string) {
   const route = settings?.discord_channel_routes?.[routeKey] || {};
   const configured = route?.[target];
@@ -1026,13 +1047,16 @@ async function resolveAnnouncementContext(db: any, interaction: any, audience: '
   if (settingsError) throw settingsError;
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
   const routes = announcementRoutes(audience);
+  const proposalInteraction = String(interaction?.data?.custom_id || '').startsWith('panel:proposals:');
   const messageId = interactionMessageId(interaction);
-  if (!(await routeChannelMatches(db, guild.organization_id, settings, routes.control, target, channelId, messageId)) && !(await routeChannelMatches(db, guild.organization_id, settings, routes.log, target, channelId, messageId))) throw new Error(`Acest canal nu este configurat pentru panoul ${audience === 'organization' ? 'Anunțuri · Organizație' : 'Anunțuri · Angajați'}.`);
+  const proposalRouteMatches = proposalInteraction && (await routeChannelMatches(db, guild.organization_id, settings, 'proposals', target, channelId, messageId) || await routeChannelMatches(db, guild.organization_id, settings, 'log_proposals', target, channelId, messageId));
+  if (!proposalRouteMatches && !(await routeChannelMatches(db, guild.organization_id, settings, routes.control, target, channelId, messageId)) && !(await routeChannelMatches(db, guild.organization_id, settings, routes.log, target, channelId, messageId))) throw new Error(`Acest canal nu este configurat pentru panoul ${audience === 'organization' ? 'Anunțuri · Organizație' : 'Anunțuri · Angajați'}.`);
 
-  const { data: permissionSettings, error: permissionError } = await db.from('app_settings').select('key,value').eq('organization_id', guild.organization_id).in('key', ['communication_permissions', 'page_permissions', 'action_permissions', 'organization_package']);
+  const { data: permissionSettings, error: permissionError } = await db.from('app_settings').select('key,value').eq('organization_id', guild.organization_id).in('key', ['communication_permissions', 'proposal_permissions', 'page_permissions', 'action_permissions', 'organization_package']);
   if (permissionError) throw permissionError;
   const byKey = new Map((permissionSettings || []).map((item: any) => [String(item.key), item.value]));
   const communication = byKey.get('communication_permissions');
+  const proposalPermissions = byKey.get('proposal_permissions');
   const communicationConfigured = communication && typeof communication === 'object';
   const pagePermissions = byKey.get('page_permissions') && typeof byKey.get('page_permissions') === 'object' ? byKey.get('page_permissions') : {};
   const actionPermissions = byKey.get('action_permissions') && typeof byKey.get('action_permissions') === 'object' ? byKey.get('action_permissions') : {};
@@ -1052,14 +1076,17 @@ async function resolveAnnouncementContext(db: any, interaction: any, audience: '
   for (const mapping of mappings || []) {
     if (activePanelRole && String(mapping.panel_role || '').trim().toLowerCase() === activePanelRole) effectiveRoleIds.add(String(mapping.discord_role_id));
   }
-  const configuredRoles = communicationConfigured
+  const configuredRoles = proposalInteraction
+    ? (Array.isArray(proposalPermissions?.[audience]?.[permission]) ? proposalPermissions[audience][permission].map(String) : [])
+    : communicationConfigured
     ? (Array.isArray(communication?.[audience]?.[permission]) ? communication[audience][permission].map(String) : [])
     : (permission === 'read' ? (Array.isArray(pagePermissions['anunturi.html']) ? pagePermissions['anunturi.html'].map(String) : []) : (Array.isArray(actionPermissions['anunturi.publish']) ? actionPermissions['anunturi.publish'].map(String) : []));
   const hasAccess = platformAdmin || discordOnly || packageFeatures.includes(feature);
   if (!hasAccess) throw new Error(`Nu ai permisiunea de ${permission === 'read' ? 'citire' : 'scriere'} pentru ${audience === 'organization' ? 'Anunțuri · Organizație' : 'Anunțuri · Angajați'}.`);
   if (!platformAdmin && !matchedMapping && !organizationMember) throw new Error('Contul tău nu este membru activ al acestei organizații.');
+  if (proposalInteraction && !platformAdmin && (!configuredRoles.length || ![...effectiveRoleIds].some((roleId) => configuredRoles.includes(String(roleId))))) throw new Error(`Rolul tău nu poate ${permission === 'write' ? 'trimite propuneri' : 'schimba statusul propunerilor'}.`);
   const displayName = String(interaction.member?.nick || user.global_name || user.username || discordId).trim().slice(0, 120) || discordId;
-  return { guildId, channelId, target, discordId, displayName, organization, settings, platformAdmin, audience, routeKey: routes.log, controlRouteKey: routes.control, logRouteKey: routes.log, role: matchedMapping?.panel_role || organizationMember?.panel_role || 'Membru' };
+  return { guildId, channelId, target, discordId, displayName, organization, settings, platformAdmin, audience, routeKey: proposalInteraction ? 'proposals' : routes.log, controlRouteKey: proposalInteraction ? 'proposals' : routes.control, logRouteKey: proposalInteraction ? 'log_proposals' : routes.log, role: matchedMapping?.panel_role || organizationMember?.panel_role || 'Membru' };
 }
 
 async function resolveManagementContext(db: any, interaction: any, audience: 'organization' | 'departments', permission: 'read' | 'write' | 'sanction', routeKey: string, feature: string, permissionSettingKey: string, permissionKey: string) {
@@ -1436,6 +1463,7 @@ const communityReactionChoices = ['✅', '❌', '👍', '❤️', '🤔'];
 
 function communityPostComponents(post: any, options: any[] = []) {
   const audience = post.audience === 'departments' ? 'departments' : 'organization';
+  if (post.post_type === 'proposal') return proposalComponents(post, audience);
   const rows: any[] = [];
   if (post.post_type === 'poll') {
     const pollOptions = options.slice(0, 10);
@@ -1456,6 +1484,14 @@ function communityPostEmbed(post: any, options: any[] = [], votes: any[] = [], r
   const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
   const postUrl = `${site}/anunturi.html?post=${post.id}`;
   const fields: any[] = [];
+  if (post.post_type === 'proposal') {
+    const support = votes.filter((vote: any) => String(vote.vote) === 'support');
+    const against = votes.filter((vote: any) => String(vote.vote) === 'against');
+    fields.push({ name: '📌 Status', value: proposalStatusLabel(post.proposal_status), inline: true });
+    fields.push({ name: '📊 Voturi', value: `✅ Susțin: ${support.length}\n❌ Contra: ${against.length}`, inline: true });
+    fields.push({ name: '👥 Membri care au votat', value: [...support.map((item: any) => `✅ ${item.display_name || item.user_discord_id}`), ...against.map((item: any) => `❌ ${item.display_name || item.user_discord_id}`)].join('\n').slice(0, 1024) || 'Încă nu există voturi.', inline: false });
+    fields.push({ name: 'ℹ️ Cum funcționează', value: 'Folosește butoanele pentru a susține sau respinge propunerea. Statusul este schimbat de rolurile configurate în organizatii.html.', inline: false });
+  }
   if (post.post_type === 'poll') {
     const total = votes.length;
     fields.push({ name: `🗳️ Rezultate · ${total} vot${total === 1 ? '' : 'uri'}`, value: options.map((option: any) => {
@@ -1466,14 +1502,14 @@ function communityPostEmbed(post: any, options: any[] = [], votes: any[] = [], r
   }
   const readNames = reads.map((item: any) => String(item.display_name || item.user_discord_id || 'Membru').slice(0, 80));
   fields.push({ name: `✅ Au citit (${readNames.length})`, value: readNames.length ? readNames.map((name) => `• ${name}`).join('\n').slice(0, 1024) : 'Nimeni nu a confirmat încă.', inline: false });
-  fields.push({ name: post.post_type === 'poll' ? 'Votare' : 'Confirmare', value: post.post_type === 'poll' ? 'Alege o opțiune de mai jos.' : 'Folosește butonul „Am citit” pentru a confirma că ai văzut anunțul.', inline: false });
+  if (post.post_type !== 'proposal') fields.push({ name: post.post_type === 'poll' ? 'Votare' : 'Confirmare', value: post.post_type === 'poll' ? 'Alege o opțiune de mai jos.' : 'Folosește butonul „Am citit” pentru a confirma că ai văzut anunțul.', inline: false });
   return {
     title: String(post.title || 'Comunicare').slice(0, 256),
     description: String(post.content || '—').slice(0, 4096),
-    color: post.post_type === 'poll' ? 0x8b5cf6 : post.audience === 'organization' ? 0x22d3ee : 0x5865f2,
+    color: post.post_type === 'proposal' ? 0xa855f7 : post.post_type === 'poll' ? 0x8b5cf6 : post.audience === 'organization' ? 0x22d3ee : 0x5865f2,
     url: postUrl,
     fields,
-    footer: { text: `${post.post_type === 'poll' ? 'Sondaj' : post.post_type === 'question' ? 'Întrebare' : 'Anunț'} · ${audience} · ${String(post.author_name || 'Panel Pro').slice(0, 60)}` },
+    footer: { text: `${post.post_type === 'proposal' ? 'Propunere' : post.post_type === 'poll' ? 'Sondaj' : post.post_type === 'question' ? 'Întrebare' : 'Anunț'} · ${audience} · ${String(post.author_name || 'Panel Pro').slice(0, 60)}` },
     timestamp: post.updated_at || post.created_at || new Date().toISOString(),
   };
 }
@@ -1482,17 +1518,19 @@ async function loadCommunityPost(db: any, organizationId: string, postId: string
   const { data: post, error: postError } = await db.from('community_posts').select('*').eq('organization_id', organizationId).eq('id', postId).maybeSingle();
   if (postError) throw postError;
   if (!post) throw new Error('Postarea nu mai există în organizația activă.');
-  const [optionsResult, votesResult, reactionsResult, readsResult] = await Promise.all([
+  const [optionsResult, votesResult, reactionsResult, readsResult, proposalVotesResult] = await Promise.all([
     db.from('community_poll_options').select('id,post_id,option_text,position').eq('organization_id', organizationId).eq('post_id', postId).order('position'),
     db.from('community_poll_votes').select('post_id,option_id,user_discord_id').eq('organization_id', organizationId).eq('post_id', postId),
     db.from('community_reactions').select('post_id,user_discord_id,reaction').eq('organization_id', organizationId).eq('post_id', postId),
     db.from('community_post_reads').select('post_id,user_discord_id,display_name,confirmed_at').eq('organization_id', organizationId).eq('post_id', postId).order('confirmed_at'),
+    db.from('community_proposal_votes').select('post_id,user_discord_id,display_name,vote,created_at').eq('organization_id', organizationId).eq('post_id', postId),
   ]);
   if (optionsResult.error) throw optionsResult.error;
   if (votesResult.error) throw votesResult.error;
   if (reactionsResult.error) throw reactionsResult.error;
   if (readsResult.error) throw readsResult.error;
-  return { post, options: optionsResult.data || [], votes: votesResult.data || [], reactions: reactionsResult.data || [], reads: readsResult.data || [] };
+  if (proposalVotesResult.error && post.post_type === 'proposal') throw proposalVotesResult.error;
+  return { post, options: optionsResult.data || [], votes: post.post_type === 'proposal' ? (proposalVotesResult.data || []) : (votesResult.data || []), reactions: reactionsResult.data || [], reads: readsResult.data || [] };
 }
 
 function communityPayload(data: any) {
@@ -1536,6 +1574,14 @@ function announcementModal(audience: 'organization' | 'departments', postType: '
   ];
   if (postType === 'poll') components.push({ type: 1, components: [input('poll_options', 'Opțiuni sondaj', 2, true, 'Câte o opțiune pe fiecare rând', 1000, options.map((option: any) => option.option_text).join('\n'))] });
   return { type: 9, data: { custom_id: customId, title: `${editing ? 'Editează' : 'Creează'} ${postType === 'poll' ? 'sondaj' : postType === 'question' ? 'întrebare' : 'anunț'} · ${label}`, components } };
+}
+
+function proposalModal(audience: 'organization' | 'departments') {
+  const input = (custom_id: string, label: string, style: number, placeholder: string, max_length: number) => ({ type: 4, custom_id, label, style, required: true, placeholder, max_length });
+  return { type: 9, data: { custom_id: `panel:proposals:${audience}:submit`, title: 'Trimite propunere', components: [
+    { type: 1, components: [input('title', 'Titlu propunere', 1, 'Ce propui?', 140)] },
+    { type: 1, components: [input('content', 'Descrierea propunerii', 2, 'Explică ideea și avantajele ei...', 4000)] },
+  ] } };
 }
 
 function parseCommunityOptions(value: string) {
@@ -2328,6 +2374,29 @@ async function handleAnnouncementSubmit(db: any, context: any, interaction: any,
   }
 }
 
+async function handleProposalButton(db: any, interaction: any, context: any, parts: string[]) {
+  const action = String(parts[3] || '');
+  const postId = String(parts[4] || '');
+  const data = await loadCommunityPost(db, String(context.organization.id), postId);
+  if (data.post.post_type !== 'proposal' || data.post.audience !== context.audience) throw new Error('Propunerea nu aparține acestei organizații.');
+  if (['support', 'against'].includes(action)) {
+    const { error } = await db.from('community_proposal_votes').upsert({ organization_id: context.organization.id, post_id: postId, user_discord_id: context.discordId, display_name: context.displayName, vote: action, updated_at: new Date().toISOString() }, { onConflict: 'post_id,user_discord_id' });
+    if (error) throw error;
+  } else {
+    const allowed = ['review', 'accept', 'reject'];
+    if (!allowed.includes(action)) return interactionMessage('Acțiunea propunerii nu este disponibilă.');
+    const { error } = await db.from('community_posts').update({ proposal_status: action === 'accept' ? 'accepted' : action === 'reject' ? 'rejected' : 'review', proposal_decision_note: `Actualizat de ${context.displayName}`, updated_at: new Date().toISOString() }).eq('organization_id', context.organization.id).eq('id', postId);
+    if (error) throw error;
+  }
+  const refreshed = await loadCommunityPost(db, String(context.organization.id), postId);
+  const payload = JSON.parse(communityPayload({ ...refreshed, settings: context.settings }));
+  const response = await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: context.channelId }, JSON.stringify(payload), { method: 'PATCH', messageId: String(interaction.message?.id || '') });
+  if (!response.ok) throw new Error('Propunerea a fost salvată, dar embedul nu a putut fi actualizat.');
+  const logPayload = { allowed_mentions: { parse: [] }, embeds: [{ title: `${action === 'support' ? '✅ Vot pentru' : action === 'against' ? '❌ Vot contra' : proposalStatusLabel(refreshed.post.proposal_status)} · Propunere`, description: String(refreshed.post.title || 'Propunere'), color: 0xa855f7, fields: [{ name: '👤 Membru', value: context.displayName, inline: true }, { name: '📌 Status', value: proposalStatusLabel(refreshed.post.proposal_status), inline: true }], timestamp: new Date().toISOString() }] };
+  await deliverDiscordRoute(db, context.settings, 'log_proposals', JSON.stringify(logPayload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `proposal-log-${postId}-${context.discordId}-${action}`, retryPayload: logPayload }).catch((error) => console.error('[discord-interactions] proposal log failed', error));
+  return interactionMessage(action === 'support' ? 'Votul „Susțin” a fost înregistrat.' : action === 'against' ? 'Votul „Contra” a fost înregistrat.' : `Propunerea este acum ${proposalStatusLabel(refreshed.post.proposal_status)}.`);
+}
+
 async function handleAnnouncementButton(db: any, interaction: any, context: any, parts: string[]) {
   const action = parts[3] || '';
   const postId = parts[4] || '';
@@ -2748,6 +2817,7 @@ Deno.serve(async (request) => {
   const isRequests = customId.startsWith('panel:requests:');
   const isContracts = customId.startsWith('panel:contracts:');
   const isAnnouncements = customId.startsWith('panel:announcements:');
+  const isProposals = customId.startsWith('panel:proposals:');
   const isDiscipline = customId.startsWith('panel:discipline:');
   const isActions = customId.startsWith('panel:actions:');
   const isStash = customId.startsWith('panel:stash:');
@@ -2785,7 +2855,7 @@ Deno.serve(async (request) => {
     await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
     return new Response(null, { status: 204 });
   }
-  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isIllegalLocations && !isWheel && !isPresenceEvents && !isTasks && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isProposals && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isIllegalLocations && !isWheel && !isPresenceEvents && !isTasks && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
 
   if (isTasks) {
     const secret = serviceKey();
@@ -3363,6 +3433,36 @@ Deno.serve(async (request) => {
       } catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(readableError(error, 'Contractul nu a putut fi salvat.')); }
       const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
       if (followupId && !result?.data?.components?.length) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+      return new Response(null, { status: 204 });
+    }
+    if (isProposals && isButton) {
+      const parts = customId.split(':');
+      const audience = parts[2] === 'departments' ? 'departments' : parts[2] === 'organization' ? 'organization' : null;
+      if (!audience) return reply(interactionMessage('Categoria propunerii nu este validă.'));
+      if (parts[3] === 'create') return reply(proposalModal(audience));
+      const permission = ['review', 'accept', 'reject'].includes(String(parts[3] || '')) ? 'write' : 'read';
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try {
+        const context = await resolveAnnouncementContext(db, interaction, audience, permission);
+        result = await handleProposalButton(db, interaction, context, parts);
+      } catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(readableError(error, 'Propunerea nu a putut fi actualizată.')); }
+      const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+      return new Response(null, { status: 204 });
+    }
+    if (isProposals && isModalSubmit) {
+      const parts = customId.split(':');
+      const audience = parts[2] === 'departments' ? 'departments' : parts[2] === 'organization' ? 'organization' : null;
+      if (!audience || parts[3] !== 'submit') return reply(interactionMessage('Formularul Propuneri nu este valid.'));
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try {
+        const context = await resolveAnnouncementContext(db, interaction, audience, 'write');
+        result = await handleAnnouncementSubmit(db, context, interaction, 'proposal' as any, modalValues(interaction));
+      } catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(readableError(error, 'Propunerea nu a putut fi salvată.')); }
+      const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
       return new Response(null, { status: 204 });
     }
     if (isAnnouncements && isButton) {

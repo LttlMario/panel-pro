@@ -380,6 +380,7 @@ let organizations=[],
     globalPermissions={organization:{read:[],write:[]},departments:{read:[],write:[]}},
     globalPermissionsInitialized=false,
     communicationPermissions={organization:{read:[],write:[]},departments:{read:[],write:[]}},
+    proposalPermissions={organization:{read:[],write:[]},departments:{read:[],write:[]}},
     disciplinePermissions={organization:{read:[],write:[],sanction:[]},departments:{read:[],write:[],sanction:[]}},
     webhookRoutes={},
     assistantPagePermissions={},
@@ -442,6 +443,14 @@ const webhookDefinitions={
     log_tasks:{
         label:'Log task-uri angajați',
         help:'Păstrează statusul taskurilor: în așteptare, acceptat, refuzat sau expirat.'
+    },
+    proposals:{
+        label:'Propuneri',
+        help:'Embed cu buton pentru trimiterea și votarea propunerilor.'
+    },
+    log_proposals:{
+        label:'Log propuneri',
+        help:'Canal pentru istoricul propunerilor și schimbarea statusului.'
     },
     wheel_timer:{
         label:'Roată · timer personal',
@@ -547,8 +556,8 @@ const webhookDefinitions={
 const fields=Object.keys(webhookDefinitions);
 $('webhooks').innerHTML=fields.map(x=>`<fieldset class="rounded-xl border border-slate-700 p-3"><legend class="px-1 font-bold text-slate-200">${webhookDefinitions[x].label}</legend><small class="mb-2 block text-slate-400">${webhookDefinitions[x].help}</small><label class="flex items-center gap-2 text-xs"><input type="checkbox" id="wh_primary_enabled_${x}"> Discord principal</label><input id="wh_primary_url_${x}" type="url" class="field" placeholder="Webhook Discord principal"><label class="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" id="wh_secondary_enabled_${x}"> Discord secundar</label><input id="wh_secondary_url_${x}" type="url" class="field" placeholder="Webhook Discord secundar"></fieldset>`).join('');
 const organizationDraftKey=(id=$('id')?.value)=>`panel_local_organization_admin:${id||'new'}`;
-const saveOrganizationDraft=()=>{try{const fieldsToSave=['name','illegal-name','code','address','client','url','logo','guild','guild-secondary','expires','contract-title','contract-salary','contract-template'];const values=Object.fromEntries(fieldsToSave.map(id=>[id,$(id)?.value||'']));const webhooks=Object.fromEntries(fields.map(x=>[x,{primary:{enabled:$(`wh_primary_enabled_${x}`).checked,url:$(`wh_primary_url_${x}`).value.trim()},secondary:{enabled:$(`wh_secondary_enabled_${x}`).checked,url:$(`wh_secondary_url_${x}`).value.trim()}}]));localStorage.setItem(organizationDraftKey(),JSON.stringify({version:4,updated_at:new Date().toISOString(),values,webhooks,discord_channel_routes:window.getDiscordChannelRoutes?.()||{},role_rows:roleRows,limited_module_roles:limitedModuleRoles,page_permissions:pagePermissions,action_permissions:actionPermissions,global_permissions:globalPermissions,assistant_page_permissions:assistantPagePermissions,communication_permissions:communicationPermissions,discipline_permissions:disciplinePermissions}));}catch(_){}};
-const restoreOrganizationDraft=(id=$('id')?.value)=>{try{const draft=JSON.parse(localStorage.getItem(organizationDraftKey(id)||'')||'null');if(!draft||Number(draft.version||0)<2)return false;Object.entries(draft.values||{}).forEach(([field,value])=>{if($(field))$(field).value=value||''});window.discordChannelRoutesInitial=draft.discord_channel_routes||{};window.setDiscordChannelRoutes?.(draft.discord_channel_routes||{});fields.forEach(x=>{['primary','secondary'].forEach(target=>{const route=draft.webhooks?.[x]?.[target]||{};$(`wh_${target}_url_${x}`).value=route.url||'';$(`wh_${target}_enabled_${x}`).checked=route.enabled===true&&Boolean(route.url)})});roleRows=Array.isArray(draft.role_rows)?draft.role_rows:roleRows;limitedModuleRoles=Array.isArray(draft.limited_module_roles)?draft.limited_module_roles.map(String):limitedModuleRoles;pagePermissions=draft.page_permissions&&typeof draft.page_permissions==='object'?draft.page_permissions:pagePermissions;actionPermissions=draft.action_permissions&&typeof draft.action_permissions==='object'?draft.action_permissions:actionPermissions;globalPermissions=draft.global_permissions&&typeof draft.global_permissions==='object'?draft.global_permissions:globalPermissions;globalPermissionsInitialized=Boolean(draft.global_permissions&&typeof draft.global_permissions==='object');assistantPagePermissions=draft.assistant_page_permissions&&typeof draft.assistant_page_permissions==='object'?draft.assistant_page_permissions:assistantPagePermissions;communicationPermissions=draft.communication_permissions&&typeof draft.communication_permissions==='object'?draft.communication_permissions:communicationPermissions;disciplinePermissions=draft.discipline_permissions&&typeof draft.discipline_permissions==='object'?draft.discipline_permissions:disciplinePermissions;webhookRoutes=draft.webhooks||webhookRoutes;renderRoles();renderPagePermissions();renderAssistantPermissions();renderActionPermissions();renderAudiencePermissions();renderExpiry();return true;}catch(_){return false;}};
+const saveOrganizationDraft=()=>{try{const fieldsToSave=['name','illegal-name','code','address','client','url','logo','guild','guild-secondary','expires','contract-title','contract-salary','contract-template'];const values=Object.fromEntries(fieldsToSave.map(id=>[id,$(id)?.value||'']));const webhooks=Object.fromEntries(fields.map(x=>[x,{primary:{enabled:$(`wh_primary_enabled_${x}`).checked,url:$(`wh_primary_url_${x}`).value.trim()},secondary:{enabled:$(`wh_secondary_enabled_${x}`).checked,url:$(`wh_secondary_url_${x}`).value.trim()}}]));localStorage.setItem(organizationDraftKey(),JSON.stringify({version:5,updated_at:new Date().toISOString(),values,webhooks,discord_channel_routes:window.getDiscordChannelRoutes?.()||{},role_rows:roleRows,limited_module_roles:limitedModuleRoles,page_permissions:pagePermissions,action_permissions:actionPermissions,global_permissions:globalPermissions,assistant_page_permissions:assistantPagePermissions,communication_permissions:communicationPermissions,proposal_permissions:proposalPermissions,discipline_permissions:disciplinePermissions}));}catch(_){}};
+const restoreOrganizationDraft=(id=$('id')?.value)=>{try{const draft=JSON.parse(localStorage.getItem(organizationDraftKey(id)||'')||'null');if(!draft||Number(draft.version||0)<2)return false;Object.entries(draft.values||{}).forEach(([field,value])=>{if($(field))$(field).value=value||''});window.discordChannelRoutesInitial=draft.discord_channel_routes||{};window.setDiscordChannelRoutes?.(draft.discord_channel_routes||{});fields.forEach(x=>{['primary','secondary'].forEach(target=>{const route=draft.webhooks?.[x]?.[target]||{};$(`wh_${target}_url_${x}`).value=route.url||'';$(`wh_${target}_enabled_${x}`).checked=route.enabled===true&&Boolean(route.url)})});roleRows=Array.isArray(draft.role_rows)?draft.role_rows:roleRows;limitedModuleRoles=Array.isArray(draft.limited_module_roles)?draft.limited_module_roles.map(String):limitedModuleRoles;pagePermissions=draft.page_permissions&&typeof draft.page_permissions==='object'?draft.page_permissions:pagePermissions;actionPermissions=draft.action_permissions&&typeof draft.action_permissions==='object'?draft.action_permissions:actionPermissions;globalPermissions=draft.global_permissions&&typeof draft.global_permissions==='object'?draft.global_permissions:globalPermissions;globalPermissionsInitialized=Boolean(draft.global_permissions&&typeof draft.global_permissions==='object');assistantPagePermissions=draft.assistant_page_permissions&&typeof draft.assistant_page_permissions==='object'?draft.assistant_page_permissions:assistantPagePermissions;communicationPermissions=draft.communication_permissions&&typeof draft.communication_permissions==='object'?draft.communication_permissions:communicationPermissions;proposalPermissions=draft.proposal_permissions&&typeof draft.proposal_permissions==='object'?draft.proposal_permissions:proposalPermissions;disciplinePermissions=draft.discipline_permissions&&typeof draft.discipline_permissions==='object'?draft.discipline_permissions:disciplinePermissions;webhookRoutes=draft.webhooks||webhookRoutes;renderRoles();renderPagePermissions();renderAssistantPermissions();renderActionPermissions();renderAudiencePermissions();renderExpiry();return true;}catch(_){return false;}};
 async function invoke(body){
     if(body.action==='save'){
         body.organization={
@@ -568,6 +577,7 @@ async function invoke(body){
         body.global_permissions=globalPermissions;
         body.assistant_page_permissions=assistantPagePermissions;
         body.communication_permissions=communicationPermissions;
+        body.proposal_permissions=proposalPermissions;
         body.discipline_permissions=disciplinePermissions;
 }const r=await fetch(`${cfg.url}/functions/v1/manage-organizations`,{method:'POST',headers:{'Content-Type':'application/json',apikey:cfg.publishableKey,Authorization:`Bearer ${cfg.publishableKey}`},body:JSON.stringify(body)}),j=await r.json();if(!r.ok){const error=new Error(j.error||`HTTP ${r.status}`);error.status=r.status;throw error}return j}
 let organizationListRecoveryAttempted=false;
@@ -831,6 +841,7 @@ globalPermissions={organization:{read:[],write:[]},departments:{read:[],write:[]
 globalPermissionsInitialized=false;
 assistantPagePermissions={};
 communicationPermissions={organization:{read:[],write:[]},departments:{read:[],write:[]}};
+proposalPermissions={organization:{read:[],write:[]},departments:{read:[],write:[]}};
 disciplinePermissions={organization:{read:[],write:[],sanction:[]},departments:{read:[],write:[],sanction:[]}};
 
 roleRows = [{
@@ -1003,6 +1014,9 @@ assistantPagePermissions =
 
 communicationPermissions =
     o.platform_settings?.communication_permissions || {organization:{read:[],write:[]},departments:{read:[],write:[]}};
+
+proposalPermissions =
+    o.platform_settings?.proposal_permissions || {organization:{read:[],write:[]},departments:{read:[],write:[]}};
 
 disciplinePermissions =
     o.platform_settings?.discipline_permissions || {organization:{read:[],write:[],sanction:[]},departments:{read:[],write:[],sanction:[]}};
@@ -1597,9 +1611,11 @@ function renderAudiencePermissions() {
     };
     communicationHost.innerHTML = audiences.map(([audience, label]) => `<section class="rounded-xl border border-slate-700 p-3"><h3 class="text-sm font-bold text-slate-200">${label}</h3><p class="mt-1 text-[11px] text-slate-500">${audience === 'organization' ? 'Roluri din Discordul secundar.' : 'Roluri din Discordul principal.'}</p><div class="mt-3 space-y-2" data-audience-communication="${audience}"></div></section>`).join('');
     audiences.forEach(([audience]) => renderChecks(document.querySelector(`[data-audience-communication="${audience}"]`), communicationPermissions, audience, [['read', 'Poate citi'], ['write', 'Poate scrie / publica']]));
+    communicationHost.insertAdjacentHTML('beforeend', `<section class="mt-3 rounded-xl border border-violet-700/60 bg-violet-950/20 p-3"><h3 class="text-sm font-bold text-violet-100">Propuneri</h3><p class="mt-1 text-[11px] text-violet-200/70">Alege separat cine poate trimite/vota propuneri și cine poate schimba statusul lor.</p><div class="mt-3 grid gap-3 md:grid-cols-2">${audiences.map(([audience,label]) => `<div class="rounded-lg border border-slate-800 bg-slate-950 p-3"><div class="mb-2 text-xs font-bold text-slate-300">${label}</div><div class="space-y-2">${[['read','Poate trimite și vota'],['write','Poate aproba / respinge']].map(([kind,kindLabel]) => `<div><div class="mb-1 text-[11px] text-slate-500">${kindLabel}</div><div class="flex flex-wrap gap-2">${permissionRolesForAudience(audience).map(role => `<label class="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs"><input type="checkbox" data-proposal-permission="${audience}" data-proposal-kind="${kind}" data-proposal-role="${role.id}" ${(proposalPermissions[audience]?.[kind]||[]).map(String).includes(role.id)?'checked':''}><span>${esc(role.name)}</span></label>`).join('')}</div></div>`).join('')}</div></div>`).join('')}</div></section>`);
     disciplineHost.innerHTML = audiences.map(([audience, label]) => `<section class="rounded-xl border border-slate-700 p-3"><h3 class="text-sm font-bold text-slate-200">${label}</h3><p class="mt-1 text-[11px] text-slate-500">${audience === 'organization' ? 'Roluri din Discordul secundar.' : 'Roluri din Discordul principal.'}</p><div class="mt-3 space-y-2" data-audience-discipline="${audience}"></div></section>`).join('');
     audiences.forEach(([audience]) => renderChecks(document.querySelector(`[data-audience-discipline="${audience}"]`), disciplinePermissions, audience, [['read', 'Poate vedea'], ['write', 'Poate emite avertismente'], ['sanction', 'Poate aplica sancțiuni financiare']]));
     document.querySelectorAll('[data-audience-permission]').forEach(box => { box.onchange = () => { const audience = box.dataset.audiencePermission, kind = box.dataset.audienceKind, roleId = String(box.dataset.audienceRole); const target = box.closest('[data-audience-communication]') ? communicationPermissions : disciplinePermissions; const values = new Set((target[audience][kind] || []).map(String)); box.checked ? values.add(roleId) : values.delete(roleId); target[audience][kind] = [...values]; }; });
+    document.querySelectorAll('[data-proposal-permission]').forEach(box => { box.onchange = () => { const audience = box.dataset.proposalPermission, kind = box.dataset.proposalKind, roleId = String(box.dataset.proposalRole); const values = new Set((proposalPermissions[audience][kind] || []).map(String)); box.checked ? values.add(roleId) : values.delete(roleId); proposalPermissions[audience][kind] = [...values]; }; });
 }
 $('roles').addEventListener('change', () => {
     setTimeout(() => {
