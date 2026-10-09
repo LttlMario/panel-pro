@@ -13,7 +13,7 @@ const communityReactionChoices = ['✅', '❌', '👍', '❤️', '🤔'];
 const communityPostComponents = (post:any, options:string[] = []) => {
     const audience = post.audience === 'departments' ? 'departments' : 'organization';
     const rows:any[] = [];
-    if (post.post_type === 'proposal') return [{ type: 1, components: [{ type: 2, style: 3, label: '✅ Susțin', custom_id: `panel:proposals:${audience}:support:${post.id}` }, { type: 2, style: 4, label: '❌ Contra', custom_id: `panel:proposals:${audience}:against:${post.id}` }] }, { type: 1, components: [{ type: 2, style: 2, label: '🔎 În analiză', custom_id: `panel:proposals:${audience}:review:${post.id}` }, { type: 2, style: 3, label: '✅ Acceptă', custom_id: `panel:proposals:${audience}:accept:${post.id}` }, { type: 2, style: 4, label: '❌ Respinge', custom_id: `panel:proposals:${audience}:reject:${post.id}` }] }];
+    if (post.post_type === 'proposal') return [{ type: 1, components: [{ type: 2, style: 3, label: '✅ Susțin', custom_id: `panel:proposals:${audience}:support:${post.id}` }, { type: 2, style: 4, label: '❌ Contra', custom_id: `panel:proposals:${audience}:against:${post.id}` }, { type: 2, style: 4, label: '🗑️ Șterge propunerea', custom_id: `panel:proposals:${audience}:delete:${post.id}` }] }];
     if (post.post_type === 'poll') {
         const pollOptions = options.slice(0, 10);
         for (let index = 0; index < pollOptions.length; index += 5) rows.push({ type: 1, components: pollOptions.slice(index, index + 5).map((option:string, optionIndex:number) => ({ type: 2, style: 1, label: option.slice(0, 80), custom_id: `panel:announcements:${audience}:vote:${post.id}:${index + optionIndex}` })) });
@@ -1027,7 +1027,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
     }
     const { data: reads } = await db.from('community_post_reads').select('display_name,user_discord_id').eq('organization_id', organizationId).eq('post_id', post.id).order('confirmed_at');
     const readNames = (reads || []).map((item:any) => String(item.display_name || item.user_discord_id || 'Membru').slice(0, 80));
-    fields.push({ name: `✅ Au citit (${readNames.length})`, value: readNames.length ? readNames.map((name:string) => `• ${name}`).join('\n').slice(0, 1024) : 'Nimeni nu a confirmat încă.' });
+    if (post.post_type !== 'proposal') fields.push({ name: `✅ Au citit (${readNames.length})`, value: readNames.length ? readNames.map((name:string) => `• ${name}`).join('\n').slice(0, 1024) : 'Nimeni nu a confirmat încă.' });
 
 
     if(post.post_type === 'poll' && options.length){
@@ -1042,11 +1042,8 @@ async function notifyDiscord(post:any, options:string[], audience:string){
     }
 
 
-    fields.push({
-        name: post.post_type === 'poll'
-            ? '🗳️ Votează în panel'
-            : '📖 Confirmă că ai citit',
-
+    if (post.post_type !== 'proposal') fields.push({
+        name: post.post_type === 'poll' ? '🗳️ Votează în panel' : '📖 Confirmă că ai citit',
         value: post.post_type === 'poll' ? `[Deschide postarea](${postUrl})` : 'Folosește butonul „Am citit” pentru a confirma că ai văzut anunțul.'
     });
 

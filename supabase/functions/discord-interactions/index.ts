@@ -1497,7 +1497,7 @@ function communityPostEmbed(post: any, options: any[] = [], votes: any[] = [], r
     }).join('\n').slice(0, 1024) || 'Încă nu există opțiuni.' });
   }
   const readNames = reads.map((item: any) => String(item.display_name || item.user_discord_id || 'Membru').slice(0, 80));
-  fields.push({ name: `✅ Au citit (${readNames.length})`, value: readNames.length ? readNames.map((name) => `• ${name}`).join('\n').slice(0, 1024) : 'Nimeni nu a confirmat încă.', inline: false });
+  if (post.post_type !== 'proposal') fields.push({ name: `✅ Au citit (${readNames.length})`, value: readNames.length ? readNames.map((name) => `• ${name}`).join('\n').slice(0, 1024) : 'Nimeni nu a confirmat încă.', inline: false });
   if (post.post_type !== 'proposal') fields.push({ name: post.post_type === 'poll' ? 'Votare' : 'Confirmare', value: post.post_type === 'poll' ? 'Alege o opțiune de mai jos.' : 'Folosește butonul „Am citit” pentru a confirma că ai văzut anunțul.', inline: false });
   return {
     title: String(post.title || 'Comunicare').slice(0, 256),
