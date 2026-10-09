@@ -1444,13 +1444,14 @@ function communityPostComponents(post: any, options: any[] = []) {
     }
   }
   rows.push({ type: 1, components: [
+    { type: 2, style: 3, label: '✅ Am citit', custom_id: `panel:announcements:${audience}:read:${post.id}` },
     { type: 2, style: 2, label: 'Editează', custom_id: `panel:announcements:${audience}:edit:${post.id}` },
     { type: 2, style: 4, label: 'Șterge', custom_id: `panel:announcements:${audience}:delete:${post.id}` },
   ] });
   return rows.slice(0, 5);
 }
 
-function communityPostEmbed(post: any, options: any[] = [], votes: any[] = [], reactions: any[] = [], settings: any = {}) {
+function communityPostEmbed(post: any, options: any[] = [], votes: any[] = [], reactions: any[] = [], reads: any[] = [], settings: any = {}) {
   const audience = post.audience === 'departments' ? 'Angajați' : 'Organizație';
   const site = String(settings?.panel_public_url || 'https://panel-pro.ro').replace(/\/$/, '');
   const postUrl = `${site}/anunturi.html?post=${post.id}`;
@@ -1464,6 +1465,8 @@ function communityPostEmbed(post: any, options: any[] = [], votes: any[] = [], r
     }).join('\n').slice(0, 1024) || 'Încă nu există opțiuni.' });
   }
   fields.push({ name: 'Reacții', value: communityReactionChoices.map((reaction) => `${reaction} ${reactions.filter((item: any) => item.reaction === reaction).length}`).join(' · '), inline: false });
+  const readNames = reads.map((item: any) => String(item.display_name || item.user_discord_id || 'Membru').slice(0, 80));
+  fields.push({ name: `✅ Au citit (${readNames.length})`, value: readNames.length ? readNames.map((name) => `• ${name}`).join('\n').slice(0, 1024) : 'Nimeni nu a confirmat încă.', inline: false });
   fields.push({ name: post.post_type === 'poll' ? 'Votare' : 'Interacțiuni', value: post.post_type === 'poll' ? 'Alege o opțiune de mai jos.' : 'Folosește reacțiile de mai jos pentru a răspunde.', inline: false });
   return {
     title: String(post.title || 'Comunicare').slice(0, 256),
@@ -1480,19 +1483,21 @@ async function loadCommunityPost(db: any, organizationId: string, postId: string
   const { data: post, error: postError } = await db.from('community_posts').select('*').eq('organization_id', organizationId).eq('id', postId).maybeSingle();
   if (postError) throw postError;
   if (!post) throw new Error('Postarea nu mai există în organizația activă.');
-  const [optionsResult, votesResult, reactionsResult] = await Promise.all([
+  const [optionsResult, votesResult, reactionsResult, readsResult] = await Promise.all([
     db.from('community_poll_options').select('id,post_id,option_text,position').eq('organization_id', organizationId).eq('post_id', postId).order('position'),
     db.from('community_poll_votes').select('post_id,option_id,user_discord_id').eq('organization_id', organizationId).eq('post_id', postId),
     db.from('community_reactions').select('post_id,user_discord_id,reaction').eq('organization_id', organizationId).eq('post_id', postId),
+    db.from('community_post_reads').select('post_id,user_discord_id,display_name,confirmed_at').eq('organization_id', organizationId).eq('post_id', postId).order('confirmed_at'),
   ]);
   if (optionsResult.error) throw optionsResult.error;
   if (votesResult.error) throw votesResult.error;
   if (reactionsResult.error) throw reactionsResult.error;
-  return { post, options: optionsResult.data || [], votes: votesResult.data || [], reactions: reactionsResult.data || [] };
+  if (readsResult.error) throw readsResult.error;
+  return { post, options: optionsResult.data || [], votes: votesResult.data || [], reactions: reactionsResult.data || [], reads: readsResult.data || [] };
 }
 
 function communityPayload(data: any) {
-  return JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [communityPostEmbed(data.post, data.options, data.votes, data.reactions, data.settings)], components: communityPostComponents(data.post, data.options) });
+  return JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [communityPostEmbed(data.post, data.options, data.votes, data.reactions, data.reads, data.settings)], components: communityPostComponents(data.post, data.options) });
 }
 
 function communityMessageRefs(post: any) {
@@ -2356,6 +2361,15 @@ async function handleAnnouncementButton(db: any, interaction: any, context: any,
     const refreshed = await loadCommunityPost(db, String(context.organization.id), postId);
     await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: context.channelId }, communityPayload({ ...refreshed, settings: context.settings }), { method: 'PATCH', messageId: String(interaction.message?.id || '') });
     return interactionMessage('Votul a fost salvat și rezultatele au fost actualizate.');
+  }
+
+  if (action === 'read') {
+    const { error } = await db.from('community_post_reads').upsert({ organization_id: context.organization.id, post_id: postId, user_discord_id: context.discordId, display_name: context.displayName, confirmed_at: new Date().toISOString() }, { onConflict: 'post_id,user_discord_id' });
+    if (error) throw error;
+    const refreshed = await loadCommunityPost(db, String(context.organization.id), postId);
+    const response = await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: context.channelId }, communityPayload({ ...refreshed, settings: context.settings }), { method: 'PATCH', messageId: String(interaction.message?.id || '') });
+    if (!response.ok) throw new Error('Confirmarea a fost salvată, dar embedul nu a putut fi actualizat.');
+    return interactionMessage('Confirmarea „Am citit” a fost înregistrată, iar embedul a fost actualizat.');
   }
 
   if (action === 'delete') {
