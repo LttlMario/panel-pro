@@ -1436,7 +1436,7 @@ const communityReactionChoices = ['✅', '❌', '👍', '❤️', '🤔'];
 
 function communityPostComponents(post: any, options: any[] = []) {
   const audience = post.audience === 'departments' ? 'departments' : 'organization';
-  const rows: any[] = [{ type: 1, components: communityReactionChoices.map((reaction, index) => ({ type: 2, style: 2, label: reaction, custom_id: `panel:announcements:${audience}:react:${post.id}:${index}` })) }];
+  const rows: any[] = [];
   if (post.post_type === 'poll') {
     const pollOptions = options.slice(0, 10);
     for (let index = 0; index < pollOptions.length; index += 5) {
@@ -1464,7 +1464,6 @@ function communityPostEmbed(post: any, options: any[] = [], votes: any[] = [], r
       return `▫️ ${String(option.option_text || 'Opțiune').slice(0, 80)} — ${count} (${percentage}%)`;
     }).join('\n').slice(0, 1024) || 'Încă nu există opțiuni.' });
   }
-  fields.push({ name: 'Reacții', value: communityReactionChoices.map((reaction) => `${reaction} ${reactions.filter((item: any) => item.reaction === reaction).length}`).join(' · '), inline: false });
   const readNames = reads.map((item: any) => String(item.display_name || item.user_discord_id || 'Membru').slice(0, 80));
   fields.push({ name: `✅ Au citit (${readNames.length})`, value: readNames.length ? readNames.map((name) => `• ${name}`).join('\n').slice(0, 1024) : 'Nimeni nu a confirmat încă.', inline: false });
   fields.push({ name: post.post_type === 'poll' ? 'Votare' : 'Interacțiuni', value: post.post_type === 'poll' ? 'Alege o opțiune de mai jos.' : 'Folosește reacțiile de mai jos pentru a răspunde.', inline: false });

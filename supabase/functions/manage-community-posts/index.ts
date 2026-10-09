@@ -12,7 +12,7 @@ const allowedCommunityReactions=new Set(['✅','❌','👍','❤️','🤔']);
 const communityReactionChoices = ['✅', '❌', '👍', '❤️', '🤔'];
 const communityPostComponents = (post:any, options:string[] = []) => {
     const audience = post.audience === 'departments' ? 'departments' : 'organization';
-    const rows:any[] = [{ type: 1, components: communityReactionChoices.map((reaction:string, index:number) => ({ type: 2, style: 2, label: reaction, custom_id: `panel:announcements:${audience}:react:${post.id}:${index}` })) }];
+    const rows:any[] = [];
     if (post.post_type === 'poll') {
         const pollOptions = options.slice(0, 10);
         for (let index = 0; index < pollOptions.length; index += 5) rows.push({ type: 1, components: pollOptions.slice(index, index + 5).map((option:string, optionIndex:number) => ({ type: 2, style: 1, label: option.slice(0, 80), custom_id: `panel:announcements:${audience}:vote:${post.id}:${index + optionIndex}` })) });
