@@ -460,6 +460,16 @@ const taskGroupEmbed = (tasks: any[]) => {
   ], timestamp: new Date().toISOString(), footer: { text: PANEL_FOOTER } }] };
 };
 
+const taskDecisionEmbed = (task: any) => {
+  const accepted = String(task.status || '') === 'accepted';
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: `${accepted ? '✅' : '❌'} Task ${accepted ? 'acceptat' : 'refuzat'}`, color: accepted ? 0x22c55e : 0xef4444, fields: [
+    { name: '📋 Task', value: String(task.title || 'Task').slice(0, 1024), inline: false },
+    { name: '👤 Angajat', value: `<@${String(task.assignee_discord_id || '')}>`, inline: true },
+    { name: '📅 Termen-limită', value: taskDeadlineLabel(task.due_at), inline: true },
+    { name: '💬 Răspuns', value: accepted ? 'Taskul a fost acceptat.' : 'Taskul a fost refuzat.', inline: false },
+  ], timestamp: new Date().toISOString(), footer: { text: PANEL_FOOTER } }] };
+};
+
 async function sendTaskPrivateMessage(db: any, task: any) {
   const token = await getPlatformSecret(db, 'discord_bot_token');
   if (!token) throw new Error('Tokenul botului Discord nu este configurat.');
@@ -486,7 +496,7 @@ async function publishTaskLog(db: any, context: any, tasks: any[], messageId = '
   const route = logRoute?.[context.target] || Object.values(logRoute).find((item: any) => String(item?.channel_id || '').trim());
   const channelId = String(route?.channel_id || '').trim();
   if (!channelId) throw new Error('Configurează canalul de log pentru taskuri.');
-  const payload = taskGroupEmbed(tasks);
+  const payload = taskDecisionEmbed(tasks[0] || {});
   const response = messageId
     ? await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'PATCH', messageId })
     : await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'POST' });
@@ -540,11 +550,8 @@ async function handleTaskDmAction(db: any, interaction: any, action: string, tas
   const logRoute = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', task.organization_id).maybeSingle();
   const guild = await db.from('organization_guilds').select('kind').eq('organization_id', task.organization_id).eq('guild_id', task.guild_id).maybeSingle();
   const context = { target: String(guild.data?.kind || '') === 'secondary' ? 'secondary' : 'primary', settings: logRoute.data || {} };
-  const { data: groupTasks, error: groupError } = await db.from('platform_tasks').select('*').eq('task_group_id', updated.task_group_id).order('created_at', { ascending: true });
-  if (groupError) throw groupError;
-  const existingLogId = (groupTasks || []).map((item: any) => String(item.log_message_id || '')).find(Boolean) || '';
-  const logMessageId = await publishTaskLog(db, context, groupTasks || [updated], existingLogId);
-  if (logMessageId) await db.from('platform_tasks').update({ log_message_id: logMessageId, updated_at: new Date().toISOString() }).eq('task_group_id', updated.task_group_id);
+  const logMessageId = await publishTaskLog(db, context, [updated]);
+  if (logMessageId) await db.from('platform_tasks').update({ log_message_id: logMessageId, updated_at: new Date().toISOString() }).eq('id', updated.id);
   return interactionMessage(accepted ? 'Taskul a fost acceptat și statusul a fost actualizat în log.' : 'Taskul a fost refuzat și statusul a fost actualizat în log.');
 }
 
