@@ -2,7 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { isPlatformAdminAccount } from '../_shared/platform-admin.ts';
 import { resolvePackageFeatures } from '../_shared/package-features.ts';
 import { getPlatformSecret } from '../_shared/platform-secrets.ts';
-import { deliverDiscordRoute, requestDiscordTarget, routeCandidates } from '../_shared/discord-delivery.ts';
+import { deliverDiscordRoute, requestDiscordTarget, routeCandidates, validDiscordChannelId } from '../_shared/discord-delivery.ts';
 import { discordPremiumAccess, discordPremiumButton, discordPremiumConfigured, discordPremiumMessage, discordPremiumModule } from '../_shared/discord-premium.ts';
 import { allCategories, calculateRecipe, findCategory, findRecipe } from '../_shared/discord-calculators.ts';
 import { syncAbsenceLiveEmbeds } from '../_shared/absence-live.ts';
