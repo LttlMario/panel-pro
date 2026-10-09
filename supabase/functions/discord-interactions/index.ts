@@ -2405,8 +2405,6 @@ async function handleProposalButton(db: any, interaction: any, context: any, par
   const payload = JSON.parse(communityPayload({ ...refreshed, settings: context.settings }));
   const response = await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: context.channelId }, JSON.stringify(payload), { method: 'PATCH', messageId: String(interaction.message?.id || '') });
   if (!response.ok) throw new Error('Propunerea a fost salvată, dar embedul nu a putut fi actualizat.');
-  const logPayload = { allowed_mentions: { parse: [] }, embeds: [{ title: `${action === 'support' ? '✅ Vot pentru' : action === 'against' ? '❌ Vot contra' : proposalStatusLabel(refreshed.post.proposal_status)} · Propunere`, description: String(refreshed.post.title || 'Propunere'), color: 0xa855f7, fields: [{ name: '👤 Membru', value: context.displayName, inline: true }, { name: '📌 Status', value: proposalStatusLabel(refreshed.post.proposal_status), inline: true }], timestamp: new Date().toISOString() }] };
-  await deliverDiscordRoute(db, context.settings, 'log_proposals', JSON.stringify(logPayload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `proposal-log-${postId}-${context.discordId}-${action}`, retryPayload: logPayload, targets: [context.target] }).catch((error) => console.error('[discord-interactions] proposal log failed', error));
   return interactionMessage(action === 'support' ? 'Votul „Susțin” a fost înregistrat.' : action === 'against' ? 'Votul „Contra” a fost înregistrat.' : `Propunerea este acum ${proposalStatusLabel(refreshed.post.proposal_status)}.`);
 }
 
