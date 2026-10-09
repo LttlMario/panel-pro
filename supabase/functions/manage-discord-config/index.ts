@@ -47,7 +47,14 @@ async function configureSpamProtection(db:any, organizationId:string, guilds:any
   }
   if(!response.ok){const details=await response.text().catch(()=> '');throw new Error(`Discord nu a putut configura AutoMod pentru ${guild.guild_name||guildId} (HTTP ${response.status}${details?`: ${details.slice(0,180)}`:''}).`);}
   const rule=await response.json().catch(()=>existing||{});
-  results.push({guild_id:guildId,guild_name:guild.guild_name||guildId,rule_id:String(rule.id||existing?.id||''),action:existing?'updated':'created',alert_channel_id:alertChannelId||null,timeout_enabled:timeoutEnabled});
+  let confirmationSent=false;
+  let confirmationError='';
+  if(alertChannelId){
+   const confirmationResponse=await safeFetch(`${DISCORD_API}/channels/${alertChannelId}/messages`,{method:'POST',headers,body:JSON.stringify({embeds:[{title:'🛡️ Protecție anti-spam activată',description:'Protecția anti-spam a fost activată pentru acest server. Discord va bloca mesajele detectate ca spam, iar alertele vor apărea în acest canal.',color:0x22c55e,fields:[{name:'Server',value:String(guild.guild_name||guildId),inline:true},{name:'Acțiune',value:timeoutEnabled?'Blocare + timeout 10 minute':'Blocare mesaj',inline:true}],footer:{text:'Panel Pro · Configurare Discord'},timestamp:new Date().toISOString()}]})});
+   confirmationSent=confirmationResponse.ok;
+   if(!confirmationSent){const details=await confirmationResponse.text().catch(()=> '');confirmationError=`Nu am putut trimite confirmarea în canalul selectat (HTTP ${confirmationResponse.status}${details?`: ${details.slice(0,140)}`:''}).`}
+  }
+  results.push({guild_id:guildId,guild_name:guild.guild_name||guildId,rule_id:String(rule.id||existing?.id||''),action:existing?'updated':'created',alert_channel_id:alertChannelId||null,timeout_enabled:timeoutEnabled,confirmation_sent:confirmationSent,confirmation_error:confirmationError||null});
  }
  const alertChannels={primary:/^\d{15,22}$/.test(String(requestedAlertChannels?.primary||''))?String(requestedAlertChannels.primary):'',secondary:/^\d{15,22}$/.test(String(requestedAlertChannels?.secondary||''))?String(requestedAlertChannels.secondary):''};
  const setting={enabled:true,rule_name:SPAM_RULE_NAME,timeout_seconds:600,alert_channels:alertChannels,rules:results,updated_at:new Date().toISOString()};

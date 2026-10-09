@@ -179,9 +179,13 @@
       const rules = result.spam_protection?.rules || [];
       const count = Number(rules.length || 0);
       const timeoutDisabled = rules.some((rule) => rule.timeout_enabled === false);
-      if (spamStatus) spamStatus.textContent = timeoutDisabled
-        ? `Protecția anti-spam este activă pe ${count} server${count === 1 ? '' : 'e'}: mesajele spam sunt blocate și alerta este trimisă în primul canal de log configurat. Discord nu permite timeout automat pe cel puțin un server.`
-        : `Protecția anti-spam este activă pe ${count} server${count === 1 ? '' : 'e'}: mesajele spam sunt blocate, utilizatorul primește timeout 10 minute, iar alerta este trimisă în primul canal de log configurat.`;
+      const confirmationsMissing = rules.filter((rule) => rule.alert_channel_id && rule.confirmation_sent === false);
+      const confirmationText = confirmationsMissing.length
+        ? ` Nu am putut trimite confirmarea în ${confirmationsMissing.length} canal${confirmationsMissing.length === 1 ? '' : 'e'}; verifică permisiunea „Send Messages”.`
+        : ' Am trimis confirmarea în canalele de log selectate.';
+      if (spamStatus) spamStatus.textContent = (timeoutDisabled
+        ? `Protecția anti-spam este activă pe ${count} server${count === 1 ? '' : 'e'}: mesajele spam sunt blocate și alerta este trimisă în canalul de log configurat. Discord nu permite timeout automat pe cel puțin un server.`
+        : `Protecția anti-spam este activă pe ${count} server${count === 1 ? '' : 'e'}: mesajele spam sunt blocate, utilizatorul primește timeout 10 minute, iar alerta este trimisă în canalul de log configurat.`) + confirmationText;
     } catch (error) { if (spamStatus) spamStatus.textContent = error.message || 'Protecția anti-spam nu a putut fi configurată.'; }
     finally { spamButton.disabled = false; }
   };
