@@ -1022,9 +1022,9 @@ async function notifyDiscord(post:any, options:string[], audience:string){
     fields.push({
         name: post.post_type === 'poll'
             ? '🗳️ Votează în panel'
-            : '💬 Răspunde în panel',
+            : '📖 Confirmă că ai citit',
 
-        value:`[Deschide postarea](${postUrl})`
+        value: post.post_type === 'poll' ? `[Deschide postarea](${postUrl})` : 'Folosește butonul „Am citit” pentru a confirma că ai văzut anunțul.'
     });
 
 
