@@ -108,9 +108,10 @@ Deno.serve(async (req) => {
       const { error } = await db.from('organizations').update(patch).eq('id', id);
       if (error) throw error;
     }
-    if (body.discord_channel_routes) {
+    const incomingChannelRoutes = body.discord_channel_routes ?? body.settings?.discord_channel_routes;
+    if (incomingChannelRoutes) {
       const { data: currentSettings } = await db.from('organization_settings').select('discord_client_id,panel_public_url,discord_channel_routes').eq('organization_id', id).maybeSingle();
-       const nextRoutes = sanitizeDiscordChannelRoutes(body.discord_channel_routes);
+       const nextRoutes = sanitizeDiscordChannelRoutes(incomingChannelRoutes);
        const previousRoutes = currentSettings?.discord_channel_routes || {};
        for (const [routeKey, route] of Object.entries(nextRoutes as Record<string, any>)) {
          const previousRoute = previousRoutes?.[routeKey] || {};

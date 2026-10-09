@@ -450,9 +450,12 @@ Deno.serve(async (request) => {
     // Organizațiile folosesc exclusiv botul Discord și rutele de canale.
     // Webhook-urile istorice sunt ignorate și eliminate la următoarea salvare.
     const webhookRoutes = {};
-    const channelRoutes = body.discord_channel_routes === undefined
+    // organizatii.html trimite configurația în `settings`, dar păstrăm și
+    // formatul vechi la nivelul rădăcinii pentru importuri și clienți vechi.
+    const incomingChannelRoutes = body.discord_channel_routes ?? body.settings?.discord_channel_routes;
+    const channelRoutes = incomingChannelRoutes === undefined
       ? (settings.discord_channel_routes || {})
-      : sanitizeDiscordChannelRoutes(body.discord_channel_routes);
+      : sanitizeDiscordChannelRoutes(incomingChannelRoutes);
     for (const [routeKey, route] of Object.entries(channelRoutes as Record<string, any>)) {
       const previousRoute = (settings.discord_channel_routes || {})[routeKey] || {};
       for (const target of ['primary', 'secondary']) {
