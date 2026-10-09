@@ -34,6 +34,23 @@
     const expiry = document.getElementById('expires')?.closest('.rounded-xl');
     const saveActions = form?.querySelector('button[type="submit"]')?.closest('.flex');
     if (!form || !overview || !profile || !primaryGuild || !secondaryGuild || !roles || !expiry || !saveActions) return;
+    saveActions.classList.add('sticky', 'bottom-3', 'z-30', 'rounded-xl', 'bg-slate-900/95', 'p-3', 'backdrop-blur');
+    let activeServerTab = 'primary';
+    if (!primaryGuild.parentElement.querySelector('[data-discord-server-tabs]')) {
+      const serverTabs = document.createElement('div');
+      serverTabs.dataset.discordServerTabs = '1';
+      serverTabs.className = 'mb-3 flex flex-wrap gap-2 rounded-lg border border-slate-700 bg-slate-950/40 p-2';
+      serverTabs.innerHTML = '<span class="w-full text-[11px] font-bold text-slate-400">Alege serverul pe care îl configurezi</span><button type="button" data-server-tab="primary" class="rounded-lg border border-cyan-500 bg-cyan-950/60 px-3 py-2 text-xs font-bold text-cyan-100">Discord principal</button><button type="button" data-server-tab="secondary" class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-slate-300">Discord secundar</button>';
+      primaryGuild.parentElement.insertBefore(serverTabs, primaryGuild);
+      const setServerTab = (target) => {
+        activeServerTab = target === 'secondary' ? 'secondary' : 'primary';
+        primaryGuild.hidden = target !== 'primary';
+        secondaryGuild.hidden = target !== 'secondary';
+        serverTabs.querySelectorAll('[data-server-tab]').forEach((button) => { const active = button.dataset.serverTab === target; button.classList.toggle('border-cyan-500', active); button.classList.toggle('bg-cyan-950/60', active); button.classList.toggle('text-cyan-100', active); });
+      };
+      serverTabs.querySelectorAll('[data-server-tab]').forEach((button) => { button.onclick = () => setServerTab(button.dataset.serverTab); });
+      setServerTab('primary');
+    }
     const groups = [
       { label: 'Identitate și servere', description: 'Numele organizației și serverele Discord.', elements: [profile, primaryGuild, secondaryGuild] },
       { label: 'Roluri Discord', description: 'Rolurile care vor fi folosite în panel.', elements: [roles] },
@@ -49,6 +66,7 @@
     const showStep = (step) => {
       currentStep = Math.max(0, Math.min(groups.length - 1, step));
       groups.forEach((group, index) => group.elements.forEach((element) => { if (element) element.hidden = index !== currentStep; }));
+      if (currentStep === 0) { primaryGuild.hidden = activeServerTab !== 'primary'; secondaryGuild.hidden = activeServerTab !== 'secondary'; }
       wizard.querySelectorAll('[data-wizard-step]').forEach((button) => { const active = Number(button.dataset.wizardStep) === currentStep; button.classList.toggle('border-cyan-400', active); button.classList.toggle('bg-cyan-950/70', active); button.classList.toggle('text-cyan-100', active); });
       const description = wizard.querySelector('[data-wizard-description]');
       const statusNode = wizard.querySelector('[data-wizard-status]');
