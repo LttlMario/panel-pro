@@ -1547,11 +1547,11 @@ function communityMessageRefs(post: any) {
   return map;
 }
 
-async function saveCommunityMessageRefs(db: any, organizationId: string, postId: string, results: any[]) {
+async function saveCommunityMessageRefs(db: any, organizationId: string, postId: string, results: any[], table = 'community_posts') {
   if (!results.length) return;
   const refs = results.filter((item: any) => item.id).map((item: any) => ({ target: String(item.target || ''), channel_id: String(item.channel_id || ''), id: String(item.id) }));
   const first = refs[0];
-  const { error } = await db.from('community_posts').update({ discord_message_id: first?.id || null, discord_message_ids: refs, updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', postId);
+  const { error } = await db.from(table).update({ discord_message_id: first?.id || null, discord_message_ids: refs, updated_at: new Date().toISOString() }).eq('organization_id', organizationId).eq('id', postId);
   if (error) throw error;
 }
 
@@ -2367,8 +2367,9 @@ async function handleAnnouncementSubmit(db: any, context: any, interaction: any,
   const data = await loadCommunityPost(db, String(context.organization.id), String(created.id));
   try {
     const communityBody = communityPayload({ ...data, settings: context.settings });
-    const delivery = await deliverDiscordRoute(db, context.settings, context.routeKey, communityBody, { organizationId: String(context.organization.id), messageKey: `community-post-${String(created.id)}`, retryPayload: JSON.parse(communityBody), targets: context.routeKey === 'proposals' ? [context.target] : undefined });
-    await saveCommunityMessageRefs(db, String(context.organization.id), String(created.id), delivery.results || []);
+    const deliveryRoute = isProposal ? 'log_proposals' : context.routeKey;
+    const delivery = await deliverDiscordRoute(db, context.settings, deliveryRoute, communityBody, { postOnly: isProposal, organizationId: String(context.organization.id), messageKey: `community-post-${String(created.id)}`, retryPayload: JSON.parse(communityBody), targets: isProposal || context.routeKey === 'proposals' ? [context.target] : undefined });
+    await saveCommunityMessageRefs(db, String(context.organization.id), String(created.id), delivery.results || [], isProposal ? 'community_proposals' : 'community_posts');
     return interactionMessage(`Postarea a fost salvată și publicată în ${delivery.results.length} canal${delivery.results.length === 1 ? '' : 'e'} Discord.`);
   } catch (error) {
     console.error('[discord-interactions] community post delivery failed', error);

@@ -1062,13 +1062,14 @@ async function notifyDiscord(post:any, options:string[], audience:string){
         }],
         components: communityPostComponents(post, options)
     };
-    const delivery = await deliverDiscordRoute(db, discordConfig, routeKey, JSON.stringify(payload), {
+    const deliveryRoute = post.post_type === 'proposal' ? 'log_proposals' : routeKey;
+    const delivery = await deliverDiscordRoute(db, discordConfig, deliveryRoute, JSON.stringify(payload), {
+        postOnly: post.post_type === 'proposal',
         organizationId: String(organizationId),
         messageKey: `community-post-${String(post.id)}`,
         retryPayload: payload,
         targets: post.post_type === 'proposal' ? [audience === 'organization' ? 'secondary' : 'primary'] : undefined,
     });
-    if (post.post_type === 'proposal') await deliverDiscordRoute(db, discordConfig, 'log_proposals', JSON.stringify(payload), { postOnly: true, organizationId: String(organizationId), messageKey: `proposal-log-${String(post.id)}-created`, retryPayload: payload, targets: [audience === 'organization' ? 'secondary' : 'primary'] }).catch((error) => console.error('Logul propunerii nu a putut fi trimis:', error));
     if (!delivery.results.length) throw new Error(`Postarea a fost creată, dar Discord nu a acceptat mesajul. ${delivery.failures.join(' | ')}`);
     return delivery.results[0]?.id || null;
     }
