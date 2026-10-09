@@ -514,18 +514,11 @@ async function publishTaskLog(db: any, context: any, tasks: any[], messageId = '
     : {};
   const guildId = String(context.guildId || '').trim();
   const preferredTarget = String(context.target || 'primary') === 'secondary' ? 'secondary' : 'primary';
-  const otherTarget = preferredTarget === 'primary' ? 'secondary' : 'primary';
   const targetForRoute = (routeKey: string) => {
     const route = configuredRoutes?.[routeKey] || {};
-    const exactGuildTarget = [preferredTarget, otherTarget].find((target) => {
-      const item = route?.[target];
-      return item?.enabled !== false && validDiscordChannelId(item?.channel_id) && (!guildId || String(item?.guild_id || '') === guildId);
-    });
-    if (exactGuildTarget) return exactGuildTarget;
-    return [preferredTarget, otherTarget].find((target) => {
-      const item = route?.[target];
-      return item?.enabled !== false && validDiscordChannelId(item?.channel_id);
-    }) || '';
+    const item = route?.[preferredTarget];
+    if (item?.enabled !== false && validDiscordChannelId(item?.channel_id) && (!guildId || !item?.guild_id || String(item.guild_id) === guildId)) return preferredTarget;
+    return '';
   };
   const logTarget = targetForRoute('log_tasks');
   const fallbackTarget = targetForRoute('tasks');
