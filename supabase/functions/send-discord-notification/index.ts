@@ -361,6 +361,7 @@ Deno.serve(async (request) => {
       'event_reminders',
       'presence_events',
       'tasks',
+      'proposals',
       'log_tasks',
       'contract_identity_weekly',
       'actions_organization',

@@ -988,11 +988,6 @@ function proposalComponents(post: any, audience: 'organization' | 'departments')
       { type: 2, style: 3, label: '✅ Susțin', custom_id: `panel:proposals:${audience}:support:${post.id}` },
       { type: 2, style: 4, label: '❌ Contra', custom_id: `panel:proposals:${audience}:against:${post.id}` },
     ] },
-    { type: 1, components: [
-      { type: 2, style: 2, label: '🔎 În analiză', custom_id: `panel:proposals:${audience}:review:${post.id}` },
-      { type: 2, style: 3, label: '✅ Acceptă', custom_id: `panel:proposals:${audience}:accept:${post.id}` },
-      { type: 2, style: 4, label: '❌ Respinge', custom_id: `panel:proposals:${audience}:reject:${post.id}` },
-    ] },
   ];
 }
 
