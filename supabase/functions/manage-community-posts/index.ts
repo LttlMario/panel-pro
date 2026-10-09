@@ -195,8 +195,8 @@ if (body.action === 'announcement_access') {
         ? ['organization', 'departments']
         : ['organization', 'departments'].filter(audience => announcementCanForAudience(audience, 'write'));
     return reply({
-        read: communicationSetting ? readAudiences.length > 0 : announcementPageAccess,
-        write: communicationSetting ? writeAudiences.length > 0 : announcementPublishAccess,
+        read: communicationSetting ? (readAudiences.length > 0 || ['organization', 'departments'].some((audience) => proposalCanForAudience(audience, 'read'))) : (announcementPageAccess || isPlatformAdmin),
+        write: communicationSetting ? (writeAudiences.length > 0 || ['organization', 'departments'].some((audience) => proposalCanForAudience(audience, 'write'))) : (announcementPublishAccess || isPlatformAdmin),
         read_audiences: communicationSetting ? readAudiences : (announcementPageAccess ? ['organization', 'departments'].filter(hasCommunicationFeature) : []),
         write_audiences: communicationSetting ? writeAudiences : (announcementPublishAccess ? ['organization', 'departments'].filter(hasCommunicationFeature) : []),
         proposal_read_audiences: ['organization', 'departments'].filter((audience) => proposalCanForAudience(audience, 'read')),
