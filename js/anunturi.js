@@ -11,6 +11,7 @@
   let isPlatformAdmin = false;
   let readAudiences = [];
   let writeAudiences = [];
+  let proposalWriteAudiences = [];
   let announcementAccess = { read: false, write: false };
   let organizationId = null;
   let organizationReady = null;
@@ -40,6 +41,7 @@
           isPlatformAdmin = access?.platform_admin === true;
           readAudiences = Array.isArray(access?.read_audiences) ? access.read_audiences.map(String).filter(Boolean) : [];
           writeAudiences = Array.isArray(access?.write_audiences) ? access.write_audiences.map(String).filter(Boolean) : [];
+          proposalWriteAudiences = Array.isArray(access?.proposal_read_audiences) ? access.proposal_read_audiences.map(String).filter(Boolean) : [];
           const pageCanRead = communityPageAudience ? readAudiences.includes(communityPageAudience) : canRead;
           const pageCanWrite = communityPageAudience ? writeAudiences.includes(communityPageAudience) : canWrite;
           canWriteAnnouncements = pageCanWrite;
@@ -292,7 +294,7 @@ async function load(){
   }
   window.communityAnnouncementsApi = {
     getPosts: () => posts.slice(),
-    getAccess: () => ({ ...announcementAccess, audience: communityPageAudience || null, readAudiences: readAudiences.slice(), writeAudiences: writeAudiences.slice() }),
+    getAccess: () => ({ ...announcementAccess, audience: communityPageAudience || null, readAudiences: readAudiences.slice(), writeAudiences: writeAudiences.slice(), proposalWriteAudiences: proposalWriteAudiences.slice() }),
     renderCard: (post) => card(post),
     bindRenderedCards: (root = document) => bindCards.call(null, root),
     openComposer: openAnnouncementComposer,

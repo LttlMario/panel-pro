@@ -58,6 +58,7 @@
     const createOptions = {
       announcement: Boolean(announcementAccess.write),
       poll: Boolean(announcementAccess.write),
+      proposal: Boolean((announcements()?.getAccess?.()?.proposalWriteAudiences || []).length),
       warning: communityPageAudience ? hasWrite(communityPageAudience) : hasWrite('departments') || hasWrite('organization'),
       sanction: communityPageAudience ? hasSanction(communityPageAudience) : hasSanction('departments') || hasSanction('organization'),
       action: communityPageAudience !== 'departments' && Boolean(actions()?.getAccess?.()?.write)
@@ -117,6 +118,7 @@
     const type = $('unified-create-type').value;
     closeUnifiedCreate();
     if (type === 'announcement' || type === 'poll') announcements()?.openComposer?.(type);
+    else if (type === 'proposal') announcements()?.openComposer?.('proposal');
     else if (type === 'warning' || type === 'sanction') discipline()?.openComposer?.(type);
     else if (type === 'action') actions()?.openComposer?.();
   }
@@ -133,6 +135,7 @@
 
   window.openUnifiedCreate = openUnifiedCreate;
   document.addEventListener('DOMContentLoaded', () => {
+    if ($('unified-create-type') && !$('unified-create-type').querySelector('option[value="proposal"]')) $('unified-create-type').insertAdjacentHTML('beforeend', '<option value="proposal">Propunere</option>');
     $('unified-create-form')?.addEventListener('submit', continueCreate);
     document.addEventListener('click', (event) => {
       const target = event.target;

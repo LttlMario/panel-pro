@@ -182,6 +182,8 @@ if (body.action === 'announcement_access') {
             : [];
     const announcementCanForAudience = (audience:string, kind:'read'|'write') =>
         hasCommunicationFeature(audience) && (isPlatformAdmin || roleIdsForAudience(audience).some(roleId => announcementAudienceRoles(audience, kind).includes(roleId)));
+    const proposalCanForAudience = (audience:string, kind:'read'|'write') =>
+        hasCommunicationFeature(audience) && (isPlatformAdmin || roleIdsForAudience(audience).some(roleId => (Array.isArray(proposalPermissions?.[audience]?.[kind]) ? proposalPermissions[audience][kind] : []).map(String).includes(String(roleId))));
     const announcementPageAccess =
         isPlatformAdmin || roleIdsForAllAudiences().some(roleId => allowedAnnouncementRoles.includes(roleId));
     const announcementPublishAccess =
@@ -197,6 +199,8 @@ if (body.action === 'announcement_access') {
         write: communicationSetting ? writeAudiences.length > 0 : announcementPublishAccess,
         read_audiences: communicationSetting ? readAudiences : (announcementPageAccess ? ['organization', 'departments'].filter(hasCommunicationFeature) : []),
         write_audiences: communicationSetting ? writeAudiences : (announcementPublishAccess ? ['organization', 'departments'].filter(hasCommunicationFeature) : []),
+        proposal_read_audiences: ['organization', 'departments'].filter((audience) => proposalCanForAudience(audience, 'read')),
+        proposal_write_audiences: ['organization', 'departments'].filter((audience) => proposalCanForAudience(audience, 'write')),
         platform_admin: isPlatformAdmin
     });
 }
