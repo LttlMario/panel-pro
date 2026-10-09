@@ -496,7 +496,8 @@ async function updateTaskPrivateMessage(db: any, task: any) {
 }
 
 async function publishTaskLog(db: any, context: any, tasks: any[], messageId = '') {
-  const logRoute = context.settings?.discord_channel_routes?.log_tasks || {};
+  const routes = context.settings?.discord_channel_routes || context.settings || {};
+  const logRoute = routes.log_tasks || routes.tasks || {};
   const route = logRoute?.[context.target] || Object.values(logRoute).find((item: any) => String(item?.channel_id || '').trim());
   const channelId = String(route?.channel_id || '').trim();
   if (!channelId) throw new Error('Configurează canalul de log pentru taskuri.');
