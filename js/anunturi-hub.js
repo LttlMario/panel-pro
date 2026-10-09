@@ -106,6 +106,10 @@
   }
 
   function openUnifiedCreate() {
+    if (proposalOnly) {
+      announcements()?.openComposer?.('proposal');
+      return;
+    }
     updateVisibility();
     const type = $('unified-create-type');
     if (!type || [...type.options].every((option) => option.hidden)) {
