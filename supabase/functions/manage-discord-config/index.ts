@@ -66,7 +66,7 @@ Deno.serve(async request=>{
   if(body.action==='get'){
    const state=await load(),primary=state.guilds.find((g:any)=>g.kind==='primary'),secondary=state.guilds.find((g:any)=>g.kind==='secondary');
    const mappings=[...new Set(state.roles.map((role:any)=>Number(role.permission_level)).filter((level:number)=>level>=1&&level<=99))].sort((a,b)=>a-b).map(level=>{const p=state.roles.find((r:any)=>r.guild_id===primary?.guild_id&&Number(r.permission_level)===level),s=state.roles.find((r:any)=>r.guild_id===secondary?.guild_id&&Number(r.permission_level)===level);return{permission_level:level,discord_role_id:p?.discord_role_id||'',discord_role_name:p?.discord_role_name||'',discord_role_id_secondary:s?.discord_role_id||'',discord_role_name_secondary:s?.discord_role_name||'',panel_role:p?.panel_role||s?.panel_role||'',enabled:true};});
-   return reply({config:{...(state.settings||{}),organization_name:state.organization.name,organization_code:state.organization.code,organization_description:state.organization.description,organization_logo:state.organization.logo_url,organization_banner:state.organization.banner_url,guild_id:primary?.guild_id||'',guild_id_secondary:secondary?.guild_id||''},mappings});
+    return reply({config:{...(state.settings||{}),discord_spam_protection:state.platformSettings.discord_spam_protection||null,organization_name:state.organization.name,organization_code:state.organization.code,organization_description:state.organization.description,organization_logo:state.organization.logo_url,organization_banner:state.organization.banner_url,guild_id:primary?.guild_id||'',guild_id_secondary:secondary?.guild_id||''},mappings});
   }
   if(body.action==='configure_spam_protection'){
    const state=await load();
