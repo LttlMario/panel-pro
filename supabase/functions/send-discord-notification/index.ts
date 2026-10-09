@@ -47,6 +47,8 @@ const levels: Record<string, number> = {
   log_presence_events: 1,
   tasks: 1,
   log_tasks: 1,
+  proposals: 1,
+  log_proposals: 1,
   log_discipline_organization: 1,
   log_discipline_departments: 1,
   live_status: 1,
