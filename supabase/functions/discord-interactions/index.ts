@@ -987,6 +987,7 @@ function proposalComponents(post: any, audience: 'organization' | 'departments')
     { type: 1, components: [
       { type: 2, style: 3, label: '✅ Susțin', custom_id: `panel:proposals:${audience}:support:${post.id}` },
       { type: 2, style: 4, label: '❌ Contra', custom_id: `panel:proposals:${audience}:against:${post.id}` },
+      { type: 2, style: 4, label: '🗑️ Șterge propunerea', custom_id: `panel:proposals:${audience}:delete:${post.id}` },
     ] },
   ];
 }
@@ -2382,6 +2383,15 @@ async function handleProposalButton(db: any, interaction: any, context: any, par
   const postId = String(parts[4] || '');
   const data = await loadCommunityPost(db, String(context.organization.id), postId);
   if (data.post.post_type !== 'proposal' || data.post.audience !== context.audience) throw new Error('Propunerea nu aparține acestei organizații.');
+  if (action === 'delete') {
+    const { error: votesError } = await db.from('community_proposal_votes_v2').delete().eq('organization_id', context.organization.id).eq('proposal_id', postId);
+    if (votesError) throw votesError;
+    const { error: deleteError } = await db.from('community_proposals').delete().eq('organization_id', context.organization.id).eq('id', postId);
+    if (deleteError) throw deleteError;
+    const response = await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: context.channelId }, '', { method: 'DELETE', messageId: String(interaction.message?.id || '') });
+    if (!response.ok && response.status !== 404) throw new Error('Propunerea a fost ștearsă din Supabase, dar mesajul Discord nu a putut fi șters.');
+    return interactionMessage('Propunerea a fost ștearsă.');
+  }
   if (['support', 'against'].includes(action)) {
     const { error } = await db.from('community_proposal_votes_v2').upsert({ organization_id: context.organization.id, proposal_id: postId, user_discord_id: context.discordId, display_name: context.displayName, vote: action, updated_at: new Date().toISOString() }, { onConflict: 'proposal_id,user_discord_id' });
     if (error) throw error;
@@ -3443,7 +3453,7 @@ Deno.serve(async (request) => {
       const audience = parts[2] === 'departments' ? 'departments' : parts[2] === 'organization' ? 'organization' : null;
       if (!audience) return reply(interactionMessage('Categoria propunerii nu este validă.'));
       if (parts[3] === 'create') return reply(proposalModal(audience));
-      const permission = ['review', 'accept', 'reject'].includes(String(parts[3] || '')) ? 'write' : 'read';
+      const permission = ['review', 'accept', 'reject', 'delete'].includes(String(parts[3] || '')) ? 'write' : 'read';
       const deferred = await deferInteraction(interaction, false);
       let result;
       try {
