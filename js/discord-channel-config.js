@@ -3,6 +3,24 @@
   const root = document.getElementById('webhooks') || document.getElementById('owner-webhooks') || document.getElementById('draft-webhooks');
   if (!root) return;
   if (document.getElementById('discord-channel-routes')) return;
+  const organizationEditor = document.getElementById('organizations-editor');
+  if (organizationEditor && !organizationEditor.querySelector('.organization-quick-nav')) {
+    const overview = document.getElementById('form-title')?.parentElement;
+    if (overview) {
+      const nav = document.createElement('nav');
+      nav.className = 'organization-quick-nav';
+      nav.setAttribute('aria-label', 'Navigare configurare organizație');
+      nav.innerHTML = '<a href="#form-title">Prezentare</a><a href="#guild">Discord</a><a href="#roles">Roluri</a><a href="#page-permissions">Acces</a><a href="#discord-channel-routes">Canale și module</a><a href="#expires">Expirare</a>';
+      overview.appendChild(nav);
+    }
+    organizationEditor.querySelectorAll('details:not([hidden])').forEach((details) => { details.open = false; });
+  }
+  if (organizationEditor && !document.getElementById('organization-quick-nav-style')) {
+    const style = document.createElement('style');
+    style.id = 'organization-quick-nav-style';
+    style.textContent = '.organization-quick-nav{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;padding:6px;border:1px solid rgba(71,85,105,.7);border-radius:12px;background:rgba(15,23,42,.72)}.organization-quick-nav a{border:1px solid rgba(71,85,105,.85);border-radius:8px;padding:6px 9px;color:#cbd5e1;font-size:11px;font-weight:800;text-decoration:none;transition:background .15s ease,border-color .15s ease,color .15s ease}.organization-quick-nav a:hover{border-color:#67e8f9;background:rgba(8,145,178,.2);color:#cffafe}';
+    document.head.appendChild(style);
+  }
   const isDraft = root.id === 'draft-webhooks';
   const isOwner = root.id === 'owner-webhooks';
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
