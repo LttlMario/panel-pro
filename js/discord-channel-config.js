@@ -141,17 +141,29 @@
     if (!select) return;
     select.innerHTML = options(state.spamAlertChannels[target], target);
     select.disabled = !guildIdForTarget(target) || !state.discoveryAttempted || state.guildAvailability[target] === false;
-    select.onchange = () => { state.spamAlertChannels[target] = select.value; };
+    select.onchange = async () => {
+      state.spamAlertChannels[target] = select.value;
+      if (typeof window.panelRequestJson !== 'function') return;
+      try {
+        await window.panelRequestJson('manage-discord-config', { method: 'POST', body: JSON.stringify({ action: 'save_spam_channels', alert_channels: state.spamAlertChannels }), timeoutMs: 15000, retry: false });
+        if (spamStatus) spamStatus.textContent = 'Canalul de log anti-spam a fost salvat.';
+      } catch (error) {
+        if (spamStatus) spamStatus.textContent = error.message || 'Canalul de log anti-spam nu a putut fi salvat.';
+      }
+    };
   });
   const loadSavedSpamChannels = async () => {
     if (typeof window.panelRequestJson !== 'function') return;
     try {
       const result = await window.panelRequestJson('manage-discord-config', { method: 'POST', body: JSON.stringify({ action: 'get' }), timeoutMs: 15000, retry: false });
-      const rules = result?.config?.discord_spam_protection?.rules || [];
+      const saved = result?.config?.discord_spam_protection || {};
+      const rules = saved.rules || [];
       ['primary', 'secondary'].forEach((target) => {
         const guildId = guildIdForTarget(target);
+        const savedChannel = saved.alert_channels?.[target];
         const rule = rules.find((item) => String(item.guild_id || '') === guildId && /^\d{15,22}$/.test(String(item.alert_channel_id || '')));
-        if (rule) state.spamAlertChannels[target] = String(rule.alert_channel_id);
+        if (/^\d{15,22}$/.test(String(savedChannel || ''))) state.spamAlertChannels[target] = String(savedChannel);
+        else if (rule) state.spamAlertChannels[target] = String(rule.alert_channel_id);
       });
       renderSpamChannelSelectors();
     } catch (_) {}

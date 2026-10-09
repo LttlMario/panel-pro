@@ -49,7 +49,8 @@ async function configureSpamProtection(db:any, organizationId:string, guilds:any
   const rule=await response.json().catch(()=>existing||{});
   results.push({guild_id:guildId,guild_name:guild.guild_name||guildId,rule_id:String(rule.id||existing?.id||''),action:existing?'updated':'created',alert_channel_id:alertChannelId||null,timeout_enabled:timeoutEnabled});
  }
- const setting={enabled:true,rule_name:SPAM_RULE_NAME,timeout_seconds:600,rules:results,updated_at:new Date().toISOString()};
+ const alertChannels={primary:/^\d{15,22}$/.test(String(requestedAlertChannels?.primary||''))?String(requestedAlertChannels.primary):'',secondary:/^\d{15,22}$/.test(String(requestedAlertChannels?.secondary||''))?String(requestedAlertChannels.secondary):''};
+ const setting={enabled:true,rule_name:SPAM_RULE_NAME,timeout_seconds:600,alert_channels:alertChannels,rules:results,updated_at:new Date().toISOString()};
  const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'discord_spam_protection',value:setting,updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;
  return setting;
 }
@@ -72,6 +73,14 @@ Deno.serve(async request=>{
    const state=await load();
    const spam=await configureSpamProtection(db,organizationId,state.guilds,state.settings?.discord_channel_routes||{},body.alert_channels||{});
    return reply({ok:true,spam_protection:spam});
+  }
+  if(body.action==='save_spam_channels'){
+   const state=await load();
+   const existing=state.platformSettings.discord_spam_protection&&typeof state.platformSettings.discord_spam_protection==='object'?state.platformSettings.discord_spam_protection:{};
+   const alertChannels={primary:/^\d{15,22}$/.test(String(body.alert_channels?.primary||''))?String(body.alert_channels.primary):'',secondary:/^\d{15,22}$/.test(String(body.alert_channels?.secondary||''))?String(body.alert_channels.secondary):''};
+   const setting={...existing,alert_channels:alertChannels,updated_at:new Date().toISOString()};
+   const {error}=await db.from('app_settings').upsert({organization_id:organizationId,key:'discord_spam_protection',value:setting,updated_at:new Date().toISOString()},{onConflict:'organization_id,key'});if(error)throw error;
+   return reply({ok:true,spam_protection:setting});
   }
   if(body.action==='discover_discord_roles'){
    const guildId=String(body.guild_id||'').trim(),bot=await getPlatformSecret(db,'discord_bot_token');if(!/^\d{15,22}$/.test(guildId))return reply({error:'Guild ID invalid.'},400);if(!bot)throw new Error('DISCORD_BOT_TOKEN lipsește.');
