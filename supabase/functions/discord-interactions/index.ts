@@ -517,15 +517,14 @@ async function publishTaskLog(db: any, context: any, tasks: any[], messageId = '
   const targetForRoute = (routeKey: string) => {
     const route = configuredRoutes?.[routeKey] || {};
     const item = route?.[preferredTarget];
-    if (item?.enabled !== false && validDiscordChannelId(item?.channel_id) && (!guildId || !item?.guild_id || String(item.guild_id) === guildId)) return preferredTarget;
+    if (item?.enabled !== false && validDiscordChannelId(item?.channel_id)) return preferredTarget;
     return '';
   };
   const logTarget = targetForRoute('log_tasks');
-  const fallbackTarget = targetForRoute('tasks');
-  const selectedRouteKey = logTarget ? 'log_tasks' : fallbackTarget ? 'tasks' : '';
-  const selectedTarget = logTarget || fallbackTarget;
+  const selectedRouteKey = logTarget ? 'log_tasks' : '';
+  const selectedTarget = logTarget;
   if (!selectedRouteKey || !selectedTarget) {
-    throw new Error('Canalul selectat pentru log task-uri nu este disponibil în configurația organizației. Salvează din nou canalul în organizatii.html.');
+    throw new Error(`Canalul selectat pentru log task-uri (${preferredTarget === 'secondary' ? 'Discord secundar' : 'Discord principal'}) nu este salvat în configurația organizației. Salvează din nou canalul în organizatii.html.`);
   }
   const selectedRoute = configuredRoutes?.[selectedRouteKey]?.[selectedTarget];
   const deliverySettings = { discord_channel_routes: { [selectedRouteKey]: { primary: selectedTarget === 'primary' ? selectedRoute : null, secondary: selectedTarget === 'secondary' ? selectedRoute : null } } };
