@@ -3,10 +3,12 @@
   const KEY=window.PANEL_SUPABASE_CONFIG.publishableKey;
   const db = window.createPanelSupabaseClient();
   const user = window.getUser?.() || {};
-  const proposalOnly = location.pathname.split('/').pop() === 'propuneri.html';
+  const currentProposalPage = location.pathname.split('/').pop();
+  const proposalOnly = ['propuneri.html', 'propuneri-angajati.html', 'propuneri-organizatie.html'].includes(currentProposalPage);
+  const pageProposalAudience = currentProposalPage === 'propuneri-angajati.html' ? 'departments' : currentProposalPage === 'propuneri-organizatie.html' ? 'organization' : '';
   const communityPageAudience = ['organization', 'departments'].includes(document.body?.dataset?.communityAudience)
     ? document.body.dataset.communityAudience
-    : '';
+    : pageProposalAudience;
   let posts=[], filter=proposalOnly ? 'proposal' : 'all', editing=null, draft=null;
   let canWriteAnnouncements = false;
   let isPlatformAdmin = false;

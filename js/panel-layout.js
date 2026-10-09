@@ -1212,7 +1212,7 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             header = null;
         }
 
-        const communityPages = new Set(['anunturi.html', 'anunturi-angajati.html', 'anunturi-organizatie.html', 'propuneri.html']);
+        const communityPages = new Set(['anunturi.html', 'anunturi-angajati.html', 'anunturi-organizatie.html', 'propuneri.html', 'propuneri-angajati.html', 'propuneri-organizatie.html']);
         if (!header && !communityPages.has(currentPage)) return;
 
         if (communityPages.has(currentPage)) {
@@ -1360,7 +1360,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         const sections = [
             ['management', 'Operațiuni', [
                 ['index.html', '📊', 'Dashboard'],
-                ['propuneri.html', '💡', 'Propuneri'],
+                ['propuneri-angajati.html', '💡', 'Propuneri angajați'],
+                ['propuneri-organizatie.html', '🏢', 'Propuneri organizație'],
                 ['anunturi-angajati.html', '📣', 'Anunțuri angajați'],
                 ['anunturi-organizatie.html', '🏢', 'Anunțuri organizație'],
                 ['pontaj.html', '⏱️', 'Pontaj'],

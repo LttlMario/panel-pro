@@ -639,6 +639,8 @@ if (settingsError) {
     'index.html',
     'anunturi.html',
     'propuneri.html',
+    'propuneri-angajati.html',
+    'propuneri-organizatie.html',
     'pontaj.html',
     'cereri.html',
     'calculator.html',

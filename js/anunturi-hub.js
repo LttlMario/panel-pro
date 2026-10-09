@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const communityPageAudience = document.body?.dataset?.communityAudience || '';
-  if (!['anunturi.html', 'anunturi-angajati.html', 'anunturi-organizatie.html', 'propuneri.html'].includes(location.pathname.split('/').pop())) return;
+  if (!['anunturi.html', 'anunturi-angajati.html', 'anunturi-organizatie.html', 'propuneri.html', 'propuneri-angajati.html', 'propuneri-organizatie.html'].includes(location.pathname.split('/').pop())) return;
 
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));

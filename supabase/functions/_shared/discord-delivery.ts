@@ -289,11 +289,11 @@ export async function deliverDiscordRoute(
   settings: any,
   routeKey: string,
   body: BodyInit,
-  options: { messageIds?: Record<string, string>; headers?: Record<string, string>; fallbackRouteKey?: string; postOnly?: boolean; messageIdsOnly?: boolean; organizationId?: string; messageKey?: string; retryPayload?: unknown; retryHeaders?: Record<string, string> } = {}
+  options: { messageIds?: Record<string, string>; headers?: Record<string, string>; fallbackRouteKey?: string; postOnly?: boolean; messageIdsOnly?: boolean; organizationId?: string; messageKey?: string; retryPayload?: unknown; retryHeaders?: Record<string, string>; targets?: string[] } = {}
 ) {
   const results: any[] = [];
   const failures: string[] = [];
-  for (const { target, candidates } of routeCandidates(settings, routeKey, options.fallbackRouteKey || '')) {
+  for (const { target, candidates } of routeCandidates(settings, routeKey, options.fallbackRouteKey || '').filter((entry) => !options.targets?.length || options.targets.includes(String(entry.target)))) {
     if (!candidates.length) continue;
     // Log routes contain one message per record. Their configured route message
     // is not the record message and must never be edited as a fallback.

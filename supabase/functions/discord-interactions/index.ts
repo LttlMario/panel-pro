@@ -140,7 +140,7 @@ async function ensureDiscordOnlyOrganization(db: any, interaction: any) {
   await db.from('organization_lifecycle_events').insert({ organization_id: organizationId, event_type: 'discord_only_initialized', actor_discord_id: discordId, details: { guild_id: guildId } });
   return { organization_id: organizationId, kind: 'primary' };
 }
-const controlPayload = (routeKey: string, trialText = '', includeDonation = true) => {
+const controlPayload = (routeKey: string, trialText = '', includeDonation = true, proposalAudience = '') => {
   const definitions: Record<string, { title: string; description: string; color: number; buttons: any[] }> = {
     organization: { title: '📢 Anunțuri · Organizație', description: 'Publică anunțuri, întrebări, sondaje și măsuri disciplinare pentru organizație.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:organization:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:organization:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:organization:create:poll' }, { label: 'Avertisment', style: 4, id: 'panel:discipline:organization:warning' }, { label: 'Amendă', style: 4, id: 'panel:discipline:organization:sanction' }] },
     departments: { title: '📢 Anunțuri · Angajați', description: 'Publică anunțuri, întrebări, sondaje și măsuri disciplinare pentru angajați.', color: 0x8b5cf6, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:announcements:departments:create:announcement' }, { label: 'Pune întrebare', style: 2, id: 'panel:announcements:departments:create:question' }, { label: 'Creează sondaj', style: 3, id: 'panel:announcements:departments:create:poll' }, { label: 'Avertisment', style: 4, id: 'panel:discipline:departments:warning' }, { label: 'Amendă', style: 4, id: 'panel:discipline:departments:sanction' }] },
@@ -163,7 +163,7 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
     illegal_locations: { title: '🗺️ Locații ilegale · Panel Pro', description: 'Alege harta. Embedul se actualizează direct în Discord și păstrează butoanele pentru cele 3 zone.', color: 0xef4444, buttons: [{ label: 'Los Santos', style: 4, id: 'panel:illegal_locations:map:ls' }, { label: 'Cayo Perico', style: 4, id: 'panel:illegal_locations:map:cayo' }, { label: 'Maldive', style: 4, id: 'panel:illegal_locations:map:maldive' }] },
     wheel_timer: { title: '🎡 Roată · timer personal', description: 'Pornește timerul personal de 6 ore și verifică timpul rămas. Răspunsurile sunt private pentru fiecare utilizator.', color: 0x06b6d4, buttons: [{ label: 'Am dat la roată', style: 1, id: 'panel:wheel:start' }, { label: 'Verifică timpul', style: 2, id: 'panel:wheel:status' }] },
     tasks: { title: '📋 Task-uri angajați · Panel Pro', description: 'Creează taskuri cu termen-limită. Angajatul primește mesaj privat și poate accepta sau refuza taskul.', color: 0xf59e0b, buttons: [{ label: 'Creează task', style: 1, id: 'panel:tasks:create' }] },
-    proposals: { title: '💡 Propuneri · Panel Pro', description: 'Trimite idei, votează propunerile și urmărește statusul lor.', color: 0xa855f7, buttons: [{ label: 'Trimite propunere', style: 1, id: 'panel:proposals:organization:create' }] },
+    proposals: { title: '💡 Propuneri · Panel Pro', description: 'Trimite idei, votează și urmărește statusul lor.', color: 0xa855f7, buttons: proposalAudience === 'organization' ? [{ label: 'Trimite propunere organizație', style: 1, id: 'panel:proposals:organization:create' }] : proposalAudience === 'departments' ? [{ label: 'Trimite propunere angajați', style: 1, id: 'panel:proposals:departments:create' }] : [{ label: 'Propunere organizație', style: 1, id: 'panel:proposals:organization:create' }, { label: 'Propunere angajați', style: 1, id: 'panel:proposals:departments:create' }] },
   };
   const definition = definitions[routeKey] || { title: `⚙️ ${PANEL_ROUTE_LABELS[routeKey] || 'Panel Pro'}`, description: 'Embed de administrare Panel Pro.', color: 0x5865f2, buttons: [] };
     const components: any[] = [];
@@ -1558,7 +1558,7 @@ async function saveCommunityMessageRefs(db: any, organizationId: string, postId:
 async function syncCommunityPostDiscord(db: any, context: any, data: any) {
   const messageIds = communityMessageRefs(data.post);
   const communityBody = communityPayload({ ...data, settings: context.settings });
-  const delivery = await deliverDiscordRoute(db, context.settings, context.routeKey, communityBody, { messageIds, organizationId: String(context.organization.id), messageKey: `community-post-${String(data.post.id)}`, retryPayload: JSON.parse(communityBody) });
+  const delivery = await deliverDiscordRoute(db, context.settings, context.routeKey, communityBody, { messageIds, organizationId: String(context.organization.id), messageKey: `community-post-${String(data.post.id)}`, retryPayload: JSON.parse(communityBody), targets: context.routeKey === 'proposals' ? [context.target] : undefined });
   await saveCommunityMessageRefs(db, String(context.organization.id), String(data.post.id), delivery.results || []);
   return delivery;
 }
@@ -2365,7 +2365,7 @@ async function handleAnnouncementSubmit(db: any, context: any, interaction: any,
   const data = await loadCommunityPost(db, String(context.organization.id), String(created.id));
   try {
     const communityBody = communityPayload({ ...data, settings: context.settings });
-    const delivery = await deliverDiscordRoute(db, context.settings, context.routeKey, communityBody, { organizationId: String(context.organization.id), messageKey: `community-post-${String(created.id)}`, retryPayload: JSON.parse(communityBody) });
+    const delivery = await deliverDiscordRoute(db, context.settings, context.routeKey, communityBody, { organizationId: String(context.organization.id), messageKey: `community-post-${String(created.id)}`, retryPayload: JSON.parse(communityBody), targets: context.routeKey === 'proposals' ? [context.target] : undefined });
     await saveCommunityMessageRefs(db, String(context.organization.id), String(created.id), delivery.results || []);
     return interactionMessage(`Postarea a fost salvată și publicată în ${delivery.results.length} canal${delivery.results.length === 1 ? '' : 'e'} Discord.`);
   } catch (error) {
@@ -2393,7 +2393,7 @@ async function handleProposalButton(db: any, interaction: any, context: any, par
   const response = await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: context.channelId }, JSON.stringify(payload), { method: 'PATCH', messageId: String(interaction.message?.id || '') });
   if (!response.ok) throw new Error('Propunerea a fost salvată, dar embedul nu a putut fi actualizat.');
   const logPayload = { allowed_mentions: { parse: [] }, embeds: [{ title: `${action === 'support' ? '✅ Vot pentru' : action === 'against' ? '❌ Vot contra' : proposalStatusLabel(refreshed.post.proposal_status)} · Propunere`, description: String(refreshed.post.title || 'Propunere'), color: 0xa855f7, fields: [{ name: '👤 Membru', value: context.displayName, inline: true }, { name: '📌 Status', value: proposalStatusLabel(refreshed.post.proposal_status), inline: true }], timestamp: new Date().toISOString() }] };
-  await deliverDiscordRoute(db, context.settings, 'log_proposals', JSON.stringify(logPayload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `proposal-log-${postId}-${context.discordId}-${action}`, retryPayload: logPayload }).catch((error) => console.error('[discord-interactions] proposal log failed', error));
+  await deliverDiscordRoute(db, context.settings, 'log_proposals', JSON.stringify(logPayload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `proposal-log-${postId}-${context.discordId}-${action}`, retryPayload: logPayload, targets: [context.target] }).catch((error) => console.error('[discord-interactions] proposal log failed', error));
   return interactionMessage(action === 'support' ? 'Votul „Susțin” a fost înregistrat.' : action === 'against' ? 'Votul „Contra” a fost înregistrat.' : `Propunerea este acum ${proposalStatusLabel(refreshed.post.proposal_status)}.`);
 }
 
@@ -2745,7 +2745,7 @@ Deno.serve(async (request) => {
             if (!syncResponse.ok) throw new Error(String(syncData?.error || 'Statusul live nu a putut fi publicat.'));
             return interactionMessage(`Statusul live a fost publicat și va fi actualizat automat. În pontaj: **${Number(syncData.active || 0)}**, în pauză: **${Number(syncData.paused || 0)}**.`);
           }
-          const panelPayload = controlPayload(routeKey, trialText, !premiumActive);
+          const panelPayload = controlPayload(routeKey, trialText, !premiumActive, routeKey === 'proposals' ? (target === 'secondary' ? 'organization' : 'departments') : '');
           await deliverDiscordRoute(db, { discord_channel_routes: settings.discord_channel_routes }, routeKey, JSON.stringify(panelPayload), { postOnly: true, organizationId: String(guild.organization_id), messageKey: `${routeKey}-control`, retryPayload: panelPayload });
           return interactionMessage(`Embedul **${PANEL_ROUTE_LABELS[routeKey]}** a fost publicat în <#${route.channel_id}>.`);
         }, 'Embedul nu a putut fi publicat.');
