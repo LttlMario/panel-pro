@@ -350,20 +350,19 @@
   position: relative;
   isolation: isolate;
   background:
-    radial-gradient(circle at 8% 0%, rgba(34, 211, 238, .24), transparent 34%),
-    radial-gradient(circle at 92% 15%, rgba(52, 211, 153, .16), transparent 28%),
-    linear-gradient(135deg, #10243e 0%, #111c32 52%, #0b1628 100%);
+    radial-gradient(circle at 8% 0%, rgba(34, 211, 238, .10), transparent 34%),
+    linear-gradient(135deg, #13243b 0%, #111c32 58%, #0b1628 100%);
 }
 
 .dashboard-welcome-glow {
   position: absolute;
   z-index: -1;
-  right: 8%;
-  bottom: -7rem;
-  width: 18rem;
-  height: 18rem;
+  right: 10%;
+  bottom: -8rem;
+  width: 14rem;
+  height: 14rem;
   border-radius: 999px;
-  background: rgba(45, 212, 191, .16);
+  background: rgba(45, 212, 191, .08);
   filter: blur(4rem);
 }
 
