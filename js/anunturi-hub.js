@@ -1,11 +1,14 @@
 (() => {
   'use strict';
-  const communityPageAudience = document.body?.dataset?.communityAudience || '';
-  if (!['anunturi.html', 'anunturi-angajati.html', 'anunturi-organizatie.html', 'propuneri.html', 'propuneri-angajati.html', 'propuneri-organizatie.html'].includes(location.pathname.split('/').pop())) return;
+  const currentPage = location.pathname.split('/').pop();
+  const proposalOnly = ['propuneri.html', 'propuneri-angajati.html', 'propuneri-organizatie.html'].includes(currentPage);
+  const pageProposalAudience = currentPage === 'propuneri-angajati.html' ? 'departments' : currentPage === 'propuneri-organizatie.html' ? 'organization' : '';
+  const communityPageAudience = document.body?.dataset?.communityAudience || pageProposalAudience;
+  if (!['anunturi.html', 'anunturi-angajati.html', 'anunturi-organizatie.html', 'propuneri.html', 'propuneri-angajati.html', 'propuneri-organizatie.html'].includes(currentPage)) return;
 
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-  let activeFilter = 'all';
+  let activeFilter = proposalOnly ? 'proposal' : 'all';
 
   const announcements = () => window.communityAnnouncementsApi;
   const discipline = () => window.communityDisciplineApi;
@@ -28,7 +31,7 @@
 
   function updateVisibility() {
     const announcementAccess = announcements()?.getAccess?.() || {};
-    const readableAudiences = announcementAccess.readAudiences || [];
+    const readableAudiences = proposalOnly ? (announcementAccess.proposalReadAudiences || []) : (announcementAccess.readAudiences || []);
     const disciplineReadable = communityPageAudience
       ? hasRead(communityPageAudience)
       : hasRead('departments') || hasRead('organization');
@@ -46,7 +49,7 @@
           ? readableAudiences.includes('organization')
         : filter === 'poll-departments'
           ? readableAudiences.includes('departments')
-        : readableAudiences.includes(filter);
+        : filter === 'proposal' ? (proposalOnly && readableAudiences.length > 0) : readableAudiences.includes(filter);
       tab.hidden = !visible;
     });
 
@@ -56,8 +59,8 @@
     if (sanctionTab) sanctionTab.hidden = !disciplineReadable;
 
     const createOptions = {
-      announcement: Boolean(announcementAccess.write),
-      poll: Boolean(announcementAccess.write),
+      announcement: proposalOnly ? false : Boolean(announcementAccess.write),
+      poll: proposalOnly ? false : Boolean(announcementAccess.write),
       proposal: Boolean((announcements()?.getAccess?.()?.proposalWriteAudiences || []).length),
       warning: communityPageAudience ? hasWrite(communityPageAudience) : hasWrite('departments') || hasWrite('organization'),
       sanction: communityPageAudience ? hasSanction(communityPageAudience) : hasSanction('departments') || hasSanction('organization'),
@@ -82,20 +85,21 @@
   }
 
   function renderAll() {
-    if (activeFilter !== 'all') return;
+    if (proposalOnly && activeFilter !== 'proposal') return;
+    if (!proposalOnly && activeFilter !== 'all') return;
     const feed = $('feed');
     if (!feed) return;
     const records = [
-      ...(announcements()?.getPosts?.() || []).map((post) => ({ kind: 'post', date: post.created_at, value: post })),
-      ...readableDisciplineEntries().map((entry) => ({ kind: 'discipline', date: entry.created_at, value: entry })),
-      ...((communityPageAudience !== 'departments' ? actions()?.getActions?.() || [] : []).map((action) => ({ kind: 'action', date: action.created_at, value: action })))
+      ...(announcements()?.getPosts?.() || []).filter((post) => !proposalOnly || post.post_type === 'proposal').map((post) => ({ kind: 'post', date: post.created_at, value: post })),
+      ...(proposalOnly ? [] : readableDisciplineEntries().map((entry) => ({ kind: 'discipline', date: entry.created_at, value: entry }))),
+      ...(!proposalOnly && communityPageAudience !== 'departments' ? actions()?.getActions?.() || [] : []).map((action) => ({ kind: 'action', date: action.created_at, value: action }))
     ].sort((left, right) => Date.parse(String(right.date || '')) - Date.parse(String(left.date || '')));
 
     feed.innerHTML = records.length ? records.map((record) => {
       if (record.kind === 'post') return announcements()?.renderCard?.(record.value) || '';
       if (record.kind === 'discipline') return discipline()?.renderCard?.(record.value) || '';
       return actions()?.renderCard?.(record.value) || '';
-    }).join('') : '<div class="empty">Nu există înregistrări în modulele la care ai acces.</div>';
+    }).join('') : `<div class="empty">${proposalOnly ? 'Nu există propuneri pentru această audiență.' : 'Nu există înregistrări în modulele la care ai acces.'}</div>`;
     announcements()?.bindRenderedCards?.(feed);
     discipline()?.bindRenderedCards?.(feed);
     actions()?.bindRenderedCards?.(feed);

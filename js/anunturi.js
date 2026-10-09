@@ -300,7 +300,7 @@ async function load(){
   }
   window.communityAnnouncementsApi = {
     getPosts: () => posts.slice(),
-    getAccess: () => ({ ...announcementAccess, audience: communityPageAudience || null, readAudiences: readAudiences.slice(), writeAudiences: writeAudiences.slice(), proposalWriteAudiences: proposalWriteAudiences.slice() }),
+    getAccess: () => ({ ...announcementAccess, audience: communityPageAudience || null, readAudiences: readAudiences.slice(), writeAudiences: writeAudiences.slice(), proposalReadAudiences: proposalReadAudiences.slice(), proposalWriteAudiences: proposalWriteAudiences.slice() }),
     renderCard: (post) => card(post),
     bindRenderedCards: (root = document) => bindCards.call(null, root),
     openComposer: openAnnouncementComposer,
