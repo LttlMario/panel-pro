@@ -284,8 +284,8 @@ async function load(){
         || Boolean(communityPageAudience && button.dataset.audience !== communityPageAudience);
     });
   }
-  function option(value=''){const row=document.createElement('div');row.className='poll-option-row';row.innerHTML=`<input class="poll-input" maxlength="120" value="${esc(value)}" placeholder="Opțiune"><button type="button" class="text-action danger">×</button>`;row.querySelector('button').onclick=()=>row.remove();$('#poll-options').appendChild(row)}
-  function openEdit(id){const p=posts.find(x=>String(x.id)===String(id));editing=p.id;$('#form-heading').textContent='Editează postarea';$('#post-type').value=p.post_type;$('#post-type').disabled=true;$('#post-title').value=p.title;$('#post-content').value=p.content;$('#poll-wrap').hidden=p.post_type!=='poll';$('#poll-options').innerHTML='';(p.community_poll_options||[]).sort((a,b)=>a.position-b.position).forEach(o=>option(o.option_text));$('#post-modal').hidden=false}
+  function option(value=''){const host=$('#poll-options');if(!host)return;const row=document.createElement('div');row.className='poll-option-row';row.innerHTML=`<input class="poll-input" maxlength="120" value="${esc(value)}" placeholder="Opțiune"><button type="button" class="text-action danger">×</button>`;row.querySelector('button').onclick=()=>row.remove();host.appendChild(row)}
+  function openEdit(id){const p=posts.find(x=>String(x.id)===String(id));editing=p.id;$('#form-heading').textContent='Editează postarea';$('#post-type').value=p.post_type;$('#post-type').disabled=true;$('#post-title').value=p.title;$('#post-content').value=p.content;$('#poll-wrap').hidden=p.post_type!=='poll';if($('#poll-options')) $('#poll-options').innerHTML='';(p.community_poll_options||[]).sort((a,b)=>a.position-b.position).forEach(o=>option(o.option_text));$('#post-modal').hidden=false}
   function closePostComposer(){ $('#post-modal').hidden=true; $('#audience-modal').hidden=true; draft=null; editing=null; }
   function openAnnouncementComposer(type = 'announcement') {
     if (!canWriteAnnouncements) { alert('Nu ai permisiunea de a publica anunțuri sau sondaje.'); return; }
@@ -293,7 +293,7 @@ async function load(){
     $('#post-form').reset();
     $('#post-type').disabled = false;
     $('#post-type').value = type;
-    $('#poll-options').innerHTML = '';
+    if ($('#poll-options')) $('#poll-options').innerHTML = '';
     $('#poll-wrap').hidden = type !== 'poll';
     if (type === 'poll') { option(); option(); }
     $('#post-modal').hidden = false;
@@ -333,7 +333,7 @@ async function load(){
       if (typeof window.openUnifiedCreate === 'function') return window.openUnifiedCreate();
       openAnnouncementComposer();
     };
-$('#post-type').onchange=e=>{$('#poll-wrap').hidden=e.target.value!=='poll';if(e.target.value==='poll'&&!$('#poll-options').children.length){option();option()}};$('#add-option').onclick=()=>option();$('#post-form').onsubmit=e=>{e.preventDefault();const options=$$('.poll-input').map(x=>x.value.trim()).filter(Boolean);if($('#post-type').value==='poll'&&options.length<2)return alert('Adaugă minimum două opțiuni.');draft={post_type:$('#post-type').value,title:$('#post-title').value.trim(),content:$('#post-content').value.trim(),options};if(editing)return act('update',{post_id:editing,...draft}).then(()=>$('#post-modal').hidden=true);$('#post-modal').hidden=true;if(communityPageAudience){act('create',{...draft,audience:communityPageAudience});}else{configureAudienceChoices();$('#audience-modal').hidden=false}};$$('[data-audience]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await act('create',{...draft,audience:b.dataset.audience});$('#audience-modal').hidden=true}catch(e){alert(e.message)}finally{b.disabled=false}});$$('[data-filter]').forEach(b=>b.onclick=()=>{$$('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
+$('#post-type').onchange=e=>{$('#poll-wrap').hidden=e.target.value!=='poll';if(e.target.value==='poll'&&!$('#poll-options').children.length){option();option()}};$('#add-option')?.addEventListener('click',()=>option());$('#post-form').onsubmit=e=>{e.preventDefault();const options=$$('.poll-input').map(x=>x.value.trim()).filter(Boolean);if($('#post-type').value==='poll'&&options.length<2)return alert('Adaugă minimum două opțiuni.');draft={post_type:$('#post-type').value,title:$('#post-title').value.trim(),content:$('#post-content').value.trim(),options};if(editing)return act('update',{post_id:editing,...draft}).then(()=>$('#post-modal').hidden=true);$('#post-modal').hidden=true;if(communityPageAudience){act('create',{...draft,audience:communityPageAudience});}else{configureAudienceChoices();$('#audience-modal').hidden=false}};$$('[data-audience]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await act('create',{...draft,audience:b.dataset.audience});$('#audience-modal').hidden=true}catch(e){alert(e.message)}finally{b.disabled=false}});$$('[data-filter]').forEach(b=>b.onclick=()=>{$$('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
     load();
 
     db
