@@ -793,6 +793,7 @@ const own = async (id:string) => {
 
      return data;
 };
+ if(body.action==='update' && body.post_type === 'proposal'){const {data:post,error:loadError}=await db.from('community_proposals').select('*').eq('organization_id',organizationId).eq('id',body.post_id).maybeSingle();if(loadError)throw loadError;if(!post)return reply({error:'Propunerea nu există.'},404);if(!canProposal(String(post.audience),'write'))return reply({error:'Rolul tău nu poate modifica această propunere.'},403);const {error}=await db.from('community_proposals').update({title:body.title,content:body.content,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',body.post_id);if(error)throw error;return reply({ok:true})}
  if(body.action==='create'){
 
 
@@ -807,11 +808,12 @@ const own = async (id:string) => {
     }
 
     const audience = body.audience;
-    stage='insert_community_post';
-    const {data:post,error}=await db.from('community_posts').insert({
+    const isProposal = body.post_type === 'proposal';
+    stage=isProposal ? 'insert_community_proposal' : 'insert_community_post';
+    const {data:post,error}=await db.from(isProposal ? 'community_proposals' : 'community_posts').insert({
         organization_id: organizationId,
         audience: audience,
-        post_type: body.post_type === 'fine' ? 'fine' : body.post_type,
+        ...(isProposal ? { proposal_status: 'new', proposal_decision_note: '' } : { post_type: body.post_type === 'fine' ? 'fine' : body.post_type }),
         title: body.title,
         content: body.content,
         author_discord_id: du.id,
@@ -819,6 +821,7 @@ const own = async (id:string) => {
     }).select().single();
     if (error) throw error;
     if (!post) throw new Error('Postarea nu a putut fi salvată.');
+    if (isProposal) post.post_type = 'proposal';
     if(body.post_type==='poll'){
       stage='insert_poll_options';
       const options=(body.options||[]).map((x:string,i:number)=>({organization_id:organizationId,post_id:post.id,option_text:x,position:i}));
@@ -836,7 +839,7 @@ const own = async (id:string) => {
 
     if (discordMessageId) {
         await db
-            .from('community_posts')
+            .from(isProposal ? 'community_proposals' : 'community_posts')
             .update({
                 discord_message_id: discordMessageId
             })
@@ -961,8 +964,8 @@ if(body.action==='marketplace_delete'){
  if(body.action==='read'){const postId=String(body.post_id||'').trim();if(!postId)return reply({error:'Postarea lipsește.'},400);const {data:post,error:postError}=await db.from('community_posts').select('id,audience').eq('organization_id',organizationId).eq('id',postId).maybeSingle();if(postError)throw postError;if(!post)return reply({error:'Postarea nu există.'},404);if(!hasCommunicationFeature(String(post.audience||'organization')))return reply({error:'Modulul Anunțuri nu este disponibil.'},403);const {data:profile}=await db.from('users').select('display_name,username').eq('discord_id',du.id).maybeSingle();const {error}=await db.from('community_post_reads').upsert({organization_id:organizationId,post_id:postId,user_discord_id:du.id,display_name:profile?.display_name||profile?.username||du.id,confirmed_at:new Date().toISOString()},{onConflict:'post_id,user_discord_id'});if(error)throw error;return reply({ok:true})}
  if(body.action==='react'){const reaction=String(body.reaction||'');if(!allowedCommunityReactions.has(reaction))return reply({error:'Reacție invalidă.'},400);const key={organization_id:organizationId,post_id:body.post_id,user_discord_id:du.id,reaction};const {data}=await db.from('community_reactions').select('id').match(key).maybeSingle();const q=data?db.from('community_reactions').delete().eq('organization_id',organizationId).eq('id',data.id):db.from('community_reactions').insert(key);const {error}=await q;if(error)throw error;return reply({ok:true})}
  if(body.action==='vote'){const {data:option}=await db.from('community_poll_options').select('post_id').eq('organization_id',organizationId).eq('id',body.option_id).single();if(!option||option.post_id!==body.post_id)throw new Error('Opțiune invalidă.');const {error}=await db.from('community_poll_votes').upsert({organization_id:organizationId,post_id:body.post_id,option_id:body.option_id,user_discord_id:du.id},{onConflict:'post_id,user_discord_id'});if(error)throw error;await updateDiscordPoll(body.post_id);return reply({ok:true})}
- if(body.action==='proposal_vote'){const postId=String(body.post_id||'').trim(),vote=String(body.vote||'');if(!['support','against'].includes(vote))return reply({error:'Vot invalid.'},400);const {data:post,error:postError}=await db.from('community_posts').select('id,audience,post_type').eq('organization_id',organizationId).eq('id',postId).maybeSingle();if(postError)throw postError;if(!post||post.post_type!=='proposal')return reply({error:'Propunerea nu există.'},404);if(!canProposal(String(post.audience||'organization'),'read'))return reply({error:'Nu ai acces la această propunere.'},403);const {data:profile}=await db.from('users').select('display_name,username').eq('discord_id',du.id).maybeSingle();const {error}=await db.from('community_proposal_votes').upsert({organization_id:organizationId,post_id:postId,user_discord_id:du.id,display_name:profile?.display_name||profile?.username||du.id,vote,updated_at:new Date().toISOString()},{onConflict:'post_id,user_discord_id'});if(error)throw error;return reply({ok:true})}
- if(body.action==='proposal_status'){const postId=String(body.post_id||'').trim(),status=String(body.status||'');if(!['review','accepted','rejected'].includes(status))return reply({error:'Status invalid.'},400);const {data:post,error:postError}=await db.from('community_posts').select('id,audience,post_type').eq('organization_id',organizationId).eq('id',postId).maybeSingle();if(postError)throw postError;if(!post||post.post_type!=='proposal')return reply({error:'Propunerea nu există.'},404);if(!canProposal(String(post.audience||'organization'),'write'))return reply({error:'Rolul tău nu poate schimba statusul propunerii.'},403);const {error}=await db.from('community_posts').update({proposal_status:status,proposal_decision_note:`Actualizat de ${du.id}`,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',postId);if(error)throw error;return reply({ok:true})}
+ if(body.action==='proposal_vote'){const postId=String(body.post_id||'').trim(),vote=String(body.vote||'');if(!['support','against'].includes(vote))return reply({error:'Vot invalid.'},400);const {data:post,error:postError}=await db.from('community_proposals').select('id,audience').eq('organization_id',organizationId).eq('id',postId).maybeSingle();if(postError)throw postError;if(!post)return reply({error:'Propunerea nu există.'},404);if(!canProposal(String(post.audience||'organization'),'read'))return reply({error:'Nu ai acces la această propunere.'},403);const {data:profile}=await db.from('users').select('display_name,username').eq('discord_id',du.id).maybeSingle();const {error}=await db.from('community_proposal_votes_v2').upsert({organization_id:organizationId,proposal_id:postId,user_discord_id:du.id,display_name:profile?.display_name||profile?.username||du.id,vote,updated_at:new Date().toISOString()},{onConflict:'proposal_id,user_discord_id'});if(error)throw error;return reply({ok:true})}
+ if(body.action==='proposal_status'){const postId=String(body.post_id||'').trim(),status=String(body.status||'');if(!['review','accepted','rejected'].includes(status))return reply({error:'Status invalid.'},400);const {data:post,error:postError}=await db.from('community_proposals').select('id,audience').eq('organization_id',organizationId).eq('id',postId).maybeSingle();if(postError)throw postError;if(!post)return reply({error:'Propunerea nu există.'},404);if(!canProposal(String(post.audience||'organization'),'write'))return reply({error:'Rolul tău nu poate schimba statusul propunerii.'},403);const {error}=await db.from('community_proposals').update({proposal_status:status,proposal_decision_note:`Actualizat de ${du.id}`,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',postId);if(error)throw error;return reply({ok:true})}
  return reply({error:'Acțiune necunoscută.'},400);
 const notifyCommunityLog = async (post:any, action:string) => {
     const { data: settings } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
@@ -1017,7 +1020,7 @@ async function notifyDiscord(post:any, options:string[], audience:string){
 
     const fields:Array<{name:string,value:string}> = [];
     if (post.post_type === 'proposal') {
-        const { data: proposalVotes } = await db.from('community_proposal_votes').select('vote,display_name,user_discord_id').eq('organization_id', organizationId).eq('post_id', post.id);
+        const { data: proposalVotes } = await db.from('community_proposal_votes_v2').select('vote,display_name,user_discord_id').eq('organization_id', organizationId).eq('proposal_id', post.id);
         const votes = proposalVotes || [];
         fields.push({ name: '📌 Status', value: ({new:'🆕 Nouă',review:'🔎 În analiză',accepted:'✅ Acceptată',rejected:'❌ Respinsă'} as any)[post.proposal_status || 'new'] || '🆕 Nouă' });
         fields.push({ name: '📊 Voturi', value: `✅ Susțin: ${votes.filter((v:any)=>v.vote==='support').length}\n❌ Contra: ${votes.filter((v:any)=>v.vote==='against').length}` });

@@ -112,13 +112,9 @@ async function loadNow() {
 
     // Audiența este filtrată în query, înainte ca datele să ajungă în browser.
     // Filtrarea doar în render ar permite unui utilizator să descarce datele celeilalte audiențe.
-    const postResult = await runCommunityQuery((signal) => db
-        .from('community_posts')
-        .select('id,post_type,audience,title,content,author_discord_id,author_name,discord_message_id,created_at,updated_at')
-        .eq('organization_id', organizationId)
-        .in('audience', visibleAudiences)
-        .order('created_at', { ascending: false })
-        .abortSignal(signal));
+    const postResult = proposalOnly
+      ? await runCommunityQuery((signal) => db.from('community_proposals').select('id,audience,title,content,author_discord_id,author_name,discord_message_id,created_at,updated_at,proposal_status,proposal_decision_note').eq('organization_id', organizationId).in('audience', visibleAudiences).order('created_at', { ascending: false }).abortSignal(signal).then((result) => ({ ...result, data: (result.data || []).map((post) => ({ ...post, post_type: 'proposal' })) })))
+      : await runCommunityQuery((signal) => db.from('community_posts').select('id,post_type,audience,title,content,author_discord_id,author_name,discord_message_id,created_at,updated_at').eq('organization_id', organizationId).in('audience', visibleAudiences).neq('post_type', 'proposal').order('created_at', { ascending: false }).abortSignal(signal));
     if (postResult.error) {
         showFeedMessage(`Nu pot citi anunțurile din Supabase: ${postResult.error.message || postResult.error.code || 'eroare necunoscută'}`, true);
         return;
@@ -139,7 +135,7 @@ async function loadNow() {
         runCommunityQuery((signal) => db.from('community_reactions').select('post_id,user_discord_id,reaction').eq('organization_id', organizationId).in('post_id', postIds).abortSignal(signal)),
         pollPostIds.length ? runCommunityQuery((signal) => db.from('community_poll_votes').select('post_id,option_id,user_discord_id').eq('organization_id', organizationId).in('post_id', pollPostIds).abortSignal(signal)) : Promise.resolve({ data: [], error: null }),
         runCommunityQuery((signal) => db.from('community_post_reads').select('post_id,user_discord_id,display_name,confirmed_at').eq('organization_id', organizationId).in('post_id', postIds).order('confirmed_at').abortSignal(signal)),
-        proposalPostIds.length ? runCommunityQuery((signal) => db.from('community_proposal_votes').select('post_id,user_discord_id,display_name,vote,created_at').eq('organization_id', organizationId).in('post_id', proposalPostIds).abortSignal(signal)) : Promise.resolve({ data: [], error: null })
+        proposalPostIds.length ? runCommunityQuery((signal) => db.from('community_proposal_votes_v2').select('proposal_id,user_discord_id,display_name,vote,created_at').eq('organization_id', organizationId).in('proposal_id', proposalPostIds).abortSignal(signal).then((result) => ({ ...result, data: (result.data || []).map((vote) => ({ ...vote, post_id: vote.proposal_id })) }))) : Promise.resolve({ data: [], error: null })
     ]);
 
     const voterIds = [...new Set((voteResult.data || [])

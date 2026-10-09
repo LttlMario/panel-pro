@@ -1515,15 +1515,20 @@ function communityPostEmbed(post: any, options: any[] = [], votes: any[] = [], r
 }
 
 async function loadCommunityPost(db: any, organizationId: string, postId: string) {
-  const { data: post, error: postError } = await db.from('community_posts').select('*').eq('organization_id', organizationId).eq('id', postId).maybeSingle();
+  let { data: post, error: postError } = await db.from('community_posts').select('*').eq('organization_id', organizationId).eq('id', postId).maybeSingle();
   if (postError) throw postError;
+  if (!post) {
+    const proposalResult = await db.from('community_proposals').select('*').eq('organization_id', organizationId).eq('id', postId).maybeSingle();
+    if (proposalResult.error) throw proposalResult.error;
+    if (proposalResult.data) post = { ...proposalResult.data, post_type: 'proposal' };
+  }
   if (!post) throw new Error('Postarea nu mai există în organizația activă.');
   const [optionsResult, votesResult, reactionsResult, readsResult, proposalVotesResult] = await Promise.all([
     db.from('community_poll_options').select('id,post_id,option_text,position').eq('organization_id', organizationId).eq('post_id', postId).order('position'),
     db.from('community_poll_votes').select('post_id,option_id,user_discord_id').eq('organization_id', organizationId).eq('post_id', postId),
     db.from('community_reactions').select('post_id,user_discord_id,reaction').eq('organization_id', organizationId).eq('post_id', postId),
     db.from('community_post_reads').select('post_id,user_discord_id,display_name,confirmed_at').eq('organization_id', organizationId).eq('post_id', postId).order('confirmed_at'),
-    db.from('community_proposal_votes').select('post_id,user_discord_id,display_name,vote,created_at').eq('organization_id', organizationId).eq('post_id', postId),
+    db.from('community_proposal_votes_v2').select('proposal_id,user_discord_id,display_name,vote,created_at').eq('organization_id', organizationId).eq('proposal_id', postId).then((result: any) => ({ ...result, data: (result.data || []).map((vote: any) => ({ ...vote, post_id: vote.proposal_id })) })),
   ]);
   if (optionsResult.error) throw optionsResult.error;
   if (votesResult.error) throw votesResult.error;
@@ -2346,10 +2351,11 @@ async function handleAnnouncementSubmit(db: any, context: any, interaction: any,
   }
 
   const now = new Date().toISOString();
-  const { data: created, error: createError } = await db.from('community_posts').insert({
+  const isProposal = postType === 'proposal';
+  const { data: created, error: createError } = await db.from(isProposal ? 'community_proposals' : 'community_posts').insert({
     organization_id: context.organization.id,
     audience: context.audience,
-    post_type: postType,
+    ...(isProposal ? { proposal_status: 'new', proposal_decision_note: '' } : { post_type: postType }),
     title,
     content,
     author_discord_id: context.discordId,
@@ -2358,6 +2364,7 @@ async function handleAnnouncementSubmit(db: any, context: any, interaction: any,
     updated_at: now,
   }).select('*').single();
   if (createError) throw createError;
+  if (isProposal) created.post_type = 'proposal';
   if (postType === 'poll') {
     const { error: optionsError } = await db.from('community_poll_options').insert(options.map((option, position) => ({ organization_id: context.organization.id, post_id: created.id, option_text: option, position })));
     if (optionsError) throw optionsError;
@@ -2380,12 +2387,12 @@ async function handleProposalButton(db: any, interaction: any, context: any, par
   const data = await loadCommunityPost(db, String(context.organization.id), postId);
   if (data.post.post_type !== 'proposal' || data.post.audience !== context.audience) throw new Error('Propunerea nu aparține acestei organizații.');
   if (['support', 'against'].includes(action)) {
-    const { error } = await db.from('community_proposal_votes').upsert({ organization_id: context.organization.id, post_id: postId, user_discord_id: context.discordId, display_name: context.displayName, vote: action, updated_at: new Date().toISOString() }, { onConflict: 'post_id,user_discord_id' });
+    const { error } = await db.from('community_proposal_votes_v2').upsert({ organization_id: context.organization.id, proposal_id: postId, user_discord_id: context.discordId, display_name: context.displayName, vote: action, updated_at: new Date().toISOString() }, { onConflict: 'proposal_id,user_discord_id' });
     if (error) throw error;
   } else {
     const allowed = ['review', 'accept', 'reject'];
     if (!allowed.includes(action)) return interactionMessage('Acțiunea propunerii nu este disponibilă.');
-    const { error } = await db.from('community_posts').update({ proposal_status: action === 'accept' ? 'accepted' : action === 'reject' ? 'rejected' : 'review', proposal_decision_note: `Actualizat de ${context.displayName}`, updated_at: new Date().toISOString() }).eq('organization_id', context.organization.id).eq('id', postId);
+    const { error } = await db.from('community_proposals').update({ proposal_status: action === 'accept' ? 'accepted' : action === 'reject' ? 'rejected' : 'review', proposal_decision_note: `Actualizat de ${context.displayName}`, updated_at: new Date().toISOString() }).eq('organization_id', context.organization.id).eq('id', postId);
     if (error) throw error;
   }
   const refreshed = await loadCommunityPost(db, String(context.organization.id), postId);
