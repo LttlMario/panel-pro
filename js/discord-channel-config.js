@@ -143,6 +143,19 @@
     select.disabled = !guildIdForTarget(target) || !state.discoveryAttempted || state.guildAvailability[target] === false;
     select.onchange = () => { state.spamAlertChannels[target] = select.value; };
   });
+  const loadSavedSpamChannels = async () => {
+    if (typeof window.panelRequestJson !== 'function') return;
+    try {
+      const result = await window.panelRequestJson('manage-discord-config', { method: 'POST', body: JSON.stringify({ action: 'get' }), timeoutMs: 15000, retry: false });
+      const rules = result?.config?.discord_spam_protection?.rules || [];
+      ['primary', 'secondary'].forEach((target) => {
+        const guildId = guildIdForTarget(target);
+        const rule = rules.find((item) => String(item.guild_id || '') === guildId && /^\d{15,22}$/.test(String(item.alert_channel_id || '')));
+        if (rule) state.spamAlertChannels[target] = String(rule.alert_channel_id);
+      });
+      renderSpamChannelSelectors();
+    } catch (_) {}
+  };
   const spamButton = section.querySelector('#discord-spam-configure');
   if (spamButton) spamButton.onclick = async () => {
     const selectedOrganizationId = String(organizationId() || '').trim();
@@ -619,6 +632,7 @@
   state.routes = window.discordChannelRoutesInitial && typeof window.discordChannelRoutesInitial === 'object' ? window.discordChannelRoutesInitial : {};
   section.querySelector('#discord-channel-discover').onclick = discover;
   render();
+  loadSavedSpamChannels();
   };
   window.initializeDiscordChannelConfig = initializeDiscordChannelConfig;
   initializeDiscordChannelConfig();

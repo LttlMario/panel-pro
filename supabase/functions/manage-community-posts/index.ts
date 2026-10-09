@@ -851,6 +851,23 @@ const own = async (id:string) => {
  }
  if(body.action==='update'){const post=await own(body.post_id);if(!canManageAudience(String(post.audience||'organization')))return reply({error:'Rolul tău nu poate modifica această audiență.'},403);const {error}=await db.from('community_posts').update({title:body.title,content:body.content,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',body.post_id);if(error)throw error;if(post.post_type==='poll'&&Array.isArray(body.options)){if(body.options.length<2)throw new Error('Sondajul trebuie să aibă minimum două opțiuni.');const {data:existing}=await db.from('community_poll_options').select('option_text').eq('organization_id',organizationId).eq('post_id',body.post_id).order('position');const changed=JSON.stringify((existing||[]).map((x:any)=>x.option_text))!==JSON.stringify(body.options);if(changed){const {error:deleteOptionsError}=await db.from('community_poll_options').delete().eq('organization_id',organizationId).eq('post_id',body.post_id);if(deleteOptionsError)throw deleteOptionsError;const {error:insertOptionsError}=await db.from('community_poll_options').insert(body.options.map((text:string,position:number)=>({organization_id:organizationId,post_id:body.post_id,option_text:text,position})));if(insertOptionsError)throw insertOptionsError}}return reply({ok:true})}
  if (body.action === 'delete') {
+    const { data: proposal, error: proposalLoadError } = await db.from('community_proposals').select('id,audience,discord_message_id,discord_message_ids').eq('organization_id', organizationId).eq('id', body.post_id).maybeSingle();
+    if (proposalLoadError) throw proposalLoadError;
+    if (proposal) {
+        if (!canProposal(String(proposal.audience || 'organization'), 'write')) return reply({ error: 'Rolul tău nu poate șterge această propunere.' }, 403);
+        const { error: votesError } = await db.from('community_proposal_votes_v2').delete().eq('organization_id', organizationId).eq('proposal_id', body.post_id);
+        if (votesError) throw votesError;
+        const { error: proposalDeleteError } = await db.from('community_proposals').delete().eq('organization_id', organizationId).eq('id', body.post_id);
+        if (proposalDeleteError) throw proposalDeleteError;
+        const { data: cfg } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
+        const refs = Array.isArray(proposal.discord_message_ids) ? proposal.discord_message_ids : (proposal.discord_message_id ? [{ id: proposal.discord_message_id }] : []);
+        const targets = routeCandidates(cfg, 'log_proposals').flatMap((item) => item.candidates);
+        for (const ref of refs) {
+            const target = targets.find((item) => String(item.channel_id) === String(ref?.channel_id || '') && String(item.target) === String(ref?.target || item.target)) || targets.find((item) => String(item.id || '') === String(ref?.id || '')) || targets[0];
+            if (target && ref?.id) await requestDiscordTarget(db, target, null, { method: 'DELETE', messageId: String(ref.id) }).catch(() => null);
+        }
+        return reply({ ok: true, deleted_id: body.post_id, deleted_type: 'proposal' });
+    }
     const post = await own(body.post_id);
      if (!canManageAudience(String(post.audience || 'organization'))) {
         return reply({ error: 'Rolul tău nu poate șterge această audiență.' }, 403);

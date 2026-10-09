@@ -61,7 +61,7 @@ Deno.serve(async request=>{
   const db=createClient(Deno.env.get('SUPABASE_URL')!,key),session=await requirePanelSession(db,request,0,true),body=await request.json(),organizationId=session.organization_id;if(!await isPlatformAdminAccount(db,session.discord_id))return reply({error:'Această funcție este rezervată administratorului platformei.'},403);
   const load=async()=>{const [{data:organization},{data:settings},{data:guilds},{data:roles},{data:platformSettings}]=await Promise.all([
    db.from('organizations').select('*').eq('id',organizationId).single(),db.from('organization_settings').select('*').eq('organization_id',organizationId).maybeSingle(),
-   db.from('organization_guilds').select('*').eq('organization_id',organizationId).order('kind'),db.from('organization_role_mappings').select('*').eq('organization_id',organizationId).eq('enabled',true).order('permission_level'),db.from('app_settings').select('key,value').eq('organization_id',organizationId).in('key',['organization_access','contract_template'])]);
+    db.from('organization_guilds').select('*').eq('organization_id',organizationId).order('kind'),db.from('organization_role_mappings').select('*').eq('organization_id',organizationId).eq('enabled',true).order('permission_level'),db.from('app_settings').select('key,value').eq('organization_id',organizationId).in('key',['organization_access','contract_template','discord_spam_protection'])]);
    return{organization,settings,guilds:guilds||[],roles:roles||[],platformSettings:Object.fromEntries((platformSettings||[]).map((item:any)=>[item.key,item.value]))};};
   if(body.action==='get'){
    const state=await load(),primary=state.guilds.find((g:any)=>g.kind==='primary'),secondary=state.guilds.find((g:any)=>g.kind==='secondary');
