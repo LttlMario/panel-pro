@@ -638,6 +638,7 @@ if (settingsError) {
   const allowedPages = new Set([
     'index.html',
     'anunturi.html',
+    'propuneri.html',
     'pontaj.html',
     'cereri.html',
     'calculator.html',

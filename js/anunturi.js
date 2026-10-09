@@ -3,15 +3,17 @@
   const KEY=window.PANEL_SUPABASE_CONFIG.publishableKey;
   const db = window.createPanelSupabaseClient();
   const user = window.getUser?.() || {};
+  const proposalOnly = location.pathname.split('/').pop() === 'propuneri.html';
   const communityPageAudience = ['organization', 'departments'].includes(document.body?.dataset?.communityAudience)
     ? document.body.dataset.communityAudience
     : '';
-  let posts=[], filter='all', editing=null, draft=null;
+  let posts=[], filter=proposalOnly ? 'proposal' : 'all', editing=null, draft=null;
   let canWriteAnnouncements = false;
   let isPlatformAdmin = false;
   let readAudiences = [];
   let writeAudiences = [];
   let proposalWriteAudiences = [];
+  let proposalReadAudiences = [];
   let announcementAccess = { read: false, write: false };
   let organizationId = null;
   let organizationReady = null;
@@ -41,7 +43,9 @@
           isPlatformAdmin = access?.platform_admin === true;
           readAudiences = Array.isArray(access?.read_audiences) ? access.read_audiences.map(String).filter(Boolean) : [];
           writeAudiences = Array.isArray(access?.write_audiences) ? access.write_audiences.map(String).filter(Boolean) : [];
-          proposalWriteAudiences = Array.isArray(access?.proposal_read_audiences) ? access.proposal_read_audiences.map(String).filter(Boolean) : [];
+          proposalWriteAudiences = Array.isArray(access?.proposal_write_audiences) ? access.proposal_write_audiences.map(String).filter(Boolean) : [];
+          proposalReadAudiences = Array.isArray(access?.proposal_read_audiences) ? access.proposal_read_audiences.map(String).filter(Boolean) : [];
+          if (proposalOnly) { readAudiences = proposalReadAudiences; writeAudiences = Array.isArray(access?.proposal_write_audiences) ? access.proposal_write_audiences.map(String).filter(Boolean) : []; }
           const pageCanRead = communityPageAudience ? readAudiences.includes(communityPageAudience) : canRead;
           const pageCanWrite = communityPageAudience ? writeAudiences.includes(communityPageAudience) : canWrite;
           canWriteAnnouncements = pageCanWrite;
@@ -98,7 +102,7 @@ async function loadNow() {
         return;
     }
 
-    const visibleAudiences = communityPageAudience ? [communityPageAudience] : readAudiences;
+    const visibleAudiences = communityPageAudience ? [communityPageAudience] : (proposalOnly ? proposalReadAudiences : readAudiences);
     if (!visibleAudiences.length) {
         showFeedMessage('Nu ai nicio audiență de comunicare permisă.');
         return;
