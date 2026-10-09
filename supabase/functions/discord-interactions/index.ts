@@ -505,6 +505,7 @@ async function publishTaskLog(db: any, context: any, tasks: any[], messageId = '
   }
   const delivery = await deliverDiscordRoute(db, settings || {}, 'log_tasks', JSON.stringify(payload), {
     postOnly: true,
+    fallbackRouteKey: 'tasks',
     organizationId: String(context.organizationId || ''),
     messageKey: `task-decision-${String(tasks[0]?.id || crypto.randomUUID())}`,
     retryPayload: payload,
@@ -562,7 +563,9 @@ async function handleTaskDmAction(db: any, interaction: any, action: string, tas
   const logRoute = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', task.organization_id).maybeSingle();
   const guild = await db.from('organization_guilds').select('kind').eq('organization_id', task.organization_id).eq('guild_id', task.guild_id).maybeSingle();
   const context = { organizationId: String(task.organization_id), guildId: String(task.guild_id), target: String(guild.data?.kind || '') === 'secondary' ? 'secondary' : 'primary', settings: logRoute.data || {} };
-  const logMessageId = await publishTaskLog(db, context, [updated]);
+  let logMessageId = '';
+  try { logMessageId = await publishTaskLog(db, context, [updated]); }
+  catch (error) { console.error('[discord-interactions] task log delivery failed after response was saved', error); }
   if (logMessageId) await db.from('platform_tasks').update({ log_message_id: logMessageId, updated_at: new Date().toISOString() }).eq('id', updated.id);
   return interactionMessage(accepted ? 'Taskul a fost acceptat și statusul a fost actualizat în log.' : 'Taskul a fost refuzat și statusul a fost actualizat în log.');
 }
