@@ -165,6 +165,10 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
     tasks: { title: '📋 Task-uri angajați · Panel Pro', description: 'Creează taskuri cu termen-limită. Angajatul primește mesaj privat și poate accepta sau refuza taskul.', color: 0xf59e0b, buttons: [{ label: 'Creează task', style: 1, id: 'panel:tasks:create' }] },
     proposals: { title: '💡 Propuneri · Panel Pro', description: 'Trimite idei, votează și urmărește statusul lor.', color: 0xa855f7, buttons: proposalAudience === 'organization' ? [{ label: 'Trimite propunere organizație', style: 1, id: 'panel:proposals:organization:create' }] : proposalAudience === 'departments' ? [{ label: 'Trimite propunere angajați', style: 1, id: 'panel:proposals:departments:create' }] : [{ label: 'Propunere organizație', style: 1, id: 'panel:proposals:organization:create' }, { label: 'Propunere angajați', style: 1, id: 'panel:proposals:departments:create' }] },
   };
+  if (routeKey === 'tasks') {
+    definitions.tasks.title = '📋 Task · Panel Pro';
+    definitions.tasks.description = 'Creează un task cu termen-limită. Destinatarul primește un mesaj privat și poate accepta sau refuza taskul.';
+  }
   const definition = definitions[routeKey] || { title: `⚙️ ${PANEL_ROUTE_LABELS[routeKey] || 'Panel Pro'}`, description: 'Embed de administrare Panel Pro.', color: 0x5865f2, buttons: [] };
     const components: any[] = [];
     for (let index = 0; index < definition.buttons.length && components.length < 4; index += 5) {
@@ -438,7 +442,7 @@ const taskDeadlineInput = () => {
   return `${get('day')}/${get('month')}/${get('year')} ${get('hour')}:${get('minute')}`;
 };
 const taskModal = (draftId = '') => ({ type: 9, data: { custom_id: `panel:tasks:submit:${draftId}`, title: 'Creează task', components: [
-  { type: 1, components: [universalTextInput('title', 'Task', 2, true, 'Scrie taskul și instrucțiunile pentru angajat', 4000)] },
+  { type: 1, components: [universalTextInput('title', 'Task', 2, true, 'Scrie taskul și instrucțiunile pentru destinatar', 4000)] },
   { type: 1, components: [universalTextInput('due_at', 'Termen-limită', 1, true, 'zz/ll/yyyy HH:mm', 16, taskDeadlineInput())] },
 ] } });
 
@@ -449,7 +453,7 @@ const taskEmbed = (task: any, includeButtons = true) => {
     { type: 2, style: 4, label: '❌ Refuză taskul', custom_id: `panel:tasks:refuse:${task.id}` },
   ] }] : [];
   return { allowed_mentions: { parse: [] }, embeds: [{ title: '📋 Task', description: String(task.description || task.title || 'Fără detalii.').slice(0, 4096), color: task.status === 'accepted' ? 0x22c55e : task.status === 'refused' ? 0xef4444 : 0xf59e0b, fields: [
-    { name: '👤 Angajat', value: `<@${String(task.assignee_discord_id || '')}>`, inline: true },
+    { name: '👤 Destinatar', value: `<@${String(task.assignee_discord_id || '')}>`, inline: true },
     { name: '📅 Termen-limită', value: taskDeadlineLabel(task.due_at), inline: true },
     { name: '📌 Status', value: statusLabels[String(task.status || 'pending')] || String(task.status || 'pending'), inline: false },
     ...(task.response_note ? [{ name: '💬 Răspuns', value: String(task.response_note).slice(0, 1024), inline: false }] : []),
@@ -470,7 +474,7 @@ const taskDecisionEmbed = (task: any) => {
   const accepted = String(task.status || '') === 'accepted';
   return { allowed_mentions: { parse: [] }, embeds: [{ title: `${accepted ? '✅' : '❌'} Task ${accepted ? 'acceptat' : 'refuzat'}`, color: accepted ? 0x22c55e : 0xef4444, fields: [
     { name: '📋 Task', value: String(task.description || task.title || 'Task').slice(0, 1024), inline: false },
-    { name: '👤 Angajat', value: `<@${String(task.assignee_discord_id || '')}>`, inline: true },
+    { name: '👤 Destinatar', value: `<@${String(task.assignee_discord_id || '')}>`, inline: true },
     { name: '📅 Termen-limită', value: taskDeadlineLabel(task.due_at), inline: true },
     { name: '💬 Răspuns', value: accepted ? 'Taskul a fost acceptat.' : 'Taskul a fost refuzat.', inline: false },
   ], timestamp: new Date().toISOString(), footer: { text: PANEL_FOOTER } }] };
@@ -2876,7 +2880,7 @@ Deno.serve(async (request) => {
     try { context = await resolveUniversalModuleContext(db, interaction, 'tasks', 'core'); }
     catch (error) { return reply(interactionMessage(readableError(error, 'Taskurile nu sunt disponibile pe acest canal.'))); }
     if (!isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, context.discordId))) return reply(interactionMessage('Doar un administrator poate crea taskuri.'));
-    if (isButton && customId.split(':')[2] === 'create') return reply(interactionMessage('Selectează angajatul sau angajații care vor primi taskul:', { components: [{ type: 1, components: [{ type: 5, custom_id: 'panel:tasks:select_assignees', placeholder: 'Alege membri din acest server', min_values: 1, max_values: 10 }] }] }));
+    if (isButton && customId.split(':')[2] === 'create') return reply(interactionMessage('Selectează membrul sau membrii care vor primi taskul:', { components: [{ type: 1, components: [{ type: 5, custom_id: 'panel:tasks:select_assignees', placeholder: 'Alege membri din acest server', min_values: 1, max_values: 10 }] }] }));
     if (isSelect && customId.split(':')[2] === 'select_assignees') {
       const assigneeIds = [...new Set((Array.isArray(interaction.data?.values) ? interaction.data.values : []).map(taskUserId).filter((value: string) => /^\d{15,22}$/.test(value)))];
       if (!assigneeIds.length) return reply(interactionMessage('Selectează cel puțin un membru.'));
