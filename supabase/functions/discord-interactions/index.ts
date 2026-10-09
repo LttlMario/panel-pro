@@ -590,9 +590,14 @@ async function handleTaskDmAction(db: any, interaction: any, action: string, tas
   const guild = await db.from('organization_guilds').select('kind').eq('organization_id', task.organization_id).eq('guild_id', task.guild_id).maybeSingle();
   const context = { organizationId: String(task.organization_id), guildId: String(task.guild_id), target: String(guild.data?.kind || '') === 'secondary' ? 'secondary' : 'primary', settings: logRoute.data || {} };
   let logMessageId = '';
+  let logFailure = '';
   try { logMessageId = await publishTaskLog(db, context, [updated]); }
-  catch (error) { console.error('[discord-interactions] task log delivery failed after response was saved', error); }
+  catch (error) {
+    logFailure = error instanceof Error ? error.message : String(error || 'Eroare necunoscută la trimiterea logului.');
+    console.error('[discord-interactions] task log delivery failed after response was saved', { error: logFailure, organizationId: task.organization_id, guildId: task.guild_id, taskId: task.id });
+  }
   if (logMessageId) await db.from('platform_tasks').update({ log_message_id: logMessageId, updated_at: new Date().toISOString() }).eq('id', updated.id);
+  if (logFailure) return interactionMessage(`${accepted ? 'Taskul a fost acceptat.' : 'Taskul a fost refuzat.'} Răspunsul a fost salvat, dar logul nu a putut fi trimis: ${logFailure.slice(0, 700)}`);
   return interactionMessage(accepted ? 'Taskul a fost acceptat și statusul a fost actualizat în log.' : 'Taskul a fost refuzat și statusul a fost actualizat în log.');
 }
 
