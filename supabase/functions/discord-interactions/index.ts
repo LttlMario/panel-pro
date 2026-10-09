@@ -53,7 +53,7 @@ const PANEL_ROUTE_LABELS: Record<string, string> = {
   requests_organization: 'Învoiri organizație', requests_departments: 'Învoiri angajați', log_requests_organization: 'Log învoiri organizație', log_requests_departments: 'Log învoiri angajați',
   contracts: 'Contracte', log_contracts: 'Log contracte', log_discipline_organization: 'Log avertismente și amenzi organizație', log_discipline_departments: 'Log avertismente și amenzi angajați', log_actions_organization: 'Log acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
   stash: 'Stash', log_stash: 'Log Stash', stash_requests: 'Cereri Stash', log_stash_requests: 'Log cereri Stash', stash_donations: 'Donații Stash', log_stash_donations: 'Log donații Stash',
-  marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', presence_events: 'Evenimente cu prezență', log_presence_events: 'Log evenimente cu prezență', tasks: 'Task-uri angajați', log_tasks: 'Log task-uri', log_task_responses: 'Log răspunsuri task-uri', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
+  marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', presence_events: 'Evenimente cu prezență', log_presence_events: 'Log evenimente cu prezență', tasks: 'Task-uri angajați', log_tasks: 'Log task-uri', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
   calculator: 'Calculator legal', illegal_calculator: 'Calculator ilegal', illegal_locations: 'Locații ilegale', wheel_timer: 'Roată · timer personal',
 };
 const panelRouteKeys = Object.keys(PANEL_ROUTE_LABELS);
@@ -430,7 +430,7 @@ const taskDeadlineLabel = (value: unknown) => {
   return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', dateStyle: 'full', timeStyle: 'short' }).format(date) : String(value || 'termen necunoscut');
 };
 const taskModal = () => ({ type: 9, data: { custom_id: 'panel:tasks:submit', title: 'Creează task', components: [
-  { type: 1, components: [universalTextInput('assignee', 'ID sau mențiune angajat', 1, true, '<@123...>', 30)] },
+  { type: 1, components: [universalTextInput('assignee', 'ID-uri sau mențiuni angajați', 1, true, '<@123...>, <@456...>', 400)] },
   { type: 1, components: [universalTextInput('title', 'Task', 1, true, 'Ex: Verifică inventarul', 160)] },
   { type: 1, components: [universalTextInput('due_at', 'Termen-limită', 1, true, '2026-10-10 23:00', 40)] },
   { type: 1, components: [universalTextInput('details', 'Detalii', 2, false, 'Instrucțiuni pentru angajat', 1200)] },
@@ -448,6 +448,16 @@ const taskEmbed = (task: any, includeButtons = true) => {
     { name: '📌 Status', value: statusLabels[String(task.status || 'pending')] || String(task.status || 'pending'), inline: false },
     ...(task.response_note ? [{ name: '💬 Răspuns', value: String(task.response_note).slice(0, 1024), inline: false }] : []),
   ], timestamp: new Date().toISOString(), footer: { text: PANEL_FOOTER } }], components };
+};
+
+const taskGroupEmbed = (tasks: any[]) => {
+  const rows = (tasks || []).map((task) => `• <@${String(task.assignee_discord_id || '')}> — ${String(task.status || 'pending') === 'accepted' ? '✅ Acceptat' : String(task.status || 'pending') === 'refused' ? '❌ Refuzat' : '⏳ În așteptare'}`).join('\n') || 'Nu există răspunsuri.';
+  const first = tasks?.[0] || {};
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: `📋 Task: ${String(first.title || 'Task').slice(0, 230)}`, description: String(first.description || 'Fără detalii.').slice(0, 4096), color: tasks?.some((task) => task.status === 'refused') ? 0xef4444 : tasks?.every((task) => task.status === 'accepted') ? 0x22c55e : 0xf59e0b, fields: [
+    { name: '👥 Destinatari și răspunsuri', value: rows.slice(0, 1024), inline: false },
+    { name: '📅 Termen-limită', value: taskDeadlineLabel(first.due_at), inline: true },
+    { name: '📌 Progres', value: `${tasks.filter((task) => task.status !== 'pending').length}/${tasks.length} răspunsuri`, inline: true },
+  ], timestamp: new Date().toISOString(), footer: { text: PANEL_FOOTER } }] };
 };
 
 async function sendTaskPrivateMessage(db: any, task: any) {
@@ -471,12 +481,12 @@ async function updateTaskPrivateMessage(db: any, task: any) {
   if (!response.ok) console.warn('[discord-interactions] task DM could not be updated', response.status);
 }
 
-async function publishTaskLog(db: any, context: any, task: any, messageId = '') {
+async function publishTaskLog(db: any, context: any, tasks: any[], messageId = '') {
   const logRoute = context.settings?.discord_channel_routes?.log_tasks || {};
   const route = logRoute?.[context.target] || Object.values(logRoute).find((item: any) => String(item?.channel_id || '').trim());
   const channelId = String(route?.channel_id || '').trim();
   if (!channelId) throw new Error('Configurează canalul de log pentru taskuri.');
-  const payload = taskEmbed(task, false);
+  const payload = taskGroupEmbed(tasks);
   const response = messageId
     ? await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'PATCH', messageId })
     : await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'POST' });
@@ -485,45 +495,29 @@ async function publishTaskLog(db: any, context: any, task: any, messageId = '') 
   return String(body?.id || messageId || '');
 }
 
-async function publishTaskDecisionLog(db: any, task: any, status: string) {
-  const [{ data: settings }, { data: guild }] = await Promise.all([
-    db.from('organization_settings').select('discord_channel_routes').eq('organization_id', task.organization_id).maybeSingle(),
-    db.from('organization_guilds').select('kind').eq('organization_id', task.organization_id).eq('guild_id', task.guild_id).maybeSingle(),
-  ]);
-  const target = String(guild?.kind || '') === 'secondary' ? 'secondary' : 'primary';
-  const configured = settings?.discord_channel_routes?.log_task_responses || {};
-  const route = configured?.[target] || Object.values(configured).find((item: any) => String(item?.channel_id || '').trim());
-  const channelId = String(route?.channel_id || '').trim();
-  if (!channelId) return;
-  const accepted = status === 'accepted';
-  const payload = { allowed_mentions: { parse: [] }, embeds: [{ title: `${accepted ? '✅' : '❌'} Task ${accepted ? 'acceptat' : 'refuzat'}`, color: accepted ? 0x22c55e : 0xef4444, fields: [
-    { name: 'Task', value: String(task.title || 'Task').slice(0, 1024), inline: false },
-    { name: 'Angajat', value: `<@${String(task.assignee_discord_id || '')}>`, inline: true },
-    { name: 'Termen-limită', value: taskDeadlineLabel(task.due_at), inline: true },
-    { name: 'Răspuns', value: accepted ? 'Taskul a fost acceptat.' : 'Taskul a fost refuzat.', inline: false },
-  ], timestamp: new Date().toISOString(), footer: { text: PANEL_FOOTER } }] };
-  const response = await requestDiscordTarget(db, { target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'POST' });
-  if (!response.ok) console.warn('[discord-interactions] task decision log failed', response.status);
-}
-
 async function createTask(db: any, context: any, values: Record<string, string>) {
-  const assignee = taskUserId(values.assignee);
+  const assignees = [...new Set(String(values.assignee || '').split(/[\s,;\n]+/).map(taskUserId).filter((value) => /^\d{15,22}$/.test(value)))];
   const title = String(values.title || '').trim();
   const dueRaw = String(values.due_at || '').trim().replace(' ', 'T');
   const dueAt = new Date(/Z$|[+-]\d{2}:?\d{2}$/.test(dueRaw) ? dueRaw : `${dueRaw}:00+03:00`);
-  if (!/^\d{15,22}$/.test(assignee)) throw new Error('ID-ul sau mențiunea angajatului nu este validă.');
+  if (!assignees.length) throw new Error('Introdu cel puțin un ID sau o mențiune validă pentru angajat.');
   if (title.length < 2) throw new Error('Titlul taskului este obligatoriu.');
   if (!Number.isFinite(dueAt.getTime()) || dueAt.getTime() <= Date.now()) throw new Error('Termenul-limită trebuie să fie o dată viitoare validă.');
-  const { data: task, error } = await db.from('platform_tasks').insert({ organization_id: context.organization.id, guild_id: context.guildId, title: title.slice(0, 160), description: String(values.details || '').trim().slice(0, 4000) || null, due_at: dueAt.toISOString(), assignee_discord_id: assignee, created_by_discord_id: context.discordId }).select('*').single();
+  const taskGroupId = crypto.randomUUID();
+  const { data: tasks, error } = await db.from('platform_tasks').insert(assignees.map((assignee) => ({ task_group_id: taskGroupId, organization_id: context.organization.id, guild_id: context.guildId, title: title.slice(0, 160), description: String(values.details || '').trim().slice(0, 4000) || null, due_at: dueAt.toISOString(), assignee_discord_id: assignee, created_by_discord_id: context.discordId }))).select('*');
   if (error) throw error;
-  let privateMessage;
-  try { privateMessage = await sendTaskPrivateMessage(db, task); } catch (error) { await db.from('platform_tasks').update({ status: 'cancelled', response_note: error instanceof Error ? error.message : 'Mesajul privat nu a putut fi trimis.', updated_at: new Date().toISOString() }).eq('id', task.id); throw error; }
-  const { error: dmError } = await db.from('platform_tasks').update({ dm_channel_id: privateMessage.channelId, dm_message_id: privateMessage.messageId, updated_at: new Date().toISOString() }).eq('id', task.id);
-  if (dmError) throw dmError;
-  const latestTask = { ...task, dm_channel_id: privateMessage.channelId, dm_message_id: privateMessage.messageId };
-  const logMessageId = await publishTaskLog(db, context, latestTask);
-  await db.from('platform_tasks').update({ log_message_id: logMessageId || null, updated_at: new Date().toISOString() }).eq('id', task.id);
-  return interactionMessage(`Taskul a fost trimis privat către <@${assignee}> și înregistrat în log.`);
+  const failures: string[] = [];
+  for (const task of tasks || []) {
+    try {
+      const privateMessage = await sendTaskPrivateMessage(db, task);
+      await db.from('platform_tasks').update({ dm_channel_id: privateMessage.channelId, dm_message_id: privateMessage.messageId, updated_at: new Date().toISOString() }).eq('id', task.id);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Mesajul privat nu a putut fi trimis.';
+      failures.push(`<@${task.assignee_discord_id}>: ${message}`);
+      await db.from('platform_tasks').update({ status: 'cancelled', response_note: message, updated_at: new Date().toISOString() }).eq('id', task.id);
+    }
+  }
+  return interactionMessage(`Taskul a fost trimis prin DM către ${assignees.length} persoan${assignees.length === 1 ? 'ă' : 'e'}.${failures.length ? `\n⚠️ ${failures.join('\n')}` : ''}`);
 }
 
 async function handleTaskDmAction(db: any, interaction: any, action: string, taskId: string) {
@@ -546,8 +540,11 @@ async function handleTaskDmAction(db: any, interaction: any, action: string, tas
   const logRoute = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', task.organization_id).maybeSingle();
   const guild = await db.from('organization_guilds').select('kind').eq('organization_id', task.organization_id).eq('guild_id', task.guild_id).maybeSingle();
   const context = { target: String(guild.data?.kind || '') === 'secondary' ? 'secondary' : 'primary', settings: logRoute.data || {} };
-  if (updated.log_message_id) await publishTaskLog(db, context, updated, String(updated.log_message_id));
-  await publishTaskDecisionLog(db, updated, updated.status);
+  const { data: groupTasks, error: groupError } = await db.from('platform_tasks').select('*').eq('task_group_id', updated.task_group_id).order('created_at', { ascending: true });
+  if (groupError) throw groupError;
+  const existingLogId = (groupTasks || []).map((item: any) => String(item.log_message_id || '')).find(Boolean) || '';
+  const logMessageId = await publishTaskLog(db, context, groupTasks || [updated], existingLogId);
+  if (logMessageId) await db.from('platform_tasks').update({ log_message_id: logMessageId, updated_at: new Date().toISOString() }).eq('task_group_id', updated.task_group_id);
   return interactionMessage(accepted ? 'Taskul a fost acceptat și statusul a fost actualizat în log.' : 'Taskul a fost refuzat și statusul a fost actualizat în log.');
 }
 
