@@ -429,8 +429,7 @@ const taskDeadlineLabel = (value: unknown) => {
   const date = new Date(String(value || ''));
   return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', dateStyle: 'full', timeStyle: 'short' }).format(date) : String(value || 'termen necunoscut');
 };
-const taskModal = () => ({ type: 9, data: { custom_id: 'panel:tasks:submit', title: 'Creează task', components: [
-  { type: 1, components: [universalTextInput('assignee', 'ID-uri sau mențiuni angajați', 1, true, '<@123...>, <@456...>', 400)] },
+const taskModal = (draftId = '') => ({ type: 9, data: { custom_id: `panel:tasks:submit:${draftId}`, title: 'Creează task', components: [
   { type: 1, components: [universalTextInput('title', 'Task', 1, true, 'Ex: Verifică inventarul', 160)] },
   { type: 1, components: [universalTextInput('due_at', 'Termen-limită', 1, true, '2026-10-10 23:00', 40)] },
   { type: 1, components: [universalTextInput('details', 'Detalii', 2, false, 'Instrucțiuni pentru angajat', 1200)] },
@@ -2737,11 +2736,27 @@ Deno.serve(async (request) => {
     try { context = await resolveUniversalModuleContext(db, interaction, 'tasks', 'core'); }
     catch (error) { return reply(interactionMessage(readableError(error, 'Taskurile nu sunt disponibile pe acest canal.'))); }
     if (!isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, context.discordId))) return reply(interactionMessage('Doar un administrator poate crea taskuri.'));
-    if (isButton && customId.split(':')[2] === 'create') return reply(taskModal());
+    if (isButton && customId.split(':')[2] === 'create') return reply(interactionMessage('Selectează angajatul sau angajații care vor primi taskul:', { components: [{ type: 1, components: [{ type: 5, custom_id: 'panel:tasks:select_assignees', placeholder: 'Alege membri din acest server', min_values: 1, max_values: 10 }] }] }));
+    if (isSelect && customId.split(':')[2] === 'select_assignees') {
+      const assigneeIds = [...new Set((Array.isArray(interaction.data?.values) ? interaction.data.values : []).map(taskUserId).filter((value: string) => /^\d{15,22}$/.test(value)))];
+      if (!assigneeIds.length) return reply(interactionMessage('Selectează cel puțin un membru.'));
+      const { data: draft, error: draftError } = await db.from('platform_task_drafts').insert({ organization_id: context.organization.id, guild_id: context.guildId, created_by_discord_id: context.discordId, assignee_ids: assigneeIds }).select('id').single();
+      if (draftError) throw draftError;
+      return reply(taskModal(String(draft.id)));
+    }
     if (isModalSubmit && customId.split(':')[2] === 'submit') {
       const deferred = await deferInteraction(interaction, false);
       let result;
-      try { result = await createTask(db, context, modalValues(interaction)); }
+      try {
+        const draftId = String(customId.split(':')[3] || '');
+        const { data: draft, error: draftError } = await db.from('platform_task_drafts').select('id,assignee_ids,expires_at').eq('id', draftId).eq('organization_id', context.organization.id).eq('created_by_discord_id', context.discordId).maybeSingle();
+        if (draftError) throw draftError;
+        if (!draft || new Date(String(draft.expires_at || '')).getTime() <= Date.now()) throw new Error('Selecția angajaților a expirat. Începe din nou crearea taskului.');
+        const values = modalValues(interaction);
+        values.assignee = (Array.isArray(draft.assignee_ids) ? draft.assignee_ids : []).join(',');
+        result = await createTask(db, context, values);
+        await db.from('platform_task_drafts').delete().eq('id', draft.id);
+      }
       catch (error) { result = interactionMessage(readableError(error, 'Taskul nu a putut fi creat.')); }
       await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
       return new Response(null, { status: 204 });
