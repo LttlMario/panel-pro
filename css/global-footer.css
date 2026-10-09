@@ -7,6 +7,55 @@
   --panel-footer-accent: #34d399;
 }
 
+/* Panel Pro · strat vizual comun. Nu modifică sidebarul sau ordinea navigării. */
+body.panel-global-shell main {
+  --panel-modern-radius: 16px;
+  --panel-modern-border: rgba(51, 65, 85, .82);
+  --panel-modern-shadow: 0 16px 36px rgba(2, 6, 23, .16);
+}
+
+body.panel-global-shell main :is(.rounded-2xl, .rounded-xl, .card, .panel, .post) {
+  border-color: var(--panel-modern-border) !important;
+  border-radius: var(--panel-modern-radius) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.025), var(--panel-modern-shadow);
+}
+
+body.panel-global-shell main :is(input, select, textarea) {
+  border-color: rgba(71, 85, 105, .85) !important;
+  border-radius: 11px !important;
+  background: rgba(8, 15, 29, .82) !important;
+  color: #e2e8f0 !important;
+}
+
+body.panel-global-shell main :is(button, .button, .btn) {
+  border-radius: 11px;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
+}
+
+body.panel-global-shell main :is(button, .button, .btn):hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(2, 6, 23, .18);
+}
+
+body.panel-global-shell main :is(input, select, textarea, button, a):focus-visible {
+  outline: 3px solid rgba(45, 212, 191, .28) !important;
+  outline-offset: 2px;
+}
+
+body.panel-global-shell main :is(h1, h2, h3, h4) {
+  letter-spacing: -.015em;
+}
+
+body.panel-global-shell main :is(.muted, .text-slate-400, .text-slate-500) {
+  color: #94a3b8 !important;
+}
+
+@media (max-width: 700px) {
+  body.panel-global-shell main :is(.rounded-2xl, .rounded-xl, .card, .panel, .post) {
+    border-radius: 14px !important;
+  }
+}
+
 body:has(#panel-global-footer) {
   min-height: 100vh;
   display: flex;

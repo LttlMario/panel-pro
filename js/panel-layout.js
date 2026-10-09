@@ -430,6 +430,17 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
             body.panel-global-shell button, body.panel-global-shell a { -webkit-tap-highlight-color: transparent; }
             body.panel-global-shell button:focus-visible, body.panel-global-shell a:focus-visible, body.panel-global-shell input:focus-visible, body.panel-global-shell select:focus-visible, body.panel-global-shell textarea:focus-visible { outline: 3px solid rgba(45,212,191,.28) !important; outline-offset: 2px; }
             body.panel-global-shell :is(input,select,textarea) { border-radius: 12px !important; }
+            body.panel-global-shell main :is(input,select,textarea) { border-color: rgba(71,85,105,.85) !important; background: rgba(8,15,29,.82) !important; color: #e2e8f0 !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.025); }
+            body.panel-global-shell main :is(input,select,textarea)::placeholder { color: #64748b !important; }
+            body.panel-global-shell main :is(button,.button,.btn) { border-radius: 11px; transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease; }
+            body.panel-global-shell main :is(button,.button,.btn):hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(2,6,23,.18); }
+            body.panel-global-shell main :is(h1,h2,h3,h4) { letter-spacing: -.015em; }
+            body.panel-global-shell main :is(table) { border-collapse: separate; border-spacing: 0; overflow: hidden; border: 1px solid rgba(51,65,85,.72); border-radius: 14px; }
+            body.panel-global-shell main :is(th) { background: rgba(30,41,59,.72); color: #cbd5e1; font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; }
+            body.panel-global-shell main :is(td,th) { border-color: rgba(51,65,85,.55); }
+            body.panel-global-shell main :is(details) > summary { border-radius: 12px; transition: background .16s ease, color .16s ease; }
+            body.panel-global-shell main :is(details) > summary:hover { background: rgba(30,41,59,.52); color: #f8fafc; }
+            body.panel-global-shell main :is(.muted,.text-slate-400,.text-slate-500) { color: #94a3b8 !important; }
             body.panel-global-shell .panel-global-header { box-shadow: 0 10px 28px rgba(2,6,23,.16); }
             @media (max-width: 700px) {
                 body.panel-global-shell main { padding-left: 0 !important; padding-right: 0 !important; }
