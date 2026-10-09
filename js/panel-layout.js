@@ -424,9 +424,9 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
         modernStyle.textContent = `
             :root { --panel-radius: 18px; --panel-shadow: 0 18px 42px rgba(2,6,23,.18); }
             body.panel-global-shell { background: radial-gradient(circle at 12% 0%, rgba(30,64,175,.10), transparent 32%), radial-gradient(circle at 92% 10%, rgba(16,185,129,.08), transparent 28%), #030712 !important; }
-            body.panel-global-shell main :is(.rounded-2xl,.rounded-xl,.card,.panel,.post) { border-color: rgba(51,65,85,.82) !important; border-radius: var(--panel-radius) !important; box-shadow: 0 1px 0 rgba(255,255,255,.025), var(--panel-shadow); }
+            body.panel-global-shell main :is(.rounded-2xl,.rounded-xl,.card,.panel,.post) { border-color: var(--seasonal-line, rgba(51,65,85,.82)) !important; border-radius: var(--panel-radius) !important; box-shadow: 0 1px 0 rgba(255,255,255,.025), var(--panel-shadow); }
             body.panel-global-shell main :is(.rounded-2xl,.rounded-xl,.card,.panel,.post) { transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
-            body.panel-global-shell main :is(.rounded-2xl,.rounded-xl,.card,.panel,.post):hover { border-color: rgba(71,85,105,.95) !important; box-shadow: 0 20px 48px rgba(2,6,23,.24); }
+            body.panel-global-shell main :is(.rounded-2xl,.rounded-xl,.card,.panel,.post):hover { border-color: var(--seasonal-primary, rgba(71,85,105,.95)) !important; box-shadow: 0 20px 48px rgba(2,6,23,.24); }
             body.panel-global-shell button, body.panel-global-shell a { -webkit-tap-highlight-color: transparent; }
             body.panel-global-shell button:focus-visible, body.panel-global-shell a:focus-visible, body.panel-global-shell input:focus-visible, body.panel-global-shell select:focus-visible, body.panel-global-shell textarea:focus-visible { outline: 3px solid rgba(45,212,191,.28) !important; outline-offset: 2px; }
             body.panel-global-shell :is(input,select,textarea) { border-radius: 12px !important; }
