@@ -53,13 +53,13 @@ const PANEL_ROUTE_LABELS: Record<string, string> = {
   requests_organization: 'Învoiri organizație', requests_departments: 'Învoiri angajați', log_requests_organization: 'Log învoiri organizație', log_requests_departments: 'Log învoiri angajați',
   contracts: 'Contracte', log_contracts: 'Log contracte', log_discipline_organization: 'Log avertismente și amenzi organizație', log_discipline_departments: 'Log avertismente și amenzi angajați', log_actions_organization: 'Log acțiuni organizație', actions_organization_weekly: 'Log acțiuni', status_live: 'Status live',
   stash: 'Stash', log_stash: 'Log Stash', stash_requests: 'Cereri Stash', log_stash_requests: 'Log cereri Stash', stash_donations: 'Donații Stash', log_stash_donations: 'Log donații Stash',
-  marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', presence_events: 'Evenimente cu prezență', log_presence_events: 'Log evenimente cu prezență', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
+  marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', presence_events: 'Evenimente cu prezență', log_presence_events: 'Log evenimente cu prezență', tasks: 'Task-uri angajați', log_tasks: 'Log task-uri', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
   calculator: 'Calculator legal', illegal_calculator: 'Calculator ilegal', illegal_locations: 'Locații ilegale', wheel_timer: 'Roată · timer personal',
 };
 const panelRouteKeys = Object.keys(PANEL_ROUTE_LABELS);
 const PANEL_LOG_ROUTES: Record<string, string> = {
   organization: 'log_announcements_organization', departments: 'log_announcements_departments', pontaj: 'log_pontaj',
-  requests_organization: 'log_requests_organization', requests_departments: 'log_requests_departments', contracts: 'log_contracts', presence_events: 'log_presence_events',
+  requests_organization: 'log_requests_organization', requests_departments: 'log_requests_departments', contracts: 'log_contracts', presence_events: 'log_presence_events', tasks: 'log_tasks',
   actions_organization: 'log_actions_organization', fines_organization: 'log_announcements_organization', fines_departments: 'log_announcements_departments', warnings_organization: 'log_announcements_organization', warnings_departments: 'log_announcements_departments', sanctions_organization: 'log_announcements_organization', sanctions_departments: 'log_announcements_departments', marketplace: 'log_marketplace', illegal_marketplace: 'log_illegal_marketplace', event_reminders: 'log_event_reminders', contract_identity_weekly: 'log_contract_identity_weekly', stash: 'log_stash', stash_requests: 'log_stash', stash_donations: 'log_stash',
 };
 const DISCIPLINE_LOG_ROUTES: Record<string, string> = {
@@ -160,6 +160,7 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
     illegal_calculator: { title: '🚨 Calculator ilegal · Panel Pro', description: 'Calculează arme, muniție, topitorie și resurse ilegale direct din Discord. La Ciuperci poți calcula și după materialul disponibil.', color: 0xef4444, buttons: [{ label: 'Începe calculul', style: 4, id: 'panel:calculator:illegal:start' }] },
     illegal_locations: { title: '🗺️ Locații ilegale · Panel Pro', description: 'Alege harta. Embedul se actualizează direct în Discord și păstrează butoanele pentru cele 3 zone.', color: 0xef4444, buttons: [{ label: 'Los Santos', style: 4, id: 'panel:illegal_locations:map:ls' }, { label: 'Cayo Perico', style: 4, id: 'panel:illegal_locations:map:cayo' }, { label: 'Maldive', style: 4, id: 'panel:illegal_locations:map:maldive' }] },
     wheel_timer: { title: '🎡 Roată · timer personal', description: 'Pornește timerul personal de 6 ore și verifică timpul rămas. Răspunsurile sunt private pentru fiecare utilizator.', color: 0x06b6d4, buttons: [{ label: 'Am dat la roată', style: 1, id: 'panel:wheel:start' }, { label: 'Verifică timpul', style: 2, id: 'panel:wheel:status' }] },
+    tasks: { title: '📋 Task-uri angajați · Panel Pro', description: 'Creează taskuri cu termen-limită. Angajatul primește mesaj privat și poate accepta sau refuza taskul.', color: 0xf59e0b, buttons: [{ label: 'Creează task', style: 1, id: 'panel:tasks:create' }] },
   };
   const definition = definitions[routeKey] || { title: `⚙️ ${PANEL_ROUTE_LABELS[routeKey] || 'Panel Pro'}`, description: 'Embed de administrare Panel Pro.', color: 0x5865f2, buttons: [] };
     const components: any[] = [];
@@ -421,6 +422,111 @@ async function handlePresenceEventAction(db: any, context: any, module: any, act
   await updatePresenceEventEmbed(db, module, context, event);
   if (!existingAttendance && String(module?.module_key || '') !== 'presence_events') await sendPresenceEventLog(db, context, { title: `✅ Prezență înregistrată · ${event.title}`, description: `**${context.displayName}** a confirmat prezența.`, color: 0x3b82f6 }, `presence-event-${event.id}-attendee-${context.discordId}`);
   return interactionMessage(existingAttendance ? 'Prezența ta era deja înregistrată. Embedul a fost actualizat.' : 'Prezența ta a fost salvată și embedul a fost actualizat.');
+}
+
+const taskUserId = (value: unknown) => String(value || '').trim().replace(/^<@!?([0-9]{15,22})>$/, '$1');
+const taskDeadlineLabel = (value: unknown) => {
+  const date = new Date(String(value || ''));
+  return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', dateStyle: 'full', timeStyle: 'short' }).format(date) : String(value || 'termen necunoscut');
+};
+const taskModal = () => ({ type: 9, data: { custom_id: 'panel:tasks:submit', title: 'Creează task', components: [
+  { type: 1, components: [universalTextInput('assignee', 'ID sau mențiune angajat', 1, true, '<@123...>', 30)] },
+  { type: 1, components: [universalTextInput('title', 'Task', 1, true, 'Ex: Verifică inventarul', 160)] },
+  { type: 1, components: [universalTextInput('due_at', 'Termen-limită', 1, true, '2026-10-10 23:00', 40)] },
+  { type: 1, components: [universalTextInput('details', 'Detalii', 2, false, 'Instrucțiuni pentru angajat', 1200)] },
+] } });
+
+const taskEmbed = (task: any, includeButtons = true) => {
+  const statusLabels: Record<string, string> = { pending: '⏳ În așteptarea răspunsului', accepted: '✅ Acceptat', refused: '❌ Refuzat', expired: '⌛ Expirat', cancelled: '🚫 Anulat' };
+  const components = includeButtons && task.status === 'pending' ? [{ type: 1, components: [
+    { type: 2, style: 3, label: '✅ Acceptă taskul', custom_id: `panel:tasks:accept:${task.id}` },
+    { type: 2, style: 4, label: '❌ Refuză taskul', custom_id: `panel:tasks:refuse:${task.id}` },
+  ] }] : [];
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: `📋 ${String(task.title || 'Task').slice(0, 240)}`, description: String(task.description || 'Fără detalii.').slice(0, 4096), color: task.status === 'accepted' ? 0x22c55e : task.status === 'refused' ? 0xef4444 : 0xf59e0b, fields: [
+    { name: '👤 Angajat', value: `<@${String(task.assignee_discord_id || '')}>`, inline: true },
+    { name: '📅 Termen-limită', value: taskDeadlineLabel(task.due_at), inline: true },
+    { name: '📌 Status', value: statusLabels[String(task.status || 'pending')] || String(task.status || 'pending'), inline: false },
+    ...(task.response_note ? [{ name: '💬 Răspuns', value: String(task.response_note).slice(0, 1024), inline: false }] : []),
+  ], timestamp: new Date().toISOString(), footer: { text: PANEL_FOOTER } }], components };
+};
+
+async function sendTaskPrivateMessage(db: any, task: any) {
+  const token = await getPlatformSecret(db, 'discord_bot_token');
+  if (!token) throw new Error('Tokenul botului Discord nu este configurat.');
+  const headers = { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' };
+  const channelResponse = await fetch(`${DISCORD_API}/users/@me/channels`, { method: 'POST', headers, body: JSON.stringify({ recipient_id: String(task.assignee_discord_id) }) });
+  const channel = await channelResponse.json().catch(() => ({}));
+  if (!channelResponse.ok || !channel?.id) throw new Error('Nu am putut deschide mesajul privat pentru angajat. Verifică dacă permite DM-uri de la server.');
+  const messageResponse = await fetch(`${DISCORD_API}/channels/${channel.id}/messages`, { method: 'POST', headers, body: JSON.stringify(taskEmbed(task, true)) });
+  const message = await messageResponse.json().catch(() => ({}));
+  if (!messageResponse.ok || !message?.id) throw new Error('Taskul a fost salvat, dar mesajul privat nu a putut fi trimis.');
+  return { channelId: String(channel.id), messageId: String(message.id) };
+}
+
+async function updateTaskPrivateMessage(db: any, task: any) {
+  if (!task.dm_channel_id || !task.dm_message_id) return;
+  const token = await getPlatformSecret(db, 'discord_bot_token');
+  if (!token) return;
+  const response = await fetch(`${DISCORD_API}/channels/${task.dm_channel_id}/messages/${task.dm_message_id}`, { method: 'PATCH', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(taskEmbed(task, false)) });
+  if (!response.ok) console.warn('[discord-interactions] task DM could not be updated', response.status);
+}
+
+async function publishTaskLog(db: any, context: any, task: any, messageId = '') {
+  const logRoute = context.settings?.discord_channel_routes?.log_tasks || {};
+  const route = logRoute?.[context.target] || Object.values(logRoute).find((item: any) => String(item?.channel_id || '').trim());
+  const channelId = String(route?.channel_id || '').trim();
+  if (!channelId) throw new Error('Configurează canalul de log pentru taskuri.');
+  const payload = taskEmbed(task, false);
+  const response = messageId
+    ? await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'PATCH', messageId })
+    : await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: channelId }, JSON.stringify(payload), { method: 'POST' });
+  if (!response.ok) throw new Error(`Logul taskului nu a putut fi actualizat (HTTP ${response.status}).`);
+  const body = await response.json().catch(() => ({}));
+  return String(body?.id || messageId || '');
+}
+
+async function createTask(db: any, context: any, values: Record<string, string>) {
+  const assignee = taskUserId(values.assignee);
+  const title = String(values.title || '').trim();
+  const dueRaw = String(values.due_at || '').trim().replace(' ', 'T');
+  const dueAt = new Date(/Z$|[+-]\d{2}:?\d{2}$/.test(dueRaw) ? dueRaw : `${dueRaw}:00+03:00`);
+  if (!/^\d{15,22}$/.test(assignee)) throw new Error('ID-ul sau mențiunea angajatului nu este validă.');
+  if (title.length < 2) throw new Error('Titlul taskului este obligatoriu.');
+  if (!Number.isFinite(dueAt.getTime()) || dueAt.getTime() <= Date.now()) throw new Error('Termenul-limită trebuie să fie o dată viitoare validă.');
+  const { data: task, error } = await db.from('platform_tasks').insert({ organization_id: context.organization.id, guild_id: context.guildId, title: title.slice(0, 160), description: String(values.details || '').trim().slice(0, 4000) || null, due_at: dueAt.toISOString(), assignee_discord_id: assignee, created_by_discord_id: context.discordId }).select('*').single();
+  if (error) throw error;
+  let privateMessage;
+  try { privateMessage = await sendTaskPrivateMessage(db, task); } catch (error) { await db.from('platform_tasks').update({ status: 'cancelled', response_note: error instanceof Error ? error.message : 'Mesajul privat nu a putut fi trimis.', updated_at: new Date().toISOString() }).eq('id', task.id); throw error; }
+  const { error: dmError } = await db.from('platform_tasks').update({ dm_channel_id: privateMessage.channelId, dm_message_id: privateMessage.messageId, updated_at: new Date().toISOString() }).eq('id', task.id);
+  if (dmError) throw dmError;
+  const latestTask = { ...task, dm_channel_id: privateMessage.channelId, dm_message_id: privateMessage.messageId };
+  const logMessageId = await publishTaskLog(db, context, latestTask);
+  await db.from('platform_tasks').update({ log_message_id: logMessageId || null, updated_at: new Date().toISOString() }).eq('id', task.id);
+  return interactionMessage(`Taskul a fost trimis privat către <@${assignee}> și înregistrat în log.`);
+}
+
+async function handleTaskDmAction(db: any, interaction: any, action: string, taskId: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(taskId)) return interactionMessage('Taskul nu este valid.');
+  const { data: task, error } = await db.from('platform_tasks').select('*').eq('id', taskId).maybeSingle();
+  if (error) throw error;
+  if (!task) return interactionMessage('Taskul nu mai există.');
+  const discordId = String(interaction.user?.id || '').trim();
+  if (discordId !== String(task.assignee_discord_id)) return interactionMessage('Acest task nu îți aparține.');
+  if (task.status !== 'pending') return interactionMessage(`Taskul are deja statusul: ${task.status}.`);
+  if (new Date(task.due_at).getTime() <= Date.now()) {
+    const { data: expired } = await db.from('platform_tasks').update({ status: 'expired', response_note: 'Termenul-limită a expirat.', updated_at: new Date().toISOString() }).eq('id', task.id).eq('status', 'pending').select('*').single();
+    if (expired) return interactionMessage('Termenul-limită al taskului a expirat.');
+  }
+  const accepted = action === 'accept';
+  const { data: updated, error: updateError } = await db.from('platform_tasks').update({ status: accepted ? 'accepted' : 'refused', accepted_at: accepted ? new Date().toISOString() : null, refused_at: accepted ? null : new Date().toISOString(), response_note: accepted ? 'Task acceptat de angajat.' : 'Task refuzat de angajat.', updated_at: new Date().toISOString() }).eq('id', task.id).eq('status', 'pending').select('*').single();
+  if (updateError) throw updateError;
+  if (!updated) return interactionMessage('Taskul a fost deja procesat.');
+  await updateTaskPrivateMessage(db, updated);
+  const logRoute = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', task.organization_id).maybeSingle();
+  const guild = await db.from('organization_guilds').select('kind').eq('organization_id', task.organization_id).eq('guild_id', task.guild_id).maybeSingle();
+  const context = { target: String(guild.data?.kind || '') === 'secondary' ? 'secondary' : 'primary', settings: logRoute.data || {} };
+  if (updated.log_message_id) await publishTaskLog(db, context, updated, String(updated.log_message_id));
+  return interactionMessage(accepted ? 'Taskul a fost acceptat și statusul a fost actualizat în log.' : 'Taskul a fost refuzat și statusul a fost actualizat în log.');
 }
 
 function customModuleModal(module: any, actionId: string) {
@@ -2567,6 +2673,7 @@ Deno.serve(async (request) => {
   const isIllegalLocations = customId.startsWith('panel:illegal_locations:');
   const isWheel = customId.startsWith('panel:wheel:');
   const isPresenceEvents = customId.startsWith('panel:presence_events:');
+  const isTasks = customId.startsWith('panel:tasks:');
   const isCustomModule = customId.startsWith('panel:custom:');
   if (isCommand) {
     const commandKey = customModuleKey(interaction?.data?.name);
@@ -2583,7 +2690,38 @@ Deno.serve(async (request) => {
     return reply(interactionMessage('Comanda Panel Pro nu este disponibilă.'));
   }
   if (!isComponent && !isModalSubmit) return reply(interactionMessage('Acest tip de interacțiune nu este disponibil.'));
-  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isIllegalLocations && !isWheel && !isPresenceEvents && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+  if (isTasks && isButton && ['accept', 'refuse'].includes(String(customId.split(':')[2] || ''))) {
+    const secret = serviceKey();
+    if (!secret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, secret);
+    const deferred = await deferInteraction(interaction, false);
+    let result;
+    try { result = await handleTaskDmAction(db, interaction, String(customId.split(':')[2]), String(customId.split(':')[3] || '')); }
+    catch (error) { result = interactionMessage(readableError(error, 'Răspunsul la task nu a putut fi salvat.')); }
+    await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+    return new Response(null, { status: 204 });
+  }
+  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isIllegalLocations && !isWheel && !isPresenceEvents && !isTasks && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+
+  if (isTasks) {
+    const secret = serviceKey();
+    if (!secret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, secret);
+    let context: any;
+    try { context = await resolveUniversalModuleContext(db, interaction, 'tasks', 'core'); }
+    catch (error) { return reply(interactionMessage(readableError(error, 'Taskurile nu sunt disponibile pe acest canal.'))); }
+    if (!isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, context.discordId))) return reply(interactionMessage('Doar un administrator poate crea taskuri.'));
+    if (isButton && customId.split(':')[2] === 'create') return reply(taskModal());
+    if (isModalSubmit && customId.split(':')[2] === 'submit') {
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try { result = await createTask(db, context, modalValues(interaction)); }
+      catch (error) { result = interactionMessage(readableError(error, 'Taskul nu a putut fi creat.')); }
+      await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      return new Response(null, { status: 204 });
+    }
+    return reply(interactionMessage('Acțiunea pentru task nu este disponibilă.'));
+  }
 
   if (isCalculator) {
     const parts = customId.split(':');

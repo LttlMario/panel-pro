@@ -17,7 +17,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 const webhookChannels = new Set([
   'organization', 'departments', 'pontaj', 'weekly_reports', 'requests', 'requests_organization',
   'requests_departments', 'contracts', 'contract_identity_weekly', 'marketplace', 'illegal_marketplace',
-  'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'presence_events', 'log_presence_events',
+  'fines_organization', 'fines_departments', 'warnings_organization', 'warnings_departments', 'presence_events', 'log_presence_events', 'tasks', 'log_tasks',
   'sanctions_organization', 'sanctions_departments', 'actions_organization', 'actions_organization_weekly', 'event_reminders', 'status_live', 'organization_expiration', 'stash', 'log_stash', 'stash_requests', 'log_stash_requests', 'stash_donations', 'log_stash_donations', 'log_pontaj', 'log_requests_organization', 'log_requests_departments', 'log_announcements_organization', 'log_announcements_departments', 'log_contracts', 'log_actions_organization', 'log_marketplace', 'log_illegal_marketplace', 'log_event_reminders', 'log_contract_identity_weekly', 'contract_uploads'
 ]);
 const allowedContractPlaceholders = new Set([
@@ -48,7 +48,7 @@ const allowedAssistantPages = new Set([...allowedPages.keys()]);
 const allowedActionKeys = new Set(['anunturi.publish', 'marketplace.delete', 'cereri.organization', 'cereri.departments', 'actions.organization.read', 'actions.organization.write', 'actions.organization.delete', 'events.read', 'events.write', 'stash.write', 'stash.request', 'stash.manage_requests', 'stash.donate', 'stash.approve_donation', 'stash.log', 'orders.approve', 'orders.write_all']);
 const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
 const operationsWebhookChannels = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'actions_organization', 'actions_organization_weekly', 'event_reminders', 'illegal_marketplace', 'organization_expiration', 'log_requests_organization', 'log_requests_departments', 'log_announcements_organization', 'log_announcements_departments']);
-const standardWebhookChannels = new Set(['departments', 'pontaj', 'weekly_reports', 'event_reminders', 'contracts', 'contract_uploads', 'contract_identity_weekly', 'marketplace', 'fines_departments', 'warnings_departments', 'sanctions_departments', 'status_live', 'organization_expiration', 'log_requests_organization', 'log_requests_departments', 'log_announcements_organization', 'log_announcements_departments', 'log_contracts']);
+const standardWebhookChannels = new Set(['departments', 'pontaj', 'weekly_reports', 'event_reminders', 'contracts', 'contract_uploads', 'contract_identity_weekly', 'marketplace', 'fines_departments', 'warnings_departments', 'sanctions_departments', 'status_live', 'organization_expiration', 'tasks', 'log_tasks', 'log_requests_organization', 'log_requests_departments', 'log_announcements_organization', 'log_announcements_departments', 'log_contracts']);
 const fullOnlyPageFeatures = new Map([
   ['calculatorilegal.html', 'illegal_calculator'],
   ['locatiiilegale.html', 'illegal_locations'],
