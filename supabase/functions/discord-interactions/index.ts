@@ -1306,8 +1306,12 @@ async function resolveWheelContext(db: any, interaction: any) {
 const wheelRemainingText = (completesAt: string) => {
   const remaining = Math.max(0, Date.parse(String(completesAt || '')) - Date.now());
   if (!remaining) return 'Timerul a expirat. Poți porni din nou roata.';
+  const totalSeconds = Math.ceil(remaining / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
   const timestamp = Math.floor(Date.parse(String(completesAt)) / 1000);
-  return `Timer activ. Se actualizează automat și devine disponibil <t:${timestamp}:R>\nDisponibil la <t:${timestamp}:f>.`;
+  return `**Timp rămas:** **${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s**\nActualizare live: <t:${timestamp}:R>\nDisponibil la: <t:${timestamp}:f>`;
 };
 
 const ILLEGAL_LOCATION_MAP_ENDPOINT = 'https://vkvsabbbawyiurnaiugo.supabase.co/functions/v1/illegal-location-map';
