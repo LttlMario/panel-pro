@@ -1174,6 +1174,40 @@ async function resolveContractActionContext(db: any, interaction: any) {
   catch (_) { return await resolveContractContext(db, interaction, 'log_contracts'); }
 }
 
+async function resolveContractRequestContext(db: any, interaction: any, requestId: string) {
+  const discordId = String((interaction?.user || interaction?.member?.user || {}).id || '').trim();
+  if (!/^\d{15,22}$/.test(discordId) || !/^[0-9a-f-]{36}$/i.test(requestId)) throw new Error('Cererea de contract nu este validă.');
+  const { data: request, error: requestError } = await db.from('organization_contract_requests').select('*').eq('id', requestId).eq('employee_discord_id', discordId).eq('status', 'pending').maybeSingle();
+  if (requestError) throw requestError;
+  if (!request) throw new Error('Formularul nu mai este disponibil sau a fost deja completat.');
+  const [{ data: organization, error: organizationError }, { data: settings, error: settingsError }] = await Promise.all([
+    db.from('organizations').select('id,name,address,active').eq('id', request.organization_id).maybeSingle(),
+    db.from('organization_settings').select('discord_channel_routes,panel_public_url').eq('organization_id', request.organization_id).maybeSingle(),
+  ]);
+  if (organizationError) throw organizationError;
+  if (settingsError) throw settingsError;
+  await requireActiveOrganizationAccess(db, organization);
+  return { request, guildId: String(request.guild_id), channelId: String(request.dm_channel_id || interaction.channel_id || ''), target: String(request.target || 'primary') === 'secondary' ? 'secondary' : 'primary', discordId, employeeDiscordId: discordId, managerDiscordId: String(request.manager_discord_id), managerDisplayName: String(request.manager_name || 'Manager'), displayName: 'Angajat', organization, settings, platformAdmin: false, role: 'Membru', logRouteKey: 'log_contracts', contractRequestId: String(request.id) };
+}
+
+async function handleContractTargetSelect(db: any, context: any, employeeDiscordId: string) {
+  if (!/^\d{15,22}$/.test(employeeDiscordId)) return interactionMessage('Angajatul selectat nu este valid.');
+  const { data: pending, error: pendingError } = await db.from('organization_contract_requests').select('id').eq('organization_id', context.organization.id).eq('employee_discord_id', employeeDiscordId).eq('status', 'pending').maybeSingle();
+  if (pendingError) throw pendingError;
+  if (pending) return interactionMessage('Această persoană are deja un formular de contract în așteptare.');
+  const { data: request, error: requestError } = await db.from('organization_contract_requests').insert({ organization_id: context.organization.id, guild_id: context.guildId, target: context.target, manager_discord_id: context.discordId, manager_name: context.displayName, employee_discord_id: employeeDiscordId }).select('*').single();
+  if (requestError) throw requestError;
+  try {
+    const dm = await sendContractPrivateMessage(db, request, context.organization);
+    const { error: updateError } = await db.from('organization_contract_requests').update({ dm_channel_id: dm.channelId, dm_message_id: dm.messageId, updated_at: new Date().toISOString() }).eq('id', request.id);
+    if (updateError) throw updateError;
+  } catch (error) {
+    await db.from('organization_contract_requests').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', request.id);
+    throw error;
+  }
+  return interactionMessage(`Formularul privat pentru contract a fost trimis către <@${employeeDiscordId}>.`, { allowed_mentions: { users: [] } });
+}
+
 function modalValues(interaction: any) {
   const values: Record<string, any> = {};
   for (const row of interaction?.data?.components || []) {
@@ -1648,6 +1682,52 @@ function contractModal() {
   ] } };
 }
 
+function contractTargetPicker() {
+  return { type: 4, data: { content: 'Selectează angajatul căruia îi trimiți formularul privat pentru contract.', flags: 64, components: [{ type: 1, components: [{ type: 5, custom_id: 'panel:contracts:target', placeholder: 'Selectează angajatul de pe server', min_values: 1, max_values: 1 }]}] } };
+}
+
+function contractEmployeeModal(requestId: string) {
+  const input = (custom_id: string, label: string, placeholder: string, max_length: number) => ({ type: 4, custom_id, label, style: 1, required: true, placeholder, max_length });
+  return { type: 9, data: { custom_id: `panel:contracts:form_submit:${requestId}`, title: 'Completează datele contractului', components: [
+    { type: 1, components: [input('employee_name', 'Nume și prenume', 'Introdu numele complet', 120)] },
+    { type: 1, components: [input('cnp', 'CNP', 'Introdu CNP-ul', 120)] },
+    { type: 1, components: [input('phone', 'Număr de telefon', 'Ex: 07xx xxx xxx', 40)] },
+    { type: 1, components: [input('iban', 'IBAN', 'Ex: RO00AAAA0000000000000000', 40)] },
+  ] } };
+}
+
+function contractRequestMessage(request: any, organization: any) {
+  return {
+    allowed_mentions: { parse: [] },
+    embeds: [{
+      title: '📄 Formular contract',
+      description: `**${request.manager_name}** ți-a trimis formularul pentru contract. Completează datele personale, iar contractul final va fi publicat automat în canalul de log al organizației **${organization.name}**.`,
+      color: 0x14b8a6,
+      fields: [
+        { name: '🏢 Organizație', value: String(organization.name || '—'), inline: true },
+        { name: '👔 Manager', value: String(request.manager_name || '—'), inline: true },
+        { name: '🔒 Confidențialitate', value: 'Datele sunt folosite pentru generarea contractului și sunt trimise în logul configurat de organizație.', inline: false },
+      ],
+      footer: { text: 'Panel Pro · Contracte' },
+      timestamp: new Date().toISOString(),
+    }],
+    components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Completează formularul', custom_id: `panel:contracts:form:${String(request.id)}` }] }],
+  };
+}
+
+async function sendContractPrivateMessage(db: any, request: any, organization: any) {
+  const token = await getPlatformSecret(db, 'discord_bot_token');
+  if (!token) throw new Error('Tokenul botului Discord nu este configurat.');
+  const headers = { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' };
+  const channelResponse = await fetch(`${DISCORD_API}/users/@me/channels`, { method: 'POST', headers, body: JSON.stringify({ recipient_id: String(request.employee_discord_id) }) });
+  const channel = await channelResponse.json().catch(() => ({}));
+  if (!channelResponse.ok || !channel?.id) throw new Error('Formularul nu a putut fi trimis în DM. Verifică dacă persoana permite mesajele private.');
+  const messageResponse = await fetch(`${DISCORD_API}/channels/${channel.id}/messages`, { method: 'POST', headers, body: JSON.stringify(contractRequestMessage(request, organization)) });
+  const message = await messageResponse.json().catch(() => ({}));
+  if (!messageResponse.ok || !message?.id) throw new Error('Cererea a fost salvată, dar formularul nu a putut fi trimis în DM.');
+  return { channelId: String(channel.id), messageId: String(message.id) };
+}
+
 function contractSettingsModal() {
   const input = (custom_id: string, label: string, style: number, required: boolean, placeholder: string, max_length: number) => ({ type: 4, custom_id, label, style, required, placeholder, max_length });
   return { type: 9, data: { custom_id: 'panel:contracts:settings_submit', title: 'Setează contractul', components: [
@@ -1662,19 +1742,17 @@ function contractSettingsModal() {
 function contractInfoMessage() {
   return interactionMessage('', { embeds: [{ title: 'ℹ️ Cum configurezi contractul', description: 'În șablon, folosește exact variabilele de mai jos între acolade duble. La generare, botul le înlocuiește automat cu datele organizației și ale angajatului.', color: 0x14b8a6, fields: [
     { name: 'Date completate automat', value: '`{{COMPANY}}` companie\n`{{ADDRESS}}` adresă\n`{{MANAGER}}` manager\n`{{POSITION}}` funcție\n`{{SALARY}}` salariu\n`{{PROGRAM}}` program\n`{{START_DATE}}` data începerii\n`{{CONTRACT_NUMBER}}` număr contract', inline: true },
-    { name: 'Date cerute la generare', value: '`{{EMPLOYEE_NAME}}` nume și prenume\n`{{CNP}}` CNP', inline: true },
-    { name: 'Exemplu', value: 'Angajat: `{{EMPLOYEE_NAME}}`\nCNP: `{{CNP}}`\nSalariu: `{{SALARY}}`', inline: false },
+    { name: 'Date cerute la generare', value: '`{{EMPLOYEE_NAME}}` nume și prenume\n`{{CNP}}` CNP\n`{{PHONE}}` telefon\n`{{IBAN}}` IBAN', inline: true },
+    { name: 'Exemplu', value: 'Angajat: `{{EMPLOYEE_NAME}}`\nCNP: `{{CNP}}`\nTelefon: `{{PHONE}}`\nIBAN: `{{IBAN}}`', inline: false },
   ], footer: { text: 'Panel Pro · Contracte Discord' } }] });
 }
 
 function contractTemplateVariables() {
-  return new Set(['{{COMPANY}}', '{{ADDRESS}}', '{{MANAGER}}', '{{EMPLOYEE_NAME}}', '{{CNP}}', '{{POSITION}}', '{{SALARY}}', '{{PROGRAM}}', '{{START_DATE}}', '{{CONTRACT_NUMBER}}']);
+  return new Set(['{{COMPANY}}', '{{ADDRESS}}', '{{MANAGER}}', '{{EMPLOYEE_NAME}}', '{{CNP}}', '{{PHONE}}', '{{IBAN}}', '{{POSITION}}', '{{SALARY}}', '{{PROGRAM}}', '{{START_DATE}}', '{{CONTRACT_NUMBER}}']);
 }
 
 function stripContractPhone(value: unknown) {
   return String(value || '')
-    .replace(/^[ \t]*(?:telefon|număr(?:ul)?(?: de)? telefon)[^\r\n]*(?:\r?\n|$)/gim, '')
-    .replace(/\{\{PHONE\}\}/gi, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -1818,6 +1896,8 @@ Adresă: {{ADDRESS}}.
 
 Angajat: {{EMPLOYEE_NAME}}
 CNP: {{CNP}}
+Telefon: {{PHONE}}
+IBAN: {{IBAN}}
 
 Funcție: {{POSITION}}
 Salariu: {{SALARY}}
@@ -1856,6 +1936,8 @@ function contractEmbed(contract: any, organization: any, title: string, instruct
   const fields = [
     { name: '👤 Angajat', value: contract.employee_name, inline: true },
     { name: '🪪 CNP', value: contract.cnp, inline: true },
+    { name: '📞 Telefon', value: contract.phone || '—', inline: true },
+    { name: '🏦 IBAN', value: contract.iban || '—', inline: true },
     { name: '📍 Adresă de lucru', value: contract.address || organization.address || '—', inline: false },
     { name: '💼 Funcție', value: contract.position, inline: true },
     { name: '💰 Salariu', value: contract.salary, inline: true },
@@ -1887,19 +1969,23 @@ function contractCopyModal(contract: any) {
 }
 
 async function loadSavedContract(db: any, context: any, contractId: string) {
-  const { data: contract, error: contractError } = await db.from('organization_contracts').select('id,employee_id,contract_number,contract_text,position,salary,schedule,start_date,created_by_discord_id,discord_message_id,discord_message_ids').eq('organization_id', context.organization.id).eq('id', contractId).maybeSingle();
+  const { data: contract, error: contractError } = await db.from('organization_contracts').select('id,employee_id,contract_number,contract_text,phone,iban,position,salary,schedule,start_date,created_by_discord_id,discord_message_id,discord_message_ids').eq('organization_id', context.organization.id).eq('id', contractId).maybeSingle();
   if (contractError) throw contractError;
   if (!contract) return null;
-  const { data: employee, error: employeeError } = await db.from('organization_employees').select('full_name,cnp,discord_id').eq('organization_id', context.organization.id).eq('id', contract.employee_id).maybeSingle();
+  const { data: employee, error: employeeError } = await db.from('organization_employees').select('full_name,cnp,discord_id,phone,iban').eq('organization_id', context.organization.id).eq('id', contract.employee_id).maybeSingle();
   if (employeeError) throw employeeError;
-  return { ...contract, employee_name: employee?.full_name || 'Angajat', cnp: employee?.cnp || '—', manager: context.displayName };
+  return { ...contract, employee_name: employee?.full_name || 'Angajat', cnp: employee?.cnp || '—', phone: contract.phone || employee?.phone || '—', iban: contract.iban || employee?.iban || '—', manager: context.managerDisplayName || context.displayName };
 }
 
 async function handleContractSubmit(db: any, context: any, values: Record<string, any>) {
   const employeeName = contractValue(values.employee_name, '');
   const cnp = contractValue(values.cnp, '');
+  const phone = contractValue(values.phone, '');
+  const iban = contractValue(values.iban, '');
   if (!employeeName) return interactionMessage('Numele și prenumele sunt obligatorii.');
   if (!cnp) return interactionMessage('CNP-ul angajatului este obligatoriu.');
+  if (!phone) return interactionMessage('Numărul de telefon este obligatoriu.');
+  if (!iban) return interactionMessage('IBAN-ul este obligatoriu.');
   const { data: templateSetting, error: templateError } = await db.from('app_settings').select('value').eq('organization_id', context.organization.id).eq('key', 'contract_template').maybeSingle();
   if (templateError) throw templateError;
   const custom = templateSetting?.value && typeof templateSetting.value === 'object' ? templateSetting.value : {};
@@ -1915,7 +2001,9 @@ async function handleContractSubmit(db: any, context: any, values: Record<string
     schedule: contractValue(defaults.schedule, '20:00-23:00'),
     start_date: contractValue(defaults.start_date, today),
     contract_number: contractNumber,
-    manager: context.displayName,
+    phone,
+    iban,
+    manager: context.managerDisplayName || context.displayName,
   };
   const template = stripContractPhone(String(custom.template || contractTemplateFallback()).trim().slice(0, 50000));
   const contractText = replaceContractPlaceholders(template, {
@@ -1924,6 +2012,8 @@ async function handleContractSubmit(db: any, context: any, values: Record<string
     MANAGER: contract.manager,
     EMPLOYEE_NAME: contract.employee_name,
     CNP: contract.cnp,
+    PHONE: contract.phone,
+    IBAN: contract.iban,
     POSITION: contract.position,
     SALARY: contract.salary,
     PROGRAM: contract.schedule,
@@ -1935,18 +2025,24 @@ async function handleContractSubmit(db: any, context: any, values: Record<string
   if (existingEmployeeError) throw existingEmployeeError;
   let employee: any;
   if (existingEmployee?.id) {
-    const { data: updatedEmployee, error: updateEmployeeError } = await db.from('organization_employees').update({ full_name: contract.employee_name, status: 'active', left_at: null, archived_at: null, updated_at: now }).eq('organization_id', context.organization.id).eq('id', existingEmployee.id).select('id').single();
+    const { data: updatedEmployee, error: updateEmployeeError } = await db.from('organization_employees').update({ full_name: contract.employee_name, discord_id: context.employeeDiscordId || context.discordId, phone: contract.phone, iban: contract.iban, status: 'active', left_at: null, archived_at: null, updated_at: now }).eq('organization_id', context.organization.id).eq('id', existingEmployee.id).select('id').single();
     if (updateEmployeeError) throw updateEmployeeError;
     employee = updatedEmployee;
   } else {
-    const { data: upsertedEmployee, error: employeeError } = await db.from('organization_employees').upsert({ organization_id: context.organization.id, full_name: contract.employee_name, cnp: contract.cnp, status: 'active', left_at: null, archived_at: null, updated_at: now }, { onConflict: 'organization_id,cnp' }).select('id').single();
+    const { data: upsertedEmployee, error: employeeError } = await db.from('organization_employees').upsert({ organization_id: context.organization.id, discord_id: context.employeeDiscordId || context.discordId, full_name: contract.employee_name, cnp: contract.cnp, phone: contract.phone, iban: contract.iban, status: 'active', left_at: null, archived_at: null, updated_at: now }, { onConflict: 'organization_id,cnp' }).select('id').single();
     if (employeeError) throw employeeError;
     employee = upsertedEmployee;
   }
-  const { data: saved, error: contractError } = await db.from('organization_contracts').insert({ organization_id: context.organization.id, employee_id: employee.id, contract_number: contract.contract_number, contract_text: contractText, position: contract.position, salary: contract.salary, schedule: contract.schedule, start_date: contract.start_date, created_by_discord_id: context.discordId }).select('id').single();
+  const { data: saved, error: contractError } = await db.from('organization_contracts').insert({ organization_id: context.organization.id, employee_id: employee.id, contract_number: contract.contract_number, contract_text: contractText, phone: contract.phone, iban: contract.iban, position: contract.position, salary: contract.salary, schedule: contract.schedule, start_date: contract.start_date, created_by_discord_id: context.managerDiscordId || context.discordId }).select('id').single();
   if (contractError) {
     if (contractError.code === '23505') return interactionMessage('Numărul contractului există deja. Încearcă din nou.');
     throw contractError;
+  }
+  if (context.contractRequestId) {
+    const published = await handleContractPublish(db, context, String(saved.id));
+    const { error: requestError } = await db.from('organization_contract_requests').update({ status: 'completed', contract_id: saved.id, completed_at: now, updated_at: now }).eq('id', context.contractRequestId).eq('status', 'pending');
+    if (requestError) throw requestError;
+    return interactionMessage(`Contractul **${contract.contract_number}** a fost completat și trimis automat în Log contracte.`, { embeds: [contractEmbed(contract, context.organization, 'Contract generat')], ...(published?.data?.components ? { components: published.data.components } : {}) });
   }
   return interactionMessage(`Contractul **${contract.contract_number}** a fost generat și salvat. Copiază-l, apoi apasă **Trimite contractul**. Contractul va fi publicat în canalul ales pentru Log contracte, iar imaginile le poți lipi manual sub mesaj.`, { embeds: [contractEmbed(contract, context.organization, 'Contract generat')], components: contractComponents(String(saved.id)) });
 }
@@ -3417,8 +3513,27 @@ Deno.serve(async (request) => {
       if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
       return new Response(null, { status: 204 });
     }
+    if (isContracts && isSelect) {
+      const parts = customId.split(':');
+      if (parts[2] !== 'target') return reply(interactionMessage('Selectorul Contracte nu este valid.'));
+      const employeeDiscordId = String(interaction?.data?.values?.[0] || '').trim();
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try {
+        const context = await resolveContractContext(db, interaction);
+        result = await handleContractTargetSelect(db, context, employeeDiscordId);
+      } catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(readableError(error, 'Formularul privat nu a putut fi trimis.')); }
+      const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      if (followupId) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+      return new Response(null, { status: 204 });
+    }
     if (isContracts && isButton) {
       const parts = customId.split(':');
+      if (parts[2] === 'form') {
+        const requestId = String(parts[3] || '').trim();
+        const context = await resolveContractRequestContext(db, interaction, requestId);
+        return reply(contractEmployeeModal(String(context.contractRequestId)));
+      }
       if (parts[2] === 'info') return reply(contractInfoMessage());
       if (parts[2] === 'settings') {
         if (!isDiscordManager(interaction)) return reply(interactionMessage('Doar ownerul serverului sau un administrator cu Manage Server poate seta contractul.'));
@@ -3448,10 +3563,22 @@ Deno.serve(async (request) => {
       }
       if (parts[2] !== 'create') return reply(interactionMessage('Acțiunea Contracte nu este disponibilă.'));
       await resolveContractContext(db, interaction);
-      return reply(contractModal());
+      return reply(contractTargetPicker());
     }
     if (isContracts && isModalSubmit) {
       const parts = customId.split(':');
+      if (parts[2] === 'form_submit') {
+        const requestId = String(parts[3] || '').trim();
+        const deferred = await deferInteraction(interaction, false);
+        let result;
+        try {
+          const context = await resolveContractRequestContext(db, interaction, requestId);
+          result = await handleContractSubmit(db, context, modalValues(interaction));
+        } catch (error) { console.error('[discord-interactions]', error); result = interactionMessage(readableError(error, 'Contractul nu a putut fi completat.')); }
+        const followupId = await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+        if (followupId && !result?.data?.components?.length) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
+        return new Response(null, { status: 204 });
+      }
       if (parts[2] === 'settings_submit') {
         const deferred = await deferInteraction(interaction, false);
         let result;
