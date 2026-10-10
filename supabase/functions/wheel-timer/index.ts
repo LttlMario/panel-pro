@@ -15,6 +15,17 @@ const serviceKey = () => {
 const DISCORD_API = 'https://discord.com/api/v10';
 const WHEEL_DURATION_MS = 6 * 60 * 60 * 1000;
 
+const wheelLiveContent = (completesAt: string) => {
+  const remaining = Math.max(0, Date.parse(String(completesAt || '')) - Date.now());
+  const totalSeconds = Math.ceil(remaining / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return remaining > 0
+    ? `🎡 **Timer roată activ**\n\n**Timp rămas:** **${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s**\n\nActualizat automat.`
+    : '✅ **Timerul roții a expirat.**\n\nPoți folosi din nou roata.';
+};
+
 async function notifyDiscord(db: any, discordId: string, content: string) {
   const token = await getPlatformSecret(db, 'discord_bot_token');
   if (!token) throw new Error('Tokenul botului Discord lipsește.');
@@ -37,6 +48,30 @@ async function notifyDiscord(db: any, discordId: string, content: string) {
     throw new Error(`Discord nu a putut trimite mesajul privat (HTTP ${messageResponse.status}${message ? `: ${message}` : ''}).`);
   }
   return true;
+}
+
+async function syncActiveWheelMessages(db: any) {
+  const { data: timers, error } = await db.from('wheel_timers')
+    .select('id,completes_at,notification_error')
+    .eq('status', 'active')
+    .like('notification_error', '{"wheel_live":%')
+    .limit(100);
+  if (error) throw error;
+  if (!timers?.length) return [];
+  const token = await getPlatformSecret(db, 'discord_bot_token');
+  if (!token) return [];
+  const headers = { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' };
+  const results = [];
+  for (const timer of timers) {
+    let live;
+    try { live = JSON.parse(String(timer.notification_error || '')).wheel_live; } catch (_) { live = null; }
+    if (!live?.channel_id || !live?.message_id) continue;
+    const response = await fetch(`${DISCORD_API}/channels/${live.channel_id}/messages/${live.message_id}`, {
+      method: 'PATCH', headers, body: JSON.stringify({ allowed_mentions: { parse: [] }, content: wheelLiveContent(timer.completes_at) }),
+    });
+    results.push({ id: timer.id, updated: response.ok });
+  }
+  return results;
 }
 
 async function processDueTimers(db: any, discordId?: string, organizationId?: string) {
@@ -120,7 +155,8 @@ Deno.serve(async (request) => {
     const suppliedCronSecret = String(request.headers.get('x-cron-secret') || '').trim();
     const configuredCronSecret = await getPlatformSecret(db, 'cron_secret');
     if (suppliedCronSecret && configuredCronSecret && suppliedCronSecret === configuredCronSecret && String(body.action || '') === 'process') {
-      return new Response(JSON.stringify({ ok: true, processed: await processDueTimers(db) }), { status: 200, headers });
+      const live = await syncActiveWheelMessages(db);
+      return new Response(JSON.stringify({ ok: true, live, processed: await processDueTimers(db) }), { status: 200, headers });
     }
     const session = await requirePanelSession(db, request);
     const action = String(body.action || 'status');
