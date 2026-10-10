@@ -161,7 +161,7 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
     calculator: { title: '🧮 Calculator legal · Panel Pro', description: 'Alege categoria, articolul și cantitatea. Primești instant materialele directe și materialele brute necesare.', color: 0x22c55e, buttons: [{ label: 'Începe calculul', style: 1, id: 'panel:calculator:legal:start' }] },
     illegal_calculator: { title: '🚨 Calculator ilegal · Panel Pro', description: 'Calculează arme, muniție, topitorie și resurse ilegale direct din Discord. La Ciuperci poți calcula și după materialul disponibil.', color: 0xef4444, buttons: [{ label: 'Începe calculul', style: 4, id: 'panel:calculator:illegal:start' }] },
     illegal_locations: { title: '🗺️ Locații ilegale · Panel Pro', description: 'Alege harta. Embedul se actualizează direct în Discord și păstrează butoanele pentru cele 3 zone.', color: 0xef4444, buttons: [{ label: 'Los Santos', style: 4, id: 'panel:illegal_locations:map:ls' }, { label: 'Cayo Perico', style: 4, id: 'panel:illegal_locations:map:cayo' }, { label: 'Maldive', style: 4, id: 'panel:illegal_locations:map:maldive' }] },
-    wheel_timer: { title: '🎡 Roată · timer personal', description: 'Pornește timerul personal de 6 ore și verifică timpul rămas. Răspunsurile sunt private pentru fiecare utilizator.', color: 0x06b6d4, buttons: [{ label: 'Am dat la roată', style: 1, id: 'panel:wheel:start' }, { label: 'Verifică timpul', style: 2, id: 'panel:wheel:status' }] },
+    wheel_timer: { title: '🎡 Roată · timer personal', description: 'Apasă „Am dat la roată”. Timerul se actualizează automat și îți arată direct când poți folosi din nou roata.', color: 0x06b6d4, buttons: [{ label: 'Am dat la roată', style: 1, id: 'panel:wheel:start' }] },
     tasks: { title: '📋 Task-uri angajați · Panel Pro', description: 'Creează taskuri cu termen-limită. Angajatul primește mesaj privat și poate accepta sau refuza taskul.', color: 0xf59e0b, buttons: [{ label: 'Creează task', style: 1, id: 'panel:tasks:create' }] },
     proposals: { title: '💡 Propuneri · Panel Pro', description: 'Trimite idei, votează și urmărește statusul lor.', color: 0xa855f7, buttons: proposalAudience === 'organization' ? [{ label: 'Trimite propunere organizație', style: 1, id: 'panel:proposals:organization:create' }] : proposalAudience === 'departments' ? [{ label: 'Trimite propunere angajați', style: 1, id: 'panel:proposals:departments:create' }] : [{ label: 'Propunere organizație', style: 1, id: 'panel:proposals:organization:create' }, { label: 'Propunere angajați', style: 1, id: 'panel:proposals:departments:create' }] },
   };
@@ -1306,11 +1306,8 @@ async function resolveWheelContext(db: any, interaction: any) {
 const wheelRemainingText = (completesAt: string) => {
   const remaining = Math.max(0, Date.parse(String(completesAt || '')) - Date.now());
   if (!remaining) return 'Timerul a expirat. Poți porni din nou roata.';
-  const totalSeconds = Math.ceil(remaining / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `Mai ai **${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s**.`;
+  const timestamp = Math.floor(Date.parse(String(completesAt)) / 1000);
+  return `Timer activ. Se actualizează automat și devine disponibil <t:${timestamp}:R>\nDisponibil la <t:${timestamp}:f>.`;
 };
 
 const ILLEGAL_LOCATION_MAP_ENDPOINT = 'https://vkvsabbbawyiurnaiugo.supabase.co/functions/v1/illegal-location-map';
@@ -1345,7 +1342,7 @@ const illegalLocationsMessage = (mapKey = '') => {
 
 const wheelPrivateMessage = (timer: any = null) => {
   const active = timer && Date.parse(String(timer.completes_at || '')) > Date.now();
-  return interactionMessage('', { embeds: [{ title: active ? '⏳ Timerul tău este activ' : '🎡 Roata este disponibilă', description: active ? wheelRemainingText(timer.completes_at) : 'Poți apăsa „Am dat la roată” pentru a porni un nou timer de 6 ore.', color: active ? 0xf59e0b : 0x06b6d4, footer: { text: 'Panel Pro · răspuns vizibil doar pentru tine' } }], components: [{ type: 1, components: [{ type: 2, style: active ? 2 : 1, label: active ? 'Verifică timpul' : 'Am dat la roată', custom_id: active ? 'panel:wheel:status' : 'panel:wheel:start' }] }] });
+  return interactionMessage('', { embeds: [{ title: active ? '⏳ Timerul tău este activ' : '🎡 Roata este disponibilă', description: active ? wheelRemainingText(timer.completes_at) : 'Poți apăsa „Am dat la roată” pentru a porni un nou timer de 6 ore.', color: active ? 0xf59e0b : 0x06b6d4, footer: { text: 'Panel Pro · răspuns vizibil doar pentru tine' } }], ...(active ? {} : { components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Am dat la roată', custom_id: 'panel:wheel:start' }] }] }) });
 };
 
 function marketplaceEmbed(kind: 'legal' | 'illegal', values: Record<string, any>, context: any, id: string) {
