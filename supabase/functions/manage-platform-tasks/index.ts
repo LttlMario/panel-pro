@@ -100,7 +100,11 @@ Deno.serve(async (request) => {
     if (!targetGuild?.guild_id) throw new Error('Serverul Discord necesar pentru acest task nu este configurat.');
     const directory = await loadGuildMembers(db, String(targetGuild.guild_id));
     const storedMembers = Object.fromEntries((organizationMembers || []).map((item: any) => [String(item.discord_id), item]));
-    const members = directory.map((item: any) => ({ ...item, panel_role: storedMembers[item.discord_id]?.panel_role || '' }));
+    const directoryIds = directory.map((item: any) => String(item.discord_id));
+    const { data: directoryUsers, error: directoryUsersError } = await db.from('users').select('discord_id,display_name,username').in('discord_id', directoryIds.length ? directoryIds : ['-']);
+    if (directoryUsersError) throw directoryUsersError;
+    const directoryNames = Object.fromEntries((directoryUsers || []).map((item: any) => [String(item.discord_id), text(item.display_name || item.username || '', 100)]));
+    const members = directory.map((item: any) => ({ ...item, name: directoryNames[item.discord_id] || item.name || `Membru Discord ${item.discord_id}`, panel_role: storedMembers[item.discord_id]?.panel_role || '' }));
     const action = text(body.action, 30) || 'load';
     if (action === 'load') {
       const ids = (members || []).map((item: any) => String(item.discord_id));
