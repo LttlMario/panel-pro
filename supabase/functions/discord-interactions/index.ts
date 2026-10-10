@@ -2339,7 +2339,10 @@ async function handleRequestSubmit(db: any, context: any, interaction: any, valu
   const { data: created, error } = await db.from('absences').insert(absence).select('*').single();
   if (error) throw error;
   const logResult = await sendAbsenceLog(db, context, created, 'Învoire nouă');
-  try { await syncAbsenceLiveEmbeds(db, String(context.organization.id), context.settings, context.audience); } catch (error) { console.error('[discord-interactions] absence live embed failed', error); }
+  // Repostează embedul live după o învoire nouă, ca mesajul cu învoirile active
+  // să rămână ultimul mesaj din canal. Actualizările cron continuă să editeze
+  // mesajul existent și nu creează duplicate la fiecare minut.
+  try { await syncAbsenceLiveEmbeds(db, String(context.organization.id), context.settings, context.audience, true); } catch (error) { console.error('[discord-interactions] absence live embed failed', error); }
   return interactionMessage(`Învoirea a fost înregistrată pentru **${startDate.split('-').reverse().join('.')} – ${endDate.split('-').reverse().join('.')}**.${logResult.error ? `\n⚠️ Logul Discord nu a fost trimis: ${logResult.error}` : ''}`);
 }
 
