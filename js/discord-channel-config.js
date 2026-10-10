@@ -368,11 +368,11 @@
     allowed_mentions: { parse: [] },
     embeds: [{
       title: '📄 Contracte · Panel Pro',
-      description: 'Generează contractul și completează manual numele și prenumele, CNP-ul și telefonul. După generare îl poți copia, apoi apasă „Adaugă imaginile” pentru a publica textul în canalul ales la „Log contracte”. Imaginile se adaugă manual sub mesaj.',
+      description: 'Managerul selectează angajatul direct din Discord, iar Panel Pro îi trimite formularul privat în DM. Angajatul completează datele, apoi contractul este generat automat și publicat în canalul ales la „Log contracte”.',
       color: 0x14b8a6,
       fields: [
         { name: 'Date preluate automat', value: 'Organizație, manager, șablon, funcție, salariu, program, data și număr contract.', inline: false },
-        { name: 'Date completate la creare', value: 'CNP și număr de telefon. Imaginile se adaugă manual după publicarea contractului.', inline: false },
+        { name: 'Date completate de angajat în DM', value: 'Nume complet, CNP, număr de telefon și IBAN.', inline: false },
       ],
       footer: { text: 'Panel Pro · Contracte' },
     }],

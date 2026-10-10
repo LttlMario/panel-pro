@@ -1740,10 +1740,10 @@ function contractSettingsModal() {
 }
 
 function contractInfoMessage() {
-  return interactionMessage('', { embeds: [{ title: 'ℹ️ Cum configurezi contractul', description: 'În șablon, folosește exact variabilele de mai jos între acolade duble. La generare, botul le înlocuiește automat cu datele organizației și ale angajatului.', color: 0x14b8a6, fields: [
+  return interactionMessage('', { embeds: [{ title: 'ℹ️ Cum funcționează contractele', description: 'Managerul selectează angajatul direct din Discord, iar Panel Pro îi trimite un formular privat în DM. Angajatul completează datele personale, apoi contractul este generat automat și publicat în canalul configurat pentru **Log contracte**.', color: 0x14b8a6, fields: [
     { name: 'Date completate automat', value: '`{{COMPANY}}` companie\n`{{ADDRESS}}` adresă\n`{{MANAGER}}` manager\n`{{POSITION}}` funcție\n`{{SALARY}}` salariu\n`{{PROGRAM}}` program\n`{{START_DATE}}` data începerii\n`{{CONTRACT_NUMBER}}` număr contract', inline: true },
-    { name: 'Date cerute la generare', value: '`{{EMPLOYEE_NAME}}` nume și prenume\n`{{CNP}}` CNP\n`{{PHONE}}` telefon\n`{{IBAN}}` IBAN', inline: true },
-    { name: 'Exemplu', value: 'Angajat: `{{EMPLOYEE_NAME}}`\nCNP: `{{CNP}}`\nTelefon: `{{PHONE}}`\nIBAN: `{{IBAN}}`', inline: false },
+    { name: 'Date completate de angajat în DM', value: '`{{EMPLOYEE_NAME}}` nume și prenume\n`{{CNP}}` CNP\n`{{PHONE}}` telefon\n`{{IBAN}}` IBAN', inline: true },
+    { name: 'Flux automat', value: 'Managerul alege angajatul → formular privat în DM → contract generat → publicare în Log contracte → buton pentru copierea contractului.', inline: false },
   ], footer: { text: 'Panel Pro · Contracte Discord' } }] });
 }
 
