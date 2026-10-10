@@ -10,7 +10,7 @@
     ['cereri.html', 'Învoiri'], ['bucatarie.html', 'Bucătărie'], ['contracte.html', 'Contracte'],
     ['calculatorilegal.html', 'Calculator ilegal'],
     ['locatiiilegale.html', 'Locații ilegale'], ['marketplace.html', 'Marketplace legal'],
-    ['marketplace-ilegal.html', 'Marketplace ilegal'], ['minigames.html', 'Minigames'], ['rapoarte.html', 'Rapoarte'], ['asistent.html', 'Asistent']
+    ['marketplace-ilegal.html', 'Marketplace ilegal'], ['minigames.html', 'Minigames'], ['rapoarte.html', 'Rapoarte'], ['task-angajati.html', 'Task-uri angajați · avansare'], ['task-saptamanal.html', 'Task săptămânal · organizație'], ['asistent.html', 'Asistent']
   ];
   const assistantGroups = [
     { key: 'general', label: 'Generale', pages: [['index.html', 'Dashboard'], ['pontaj.html', 'Pontaj'], ['cereri.html', 'Învoiri'], ['bucatarie.html', 'Bucătărie'], ['asistent.html', 'Asistent']] },
@@ -41,8 +41,8 @@
   const specializedPages = new Set(['calculatorilegal.html', 'locatiiilegale.html', 'marketplace-ilegal.html', 'minigames.html']);
   const standardWebhookKeys = new Set(['departments', 'pontaj', 'weekly_reports', 'event_reminders', 'contracts', 'contract_identity_weekly', 'marketplace', 'fines_departments', 'warnings_departments', 'sanctions_departments', 'status_live', 'organization_expiration']);
   const operationsWebhookKeys = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'actions_organization', 'illegal_marketplace']);
-  const standardPages = new Set(['index.html', 'anunturi.html', 'pontaj.html', 'bucatarie.html', 'contracte.html', 'marketplace.html', 'calculator.html', 'rapoarte.html']);
-  const operationsPages = new Set(['index.html', 'anunturi.html', 'anunturi-organizatie.html', 'cereri.html', 'cereri-organizatie.html', 'calculatorilegal.html', 'locatiiilegale.html', 'marketplace-ilegal.html', 'minigames.html']);
+  const standardPages = new Set(['index.html', 'anunturi.html', 'pontaj.html', 'bucatarie.html', 'contracte.html', 'marketplace.html', 'calculator.html', 'rapoarte.html', 'task-angajati.html']);
+  const operationsPages = new Set(['index.html', 'anunturi.html', 'anunturi-organizatie.html', 'cereri.html', 'cereri-organizatie.html', 'calculatorilegal.html', 'locatiiilegale.html', 'marketplace-ilegal.html', 'minigames.html', 'task-saptamanal.html']);
   const defaultTemplate = `CONTRACT INDIVIDUAL\n\nAngajator: {{COMPANY}}, reprezentată de {{MANAGER}}.\nAdresă: {{ADDRESS}}.\nAngajat: {{EMPLOYEE_NAME}}, CNP {{CNP}}, telefon {{PHONE}}.\nFuncție: {{POSITION}}.\nSalariu: {{SALARY}}.\nProgram: {{PROGRAM}}.\nData începerii: {{START_DATE}}.\nNumăr contract: {{CONTRACT_NUMBER}}.`;
 
   const box = document.createElement('section');
