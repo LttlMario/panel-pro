@@ -2053,10 +2053,16 @@ async function handleContractPublish(db: any, context: any, contractId: string) 
   if (contract.discord_message_id) return interactionMessage('Contractul este deja publicat în Log contracte.');
   const destinations = routeCandidates(context.settings, context.logRouteKey);
   if (!destinations.some((item: any) => item.candidates.length)) return interactionMessage(`Contractul **${contract.contract_number}** este generat, dar canalul „Log contracte” nu este configurat.`);
+  const destination = destinations.find((item: any) => item.target === context.target)?.candidates?.[0];
+  const channelLink = destination?.channel_id ? `https://discord.com/channels/${context.guildId}/${destination.channel_id}` : '';
+  const actionComponents = [{ type: 1, components: [
+    { type: 2, style: 1, label: 'Copiază contractul', custom_id: `panel:contracts:copy:${String(contract.id)}` },
+    ...(channelLink ? [{ type: 2, style: 5, label: 'Adaugă imagini', url: channelLink }] : []),
+  ] }];
   const payload = JSON.stringify({
     allowed_mentions: { parse: [] },
     embeds: [contractEmbed(contract, context.organization, 'Contract nou', 'Atașează imaginile cu buletinul și contractul sub acest mesaj.')],
-    components: contractComponents(String(contract.id), false),
+    components: actionComponents,
   });
   const delivery = await deliverDiscordRoute(db, context.settings, context.logRouteKey, payload, { postOnly: true, organizationId: String(context.organization.id), messageKey: `contract-${String(contract.id)}`, retryPayload: JSON.parse(payload) });
   const messageIds = Object.fromEntries((delivery.results || []).filter((item: any) => item.id).map((item: any) => [String(item.target), String(item.id)]));
@@ -2065,15 +2071,9 @@ async function handleContractPublish(db: any, context: any, contractId: string) 
     const { error: messageUpdateError } = await db.from('organization_contracts').update({ discord_message_id: firstMessageId, discord_message_ids: messageIds }).eq('organization_id', context.organization.id).eq('id', contract.id);
     if (messageUpdateError) throw messageUpdateError;
   }
-  const destination = destinations.find((item: any) => item.target === context.target)?.candidates?.[0];
-  const channelLink = destination?.channel_id ? `https://discord.com/channels/${context.guildId}/${destination.channel_id}` : '';
-  const actionComponents = [{ type: 1, components: [
-    { type: 2, style: 1, label: 'Copiază contractul', custom_id: `panel:contracts:copy:${String(contract.id)}` },
-    ...(channelLink ? [{ type: 2, style: 5, label: 'Adaugă imagini', url: channelLink }] : []),
-  ] }];
   return interactionMessage(
     `Contractul **${contract.contract_number}** pentru **${contract.employee_name}** a fost trimis în canalul ales pentru Log contracte.`,
-    { components: actionComponents }
+    {}
   );
 }
 
