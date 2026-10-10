@@ -2021,15 +2021,22 @@ async function handleContractSubmit(db: any, context: any, values: Record<string
     CONTRACT_NUMBER: contract.contract_number,
   });
   const now = new Date().toISOString();
-  const { data: existingEmployee, error: existingEmployeeError } = await db.from('organization_employees').select('id').eq('organization_id', context.organization.id).eq('cnp', contract.cnp).maybeSingle();
-  if (existingEmployeeError) throw existingEmployeeError;
+  const employeeDiscordId = String(context.employeeDiscordId || context.discordId || '').trim();
+  const [{ data: employeeByCnp, error: employeeByCnpError }, { data: employeeByDiscord, error: employeeByDiscordError }] = await Promise.all([
+    db.from('organization_employees').select('id,discord_id,cnp').eq('organization_id', context.organization.id).eq('cnp', contract.cnp).maybeSingle(),
+    employeeDiscordId ? db.from('organization_employees').select('id,discord_id,cnp').eq('organization_id', context.organization.id).eq('discord_id', employeeDiscordId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+  ]);
+  if (employeeByCnpError) throw employeeByCnpError;
+  if (employeeByDiscordError) throw employeeByDiscordError;
+  if (employeeByCnp?.id && employeeByDiscord?.id && String(employeeByCnp.id) !== String(employeeByDiscord.id)) return interactionMessage('CNP-ul introdus este deja asociat altui angajat din organizație. Verifică datele înainte de a genera contractul.');
+  const existingEmployee = employeeByDiscord || employeeByCnp;
   let employee: any;
   if (existingEmployee?.id) {
-    const { data: updatedEmployee, error: updateEmployeeError } = await db.from('organization_employees').update({ full_name: contract.employee_name, discord_id: context.employeeDiscordId || context.discordId, phone: contract.phone, iban: contract.iban, status: 'active', left_at: null, archived_at: null, updated_at: now }).eq('organization_id', context.organization.id).eq('id', existingEmployee.id).select('id').single();
+    const { data: updatedEmployee, error: updateEmployeeError } = await db.from('organization_employees').update({ full_name: contract.employee_name, cnp: contract.cnp, discord_id: employeeDiscordId || null, phone: contract.phone, iban: contract.iban, status: 'active', left_at: null, archived_at: null, updated_at: now }).eq('organization_id', context.organization.id).eq('id', existingEmployee.id).select('id').single();
     if (updateEmployeeError) throw updateEmployeeError;
     employee = updatedEmployee;
   } else {
-    const { data: upsertedEmployee, error: employeeError } = await db.from('organization_employees').upsert({ organization_id: context.organization.id, discord_id: context.employeeDiscordId || context.discordId, full_name: contract.employee_name, cnp: contract.cnp, phone: contract.phone, iban: contract.iban, status: 'active', left_at: null, archived_at: null, updated_at: now }, { onConflict: 'organization_id,cnp' }).select('id').single();
+    const { data: upsertedEmployee, error: employeeError } = await db.from('organization_employees').upsert({ organization_id: context.organization.id, discord_id: employeeDiscordId || null, full_name: contract.employee_name, cnp: contract.cnp, phone: contract.phone, iban: contract.iban, status: 'active', left_at: null, archived_at: null, updated_at: now }, { onConflict: 'organization_id,cnp' }).select('id').single();
     if (employeeError) throw employeeError;
     employee = upsertedEmployee;
   }
