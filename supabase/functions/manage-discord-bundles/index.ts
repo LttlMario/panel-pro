@@ -102,15 +102,71 @@ const payload = (routeKey: string) => {
 };
 const hasInteractiveDefinition = (routeKey: string) => Array.isArray(definitions[routeKey]?.buttons) && definitions[routeKey].buttons.length > 0;
 
+const migrateModuleInfoButtons = async (db: any, migrationSecret: string) => {
+  const configuredSecret = String(Deno.env.get('PANEL_MODULE_INFO_MIGRATION_SECRET') || '').trim();
+  if (!configuredSecret || migrationSecret !== configuredSecret) return reply({ error: 'Migrarea nu este autorizată.' }, 403);
+  const token = await getPlatformSecret(db, 'discord_bot_token');
+  if (!token) return reply({ error: 'DISCORD_BOT_TOKEN lipsește.' }, 500);
+  const { data: settingsRows, error } = await db.from('organization_settings').select('organization_id,discord_channel_routes');
+  if (error) throw error;
+  let scanned = 0, updated = 0, skipped = 0;
+  for (const settings of settingsRows || []) {
+    const routes = structuredClone(settings.discord_channel_routes || {});
+    let routesChanged = false;
+    for (const routeKey of Object.keys(definitions).filter(hasInteractiveDefinition)) {
+      const definition = definitions[routeKey];
+      for (const target of ['primary', 'secondary']) {
+        const route = routes?.[routeKey]?.[target];
+        const channelId = id(route?.channel_id);
+        if (!channelId) continue;
+        scanned += 1;
+        const storedMessageId = id(route?.message_id);
+        const storedResponse = storedMessageId ? await fetch(`${api}/channels/${channelId}/messages/${storedMessageId}`, { headers: { Authorization: `Bot ${token}` } }) : null;
+        const storedMessage = storedResponse?.ok ? await storedResponse.json().catch(() => null) : null;
+        const normalize = (value: unknown) => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+        let current = storedMessage;
+        let before = '';
+        for (let page = 0; !current && page < 10; page += 1) {
+          const response = await fetch(`${api}/channels/${channelId}/messages?limit=100${before ? `&before=${before}` : ''}`, { headers: { Authorization: `Bot ${token}` } });
+          if (!response.ok) break;
+          const messages = await response.json().catch(() => []);
+          const batch = Array.isArray(messages) ? messages : [];
+          current = batch.find((message: any) => (message.embeds || []).some((embed: any) => normalize(embed.title) === normalize(definition.title)))
+            || batch.find((message: any) => Array.isArray(message.components) && message.components.some((row: any) => Array.isArray(row.components) && row.components.length))
+            || batch.find((message: any) => Array.isArray(message.embeds) && message.embeds.length);
+          if (current || batch.length < 100) break;
+          before = String(batch[batch.length - 1]?.id || '');
+          if (!before) break;
+        }
+        if (!current?.id) { skipped += 1; continue; }
+        const rows = Array.isArray(current.components) ? current.components.map((row: any) => ({ ...row, components: Array.isArray(row.components) ? [...row.components] : [] })) : [];
+        if (rows.some((row: any) => row.components.some((button: any) => String(button.custom_id || '') === `panel:module_info:${routeKey}`))) continue;
+        const infoButton = { type: 2, style: 2, label: 'ℹ️ Instrucțiuni', custom_id: `panel:module_info:${routeKey}` };
+        const targetRow = rows.find((row: any) => row.components.length < 5);
+        if (targetRow) targetRow.components.push(infoButton);
+        else if (rows.length < 5) rows.push({ type: 1, components: [infoButton] });
+        else { skipped += 1; continue; }
+        const patchResponse = await fetch(`${api}/channels/${channelId}/messages/${current.id}`, { method: 'PATCH', headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ components: rows }) });
+        if (!patchResponse.ok) { skipped += 1; continue; }
+        updated += 1;
+        if (!route.message_id) { routes[routeKey][target] = { ...route, message_id: String(current.id) }; routesChanged = true; }
+      }
+    }
+    if (routesChanged) await db.from('organization_settings').update({ discord_channel_routes: routes, updated_at: new Date().toISOString() }).eq('organization_id', settings.organization_id);
+  }
+  return reply({ ok: true, scanned, updated, skipped });
+};
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
   if (request.method !== 'POST') return reply({ error: 'Metodă invalidă.' }, 405);
   try {
     const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
     const db = createClient(Deno.env.get('SUPABASE_URL')!, service);
+    const body = await request.json().catch(() => ({}));
+    if (body.action === 'migrate_module_info') return await migrateModuleInfoButtons(db, String(body.secret || ''));
     const session = await requirePanelSession(db, request, 0);
     if (!(session.is_platform_admin || await isPlatformAdminAccount(db, session.discord_id))) return reply({ error: 'Acces permis doar administratorului global.' }, 403);
-    const body = await request.json().catch(() => ({}));
     const routeKeys = bundles[String(body.bundle_key || '')];
     const organizationId = String(body.organization_id || '').trim();
     const guildId = id(body.guild_id);
