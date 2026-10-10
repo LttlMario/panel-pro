@@ -57,6 +57,15 @@ async function sendDm(db: any, task: any) {
   return { channel_id: String(channel.id), message_id: String(message.id) };
 }
 
+async function loadGuildMembers(db: any, guildId: string) {
+  const token = await getPlatformSecret(db, 'discord_bot_token');
+  if (!token) throw new Error('Tokenul botului Discord nu este configurat.');
+  const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members?limit=1000`, { headers: { Authorization: `Bot ${token}` } });
+  const rows = await response.json().catch(() => []);
+  if (!response.ok || !Array.isArray(rows)) throw new Error('Membrii serverului Discord nu au putut fi încărcați. Verifică Server Members Intent și accesul botului.');
+  return rows.filter((row: any) => row?.user?.id && row.user.bot !== true).map((row: any) => ({ discord_id: String(row.user.id), name: text(row.user.global_name || row.user.username || row.user.id, 100), panel_role: '', guild_id: guildId }));
+}
+
 async function sendLog(db: any, organizationId: string, guildId: string, task: any) {
   const { data: settings, error } = await db.from('organization_settings').select('discord_channel_routes').eq('organization_id', organizationId).maybeSingle();
   if (error) throw error;
@@ -82,13 +91,16 @@ Deno.serve(async (request) => {
     const page = type === 'employee_advancement' ? 'task-angajati.html' : 'task-saptamanal.html';
     const feature = type === 'employee_advancement' ? 'employee_tasks' : 'organization_weekly_tasks';
     const access = await accessFor(db, session, page, feature);
-    const [{ data: guilds, error: guildError }, { data: members, error: memberError }] = await Promise.all([
+    const [{ data: guilds, error: guildError }, { data: organizationMembers, error: memberError }] = await Promise.all([
       db.from('organization_guilds').select('guild_id,kind,enabled').eq('organization_id', session.organization_id),
       db.from('organization_members').select('discord_id,panel_role,active').eq('organization_id', session.organization_id).eq('active', true),
     ]);
     if (guildError || memberError) throw guildError || memberError;
     const targetGuild = (guilds || []).find((item: any) => item.kind === (type === 'organization_weekly' ? 'secondary' : 'primary') && item.enabled !== false) || (guilds || []).find((item: any) => item.enabled !== false);
     if (!targetGuild?.guild_id) throw new Error('Serverul Discord necesar pentru acest task nu este configurat.');
+    const directory = await loadGuildMembers(db, String(targetGuild.guild_id));
+    const storedMembers = Object.fromEntries((organizationMembers || []).map((item: any) => [String(item.discord_id), item]));
+    const members = directory.map((item: any) => ({ ...item, panel_role: storedMembers[item.discord_id]?.panel_role || '' }));
     const action = text(body.action, 30) || 'load';
     if (action === 'load') {
       const ids = (members || []).map((item: any) => String(item.discord_id));
