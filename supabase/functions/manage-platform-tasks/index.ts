@@ -104,19 +104,19 @@ Deno.serve(async (request) => {
     if (!targetGuild?.guild_id) throw new Error('Serverul Discord necesar pentru acest task nu este configurat.');
     const directory = await loadGuildMembers(db, String(targetGuild.guild_id));
     const storedMembers = Object.fromEntries((organizationMembers || []).map((item: any) => [String(item.discord_id), item]));
-    const directoryIds = directory.map((item: any) => String(item.discord_id));
-    const { data: directoryUsers, error: directoryUsersError } = await db.from('users').select('discord_id,display_name,username').in('discord_id', directoryIds.length ? directoryIds : ['-']);
-    if (directoryUsersError) throw directoryUsersError;
-    const directoryNames = Object.fromEntries((directoryUsers || []).map((item: any) => [String(item.discord_id), usableMemberName(item.display_name, String(item.discord_id)) || usableMemberName(item.username, String(item.discord_id))]));
-    const members = directory.map((item: any) => ({ ...item, name: directoryNames[item.discord_id] || item.name || 'Membru Discord', panel_role: storedMembers[item.discord_id]?.panel_role || '' }));
+    // Numele destinatarilor trebuie să vină din Discord, nu din tabela `users`.
+    // Tabela locală poate conține valori vechi sau chiar ID-uri salvate ca username
+    // pentru membrii care nu s-au autentificat încă în panel.
+    const members = directory.map((item: any) => ({
+      ...item,
+      name: item.name || 'Membru Discord',
+      panel_role: storedMembers[item.discord_id]?.panel_role || '',
+    }));
     const action = text(body.action, 30) || 'load';
     if (action === 'load') {
-      const ids = (members || []).map((item: any) => String(item.discord_id));
-      const { data: users } = await db.from('users').select('discord_id,display_name,username').in('discord_id', ids.length ? ids : ['-']);
-      const names = Object.fromEntries((users || []).map((item: any) => [String(item.discord_id), text(item.display_name || item.username || item.discord_id, 100)]));
       const { data: tasks, error } = await db.from('platform_tasks').select('*').eq('organization_id', session.organization_id).eq('guild_id', String(targetGuild.guild_id)).order('created_at', { ascending: false }).limit(200);
       if (error) throw error;
-      return reply({ ok: true, tasks: tasks || [], members: (members || []).map((item: any) => ({ discord_id: String(item.discord_id), name: names[String(item.discord_id)] || String(item.discord_id), panel_role: item.panel_role || '' })), actor_name: await actorName(db, session.discord_id), access: { read: true, write: access.canWrite, platform_admin: access.platformAdmin }, guild_id: String(targetGuild.guild_id) });
+      return reply({ ok: true, tasks: tasks || [], members: (members || []).map((item: any) => ({ discord_id: String(item.discord_id), name: item.name || 'Membru Discord', panel_role: item.panel_role || '' })), actor_name: await actorName(db, session.discord_id), access: { read: true, write: access.canWrite, platform_admin: access.platformAdmin }, guild_id: String(targetGuild.guild_id) });
     }
     if (action === 'create') {
       const description = text(body.description, 4000);
