@@ -3561,7 +3561,7 @@ Deno.serve(async (request) => {
         if (followupId && !result?.data?.components?.length) { await new Promise((resolve) => setTimeout(resolve, 5000)); await deleteFollowup(deferred.applicationId, deferred.interactionToken, followupId); }
         return new Response(null, { status: 204 });
       }
-      if (parts[2] !== 'create') return reply(interactionMessage('Acțiunea Contracte nu este disponibilă.'));
+      if (!['create', 'request'].includes(String(parts[2] || ''))) return reply(interactionMessage('Acțiunea Contracte nu este disponibilă.'));
       await resolveContractContext(db, interaction);
       return reply(contractTargetPicker());
     }
