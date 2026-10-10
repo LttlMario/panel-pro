@@ -1349,6 +1349,28 @@ const wheelPrivateMessage = (timer: any = null) => {
   return interactionMessage('', { embeds: [{ title: active ? '⏳ Timerul tău este activ' : '🎡 Roata este disponibilă', description: active ? wheelRemainingText(timer.completes_at) : 'Poți apăsa „Am dat la roată” pentru a porni un nou timer de 6 ore.', color: active ? 0xf59e0b : 0x06b6d4, footer: { text: 'Panel Pro · răspuns vizibil doar pentru tine' } }], ...(active ? {} : { components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Am dat la roată', custom_id: 'panel:wheel:start' }] }] }) });
 };
 
+const wheelLiveContent = (completesAt: string) => {
+  const remaining = Math.max(0, Date.parse(String(completesAt || '')) - Date.now());
+  const totalSeconds = Math.ceil(remaining / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `🎡 **Timer roată activ**\n\n**Timp rămas:** **${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s**\n\nAcest mesaj se actualizează automat.`;
+};
+
+async function createWheelLiveMessage(db: any, discordId: string, completesAt: string) {
+  const token = await getPlatformSecret(db, 'discord_bot_token');
+  if (!token) throw new Error('Tokenul botului Discord lipsește.');
+  const headers = { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' };
+  const channelResponse = await fetch(`${DISCORD_API}/users/@me/channels`, { method: 'POST', headers, body: JSON.stringify({ recipient_id: discordId }) });
+  const channel = await channelResponse.json().catch(() => ({}));
+  if (!channelResponse.ok || !channel?.id) throw new Error('DM-ul pentru countdown nu a putut fi deschis.');
+  const messageResponse = await fetch(`${DISCORD_API}/channels/${channel.id}/messages`, { method: 'POST', headers, body: JSON.stringify({ allowed_mentions: { parse: [] }, content: wheelLiveContent(completesAt) }) });
+  const message = await messageResponse.json().catch(() => ({}));
+  if (!messageResponse.ok || !message?.id) throw new Error('Mesajul privat pentru countdown nu a putut fi trimis.');
+  return { channel_id: String(channel.id), message_id: String(message.id) };
+}
+
 function marketplaceEmbed(kind: 'legal' | 'illegal', values: Record<string, any>, context: any, id: string) {
   const illegal = kind === 'illegal';
   const sold = String(values.status || 'active') === 'sold';
@@ -2989,6 +3011,12 @@ Deno.serve(async (request) => {
         const completes = new Date(started.getTime() + 6 * 60 * 60 * 1000);
         const { data: timer, error: insertError } = await db.from('wheel_timers').insert({ organization_id: context.organization.id, discord_id: context.discordId, started_at: started.toISOString(), completes_at: completes.toISOString() }).select('*').single();
         if (insertError) throw insertError;
+        try {
+          const liveMessage = await createWheelLiveMessage(db, context.discordId, timer.completes_at);
+          await db.from('wheel_timers').update({ notification_error: JSON.stringify({ wheel_live: liveMessage }) }).eq('id', timer.id);
+        } catch (error) {
+          console.error('[discord-interactions] wheel live DM failed', error);
+        }
         result = wheelPrivateMessage(timer);
       }
     } catch (error) {
