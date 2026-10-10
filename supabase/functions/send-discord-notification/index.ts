@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2.112.3';
 import { requirePanelSession } from '../_shared/panel-session.ts';
 import { resolvePackageFeatures } from '../_shared/package-features.ts';
 import { deliverDiscordRoute, routeCandidates } from '../_shared/discord-delivery.ts';
+import { syncAbsenceLiveEmbeds } from '../_shared/absence-live.ts';
 import { corsOptions, getCorsHeaders } from '../_shared/cors.ts';
 
 const reply = (request: Request, data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: getCorsHeaders(request) });
@@ -383,7 +384,7 @@ Deno.serve(async (request) => {
     let absenceLogRecord: any = null;
     let absenceLogMessageIds: Record<string, string> = {};
     if (isRequestsLog && UUID_RE.test(requestedMessageKey)) {
-      const { data, error } = await db.from('absences').select('id,discord_log_message_ids').eq('id', requestedMessageKey).eq('organization_id', sessionOrganizationId).maybeSingle();
+      const { data, error } = await db.from('absences').select('id,discord_log_message_ids,request_audience').eq('id', requestedMessageKey).eq('organization_id', sessionOrganizationId).maybeSingle();
       if (error) throw error;
       absenceLogRecord = data || null;
       absenceLogMessageIds = absenceLogRecord?.discord_log_message_ids && typeof absenceLogRecord.discord_log_message_ids === 'object' ? absenceLogRecord.discord_log_message_ids : {};
@@ -478,6 +479,16 @@ Deno.serve(async (request) => {
       }
       const { error: absenceMessageError } = await db.from('absences').update({ discord_log_message_ids: updatedAbsenceMessageIds }).eq('id', absenceLogRecord.id).eq('organization_id', sessionOrganizationId);
       if (absenceMessageError) throw absenceMessageError;
+
+      // Cererile create/editate din panel trec prin această funcție, nu prin
+      // discord-interactions. Repostează embedul live după logul individual,
+      // astfel încât „Învoiri active” să rămână ultimul mesaj din canal.
+      try {
+        const audience = absenceLogRecord.request_audience === 'departments' ? 'departments' : 'organization';
+        await syncAbsenceLiveEmbeds(db, sessionOrganizationId, settings, audience, true);
+      } catch (liveError) {
+        console.error('[send-discord-notification] absence live embed failed', liveError);
+      }
     }
 
     return reply(request, {
