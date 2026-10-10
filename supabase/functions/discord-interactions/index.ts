@@ -1355,7 +1355,8 @@ const wheelLiveContent = (completesAt: string) => {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  return `🎡 **Timer roată activ**\n\n**Timp rămas:** **${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s**\n\nAcest mesaj se actualizează automat.`;
+  const updatedAt = Math.floor(Date.now() / 1000);
+  return `🎡 **Timer roată activ**\n\n**Timp rămas:** **${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s**\n\nAcest mesaj se actualizează automat.\n🕒 **Edited at:** <t:${updatedAt}:f>`;
 };
 
 async function createWheelLiveMessage(db: any, discordId: string, completesAt: string) {

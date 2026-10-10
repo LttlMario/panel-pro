@@ -15,8 +15,9 @@ const content = (completesAt) => {
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
   const seconds = total % 60;
+  const updatedAt = Math.floor(Date.now() / 1000);
   return remaining > 0
-    ? `🎡 **Timer roată activ**\n\n**Timp rămas:** **${hours}h ${pad(minutes)}m ${pad(seconds)}s**\n\nAcest mesaj se actualizează automat.`
+    ? `🎡 **Timer roată activ**\n\n**Timp rămas:** **${hours}h ${pad(minutes)}m ${pad(seconds)}s**\n\nAcest mesaj se actualizează automat.\n🕒 **Edited at:** <t:${updatedAt}:f>`
     : '✅ **Timerul roții a expirat.**\n\nPoți folosi din nou roata.';
 };
 

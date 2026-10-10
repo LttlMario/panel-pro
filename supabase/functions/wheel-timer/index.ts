@@ -21,8 +21,9 @@ const wheelLiveContent = (completesAt: string) => {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
+  const updatedAt = Math.floor(Date.now() / 1000);
   return remaining > 0
-    ? `🎡 **Timer roată activ**\n\n**Timp rămas:** **${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s**\n\nActualizat automat.`
+    ? `🎡 **Timer roată activ**\n\n**Timp rămas:** **${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s**\n\nActualizat automat.\n🕒 **Edited at:** <t:${updatedAt}:f>`
     : '✅ **Timerul roții a expirat.**\n\nPoți folosi din nou roata.';
 };
 
