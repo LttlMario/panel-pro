@@ -2060,11 +2060,9 @@ async function handleContractPublish(db: any, context: any, contractId: string) 
   if (contract.discord_message_id) return interactionMessage('Contractul este deja publicat în Log contracte.');
   const destinations = routeCandidates(context.settings, context.logRouteKey);
   if (!destinations.some((item: any) => item.candidates.length)) return interactionMessage(`Contractul **${contract.contract_number}** este generat, dar canalul „Log contracte” nu este configurat.`);
-  const destination = destinations.find((item: any) => item.target === context.target)?.candidates?.[0];
-  const channelLink = destination?.channel_id ? `https://discord.com/channels/${context.guildId}/${destination.channel_id}` : '';
   const actionComponents = [{ type: 1, components: [
     { type: 2, style: 1, label: 'Copiază contractul', custom_id: `panel:contracts:copy:${String(contract.id)}` },
-    ...(channelLink ? [{ type: 2, style: 5, label: 'Adaugă imagini', url: channelLink }] : []),
+    { type: 2, style: 2, label: 'Adaugă imaginile necesare', custom_id: `panel:contracts:images-info:${String(contract.id)}`, disabled: true },
   ] }];
   const payload = JSON.stringify({
     allowed_mentions: { parse: [] },
