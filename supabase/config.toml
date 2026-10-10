@@ -46,6 +46,9 @@ verify_jwt = false
 [functions.manage-orders]
 verify_jwt = false
 
+[functions.manage-platform-tasks]
+verify_jwt = false
+
 [functions.send-discord-notification]
 verify_jwt = false
 

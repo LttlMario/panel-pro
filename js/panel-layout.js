@@ -1400,7 +1400,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 ['cereri-organizatie.html', '🏢', 'Învoiri organizație'],
                 ['contracte.html', '📜', 'Contracte'],
                 ['organizatie-evenimente.html', '🗓️', 'Evenimente și remindere'],
-                ['rapoarte.html', '📈', 'Rapoarte']
+                ['rapoarte.html', '📈', 'Rapoarte'],
+                ['task-angajati.html', '🧗', 'Task-uri angajați']
             ]],
             ['resurse', 'Resurse', [
                 ['marketplace.html', '🛒', 'Marketplace'],
@@ -1412,7 +1413,8 @@ if (location.pathname.endsWith('organizatii.html') && !window.__organizationFetc
                 ['marketplace-ilegal.html', '🚨', 'Black Market'],
                 ['minigames.html', '🎮', 'Minigames'],
                 ['stash.html', '📦', 'Stash organizație'],
-                ['comenzi.html', '🧾', 'Comenzi']
+                ['comenzi.html', '🧾', 'Comenzi'],
+                ['task-saptamanal.html', '📆', 'Task săptămânal']
             ]],
             ['administratie', 'Administrație', [
                 ['logs.html', '🧾', 'Loguri'],

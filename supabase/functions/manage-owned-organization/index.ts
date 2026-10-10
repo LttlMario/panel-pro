@@ -39,6 +39,8 @@ const allowedPages = new Map([
   ['marketplace-ilegal.html', 'Marketplace ilegal'],
   ['minigames.html', 'Minigames'],
   ['rapoarte.html', 'Rapoarte'],
+  ['task-angajati.html', 'Task-uri angajați · avansare'],
+  ['task-saptamanal.html', 'Task săptămânal · organizație'],
   ['organizatie-evenimente.html', 'Evenimente și remindere'],
   ['status-live.html', 'Status Live'],
   ['asistent.html', 'Asistent Panel'],
@@ -47,7 +49,7 @@ const allowedPages = new Map([
 const allowedAssistantPages = new Set([...allowedPages.keys()]);
 const allowedActionKeys = new Set(['anunturi.publish', 'marketplace.delete', 'cereri.organization', 'cereri.departments', 'actions.organization.read', 'actions.organization.write', 'actions.organization.delete', 'events.read', 'events.write', 'stash.write', 'stash.request', 'stash.manage_requests', 'stash.donate', 'stash.approve_donation', 'stash.log', 'orders.approve', 'orders.write_all']);
 const fullOnlyWebhookChannels = new Set(['organization', 'requests_organization', 'illegal_marketplace', 'fines_organization', 'warnings_organization', 'sanctions_organization']);
-const operationsWebhookChannels = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'actions_organization', 'actions_organization_weekly', 'event_reminders', 'illegal_marketplace', 'organization_expiration', 'log_requests_organization', 'log_requests_departments', 'log_announcements_organization', 'log_announcements_departments']);
+const operationsWebhookChannels = new Set(['organization', 'requests_organization', 'fines_organization', 'warnings_organization', 'sanctions_organization', 'actions_organization', 'actions_organization_weekly', 'event_reminders', 'illegal_marketplace', 'organization_expiration', 'tasks', 'log_tasks', 'log_requests_organization', 'log_requests_departments', 'log_announcements_organization', 'log_announcements_departments']);
 const standardWebhookChannels = new Set(['departments', 'pontaj', 'weekly_reports', 'event_reminders', 'contracts', 'contract_uploads', 'contract_identity_weekly', 'marketplace', 'fines_departments', 'warnings_departments', 'sanctions_departments', 'status_live', 'organization_expiration', 'tasks', 'log_tasks', 'log_requests_organization', 'log_requests_departments', 'log_announcements_organization', 'log_announcements_departments', 'log_contracts']);
 const fullOnlyPageFeatures = new Map([
   ['calculatorilegal.html', 'illegal_calculator'],
@@ -55,9 +57,11 @@ const fullOnlyPageFeatures = new Map([
   ['marketplace-ilegal.html', 'illegal_marketplace'],
   ['minigames.html', 'illegal_minigames'],
   ['stash.html', 'stash']
+  ,['task-angajati.html', 'employee_tasks']
+  ,['task-saptamanal.html', 'organization_weekly_tasks']
 ]);
 const standardPackageFeatures = new Set([
-  'core', 'announcements', 'requests', 'contracts', 'reports', 'legal_marketplace',
+  'core', 'announcements', 'requests', 'contracts', 'reports', 'employee_tasks', 'legal_marketplace',
   'legal_tools', 'assistant', 'status_live', 'announcements_departments',
   'requests_departments', 'discipline_departments'
 ]);

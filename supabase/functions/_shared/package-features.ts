@@ -8,6 +8,7 @@ export const PACKAGE_FEATURES = Object.freeze({
   requests_organization: { label: 'Învoiri · Organizație', pages: ['cereri.html', 'cereri-organizatie.html'] },
   contracts: { label: 'Contracte', pages: ['contracte.html'] },
   reports: { label: 'Rapoarte', pages: ['rapoarte.html'] },
+  employee_tasks: { label: 'Task-uri angajați · avansare', pages: ['task-angajati.html'] },
   event_reminders: { label: 'Evenimente și remindere', pages: ['organizatie-evenimente.html'] },
   legal_marketplace: { label: 'Marketplace legal', pages: ['marketplace.html'] },
   legal_tools: { label: 'Resurse legale', pages: ['calculator.html', 'bucatarie.html'] },
@@ -18,6 +19,7 @@ export const PACKAGE_FEATURES = Object.freeze({
   actions_organization: { label: 'Acțiuni · Organizație', pages: ['anunturi.html', 'anunturi-organizatie.html'] },
   stash: { label: 'Stash organizație', pages: ['stash.html'] },
   illegal_orders: { label: 'Comenzi ilegale', pages: ['comenzi.html'] },
+  organization_weekly_tasks: { label: 'Task săptămânal · organizație', pages: ['task-saptamanal.html'] },
   illegal_calculator: { label: 'Calculator ilegal', pages: ['calculatorilegal.html'] },
   illegal_locations: { label: 'Locații ilegale', pages: ['locatiiilegale.html'] },
   illegal_marketplace: { label: 'Marketplace ilegal', pages: ['marketplace-ilegal.html'] },
@@ -25,7 +27,7 @@ export const PACKAGE_FEATURES = Object.freeze({
 });
 
 export const STANDARD_PACKAGE_FEATURES = Object.freeze([
-  'core', 'contracts', 'reports', 'legal_marketplace', 'legal_tools',
+  'core', 'contracts', 'reports', 'employee_tasks', 'legal_marketplace', 'legal_tools',
   'announcements_departments', 'requests_departments', 'discipline_departments', 'event_reminders'
 ]);
 
@@ -33,7 +35,7 @@ export const FULL_PACKAGE_FEATURES = Object.freeze(Object.keys(PACKAGE_FEATURES)
 export const OPERATIONS_PACKAGE_FEATURES = Object.freeze([
   'announcements_organization', 'requests_organization', 'discipline_organization',
   'actions_organization',
-  'illegal_calculator', 'illegal_locations', 'illegal_marketplace', 'illegal_minigames'
+  'illegal_calculator', 'illegal_locations', 'illegal_marketplace', 'illegal_minigames', 'organization_weekly_tasks'
 ]);
 
 export function resolvePackageFeatures(packageValue: any = {}) {

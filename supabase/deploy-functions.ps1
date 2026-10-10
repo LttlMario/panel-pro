@@ -28,6 +28,7 @@ $functions = @(
     'manage-public-feedback',
     'manage-stash',
     'manage-orders',
+    'manage-platform-tasks',
     'send-discord-notification',
     'discord-delivery-retry',
     'discord-route-health',
