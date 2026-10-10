@@ -11,6 +11,10 @@ const uuid = (value: unknown) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89a
 const discordId = (value: unknown) => String(value || '').trim().replace(/^<@!?([0-9]{15,22})>$/, '$1');
 const taskTypes = new Set(['employee_advancement', 'organization_weekly']);
 const taskLabels: Record<string, string> = { employee_advancement: 'Task angajați · avansare', organization_weekly: 'Task săptămânal · organizație' };
+const usableMemberName = (value: unknown, discordIdValue: string) => {
+  const candidate = text(value, 100);
+  return candidate && candidate !== discordIdValue && !/^\d{15,22}$/.test(candidate) ? candidate : '';
+};
 
 const actorName = async (db: any, discordIdValue: string) => {
   const { data } = await db.from('users').select('display_name,username').eq('discord_id', discordIdValue).maybeSingle();
@@ -63,7 +67,7 @@ async function loadGuildMembers(db: any, guildId: string) {
   const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members?limit=1000`, { headers: { Authorization: `Bot ${token}` } });
   const rows = await response.json().catch(() => []);
   if (!response.ok || !Array.isArray(rows)) throw new Error('Membrii serverului Discord nu au putut fi încărcați. Verifică Server Members Intent și accesul botului.');
-  return rows.filter((row: any) => row?.user?.id && row.user.bot !== true).map((row: any) => ({ discord_id: String(row.user.id), name: text(row.user.global_name || row.user.username || row.user.id, 100), panel_role: '', guild_id: guildId }));
+  return rows.filter((row: any) => row?.user?.id && row.user.bot !== true).map((row: any) => { const id = String(row.user.id); return { discord_id: id, name: usableMemberName(row.nick, id) || usableMemberName(row.user.global_name, id) || usableMemberName(row.user.username, id) || 'Membru Discord', panel_role: '', guild_id: guildId }; });
 }
 
 async function sendLog(db: any, organizationId: string, guildId: string, task: any) {
@@ -103,8 +107,8 @@ Deno.serve(async (request) => {
     const directoryIds = directory.map((item: any) => String(item.discord_id));
     const { data: directoryUsers, error: directoryUsersError } = await db.from('users').select('discord_id,display_name,username').in('discord_id', directoryIds.length ? directoryIds : ['-']);
     if (directoryUsersError) throw directoryUsersError;
-    const directoryNames = Object.fromEntries((directoryUsers || []).map((item: any) => [String(item.discord_id), text(item.display_name || item.username || '', 100)]));
-    const members = directory.map((item: any) => ({ ...item, name: directoryNames[item.discord_id] || item.name || `Membru Discord ${item.discord_id}`, panel_role: storedMembers[item.discord_id]?.panel_role || '' }));
+    const directoryNames = Object.fromEntries((directoryUsers || []).map((item: any) => [String(item.discord_id), usableMemberName(item.display_name, String(item.discord_id)) || usableMemberName(item.username, String(item.discord_id))]));
+    const members = directory.map((item: any) => ({ ...item, name: directoryNames[item.discord_id] || item.name || 'Membru Discord', panel_role: storedMembers[item.discord_id]?.panel_role || '' }));
     const action = text(body.action, 30) || 'load';
     if (action === 'load') {
       const ids = (members || []).map((item: any) => String(item.discord_id));
