@@ -3541,8 +3541,8 @@ Deno.serve(async (request) => {
       const parts = customId.split(':');
       if (parts[2] === 'form') {
         const requestId = String(parts[3] || '').trim();
-        const context = await resolveContractRequestContext(db, interaction, requestId);
-        return reply(contractEmployeeModal(String(context.contractRequestId)));
+        if (!/^[0-9a-f-]{36}$/i.test(requestId)) return reply(interactionMessage('Formularul de contract nu este valid.'));
+        return reply(contractEmployeeModal(requestId));
       }
       if (parts[2] === 'info') return reply(contractInfoMessage());
       if (parts[2] === 'settings') {
@@ -3572,7 +3572,6 @@ Deno.serve(async (request) => {
         return new Response(null, { status: 204 });
       }
       if (!['create', 'request'].includes(String(parts[2] || ''))) return reply(interactionMessage('Acțiunea Contracte nu este disponibilă.'));
-      await resolveContractContext(db, interaction);
       return reply(contractTargetPicker());
     }
     if (isContracts && isModalSubmit) {
