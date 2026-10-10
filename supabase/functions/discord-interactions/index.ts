@@ -2042,7 +2042,7 @@ async function handleContractSubmit(db: any, context: any, values: Record<string
     const published = await handleContractPublish(db, context, String(saved.id));
     const { error: requestError } = await db.from('organization_contract_requests').update({ status: 'completed', contract_id: saved.id, completed_at: now, updated_at: now }).eq('id', context.contractRequestId).eq('status', 'pending');
     if (requestError) throw requestError;
-    return interactionMessage(`Contractul **${contract.contract_number}** a fost completat și trimis automat în Log contracte.`, { embeds: [contractEmbed(contract, context.organization, 'Contract generat')], ...(published?.data?.components ? { components: published.data.components } : {}) });
+    return interactionMessage(`Contractul **${contract.contract_number}** a fost completat și trimis automat în canalul configurat pentru **Log contracte**.`, published?.data?.components ? { components: published.data.components } : {});
   }
   return interactionMessage(`Contractul **${contract.contract_number}** a fost generat și salvat. Copiază-l, apoi apasă **Trimite contractul**. Contractul va fi publicat în canalul ales pentru Log contracte, iar imaginile le poți lipi manual sub mesaj.`, { embeds: [contractEmbed(contract, context.organization, 'Contract generat')], components: contractComponents(String(saved.id)) });
 }
