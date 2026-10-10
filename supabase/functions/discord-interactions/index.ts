@@ -45,6 +45,32 @@ const interactionMessage = (content: string, extra: Record<string, unknown> = {}
     },
   };
 };
+const moduleInfoMessage = (moduleKey: string) => {
+  const guides: Record<string, string> = {
+    organization: '**Publică anunț** — mesaj normal.\n**Pune întrebare** — întrebare pentru membri.\n**Creează sondaj** — colectează voturi.\n**Avertisment / Amendă** — gestionează disciplina.\n\nMesajele și acțiunile sunt salvate în canalele configurate.',
+    departments: '**Publică anunț**, **Pune întrebare** și **Creează sondaj** se adresează angajaților. Avertismentele și amenzile respectă permisiunile configurate.',
+    pontaj: '**Start** începe tura, **Pauză** o suspendă, **Stop** o încheie, iar **Pontajul meu** afișează statisticile personale. Rezultatele ajung în Log pontaj.',
+    requests_organization: '**Trimite învoire** creează cererea. **Învoirile mele** afișează statusul. Aprobarea și respingerea sunt înregistrate în Log învoiri organizație.',
+    requests_departments: '**Trimite învoire** creează cererea. **Învoirile mele** afișează statusul. Rezultatul ajunge în Log învoiri angajați.',
+    contracts: 'Managerul apasă **Trimite formular contract**, selectează angajatul, iar acesta completează în DM numele, CNP-ul, telefonul și IBAN-ul. Contractul este generat automat în Log contracte. **Setează contractul** modifică șablonul, iar **Setează adresa** salvează adresa firmei.',
+    tasks: '**Creează task** atribuie cerința și termenul-limită. **Task-urile mele** afișează task-urile primite. **Task-uri active** afișează task-urile nefinalizate. Răspunsurile apar în canalul de log.',
+    employee_tasks: 'Creează task-uri pentru angajați și urmărește răspunsurile lor. Rezultatele apar în Log task-uri angajați.',
+    weekly_tasks: 'Creează obiectivul săptămânal pentru organizație. Răspunsurile apar în Log task-uri săptămânale organizație.',
+    proposals: '**Propunere organizație** și **Propunere angajați** creează idei separate. **Susțin** și **Contra** actualizează voturile în embed. Ștergerea este disponibilă doar persoanelor autorizate.',
+    marketplace: '**Publică anunț** creează oferta. **Anunțurile mele** gestionează anunțurile proprii. Anunțurile sunt publicate în Marketplace și în logul configurat.',
+    illegal_marketplace: 'Publică și gestionează anunțuri în Marketplace ilegal. Accesul și canalul de log sunt separate de Marketplace legal.',
+    actions_organization: '**Acțiune** înregistrează activitatea și participanții. **Clasament acțiuni** afișează statisticile. Rezultatul este publicat în Log acțiuni organizație.',
+    stash: '**Adaugă în Stash** creează un articol. Cererile și donațiile se gestionează prin embedurile lor separate.',
+    stash_requests: '**Solicită articol** trimite cererea. **Cereri în așteptare** afișează cererile și statusul lor.',
+    stash_donations: '**Donează articol** trimite o donație. **Donații în așteptare** permite verificarea și aprobarea ei.',
+    event_reminders: '**Adaugă eveniment** creează un reminder. **Info remindere** explică durata și trimiterea automată.',
+    presence_events: '**Creează eveniment** publică evenimentul. Participanții se înscriu din embed, iar lista se actualizează în canalul de log.',
+    weekly_reports: '**Generează raport pontaj** centralizează orele lucrate și publică raportul în canalul de log.',
+    contract_identity_weekly: '**Generează raport** creează exportul contractelor. **Info raport** explică perioada și datele incluse.',
+    wheel_timer: '**Am dat la roată** pornește timerul personal de 6 ore. Countdown-ul se actualizează automat.',
+  };
+  return interactionMessage('', { embeds: [{ title: `ℹ️ Instrucțiuni · ${PANEL_ROUTE_LABELS[moduleKey] || moduleKey || 'Modul'}`, description: guides[moduleKey] || 'Folosește butoanele din embed pentru a începe. Dacă o acțiune nu funcționează, verifică accesul la modul, canalul configurat și permisiunile botului.', color: 0x5865f2, footer: { text: 'Panel Pro · instrucțiuni modul' } }] });
+};
 const commandSubcommand = (interaction: any) => Array.isArray(interaction?.data?.options) ? interaction.data.options.find((option: any) => option?.type === 1) : null;
 const commandOptions = (interaction: any) => Array.isArray(commandSubcommand(interaction)?.options) ? commandSubcommand(interaction).options : (Array.isArray(interaction?.data?.options) ? interaction.data.options : []);
 const commandOption = (interaction: any, name: string) => commandOptions(interaction).find((option: any) => option?.name === name)?.value;
@@ -170,6 +196,7 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
     definitions.tasks.description = 'Creează un task cu termen-limită. Destinatarul primește un mesaj privat și poate accepta sau refuza taskul.';
   }
   const definition = definitions[routeKey] || { title: `⚙️ ${PANEL_ROUTE_LABELS[routeKey] || 'Panel Pro'}`, description: 'Embed de administrare Panel Pro.', color: 0x5865f2, buttons: [] };
+  if (definition.buttons.length && !definition.buttons.some((button: any) => String(button.id || '').startsWith('panel:module_info:') || /info|instrucțiuni/i.test(String(button.label || '')))) definition.buttons = [...definition.buttons, { label: 'ℹ️ Instrucțiuni', style: 2, id: `panel:module_info:${routeKey}` }];
     const components: any[] = [];
     for (let index = 0; index < definition.buttons.length && components.length < 4; index += 5) {
       components.push({ type: 1, components: definition.buttons.slice(index, index + 5).map((button: any) => ({ type: 2, style: button.style, label: button.label, custom_id: button.id })) });
@@ -2951,6 +2978,7 @@ Deno.serve(async (request) => {
   const isButton = isComponent && Number(interaction?.data?.component_type || 2) === 2;
   const isSelect = isComponent && [3, 5].includes(Number(interaction?.data?.component_type || 0));
   const isModalSubmit = Number(interaction?.type) === 5;
+  if (isButton && customId.startsWith('panel:module_info:')) return reply(moduleInfoMessage(customId.slice('panel:module_info:'.length)));
   const isPontaj = customId.startsWith('panel:pontaj:');
   const isRequests = customId.startsWith('panel:requests:');
   const isContracts = customId.startsWith('panel:contracts:');
