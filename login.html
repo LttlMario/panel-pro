@@ -677,6 +677,9 @@
         const DISCORD_SCOPES = Array.isArray(discordConfig.scopes) ? discordConfig.scopes.join(' ') : 'identify guilds.members.read';
         const REDIRECT_URI = window.location.origin === 'null' ? '' : window.location.origin + window.location.pathname;
         const requestedReturn = new URLSearchParams(window.location.search).get('redirect') || '';
+        function isGlobalPlatformAdmin(user) {
+            return user?.platform_admin === true || user?.is_platform_admin === true;
+        }
         function hasExpiredOrganizationAccess(user) {
             if (user?.organization_access_expired === true || user?.active_organization?.organization_access_expired === true) return true;
             const expirationValues = [
@@ -693,11 +696,11 @@
             });
         }
         function getLoginDestination(user) {
-            if (hasExpiredOrganizationAccess(user)) {
+            const platformAdmin = isGlobalPlatformAdmin(user);
+            if (!platformAdmin && hasExpiredOrganizationAccess(user)) {
                 return 'prelungire-voucher.html';
             }
             const selectedPages = Array.isArray(user?.allowed_pages) && user.allowed_pages.length > 0;
-            const platformAdmin = user?.platform_admin === true || user?.is_platform_admin === true;
             if (!platformAdmin && !selectedPages) {
                 return 'guest.html';
             }
@@ -706,8 +709,9 @@
         }
 
         function getSafeReturnDestination(user) {
+            const platformAdmin = isGlobalPlatformAdmin(user);
             const fallback = getLoginDestination(user);
-            if (hasExpiredOrganizationAccess(user)) return 'prelungire-voucher.html';
+            if (!platformAdmin && hasExpiredOrganizationAccess(user)) return 'prelungire-voucher.html';
             const savedDestination = sessionStorage.getItem('panel_return_after_login');
             sessionStorage.removeItem('panel_return_after_login');
             if (savedDestination) {
@@ -726,7 +730,6 @@
                 if (destination.origin !== window.location.origin) return fallback;
                 const page = destination.pathname.split('/').pop() || 'index.html';
                 const selectedPages = Array.isArray(user?.allowed_pages) && user.allowed_pages.includes(page);
-                const platformAdmin = user?.platform_admin === true || user?.is_platform_admin === true;
                 if (!platformAdmin && !selectedPages) return fallback;
                 return `${page}${destination.search}${destination.hash}`;
             } catch (_) {
@@ -735,7 +738,8 @@
         }
 
         async function getExistingSessionDestination(user) {
-            if (hasExpiredOrganizationAccess(user)) return 'prelungire-voucher.html';
+            const platformAdmin = isGlobalPlatformAdmin(user);
+            if (!platformAdmin && hasExpiredOrganizationAccess(user)) return 'prelungire-voucher.html';
             const sessionToken = localStorage.getItem('panel_session_token') || '';
             if (!sessionToken) return getSafeReturnDestination(user);
             try {
@@ -749,7 +753,7 @@
                 const result = await response.json().catch(() => ({}));
                 const accessExpiresAt = result?.settings?.organization_access?.expires_at || result?.settings?.organization_package?.expires_at || '';
                 const expiresTimestamp = Date.parse(String(accessExpiresAt));
-                if ((Number.isFinite(expiresTimestamp) && expiresTimestamp <= Date.now()) || /expir/i.test(String(result?.error || ''))) return 'prelungire-voucher.html';
+                if (!platformAdmin && ((Number.isFinite(expiresTimestamp) && expiresTimestamp <= Date.now()) || /expir/i.test(String(result?.error || '')))) return 'prelungire-voucher.html';
             } catch (_) {}
             return getSafeReturnDestination(user);
         }
