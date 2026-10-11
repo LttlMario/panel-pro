@@ -679,7 +679,7 @@
         const requestedReturn = new URLSearchParams(window.location.search).get('redirect') || '';
         function getLoginDestination(user) {
             if (user?.organization_access_expired === true) {
-                return 'administrare-organizatie.html';
+                return 'prelungire-voucher.html';
             }
             const selectedPages = Array.isArray(user?.allowed_pages) && user.allowed_pages.length > 0;
             const platformAdmin = user?.platform_admin === true || user?.is_platform_admin === true;
@@ -704,7 +704,7 @@
                 } catch (_) {}
             }
             if (user?.organization_access_expired === true) {
-                return 'administrare-organizatie.html';
+                return 'prelungire-voucher.html';
             }
             if (!savedDestination) return fallback;
 
