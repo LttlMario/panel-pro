@@ -677,8 +677,23 @@
         const DISCORD_SCOPES = Array.isArray(discordConfig.scopes) ? discordConfig.scopes.join(' ') : 'identify guilds.members.read';
         const REDIRECT_URI = window.location.origin === 'null' ? '' : window.location.origin + window.location.pathname;
         const requestedReturn = new URLSearchParams(window.location.search).get('redirect') || '';
+        function hasExpiredOrganizationAccess(user) {
+            if (user?.organization_access_expired === true || user?.active_organization?.organization_access_expired === true) return true;
+            const expirationValues = [
+                user?.active_organization?.organization_access?.expires_at,
+                user?.active_organization?.access?.expires_at,
+                user?.active_organization?.package?.expires_at,
+                user?.organization?.organization_access?.expires_at,
+                user?.organization?.access?.expires_at,
+                user?.organization?.package?.expires_at,
+            ];
+            return expirationValues.some((value) => {
+                const timestamp = Date.parse(String(value || ''));
+                return Number.isFinite(timestamp) && timestamp <= Date.now();
+            });
+        }
         function getLoginDestination(user) {
-            if (user?.organization_access_expired === true) {
+            if (hasExpiredOrganizationAccess(user)) {
                 return 'prelungire-voucher.html';
             }
             const selectedPages = Array.isArray(user?.allowed_pages) && user.allowed_pages.length > 0;
@@ -692,6 +707,7 @@
 
         function getSafeReturnDestination(user) {
             const fallback = getLoginDestination(user);
+            if (hasExpiredOrganizationAccess(user)) return 'prelungire-voucher.html';
             const savedDestination = sessionStorage.getItem('panel_return_after_login');
             sessionStorage.removeItem('panel_return_after_login');
             if (savedDestination) {
@@ -702,9 +718,6 @@
                         if (page === 'prelungire-voucher.html') return `${page}${destination.search}${destination.hash}`;
                     }
                 } catch (_) {}
-            }
-            if (user?.organization_access_expired === true) {
-                return 'prelungire-voucher.html';
             }
             if (!savedDestination) return fallback;
 
