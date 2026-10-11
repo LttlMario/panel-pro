@@ -285,12 +285,11 @@ Deno.serve(async (request) => {
         });
         const failures: string[] = delivery.failures || [];
         if (!delivery.results.length) throw new Error(failures.join(' | ') || 'Discord nu a acceptat raportul.');
-        // După publicarea raportului, turele finalizate nu mai trebuie să
-        // participe la următoarea perioadă. Turele active sau în pauză rămân.
-        const { data: resetRows, error: resetError } = await db.from('shifts').delete().eq('organization_id', organization.id).eq('status', 'completed').lte('date', period.end).select('id');
-        if (resetError) throw resetError;
+        // Nu ștergem turele după publicarea raportului. Săptămâna următoare
+        // pornește de la zero prin filtrarea perioadei, iar istoricul rămâne
+        // disponibil în pagina Rapoarte și pentru verificări ulterioare.
         await finishRun(db, runId, 'sent', failures.length ? `Unele canale Discord au eșuat: ${failures.join(' | ')}` : null);
-        results.push({ organization_id: organization.id, status: failures.length ? 'sent_partial' : 'sent', reset_shifts: (resetRows || []).length });
+        results.push({ organization_id: organization.id, status: failures.length ? 'sent_partial' : 'sent', reset_shifts: 0 });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Eroare necunoscută.';
         await finishRun(db, runId, 'failed', message);
