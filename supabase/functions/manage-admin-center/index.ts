@@ -490,6 +490,16 @@ Deno.serve(async request=>{
       for(const shift of shifts||[]){let paused=Number(shift.paused_seconds)||0;if(shift.status==='paused'&&shift.paused_at)paused+=Math.max(0,Math.floor((now.getTime()-new Date(shift.paused_at).getTime())/1000));const seconds=Math.max(0,Math.floor((now.getTime()-new Date(shift.started_at).getTime())/1000)-paused);const duration=`${Math.floor(seconds/3600).toString().padStart(2,'0')}:${Math.floor((seconds%3600)/60).toString().padStart(2,'0')}:${(seconds%60).toString().padStart(2,'0')}`;const result=await db.from('shifts').update({status:'completed',ended_at:now.toISOString(),end_time:endTime,duration,duration_ms:seconds*1000,stop_reason:'Încheiere de urgență – acțiune administrator'}).eq('organization_id',organizationId).eq('id',shift.id).in('status',['active','paused']).select('id').maybeSingle();if(result.error)throw result.error;if(result.data)closed++;}
       await db.from('admin_audit_log').insert({organization_id:organizationId,actor_discord_id:discordUser.id,actor_name:actorName,action:'shifts_emergency_stop',target_type:'shifts',details:{count:closed}});return reply({ok:true,closed});
     }
+    if(body.action==='delete_shift'){
+      if(!isOrganizationManager)return reply({error:'Doar ownerul sau administratorul organizației poate șterge pontaje.'},403);
+      const shiftId=textValue(body.shift_id,100);
+      if(!shiftId)return reply({error:'Pontajul selectat este invalid.'},400);
+      const {data:deleted,error}=await db.from('shifts').delete().eq('id',shiftId).eq('organization_id',organizationId).select('id').maybeSingle();
+      if(error)throw error;
+      if(!deleted)return reply({error:'Pontajul nu există în organizația activă sau a fost deja șters.'},404);
+      await db.from('admin_audit_log').insert({organization_id:organizationId,actor_discord_id:discordUser.id,actor_name:actorName,action:'shift_deleted',target_type:'shift',target_id:shiftId,details:{shift_id:shiftId}});
+      return reply({ok:true,deleted:shiftId});
+    }
     if(body.action==='reset_completed_shifts'){
       if(!isOrganizationManager)return reply({error:'Doar ownerul sau administratorul organizației poate reseta pontajele.'},403);
       const {data:deleted,error}=await db.from('shifts').delete().eq('organization_id',organizationId).eq('status','completed').select('id');

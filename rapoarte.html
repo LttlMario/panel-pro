@@ -888,18 +888,16 @@ async function forceStopActiveShift(shiftId) {
             if (!confirm("Sigur dorești să ștergi această tură din baza de date?")) return;
 
             try {
-                let { error } = await supabaseClient
-                .from('shifts')
-                .delete()
-                .eq('id', shiftId)
-                .eq('organization_id', currentUser.organization_id);
-                if (error) throw error;
+                await window.panelRequestJson('manage-admin-center', {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'delete_shift', shift_id: shiftId })
+                });
 
                 alert('Tura a fost ștersă cu succes!');
-                fetchAllShifts();
+                await fetchAllShifts();
             } catch (err) {
                 console.error('Erore la ștergerea turei:', err);
-                alert('A apărut o eroare la ștergerea turei din Supabase.');
+                alert(err?.message || 'A apărut o eroare la ștergerea turei din Supabase.');
             }
         }
 
