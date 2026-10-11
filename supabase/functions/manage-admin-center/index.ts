@@ -178,7 +178,7 @@ Deno.serve(async request=>{
       const kind = textValue(body.kind, 30);
       const queries: Record<string, Promise<any>> = {
         members: db.from('organization_members').select('discord_id,panel_role,permission_level,active,last_verified_at,created_at').eq('organization_id', organizationId).order('created_at', { ascending: true }).limit(1000),
-        shifts: db.from('shifts').select('discord_id,colleague_name,status,shift_type,date,start_time,end_time,duration,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(5000),
+        shifts: db.from('shifts').select('id,discord_id,colleague_name,status,shift_type,date,start_time,end_time,duration,duration_ms,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(5000),
         absences: db.from('absences').select('discord_id,colleague_name,notice_type,status,reason,notes,start_at,end_at,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(2000),
         marketplace: db.from('marketplace').select('nume,display_name,tip_actiune,produse,pret,organization_id,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(1000),
         audit: db.from('admin_audit_log').select('actor_name,actor_discord_id,action,target_type,target_id,details,created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(2000),

@@ -73,7 +73,7 @@
                         <div class="space-y-1.5">
                             <label class="text-xs font-medium text-slate-400">Perioadă Raport</label>
                             <select id="filter-period" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
-                                <option value="thisweek" selected>Saptamana raportata (duminica-sambata)</option>
+                                <option value="thisweek" selected>Saptamana curenta (duminica-azi)</option>
                                 <option value="all">Toate Turele (Istoric General)</option>
                                 <option value="today">Doar Astăzi</option>
                                 <option value="last7days">Ultimele 7 Zile</option>
@@ -292,13 +292,8 @@
             const day = today.getDay();
             const start = new Date(today);
             const end = new Date(today);
-            if (day === 0) {
-                // Duminica raportăm săptămâna încheiată: duminica trecută–sâmbătă.
-                start.setDate(start.getDate() - 7);
-                end.setDate(end.getDate() - 1);
-            } else {
-                start.setDate(start.getDate() - day);
-            }
+            // În Rapoarte afișăm toate turele de la ultima duminică până azi.
+            start.setDate(start.getDate() - (day === 0 ? 7 : day));
             return { start: getRomanianDate(start), end: getRomanianDate(end) };
         }
 
@@ -1024,11 +1019,28 @@ async function forceStopActiveShift(shiftId) {
                     throw new Error('Organizația activă nu a fost identificată.');
                 }
 
-                let { data, error } = await supabaseClient
-                    .from('shifts')
-                    .select('id, organization_id, discord_id, colleague_name, date, start_time, end_time, duration, created_at, shift_type, duration_ms')
-                    .eq('organization_id', currentUser.organization_id)
-                    .order('created_at', { ascending: false });
+                let data = null;
+                let error = null;
+                if (reportsAreOrganizationScoped) {
+                    try {
+                        const privileged = await window.panelRequestJson('manage-admin-center', {
+                            method: 'POST',
+                            body: JSON.stringify({ action: 'org_export', kind: 'shifts' })
+                        });
+                        data = privileged.rows || [];
+                    } catch (privilegedError) {
+                        console.warn('Ruta administrativă pentru ture nu a răspuns; încerc citirea directă.', privilegedError);
+                    }
+                }
+                if (!Array.isArray(data)) {
+                    const direct = await supabaseClient
+                        .from('shifts')
+                        .select('id, organization_id, discord_id, colleague_name, date, start_time, end_time, duration, created_at, shift_type, duration_ms')
+                        .eq('organization_id', currentUser.organization_id)
+                        .order('created_at', { ascending: false });
+                    data = direct.data;
+                    error = direct.error;
+                }
 
                 if (!reportsAreOrganizationScoped) data = (data || []).filter((shift) => String(shift.discord_id || '') === String(currentUser.discord_id || ''));
 
