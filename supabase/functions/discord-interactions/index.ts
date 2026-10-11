@@ -222,8 +222,8 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
       stash_donations: { title: '🎁 Donații Stash', description: 'Înregistrează donații și trimite-le spre aprobare administrativă.', color: 0x22c55e, buttons: [{ label: 'Donează articol', style: 3, id: 'panel:stash:donate' }, { label: 'Donații în așteptare', style: 2, id: 'panel:stash:pending_donations' }] },
     stash: { title: '📦 Stash · Administrare', description: 'Gestionează articolele, cererile și donațiile Stash.', color: 0x22c55e, buttons: [{ label: 'Adaugă în Stash', style: 3, id: 'panel:stash:create' }, { label: 'Cereri în așteptare', style: 1, id: 'panel:stash:pending_requests' }, { label: 'Donații în așteptare', style: 1, id: 'panel:stash:pending_donations' }] },
     actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
-    calculator: { title: '🧮 Calculator legal · Panel Pro', description: 'Alege categoria, articolul și cantitatea. Primești instant materialele directe și materialele brute necesare.', color: 0x22c55e, buttons: [{ label: 'Începe calculul', style: 1, id: 'panel:calculator:legal:start' }] },
-    illegal_calculator: { title: '🚨 Calculator ilegal · Panel Pro', description: 'Calculează arme, muniție, topitorie și resurse ilegale direct din Discord. La Ciuperci poți calcula și după materialul disponibil.', color: 0xef4444, buttons: [{ label: 'Începe calculul', style: 4, id: 'panel:calculator:illegal:start' }] },
+    calculator: { title: '🧮 Calculator legal · Panel Pro', description: 'Alege categoria, articolul și cantitatea. Primești instant materialele directe și materialele brute necesare.', color: 0x22c55e, buttons: [{ label: 'Începe calculul', style: 1, id: 'panel:calculator:legal:start' }, { label: 'ℹ️ Instrucțiuni', style: 2, id: 'panel:module_info:calculator' }] },
+    illegal_calculator: { title: '🚨 Calculator ilegal · Panel Pro', description: 'Calculează arme, muniție, topitorie și resurse ilegale direct din Discord. La Ciuperci poți calcula și după materialul disponibil.', color: 0xef4444, buttons: [{ label: 'Începe calculul', style: 4, id: 'panel:calculator:illegal:start' }, { label: 'ℹ️ Instrucțiuni', style: 2, id: 'panel:module_info:illegal_calculator' }] },
     illegal_locations: { title: '🗺️ Locații ilegale · Panel Pro', description: 'Alege harta. Embedul se actualizează direct în Discord și păstrează butoanele pentru cele 3 zone.', color: 0xef4444, buttons: [{ label: 'Los Santos', style: 4, id: 'panel:illegal_locations:map:ls' }, { label: 'Cayo Perico', style: 4, id: 'panel:illegal_locations:map:cayo' }, { label: 'Maldive', style: 4, id: 'panel:illegal_locations:map:maldive' }] },
     wheel_timer: { title: '🎡 Roată · timer personal', description: 'Apasă „Am dat la roată”. Timerul se actualizează automat și îți arată direct când poți folosi din nou roata.', color: 0x06b6d4, buttons: [{ label: 'Am dat la roată', style: 1, id: 'panel:wheel:start' }] },
     tasks: { title: '📋 Task-uri angajați · Panel Pro', description: 'Creează taskuri cu termen-limită. Angajatul primește mesaj privat și poate accepta sau refuza taskul.', color: 0xf59e0b, buttons: [{ label: 'Creează task', style: 1, id: 'panel:tasks:create' }] },
@@ -2971,7 +2971,16 @@ Deno.serve(async (request) => {
             return interactionMessage(`Statusul live a fost publicat și va fi actualizat automat. În pontaj: **${Number(syncData.active || 0)}**, în pauză: **${Number(syncData.paused || 0)}**.`);
           }
           const panelPayload = controlPayload(routeKey, trialText, !premiumActive, routeKey === 'proposals' ? (target === 'secondary' ? 'organization' : 'departments') : '');
-          await deliverDiscordRoute(db, { discord_channel_routes: settings.discord_channel_routes }, routeKey, JSON.stringify(panelPayload), { postOnly: true, organizationId: String(guild.organization_id), messageKey: `${routeKey}-control`, retryPayload: panelPayload });
+          const { data: registeredMessages } = await db.from('discord_message_registry')
+            .select('target,message_id,status')
+            .eq('organization_id', guild.organization_id)
+            .eq('route_key', routeKey)
+            .eq('message_key', `${routeKey}-control`)
+            .eq('status', 'active');
+          const messageIds = Object.fromEntries((registeredMessages || [])
+            .filter((item: any) => validDiscordChannelId(item?.target) === false && validDiscordChannelId(item?.message_id))
+            .map((item: any) => [String(item.target), String(item.message_id)]));
+          await deliverDiscordRoute(db, { discord_channel_routes: settings.discord_channel_routes }, routeKey, JSON.stringify(panelPayload), { messageIds, organizationId: String(guild.organization_id), messageKey: `${routeKey}-control`, retryPayload: panelPayload });
           return interactionMessage(`Embedul **${PANEL_ROUTE_LABELS[routeKey]}** a fost publicat în <#${route.channel_id}>.`);
         }, 'Embedul nu a putut fi publicat.');
       }
