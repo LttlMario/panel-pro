@@ -45,7 +45,10 @@ export async function requirePanelSession(db: any, request: Request, minimumLeve
   const { data: organization } = await db.from('organizations').select('active,deactivation_reason').eq('id', data.organization_id).maybeSingle();
   const { data: access } = await db.from('app_settings').select('value').eq('organization_id', data.organization_id).eq('key', 'organization_access').maybeSingle();
   const organizationExpiresAt = String(access?.value?.expires_at || '');
-  if (!allowInactiveOrganization && organizationExpiresAt && Date.parse(organizationExpiresAt) <= Date.now()) {
+  // Administratorii globali pot accesa panelul și organizațiile expirate,
+  // pentru a putea reactiva, verifica sau administra configurația acestora.
+  const canBypassOrganizationState = allowInactiveOrganization || data.is_platform_admin === true;
+  if (!canBypassOrganizationState && organizationExpiresAt && Date.parse(organizationExpiresAt) <= Date.now()) {
     const now = new Date().toISOString();
     const { data: changedOrganization, error: updateError } = await db.from('organizations')
       .update({
@@ -68,7 +71,7 @@ export async function requirePanelSession(db: any, request: Request, minimumLeve
     }
     throw new Error('Perioada de activare a organizației a expirat. Contactează administratorul platformei pentru prelungire.');
   }
-  if (!allowInactiveOrganization && !organization?.active && organization?.deactivation_reason === 'expired' && organizationExpiresAt && Date.parse(organizationExpiresAt) > Date.now()) {
+  if (!canBypassOrganizationState && !organization?.active && organization?.deactivation_reason === 'expired' && organizationExpiresAt && Date.parse(organizationExpiresAt) > Date.now()) {
     const now = new Date().toISOString();
     const { data: repairedOrganization, error: repairError } = await db.from('organizations')
       .update({ active: true, deactivation_reason: null, deactivated_at: null, deactivated_by_discord_id: null, updated_at: now })
@@ -87,7 +90,7 @@ export async function requirePanelSession(db: any, request: Request, minimumLeve
       });
     }
   }
-  if (!allowInactiveOrganization && !organization?.active) throw new Error('Organizația este dezactivată. Contactează administratorul platformei.');
+  if (!canBypassOrganizationState && !organization?.active) throw new Error('Organizația este dezactivată. Contactează administratorul platformei.');
   if (Number(data.permission_level) < minimumLevel) throw new Error(`Este necesar nivelul ${minimumLevel}.`);
   return {
     organization_id: String(data.organization_id),
