@@ -734,6 +734,26 @@
             }
         }
 
+        async function getExistingSessionDestination(user) {
+            if (hasExpiredOrganizationAccess(user)) return 'prelungire-voucher.html';
+            const sessionToken = localStorage.getItem('panel_session_token') || '';
+            if (!sessionToken) return getSafeReturnDestination(user);
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/get-organization-status`, {
+                    headers: {
+                        apikey: SUPABASE_KEY,
+                        Authorization: `Bearer ${SUPABASE_KEY}`,
+                        'x-panel-session': sessionToken,
+                    },
+                });
+                const result = await response.json().catch(() => ({}));
+                const accessExpiresAt = result?.settings?.organization_access?.expires_at || result?.settings?.organization_package?.expires_at || '';
+                const expiresTimestamp = Date.parse(String(accessExpiresAt));
+                if ((Number.isFinite(expiresTimestamp) && expiresTimestamp <= Date.now()) || /expir/i.test(String(result?.error || ''))) return 'prelungire-voucher.html';
+            } catch (_) {}
+            return getSafeReturnDestination(user);
+        }
+
         document.getElementById('discord-login-btn')?.addEventListener('click', () => startDiscordOAuth(false));
         /*
             try {
@@ -820,7 +840,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const panelSession = localStorage.getItem('panel_session_token');
             const expiresAt = new Date(localStorage.getItem('panel_session_expires_at') || 0).getTime();
             if(parsed && parsed.discord_id && panelSession && expiresAt > Date.now()){
-                window.location.href = getSafeReturnDestination(parsed);
+                window.location.href = await getExistingSessionDestination(parsed);
                 return;
             }
             clearPanelBrowserSession();
