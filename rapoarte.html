@@ -73,6 +73,7 @@
                         <div class="space-y-1.5">
                             <label class="text-xs font-medium text-slate-400">Perioadă Raport</label>
                             <select id="filter-period" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
+                                <option value="thisweek" selected>Saptamana curenta (luni-duminica)</option>
                                 <option value="all">Toate Turele (Istoric General)</option>
                                 <option value="today">Doar Astăzi</option>
                                 <option value="last7days">Ultimele 7 Zile</option>
@@ -280,6 +281,21 @@
                 timeZone: ROMANIA_TIME_ZONE, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
             }).formatToParts(date).filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
             return `${parts.hour}:${parts.minute}:${parts.second}`;
+        }
+
+        function getRomanianDate(date = new Date()) {
+            return new Intl.DateTimeFormat('en-CA', { timeZone: ROMANIA_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+        }
+
+        function getRomanianWeekRange(date = new Date()) {
+            const today = new Date(`${getRomanianDate(date)}T12:00:00`);
+            const day = today.getDay();
+            const mondayOffset = day === 0 ? -6 : 1 - day;
+            const start = new Date(today);
+            start.setDate(start.getDate() + mondayOffset);
+            const end = new Date(start);
+            end.setDate(end.getDate() + 6);
+            return { start: getRomanianDate(start), end: getRomanianDate(end) };
         }
 
         let allShiftsData = [];
@@ -497,7 +513,7 @@
             const shiftEndTime = new Date();
             const durationMs = secondsElapsed * 1000;
             const durationFormatted = formatTime(secondsElapsed);
-            const dateStr = shiftStartTime.toISOString().split('T')[0];
+            const dateStr = getRomanianDate(shiftStartTime);
 
             const shiftData = {
                 organization_id: currentUser.organization_id,
@@ -1047,10 +1063,12 @@ async function forceStopActiveShift(shiftId) {
             const mechanicQuery = document.getElementById('filter-mechanic').value.toLowerCase().trim();
 
             const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
+            const todayStr = getRomanianDate(now);
+            const currentWeek = getRomanianWeekRange(now);
 
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(now.getDate() - 7);
+            const sevenDaysAgoStr = getRomanianDate(sevenDaysAgo);
 
             filteredShiftsData = allShiftsData.filter(shift => {
                 const nameVal = (shift.mechanic_name || '').toLowerCase();
@@ -1065,9 +1083,12 @@ async function forceStopActiveShift(shiftId) {
 
                 if (period === 'today') {
                     return shift.date === todayStr;
+                } else if (period === 'thisweek') {
+                    const shiftDate = String(shift.date || '');
+                    return shiftDate >= currentWeek.start && shiftDate <= currentWeek.end;
                 } else if (period === 'last7days') {
-                    const shiftDate = new Date(shift.date);
-                    return shiftDate >= sevenDaysAgo && shiftDate <= now;
+                    const shiftDate = String(shift.date || '');
+                    return shiftDate >= sevenDaysAgoStr && shiftDate <= todayStr;
                 }
 
                 return true;
@@ -1078,7 +1099,7 @@ async function forceStopActiveShift(shiftId) {
         }
 
         function resetFilters() {
-            document.getElementById('filter-period').value = 'all';
+            document.getElementById('filter-period').value = 'thisweek';
             document.getElementById('filter-shift-type').value = 'all';
             document.getElementById('filter-mechanic').value = '';
             applyFilters();
