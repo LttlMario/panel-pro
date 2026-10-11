@@ -9,7 +9,9 @@ import { syncAbsenceLiveEmbeds } from '../_shared/absence-live.ts';
 
 const DISCORD_API = 'https://discord.com/api/v10';
 const PANEL_FOOTER = 'Panel Pro - By Little Mario';
-const PANEL_REACTIVATION_CONTACT_URL = 'https://discord.com/channels/@me/247012210021236738';
+// Un canal DM privat nu poate fi deschis de ceilalți utilizatori. Secțiunea
+// DM este accesibilă tuturor, iar mesajul le spune pe cine să caute.
+const PANEL_REACTIVATION_CONTACT_URL = 'https://discord.com/users/247012210021236738';
 const serviceKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
 let discordPublicKeyCache = '';
 async function discordPublicKey(db?: any) {
@@ -32,7 +34,7 @@ const normalizeEmbedFooters = (value: any): any => {
 };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(normalizeEmbedFooters(data)), { status, headers: { 'Content-Type': 'application/json' } });
 const interactionMessage = (content: string, extra: Record<string, unknown> = {}) => {
-  const expired = /termenul de valabilitate|organizația este dezactivată/i.test(String(content || ''));
+  const expired = /termenul de valabilitate|organizația a expirat|organizația este dezactivată/i.test(String(content || ''));
   return {
     type: 4,
     data: {
@@ -45,6 +47,13 @@ const interactionMessage = (content: string, extra: Record<string, unknown> = {}
     },
   };
 };
+// Component interactions can update the message that contains the buttons/selects.
+// Keep this separate from interactionMessage(): type 4 would create a new
+// (usually ephemeral) message, while type 7 edits the original calculator embed.
+const updateInteractionMessage = (content: string, extra: Record<string, unknown> = {}) => ({
+  type: 7,
+  data: { content, ...extra },
+});
 const moduleInfoMessage = (moduleKey: string) => {
   const guides: Record<string, string> = {
     organization: '**Publică anunț** — mesaj normal.\n**Pune întrebare** — întrebare pentru membri.\n**Creează sondaj** — colectează voturi.\n**Avertisment / Amendă** — gestionează disciplina.\n\nMesajele și acțiunile sunt salvate în canalele configurate.',
@@ -68,6 +77,8 @@ const moduleInfoMessage = (moduleKey: string) => {
     weekly_reports: '**Generează raport pontaj** centralizează orele lucrate și publică raportul în canalul de log.',
     contract_identity_weekly: '**Generează raport** creează exportul contractelor. **Info raport** explică perioada și datele incluse.',
     wheel_timer: '**Am dat la roată** pornește timerul personal de 6 ore. Countdown-ul se actualizează automat.',
+    calculator: '**Începe calculul** deschide categoriile și articolele disponibile. După completarea cantității, rezultatul este afișat doar utilizatorului care a calculat. **Instrucțiuni** afișează această explicație în același embed.',
+    illegal_calculator: '**Începe calculul** deschide categoriile și materialele disponibile. Rezultatul este afișat doar utilizatorului care a calculat. **Instrucțiuni** afișează această explicație în același embed.',
   };
   return interactionMessage('', { embeds: [{ title: `ℹ️ Instrucțiuni · ${PANEL_ROUTE_LABELS[moduleKey] || moduleKey || 'Modul'}`, description: guides[moduleKey] || 'Folosește butoanele din embed pentru a începe. Dacă o acțiune nu funcționează, verifică accesul la modul, canalul configurat și permisiunile botului.', color: 0x5865f2, footer: { text: 'Panel Pro · instrucțiuni modul' } }] });
 };
@@ -100,17 +111,44 @@ const isDiscordManager = (interaction: any) => {
 };
 
 async function requireActiveOrganizationAccess(db: any, organization: any) {
-  const { data: accessSetting, error } = await db.from('app_settings')
+  const { data: accessSettings, error } = await db.from('app_settings')
     .select('value')
     .eq('organization_id', organization.id)
-    .eq('key', 'organization_access')
-    .maybeSingle();
+    .in('key', ['organization_access', 'organization_package']);
   if (error) throw error;
-  const expiresAt = Date.parse(String(accessSetting?.value?.expires_at || ''));
+  const expirationDates = (accessSettings || [])
+    .map((setting: any) => String(setting?.value?.expires_at || '').trim())
+    .filter((value: string) => value && Number.isFinite(Date.parse(value)))
+    .map((value: string) => Date.parse(value));
+  const expiresAt = expirationDates.length ? Math.min(...expirationDates) : NaN;
   if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) {
-    throw new Error(`Termenul de valabilitate al organizației a expirat la ${new Date(expiresAt).toLocaleString('ro-RO')}. Pentru reactivare, contactează administratorul Panel Pro.`);
+    throw new Error(`Organizația a expirat la ${new Date(expiresAt).toLocaleString('ro-RO')}, iar acest modul nu mai poate fi folosit. Pentru activare sau prelungire, deschide DM-urile și contactează-l pe **Little Mario**.`);
   }
-  if (!organization?.active) throw new Error('Organizația este dezactivată. Pentru reactivare, contactează administratorul Panel Pro.');
+  if (!organization?.active) throw new Error('Organizația este dezactivată, iar acest modul nu mai poate fi folosit. Pentru activare sau prelungire, deschide DM-urile și contactează-l pe **Little Mario**.');
+}
+
+// Verificare comună pentru interacțiunile venite dintr-un canal Discord.
+// Unele butoane deschid un modal imediat, înainte ca fluxul specific să-și
+// rezolve contextul. Fără această verificare, o organizație expirată putea
+// încă afișa și folosi formulare din embedurile deja publicate.
+async function guardDiscordInteractionOrganization(db: any, interaction: any) {
+  const guildId = String(interaction?.guild_id || '').trim();
+  if (!/^\d{15,22}$/.test(guildId)) return null; // DM-urile sunt tratate de fluxul lor propriu.
+  const { data: guild, error: guildError } = await db.from('organization_guilds')
+    .select('organization_id')
+    .eq('guild_id', guildId)
+    .eq('enabled', true)
+    .maybeSingle();
+  if (guildError) throw guildError;
+  if (!guild?.organization_id) return null;
+  const { data: organization, error: organizationError } = await db.from('organizations')
+    .select('id,name,active')
+    .eq('id', guild.organization_id)
+    .maybeSingle();
+  if (organizationError) throw organizationError;
+  if (!organization) throw new Error('Organizația serverului Discord nu mai există.');
+  await requireActiveOrganizationAccess(db, organization);
+  return organization;
 }
 
 async function ensureDiscordOnlyOrganization(db: any, interaction: any) {
@@ -254,7 +292,23 @@ const mushroomAvailableMaterials = [
   { id: 'purple_light', label: 'Purple Light', recipeId: 'blue_current_x3', material: 'Purple Light' },
 ];
 const mushroomMaterialRows = () => [{ type: 1, components: [{ type: 3, custom_id: 'panel:calculator:illegal:mushroom_material', placeholder: 'Alege materialul disponibil', min_values: 1, max_values: 1, options: mushroomAvailableMaterials.map((item) => ({ label: item.label, value: item.id, description: `Calculează ${item.recipeId === 'red_fire_x3' ? 'Red Fire' : item.recipeId === 'green_haze' ? 'Green Haze' : 'Blue Current'} x3`.slice(0, 100) })) }] }, { type: 1, components: [{ type: 2, style: 2, label: 'Înapoi la articole', custom_id: 'panel:calculator:illegal:page:ciuperci:0' }] }];
-const calculatorStartMessage = (kind: 'legal' | 'illegal') => interactionMessage('', { embeds: [{ title: kind === 'legal' ? '🧮 Calculator legal' : '🚨 Calculator ilegal', description: 'Selectează întâi categoria. După articol poți introduce cantitatea dorită, iar rezultatul va apărea doar pentru tine.', color: kind === 'legal' ? 0x22c55e : 0xef4444, footer: { text: 'Panel Pro · calcul interactiv Discord' } }], components: calculatorRows(kind) });
+const calculatorEmbed = (kind: 'legal' | 'illegal', description: string) => ({ title: kind === 'legal' ? '🧮 Calculator legal' : '🚨 Calculator ilegal', description, color: kind === 'legal' ? 0x22c55e : 0xef4444, footer: { text: 'Panel Pro · calcul interactiv Discord' } });
+const calculatorStartMessage = (kind: 'legal' | 'illegal', update = false) => {
+  const payload = { embeds: [calculatorEmbed(kind, 'Selectează întâi categoria. După articol poți introduce cantitatea dorită, iar rezultatul va apărea doar pentru tine.')], components: calculatorRows(kind) };
+  return update ? updateInteractionMessage('', payload) : interactionMessage('', payload);
+};
+const calculatorStepMessage = (kind: 'legal' | 'illegal', content: string, components: any[]) => updateInteractionMessage('', { content, embeds: [calculatorEmbed(kind, 'Folosește meniul de mai jos pentru a continua calculul. Rezultatul final va apărea doar pentru tine.')], components });
+const calculatorInfoMessage = (kind: 'legal' | 'illegal') => updateInteractionMessage('', {
+  embeds: [{
+    title: kind === 'legal' ? '🧮 Calculator legal · Instrucțiuni' : '🚨 Calculator ilegal · Instrucțiuni',
+    description: kind === 'legal'
+      ? 'Apasă **Începe calculul**, alege categoria și articolul, apoi introdu cantitatea. Rezultatul este afișat doar pentru persoana care a făcut calculul. Acest mesaj este editat în locul trimiterii unui embed nou.'
+      : 'Apasă **Începe calculul**, alege categoria și materialul, apoi introdu cantitatea disponibilă. Rezultatul este afișat doar pentru persoana care a făcut calculul. Acest mesaj este editat în locul trimiterii unui embed nou.',
+    color: kind === 'legal' ? 0x22c55e : 0xef4444,
+    footer: { text: 'Panel Pro · instrucțiuni calculator' },
+  }],
+  components: [{ type: 1, components: [{ type: 2, style: 1, label: 'Începe calculul', custom_id: `panel:calculator:${kind}:start` }] }],
+});
 const calculatorQuantityModal = (kind: 'legal' | 'illegal', categoryId: string, recipeId: string) => ({ type: 9, data: { custom_id: `panel:calculator:${kind}:quantity:${calculatorId(categoryId)}:${calculatorId(recipeId)}`, title: 'Cantitate de calculat', components: [{ type: 1, components: [{ type: 4, custom_id: 'quantity', label: 'Cantitate dorită', style: 1, required: true, value: '1', placeholder: 'Ex: 10', min_length: 1, max_length: 8 }] }] } });
 const calculatorResourceQuantityModal = (categoryId: string, recipeId: string) => ({ type: 9, data: { custom_id: `panel:calculator:illegal:resource_quantity:${calculatorId(categoryId)}:${calculatorId(recipeId)}`, title: 'Material disponibil', components: [{ type: 1, components: [{ type: 4, custom_id: 'quantity', label: 'Cantitatea disponibilă', style: 1, required: true, value: '1', placeholder: 'Ex: 1000', min_length: 1, max_length: 8 }] }] } });
 const calculatorAvailableQuantityModal = (materialId: string) => ({ type: 9, data: { custom_id: `panel:calculator:illegal:quantity_available:${materialId}`, title: 'Material disponibil', components: [{ type: 1, components: [{ type: 4, custom_id: 'quantity', label: 'Cantitatea materialului disponibil', style: 1, required: true, value: '1', placeholder: 'Ex: 3', min_length: 1, max_length: 8 }] }] } });
@@ -599,6 +653,12 @@ async function handleTaskDmAction(db: any, interaction: any, action: string, tas
   const { data: task, error } = await db.from('platform_tasks').select('*').eq('id', taskId).maybeSingle();
   if (error) throw error;
   if (!task) return interactionMessage('Taskul nu mai există.');
+  const { data: organization, error: organizationError } = await db.from('organizations')
+    .select('id,name,active')
+    .eq('id', task.organization_id)
+    .maybeSingle();
+  if (organizationError) throw organizationError;
+  await requireActiveOrganizationAccess(db, organization);
   const discordId = String(interaction.user?.id || '').trim();
   if (discordId !== String(task.assignee_discord_id)) return interactionMessage('Acest task nu îți aparține.');
   if (task.status !== 'pending') return interactionMessage(`Taskul are deja statusul: ${task.status}.`);
@@ -2978,7 +3038,13 @@ Deno.serve(async (request) => {
   const isButton = isComponent && Number(interaction?.data?.component_type || 2) === 2;
   const isSelect = isComponent && [3, 5].includes(Number(interaction?.data?.component_type || 0));
   const isModalSubmit = Number(interaction?.type) === 5;
-  if (isButton && customId.startsWith('panel:module_info:')) return reply(moduleInfoMessage(customId.slice('panel:module_info:'.length)));
+  if (isButton && customId.startsWith('panel:module_info:')) {
+    const moduleKey = customId.slice('panel:module_info:'.length);
+    if (moduleKey === 'calculator' || moduleKey === 'illegal_calculator') {
+      return reply(calculatorInfoMessage(moduleKey === 'illegal_calculator' ? 'illegal' : 'legal'));
+    }
+    return reply(moduleInfoMessage(moduleKey));
+  }
   const isPontaj = customId.startsWith('panel:pontaj:');
   const isRequests = customId.startsWith('panel:requests:');
   const isContracts = customId.startsWith('panel:contracts:');
@@ -2995,6 +3061,16 @@ Deno.serve(async (request) => {
   const isPresenceEvents = customId.startsWith('panel:presence_events:');
   const isTasks = customId.startsWith('panel:tasks:');
   const isCustomModule = customId.startsWith('panel:custom:');
+  if (isComponent || isModalSubmit) {
+    const interactionSecret = serviceKey();
+    if (!interactionSecret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+    try {
+      const interactionDb = createClient(Deno.env.get('SUPABASE_URL')!, interactionSecret);
+      await guardDiscordInteractionOrganization(interactionDb, interaction);
+    } catch (error) {
+      return reply(interactionMessage(readableError(error, 'Organizația nu mai are acces activ la modulele Discord.')));
+    }
+  }
   if (isCommand) {
     const commandKey = customModuleKey(interaction?.data?.name);
     if (commandKey) {
@@ -3070,14 +3146,14 @@ Deno.serve(async (request) => {
     const db = createClient(Deno.env.get('SUPABASE_URL')!, secret);
     try { await resolveUniversalModuleContext(db, interaction, routeKey, feature); }
     catch (error) { return reply(interactionMessage(readableError(error, 'Calculatorul nu este disponibil pe acest canal.'))); }
-    if (parts[3] === 'start' || parts[3] === 'categories') return reply(calculatorStartMessage(kind));
+    if (parts[3] === 'start' || parts[3] === 'categories') return reply(calculatorStartMessage(kind, true));
     if (parts[3] === 'category' && isSelect) {
       const categoryId = String(interaction.data?.values?.[0] || '');
       if (!findCategory(kind, categoryId)) return reply(interactionMessage('Categoria selectată nu este validă.'));
-      return reply(interactionMessage('', { content: 'Alege articolul pentru calcul:', components: calculatorRows(kind, categoryId, 0) }));
+      return reply(calculatorStepMessage(kind, 'Alege articolul pentru calcul:', calculatorRows(kind, categoryId, 0)));
     }
-    if (parts[3] === 'page') return reply(interactionMessage('', { content: 'Alege articolul pentru calcul:', components: calculatorRows(kind, parts[4], Math.max(0, Number(parts[5]) || 0)) }));
-    if (parts[3] === 'mushroom_mode' && kind === 'illegal') return reply(interactionMessage('', { content: 'Alege materialul pe care îl ai disponibil:', components: mushroomMaterialRows() }));
+    if (parts[3] === 'page') return reply(calculatorStepMessage(kind, 'Alege articolul pentru calcul:', calculatorRows(kind, parts[4], Math.max(0, Number(parts[5]) || 0))));
+    if (parts[3] === 'mushroom_mode' && kind === 'illegal') return reply(calculatorStepMessage(kind, 'Alege materialul pe care îl ai disponibil:', mushroomMaterialRows()));
     if (parts[3] === 'mushroom_material' && kind === 'illegal' && isSelect) {
       const materialId = String(interaction.data?.values?.[0] || '');
       if (!mushroomAvailableMaterials.some((item) => item.id === materialId)) return reply(interactionMessage('Materialul selectat nu este valid.'));
