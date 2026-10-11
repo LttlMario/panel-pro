@@ -48,7 +48,15 @@ function getWeeklyPeriod(now = new Date()) {
   const parts = romanianDateParts(now);
   const end = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
   const start = new Date(end);
-  start.setUTCDate(start.getUTCDate() - 6);
+  if (parts.weekday === 'Sun') {
+    // Duminica se raportează săptămâna complet încheiată:
+    // duminica trecută până sâmbătă, fără ture din ziua raportului.
+    start.setUTCDate(start.getUTCDate() - 7);
+    end.setUTCDate(end.getUTCDate() - 1);
+  } else {
+    // Pentru rulări manuale păstrăm intervalul mobil de șapte zile.
+    start.setUTCDate(start.getUTCDate() - 6);
+  }
   return {
     start: start.toISOString().slice(0, 10),
     end: end.toISOString().slice(0, 10),

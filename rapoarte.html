@@ -73,7 +73,7 @@
                         <div class="space-y-1.5">
                             <label class="text-xs font-medium text-slate-400">Perioadă Raport</label>
                             <select id="filter-period" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-emerald-500">
-                                <option value="thisweek" selected>Saptamana curenta (luni-duminica)</option>
+                                <option value="thisweek" selected>Saptamana raportata (duminica-sambata)</option>
                                 <option value="all">Toate Turele (Istoric General)</option>
                                 <option value="today">Doar Astăzi</option>
                                 <option value="last7days">Ultimele 7 Zile</option>
@@ -290,11 +290,15 @@
         function getRomanianWeekRange(date = new Date()) {
             const today = new Date(`${getRomanianDate(date)}T12:00:00`);
             const day = today.getDay();
-            const mondayOffset = day === 0 ? -6 : 1 - day;
             const start = new Date(today);
-            start.setDate(start.getDate() + mondayOffset);
-            const end = new Date(start);
-            end.setDate(end.getDate() + 6);
+            const end = new Date(today);
+            if (day === 0) {
+                // Duminica raportăm săptămâna încheiată: duminica trecută–sâmbătă.
+                start.setDate(start.getDate() - 7);
+                end.setDate(end.getDate() - 1);
+            } else {
+                start.setDate(start.getDate() - day);
+            }
             return { start: getRomanianDate(start), end: getRomanianDate(end) };
         }
 
@@ -1437,9 +1441,14 @@ async function forceStopActiveShift(shiftId) {
         }
 
         async function triggerAutomaticSundayReport(todayDateStr) {
-            if (allShiftsData.length === 0) return;
+            const period = getRomanianWeekRange(new Date());
+            const weeklyShifts = allShiftsData.filter((shift) => {
+                const shiftDate = String(shift.date || '');
+                return shiftDate >= period.start && shiftDate <= period.end;
+            });
+            if (weeklyShifts.length === 0) return;
 
-            const success = await sendReportToDiscordWebhook(allShiftsData, "🔔 Raport Săptămânal Automat (Duminică - 19:00)");
+            const success = await sendReportToDiscordWebhook(weeklyShifts, "🔔 Raport Săptămânal Automat (Duminică - 19:00)");
             if (success) {
                 localStorage.setItem('last_auto_report_date', todayDateStr);
             }
