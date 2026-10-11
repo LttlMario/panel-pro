@@ -771,7 +771,12 @@
 
                     <div class="btn-container">
                         <button type="button" class="btn-danger" onclick="resetCalculator()">Resetează Totul</button>
+                        <button type="button" class="mobile-results-button" onclick="toggleCalculatorInstructions()">❔ Instrucțiuni</button>
                         <button type="button" class="mobile-results-button" onclick="showMobileResults()">Vezi Rezultate</button>
+                        <div id="calculator-instructions" hidden style="width:100%;margin-top:10px;padding:12px 14px;border:1px solid var(--border-color);border-radius:10px;background:rgba(15,23,42,.55);color:var(--text-muted);font-size:.82rem;line-height:1.55;">
+                            <strong style="color:var(--text-color);">Cum folosești calculatorul</strong><br>
+                            Alege categoria și rețeta, introdu cantitatea dorită, apoi verifică materialele necesare în panoul de rezultate. Poți schimba selecțiile oricând sau folosi „Resetează Totul” pentru a începe din nou.
+                        </div>
                     </div>
                 </div>
 
@@ -1823,6 +1828,11 @@ const upgradeChains = {
             const subBox = document.getElementById('subOptionsBox');
             if (subBox) subBox.classList.remove('active');
             calculateAll();
+        }
+
+        function toggleCalculatorInstructions() {
+            const panel = document.getElementById('calculator-instructions');
+            if (panel) panel.hidden = !panel.hidden;
         }
 
         function resetCalculator() {

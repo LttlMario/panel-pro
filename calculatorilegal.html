@@ -531,6 +531,11 @@
 
                     <div class="btn-container">
                         <button type="button" class="btn-danger" onclick="resetCalculator()">Resetează Totul</button>
+                        <button type="button" class="mobile-results-button" onclick="toggleCalculatorInstructions()">❔ Instrucțiuni</button>
+                        <div id="calculator-instructions" hidden style="width:100%;margin-top:10px;padding:12px 14px;border:1px solid var(--border-color);border-radius:10px;background:rgba(15,23,42,.55);color:var(--text-muted);font-size:.82rem;line-height:1.55;">
+                            <strong style="color:var(--text-color);">Cum folosești calculatorul ilegal</strong><br>
+                            Deschide categoria dorită, introdu cantitatea și verifică materialele sau rezultatele calculate. Poți combina mai multe rețete, iar „Resetează Totul” șterge toate selecțiile curente.
+                        </div>
                         <button type="button" class="mobile-results-button" onclick="showMobileResults()">Vezi rezultatele ↓</button>
                     </div>
                 </div>
@@ -1015,6 +1020,11 @@
                     <input type="number" id="ammoQty" min="0" step="1" value="0" placeholder="0" oninput="calculateAll()">
                 </div>
             `;
+        }
+
+        function toggleCalculatorInstructions() {
+            const panel = document.getElementById('calculator-instructions');
+            if (panel) panel.hidden = !panel.hidden;
         }
 
         function resetCalculator() {
