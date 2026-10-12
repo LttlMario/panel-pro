@@ -39,6 +39,7 @@ const levels: Record<string, number> = {
   calculator: 1,
   illegal_calculator: 1,
   illegal_locations: 1,
+  illegal_minigames: 1,
   marketplace: 1,
   illegal_marketplace: 1,
   log_marketplace: 1,
@@ -213,6 +214,8 @@ Deno.serve(async (request) => {
               ? 'legal_tools'
               : finalChannel === 'illegal_calculator'
                 ? 'illegal_calculator'
+                : finalChannel === 'illegal_minigames'
+                  ? 'illegal_minigames'
             : null;
     if (requiredFeature && !packageFeatures.includes(requiredFeature)) {
       return reply(request, { error: 'Acest canal Discord nu este inclus în pachetul organizației.' }, 403);
@@ -361,6 +364,7 @@ Deno.serve(async (request) => {
       'marketplace',
       'illegal_marketplace',
       'illegal_locations',
+      'illegal_minigames',
       'event_reminders',
       'presence_events',
       'tasks',
