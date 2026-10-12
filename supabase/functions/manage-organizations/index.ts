@@ -285,6 +285,19 @@ Deno.serve(async request=>{
 
       if(settingsError) throw settingsError;
 
+      // Older organization records may have valid persistent Discord messages
+      // in the delivery registry while discord_channel_routes is empty (for
+      // example after a stale local draft was saved). Rehydrate the visible
+      // channel routes from that registry without changing the database.
+      const { data: registeredChannels, error: registeredChannelsError } = ids.length
+        ? await db.from('discord_message_registry')
+            .select('organization_id,route_key,target,channel_id,guild_id,message_id,status')
+            .in('organization_id', ids)
+            .eq('status', 'active')
+            .not('channel_id', 'is', null)
+        : { data: [], error: null };
+      if (registeredChannelsError) throw registeredChannelsError;
+
       const {data:listInstallations}=await db.from('discord_bot_installations').select('guild_id,guild_name,status').eq('status','active');
       const listInstallationNames=new Map<string,string>((listInstallations||[]).map((item:any)=>[String(item.guild_id),String(item.guild_name||'').trim()]));
       const listBotToken=await getPlatformSecret(db,'discord_bot_token');
@@ -304,7 +317,26 @@ Deno.serve(async request=>{
         }));
 
       return reply({
-        organizations: (data || []).map((item:any) => ({
+        organizations: (data || []).map((item:any) => {
+          const savedSettings = item.organization_settings?.[0] || {};
+          const savedRoutes = savedSettings.discord_channel_routes && typeof savedSettings.discord_channel_routes === 'object'
+            ? savedSettings.discord_channel_routes
+            : {};
+          const registryRoutes = (registeredChannels || [])
+            .filter((row:any) => String(row.organization_id) === String(item.id) && String(row.route_key || '').trim() && String(row.target || '').trim())
+            .reduce((routes:any, row:any) => {
+              const key = String(row.route_key).trim();
+              const target = String(row.target).trim() === 'secondary' ? 'secondary' : 'primary';
+              routes[key] ||= {};
+              if (!routes[key][target]) routes[key][target] = { enabled: true, channel_id: String(row.channel_id), guild_id: String(row.guild_id || '') };
+              return routes;
+            }, {});
+          const mergedRoutes = { ...registryRoutes, ...savedRoutes };
+          Object.entries(registryRoutes).forEach(([key, value]: any) => {
+            mergedRoutes[key] = { ...value, ...(savedRoutes[key] || {}) };
+          });
+          item.organization_settings = [{ ...savedSettings, discord_channel_routes: mergedRoutes }];
+          return {
           ...item,
 
           platform_settings: (settings || [])
@@ -319,7 +351,8 @@ Deno.serve(async request=>{
               },
               {}
             )
-        }))
+          };
+        })
       });
     }
     if(body.action==='platform_overview'){
