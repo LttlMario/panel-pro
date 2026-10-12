@@ -293,8 +293,8 @@ Deno.serve(async request=>{
         ? await db.from('discord_message_registry')
             .select('organization_id,route_key,target,channel_id,guild_id,message_id,status')
             .in('organization_id', ids)
-            .eq('status', 'active')
             .not('channel_id', 'is', null)
+            .order('updated_at', { ascending: false })
         : { data: [], error: null };
       if (registeredChannelsError) throw registeredChannelsError;
 
