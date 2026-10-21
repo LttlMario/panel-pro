@@ -9,6 +9,7 @@ import { syncAbsenceLiveEmbeds } from '../_shared/absence-live.ts';
 
 const DISCORD_API = 'https://discord.com/api/v10';
 const PANEL_FOOTER = 'Panel Pro - By Little Mario';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 // Un canal DM privat nu poate fi deschis de ceilalți utilizatori. Secțiunea
 // DM este accesibilă tuturor, iar mesajul le spune pe cine să caute.
 const PANEL_REACTIVATION_CONTACT_URL = 'https://discord.com/users/247012210021236738';
@@ -3049,6 +3050,24 @@ Deno.serve(async (request) => {
   const isButton = isComponent && Number(interaction?.data?.component_type || 2) === 2;
   const isSelect = isComponent && [3, 5].includes(Number(interaction?.data?.component_type || 0));
   const isModalSubmit = Number(interaction?.type) === 5;
+  if (isButton && customId.startsWith('panel:rules:read:')) {
+    const organizationId = customId.slice('panel:rules:read:'.length).trim();
+    const guildId = String(interaction?.guild_id || '').trim();
+    const discordUserId = String(interaction?.member?.user?.id || interaction?.user?.id || '').trim();
+    if (!UUID_RE.test(organizationId) || !/^\d{15,22}$/.test(guildId) || !/^\d{15,22}$/.test(discordUserId)) {
+      return reply(interactionMessage('Confirmarea regulamentului nu a putut fi identificată.'));
+    }
+    const secret = serviceKey();
+    if (!secret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+    const rulesDb = createClient(Deno.env.get('SUPABASE_URL')!, secret);
+    try { await guardDiscordInteractionOrganization(rulesDb, interaction); }
+    catch (error) { return reply(interactionMessage(readableError(error, 'Organizația nu mai are acces activ la regulament.'))); }
+    const { data: guild } = await rulesDb.from('organization_guilds').select('organization_id').eq('organization_id', organizationId).eq('guild_id', guildId).eq('enabled', true).maybeSingle();
+    if (!guild) return reply(interactionMessage('Regulamentul nu este configurat pentru acest server.'));
+    const { error } = await rulesDb.from('discord_rules_acknowledgements').upsert({ organization_id: organizationId, guild_id: guildId, discord_user_id: discordUserId, channel_id: String(interaction?.channel_id || ''), message_id: String(interaction?.message?.id || '') }, { onConflict: 'organization_id,guild_id,discord_user_id' });
+    if (error) return reply(interactionMessage('Confirmarea regulamentului nu a putut fi salvată.'));
+    return reply(interactionMessage('✅ Confirmarea a fost înregistrată. Mulțumim că ai citit regulamentul.'));
+  }
   if (isButton && customId.startsWith('panel:module_info:')) {
     const moduleKey = customId.slice('panel:module_info:'.length);
     if (moduleKey === 'calculator' || moduleKey === 'illegal_calculator') {

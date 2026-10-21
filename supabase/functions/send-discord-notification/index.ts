@@ -373,6 +373,7 @@ Deno.serve(async (request) => {
       'contract_identity_weekly',
       'actions_organization',
       'comenzi',
+      'rules',
     ].includes(finalChannel);
     const isPontajLog = finalChannel === 'log_pontaj';
     const isRequestsLog = ['log_requests_organization', 'log_requests_departments'].includes(finalChannel);
