@@ -81,6 +81,7 @@ const moduleInfoMessage = (moduleKey: string) => {
     calculator: '**Începe calculul** deschide categoriile și articolele disponibile. După completarea cantității, rezultatul este afișat doar utilizatorului care a calculat. **Instrucțiuni** afișează această explicație în același embed.',
     illegal_calculator: '**Începe calculul** deschide categoriile și materialele disponibile. Rezultatul este afișat doar utilizatorului care a calculat. **Instrucțiuni** afișează această explicație în același embed.',
     illegal_minigames: 'Embedul oferă acces rapid la biblioteca de **70 de minigame-uri ilegale** din panel: crime, heist-uri, hack-uri, joburi, mecanică, medicină și chimie. Apasă **Deschide Minigames** pentru a juca în panel. Jocurile sunt interactive în browser și nu pot rula nativ în interiorul unui embed Discord.',
+    giveaway: '**Creează giveaway** deschide formularul pentru titlu, premiu, detalii, termen și numărul de câștigători. **Participă** înscrie o singură dată fiecare membru, iar **Închide giveaway** este disponibil creatorului și administratorilor. Rezultatul ajunge în Log giveaway, iar închiderea automată este procesată la expirare.',
   };
   return interactionMessage('', { embeds: [{ title: `ℹ️ Instrucțiuni · ${PANEL_ROUTE_LABELS[moduleKey] || moduleKey || 'Modul'}`, description: guides[moduleKey] || 'Folosește butoanele din embed pentru a începe. Dacă o acțiune nu funcționează, verifică accesul la modul, canalul configurat și permisiunile botului.', color: 0x5865f2, footer: { text: 'Panel Pro · instrucțiuni modul' } }] });
 };
@@ -94,6 +95,7 @@ const PANEL_ROUTE_LABELS: Record<string, string> = {
   stash: 'Stash', log_stash: 'Log Stash', stash_requests: 'Cereri Stash', log_stash_requests: 'Log cereri Stash', stash_donations: 'Donații Stash', log_stash_donations: 'Log donații Stash',
   marketplace: 'Marketplace legal', log_marketplace: 'Log Marketplace legal', illegal_marketplace: 'Marketplace ilegal', log_illegal_marketplace: 'Log Marketplace ilegal', event_reminders: 'Evenimente și remindere', log_event_reminders: 'Log evenimente și remindere', presence_events: 'Evenimente cu prezență', log_presence_events: 'Log evenimente cu prezență', tasks: 'Task-uri angajați', log_tasks: 'Log task-uri', contract_identity_weekly: 'Raport săptămânal contracte', log_contract_identity_weekly: 'Log raport săptămânal contracte', actions_organization: 'Acțiuni organizație',
   proposals: 'Propuneri', log_proposals: 'Log propuneri',
+  giveaway: 'Giveaway', log_giveaways: 'Log giveaway',
   calculator: 'Calculator legal', illegal_calculator: 'Calculator ilegal', illegal_locations: 'Locații ilegale', illegal_minigames: 'Minigames ilegale', wheel_timer: 'Roată · timer personal',
 };
 const panelRouteKeys = Object.keys(PANEL_ROUTE_LABELS);
@@ -102,6 +104,7 @@ const PANEL_LOG_ROUTES: Record<string, string> = {
   requests_organization: 'log_requests_organization', requests_departments: 'log_requests_departments', contracts: 'log_contracts', presence_events: 'log_presence_events', tasks: 'log_tasks',
   proposals: 'log_proposals',
   actions_organization: 'log_actions_organization', fines_organization: 'log_announcements_organization', fines_departments: 'log_announcements_departments', warnings_organization: 'log_announcements_organization', warnings_departments: 'log_announcements_departments', sanctions_organization: 'log_announcements_organization', sanctions_departments: 'log_announcements_departments', marketplace: 'log_marketplace', illegal_marketplace: 'log_illegal_marketplace', event_reminders: 'log_event_reminders', contract_identity_weekly: 'log_contract_identity_weekly', stash: 'log_stash', stash_requests: 'log_stash', stash_donations: 'log_stash',
+  giveaway: 'log_giveaways',
 };
 const DISCIPLINE_LOG_ROUTES: Record<string, string> = {
   organization: 'log_announcements_organization',
@@ -218,6 +221,7 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
     marketplace: { title: '🛒 Marketplace', description: 'Publică și consultă anunțuri pentru vehicule, bunuri și servicii.', color: 0x2563eb, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:marketplace:legal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:legal:mine' }] },
       illegal_marketplace: { title: '🚨 Marketplace · Ilegal', description: 'Publică și consultă anunțuri Black Market, cu acces controlat.', color: 0xef4444, buttons: [{ label: 'Publică anunț', style: 4, id: 'panel:marketplace:illegal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:illegal:mine' }] },
       event_reminders: { title: '🗓️ Evenimente și remindere', description: 'Înregistrează evenimente și trimite remindere automate pe durata aleasă.', color: 0xf59e0b, buttons: [{ label: 'Adaugă eveniment', style: 1, id: 'panel:discovery:reminder_create' }, { label: 'Info remindere', style: 2, id: 'panel:discovery:reminder_info' }] },
+      giveaway: { title: '🎉 Giveaway · Panel Pro', description: 'Panou normal pentru lideri și administratori. Creează giveaway-ul, iar embedul public cu butonul „🎉 Participă” este trimis în canalul separat „Log giveaway”.', color: 0xec4899, buttons: [{ label: 'Creează giveaway', style: 1, id: 'panel:giveaway:create' }] },
       contract_identity_weekly: { title: '📋 Raport săptămânal contracte', description: 'Generează exportul săptămânal cu numele și CNP-ul angajaților.', color: 0x14b8a6, buttons: [{ label: 'Generează raport', style: 1, id: 'panel:discovery:weekly_report' }, { label: 'Info raport', style: 2, id: 'panel:discovery:report_info' }] },
       actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
       stash_requests: { title: '📨 Cereri Stash', description: 'Solicită articole și urmărește cererile trimise pentru aprobare.', color: 0x3b82f6, buttons: [{ label: 'Solicită articol', style: 1, id: 'panel:stash:request' }, { label: 'Cereri în așteptare', style: 2, id: 'panel:stash:pending_requests' }] },
@@ -1352,7 +1356,7 @@ function discoveryReminderModal() {
   ] } };
 }
 
-async function resolveUniversalModuleContext(db: any, interaction: any, routeKey: string, feature: string) {
+async function resolveUniversalModuleContext(db: any, interaction: any, routeKey: string, feature: string, alternateRouteKeys: string[] = []) {
   const guildId = String(interaction.guild_id || '').trim();
   const channelId = String(interaction.channel_id || '').trim();
   const discordId = String(interaction.member?.user?.id || interaction.user?.id || '').trim();
@@ -1370,21 +1374,88 @@ async function resolveUniversalModuleContext(db: any, interaction: any, routeKey
   await requireActiveOrganizationAccess(db, organization);
   if (!resolvePackageFeatures(packageSetting?.value || {}).includes(feature) && !(await isPlatformAdminAccount(db, discordId)) && packageSetting?.value?.code !== 'discord') throw new Error('Acest modul nu este inclus în pachetul organizației.');
   const target = String(guild.kind || '') === 'secondary' ? 'secondary' : 'primary';
-  const configuredRoute = settings?.discord_channel_routes?.[routeKey] || {};
+  const acceptedRouteKeys = [routeKey, ...alternateRouteKeys].filter((key, index, list) => key && list.indexOf(key) === index);
+  const configuredRoutes = acceptedRouteKeys.map((key) => ({ key, route: settings?.discord_channel_routes?.[key] || {} }));
   // Unele organizații au fost salvate înainte ca asocierea guild-ului
   // principal/secundar să fie sincronizată perfect cu ruta. Canalul este
   // deja asociat aceleiași organizații, deci acceptăm și ținta alternativă
   // dacă ID-ul canalului corespunde exact rutei modulului.
-  const configured = configuredRoute?.[target]?.channel_id === channelId
-    ? configuredRoute[target]
-    : Object.values(configuredRoute).find((route: any) => String(route?.channel_id || '') === channelId);
+  const configured = configuredRoutes.map(({ key, route }) => ({ key, route })).flatMap(({ key, route }) => route && typeof route === 'object' ? Object.entries(route).map(([savedTarget, savedRoute]) => ({ key, target: savedTarget, route: savedRoute })) : []).find((item: any) => String((item.route as any)?.channel_id || '') === channelId && (item.route as any)?.enabled !== false);
   const logRouteKey = PANEL_LOG_ROUTES[routeKey] || routeKey;
-  if (configured?.enabled === false || !(await routeChannelMatches(db, guild.organization_id, settings, routeKey, target, channelId, interactionMessageId(interaction)))) throw new Error('Acest canal nu este configurat pentru modulul selectat.');
+  const routeMatches = await Promise.all(acceptedRouteKeys.map((key) => routeChannelMatches(db, guild.organization_id, settings, key, target, channelId, interactionMessageId(interaction))));
+  if (!configured || !routeMatches.some(Boolean)) throw new Error('Acest canal nu este configurat pentru modulul selectat.');
   // These are dedicated Discord embeds. Discord already controls access via
   // channel visibility and roles, so a separate Panel Pro membership is not
   // required for any standard button interaction.
   const displayName = String(interaction.member?.nick || interaction.member?.user?.global_name || interaction.member?.user?.username || discordId).slice(0, 120);
   return { guildId, channelId, target, discordId, displayName, organization, settings, logRouteKey };
+}
+
+function giveawayModal() {
+  return { type: 9, data: { custom_id: 'panel:giveaway:submit', title: 'Creează giveaway', components: [
+    { type: 1, components: [universalTextInput('title', 'Titlu', 1, true, 'Ex: Giveaway de weekend', 120)] },
+    { type: 1, components: [universalTextInput('prize', 'Premiu', 1, true, 'Ex: 100.000$', 200)] },
+    { type: 1, components: [universalTextInput('details', 'Detalii', 2, false, 'Reguli, condiții sau informații suplimentare', 1000)] },
+    { type: 1, components: [universalTextInput('ends_at', 'Termen-limită', 1, true, 'AAAA-LL-ZZ HH:MM', 32)] },
+    { type: 1, components: [universalTextInput('winner_count', 'Număr câștigători', 1, true, '1', 2)] },
+  ] };
+}
+
+const giveawayDate = (value: unknown) => {
+  const raw = String(value || '').trim().replace('T', ' ');
+  const parsed = Date.parse(raw.includes('Z') || /[+-]\d{2}:?\d{2}$/.test(raw) ? raw : `${raw.replace(' ', 'T')}+03:00`);
+  if (!Number.isFinite(parsed)) throw new Error('Termenul-limită nu este valid. Folosește formatul AAAA-LL-ZZ HH:MM.');
+  const date = new Date(parsed);
+  if (date.getTime() <= Date.now() + 60_000) throw new Error('Termenul-limită trebuie să fie în viitor.');
+  return date.toISOString();
+};
+
+const giveawayParticipants = async (db: any, giveawayId: string) => {
+  const { data, error } = await db.from('discord_giveaway_participants').select('discord_id,display_name,joined_at').eq('giveaway_id', giveawayId).order('joined_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
+};
+
+const giveawayEmbed = (row: any, participants: any[] = []) => {
+  const endsAt = new Date(String(row.ends_at)).getTime();
+  const closed = String(row.status) !== 'active';
+  const participantText = participants.length ? participants.slice(0, 25).map((item: any) => `• <@${String(item.discord_id)}> — ${String(item.display_name || 'Participant')}`).join('\n') : 'Încă nu s-a înscris nimeni.';
+  const winnerText = Array.isArray(row.winners) && row.winners.length ? row.winners.map((item: any) => `<@${String(item.discord_id || item)}>`).join(', ') : 'Se afișează la închidere.';
+  return { title: `${closed ? '🏁 Giveaway închis · ' : '🎉 '}${String(row.title).slice(0, 200)}`, description: String(row.details || 'Participă folosind butonul de mai jos.').slice(0, 4000), color: closed ? 0x64748b : 0xec4899, fields: [
+    { name: '🎁 Premiu', value: String(row.prize).slice(0, 1024), inline: true },
+    { name: '👥 Câștigători', value: String(row.winner_count), inline: true },
+    { name: closed ? '📌 Status' : '⏰ Se încheie', value: closed ? 'Închis' : `<t:${Math.floor(endsAt / 1000)}:R> · <t:${Math.floor(endsAt / 1000)}:f>`, inline: true },
+    { name: `👥 Participanți (${participants.length})`, value: participantText.slice(0, 1024), inline: false },
+    { name: '🏆 Rezultat', value: winnerText, inline: false },
+  ], footer: { text: `${PANEL_FOOTER} · Giveaway` }, timestamp: new Date().toISOString() };
+};
+
+const giveawayPayload = (row: any, participants: any[] = []) => ({ allowed_mentions: { parse: [] }, embeds: [giveawayEmbed(row, participants)], components: [{ type: 1, components: [
+  { type: 2, style: 3, label: '🎉 Participă', custom_id: `panel:giveaway:join:${row.id}`, disabled: String(row.status) !== 'active' },
+  { type: 2, style: 4, label: '🔒 Închide giveaway', custom_id: `panel:giveaway:close:${row.id}`, disabled: String(row.status) !== 'active' },
+] }] });
+
+async function refreshGiveaway(db: any, context: any, row: any, participants: any[] = []) {
+  const payload = giveawayPayload(row, participants);
+  if (!row.message_id) throw new Error('Giveaway-ul nu are încă un mesaj Discord.');
+  const response = await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: String(row.channel_id) }, JSON.stringify(payload), { method: 'PATCH', messageId: String(row.message_id) });
+  if (!response.ok) throw new Error(`Embedul giveaway nu a putut fi actualizat (HTTP ${response.status}).`);
+  return payload;
+}
+
+async function closeGiveaway(db: any, context: any, row: any, actorId: string, automatic = false) {
+  if (String(row.status) !== 'active') return interactionMessage('Acest giveaway este deja închis.');
+  if (!automatic && String(row.creator_discord_id) !== String(actorId) && !isDiscordManager(context.interaction || {}) && !(await isPlatformAdminAccount(db, actorId))) throw new Error('Doar creatorul sau un administrator poate închide giveaway-ul.');
+  const participants = await giveawayParticipants(db, row.id);
+  const shuffled = [...participants].sort(() => Math.random() - 0.5);
+  const winners = shuffled.slice(0, Math.min(Number(row.winner_count || 1), shuffled.length)).map((item: any) => ({ discord_id: String(item.discord_id), display_name: String(item.display_name || '') }));
+  const closedAt = new Date().toISOString();
+  const { data: closed, error } = await db.from('discord_giveaways').update({ status: 'closed', winners, closed_at: closedAt, updated_at: closedAt }).eq('id', row.id).eq('status', 'active').select('*').single();
+  if (error) throw error;
+  await refreshGiveaway(db, context, closed, participants);
+  const winnerText = winners.length ? winners.map((item: any) => `<@${item.discord_id}>`).join(', ') : 'Nu au existat participanți.';
+  const logPayload = { allowed_mentions: { parse: [] }, embeds: [{ title: '🏁 Giveaway închis', description: `**${String(closed.title).slice(0, 200)}**\n\n🎁 Premiu: **${String(closed.prize).slice(0, 200)}**\n👥 Participanți: **${participants.length}**\n🏆 Câștigători: ${winnerText}`, color: 0x64748b, footer: { text: `${PANEL_FOOTER} · Log giveaway` }, timestamp: closedAt }] };
+  return interactionMessage(winners.length ? `🏆 Giveaway închis. Câștigători: ${winnerText}` : '🏁 Giveaway închis. Nu au existat participanți.');
 }
 
 async function resolveWheelContext(db: any, interaction: any) {
@@ -3090,6 +3161,7 @@ Deno.serve(async (request) => {
   const isWheel = customId.startsWith('panel:wheel:');
   const isPresenceEvents = customId.startsWith('panel:presence_events:');
   const isTasks = customId.startsWith('panel:tasks:');
+  const isGiveaway = customId.startsWith('panel:giveaway:');
   const isCustomModule = customId.startsWith('panel:custom:');
   if (isComponent || isModalSubmit) {
     const interactionSecret = serviceKey();
@@ -3127,7 +3199,67 @@ Deno.serve(async (request) => {
     await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
     return new Response(null, { status: 204 });
   }
-  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isProposals && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isIllegalLocations && !isWheel && !isPresenceEvents && !isTasks && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+  if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isProposals && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isIllegalLocations && !isWheel && !isPresenceEvents && !isTasks && !isGiveaway && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
+
+  if (isGiveaway) {
+    const secret = serviceKey();
+    if (!secret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, secret);
+    let context: any;
+    try { context = await resolveUniversalModuleContext(db, interaction, 'giveaway', 'giveaway', ['log_giveaways']); context.interaction = interaction; }
+    catch (error) { return reply(interactionMessage(readableError(error, 'Giveaway-urile nu sunt disponibile pe acest canal.'))); }
+    const parts = customId.split(':');
+    const action = parts[2] || '';
+    if (isButton && action === 'create') {
+      if (!isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, context.discordId))) return reply(interactionMessage('Doar creatorii autorizați sau administratorii pot crea giveaway-uri.'));
+      return reply(giveawayModal());
+    }
+    if (isModalSubmit && action === 'submit') {
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try {
+        const values = modalValues(interaction);
+        const title = String(values.title || '').trim();
+        const prize = String(values.prize || '').trim();
+        if (!title || !prize) throw new Error('Titlul și premiul sunt obligatorii.');
+        const winnerCount = Math.max(1, Math.min(25, Number.parseInt(String(values.winner_count || '1'), 10) || 1));
+        const endsAt = giveawayDate(values.ends_at);
+        const logRoute = context.settings?.discord_channel_routes?.log_giveaways || {};
+        const logTarget = logRoute?.[context.target] || Object.values(logRoute).find((route: any) => String(route?.channel_id || '').trim());
+        if (!logTarget?.channel_id) throw new Error('Canalul separat „Log giveaway” nu este configurat. Selectează-l în organizatii.html și salvează organizația.');
+        const { data: row, error } = await db.from('discord_giveaways').insert({ organization_id: context.organization.id, guild_id: context.guildId, target: context.target, channel_id: String(logTarget.channel_id), creator_discord_id: context.discordId, creator_name: context.displayName, title: title.slice(0, 200), prize: prize.slice(0, 300), details: String(values.details || '').trim().slice(0, 1000), ends_at: endsAt, winner_count: winnerCount }).select('*').single();
+        if (error) throw error;
+        const payload = giveawayPayload(row, []);
+        const delivery = await deliverDiscordRoute(db, context.settings, 'log_giveaways', JSON.stringify(payload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `giveaway-${row.id}`, retryPayload: payload });
+        const messageId = String(delivery.results?.[0]?.id || '');
+        if (!messageId) throw new Error('Giveaway-ul a fost salvat, dar mesajul Discord nu a putut fi identificat.');
+        await db.from('discord_giveaways').update({ message_id: messageId, updated_at: new Date().toISOString() }).eq('id', row.id);
+        result = interactionMessage(`🎉 Giveaway-ul **${String(row.title)}** a fost publicat. Participanții se pot înscrie din embed.`);
+      } catch (error) { result = interactionMessage(readableError(error, 'Giveaway-ul nu a putut fi creat.')); }
+      await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      return new Response(null, { status: 204 });
+    }
+    if (!['join', 'close'].includes(action)) return reply(interactionMessage('Acțiunea giveaway nu este validă.'));
+    const giveawayId = String(parts[3] || '').trim();
+    if (!UUID_RE.test(giveawayId)) return reply(interactionMessage('Giveaway-ul nu este valid.'));
+    const { data: row, error: rowError } = await db.from('discord_giveaways').select('*').eq('id', giveawayId).eq('organization_id', context.organization.id).maybeSingle();
+    if (rowError) throw rowError;
+    if (!row) return reply(interactionMessage('Giveaway-ul nu mai există.'));
+    if (action === 'join') {
+      if (String(row.status) !== 'active' || new Date(String(row.ends_at)).getTime() <= Date.now()) return reply(interactionMessage('Acest giveaway s-a încheiat.'));
+      const { error: joinError } = await db.from('discord_giveaway_participants').upsert({ giveaway_id: row.id, discord_id: context.discordId, display_name: context.displayName }, { onConflict: 'giveaway_id,discord_id', ignoreDuplicates: true });
+      if (joinError) throw joinError;
+      const participants = await giveawayParticipants(db, row.id);
+      await refreshGiveaway(db, context, row, participants);
+      return reply(interactionMessage(`✅ Ești înscris în giveaway. Participanți: ${participants.length}.`));
+    }
+    const deferred = await deferInteraction(interaction, false);
+    let result;
+    try { result = await closeGiveaway(db, context, row, context.discordId); }
+    catch (error) { result = interactionMessage(readableError(error, 'Giveaway-ul nu a putut fi închis.')); }
+    await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+    return new Response(null, { status: 204 });
+  }
 
   if (isTasks) {
     const secret = serviceKey();

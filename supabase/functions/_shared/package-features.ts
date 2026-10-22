@@ -23,7 +23,8 @@ export const PACKAGE_FEATURES = Object.freeze({
   illegal_calculator: { label: 'Calculator ilegal', pages: ['calculatorilegal.html'] },
   illegal_locations: { label: 'Locații ilegale', pages: ['locatiiilegale.html'] },
   illegal_marketplace: { label: 'Marketplace ilegal', pages: ['marketplace-ilegal.html'] },
-  illegal_minigames: { label: 'Minigames', pages: ['minigames.html'] }
+  illegal_minigames: { label: 'Minigames', pages: ['minigames.html'] },
+  giveaway: { label: 'Giveaway Discord', pages: [] },
 });
 
 export const STANDARD_PACKAGE_FEATURES = Object.freeze([

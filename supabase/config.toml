@@ -142,6 +142,9 @@ verify_jwt = false
 [functions.absence-live-sync]
 verify_jwt = false
 
+[functions.process-giveaways]
+verify_jwt = false
+
 [functions.illegal-location-map]
 verify_jwt = false
 
