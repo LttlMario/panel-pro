@@ -1441,7 +1441,6 @@ const giveawayEmbed = (row: any, participants: any[] = []) => {
 
 const giveawayPayload = (row: any, participants: any[] = []) => ({ allowed_mentions: { parse: [] }, embeds: [giveawayEmbed(row, participants)], components: [{ type: 1, components: [
   { type: 2, style: 3, label: '🎉 Participă', custom_id: `panel:giveaway:join:${row.id}`, disabled: String(row.status) !== 'active' },
-  { type: 2, style: 4, label: '🔒 Închide giveaway', custom_id: `panel:giveaway:close:${row.id}`, disabled: String(row.status) !== 'active' },
 ] }] });
 
 async function refreshGiveaway(db: any, context: any, row: any, participants: any[] = []) {
