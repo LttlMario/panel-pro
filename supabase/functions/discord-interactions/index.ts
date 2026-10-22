@@ -1397,7 +1397,7 @@ function giveawayModal() {
     { type: 1, components: [universalTextInput('title', 'Titlu', 1, true, 'Ex: Giveaway de weekend', 120)] },
     { type: 1, components: [universalTextInput('prize', 'Premiu', 1, true, 'Ex: 100.000$', 200)] },
     { type: 1, components: [universalTextInput('details', 'Detalii', 2, false, 'Reguli, condiții sau informații suplimentare', 1000)] },
-    { type: 1, components: [universalTextInput('ends_at', 'Termen-limită', 1, true, 'zz/ll/aaaa hh:mm', 16, defaultDeadline)] },
+    { type: 1, components: [universalTextInput('ends_at', 'Termen-limită', 1, true, defaultDeadline, 16, defaultDeadline)] },
     { type: 1, components: [universalTextInput('winner_count', 'Număr câștigători', 1, true, '1', 2)] },
   ] } };
 }
