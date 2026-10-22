@@ -1398,7 +1398,7 @@ function giveawayModal() {
     { type: 1, components: [universalTextInput('details', 'Detalii', 2, false, 'Reguli, condiții sau informații suplimentare', 1000)] },
     { type: 1, components: [universalTextInput('ends_at', 'Termen-limită', 1, true, 'AAAA-LL-ZZ HH:MM', 32)] },
     { type: 1, components: [universalTextInput('winner_count', 'Număr câștigători', 1, true, '1', 2)] },
-  ] };
+  ] } };
 }
 
 const giveawayDate = (value: unknown) => {
