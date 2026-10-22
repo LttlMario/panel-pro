@@ -221,7 +221,7 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
     marketplace: { title: '🛒 Marketplace', description: 'Publică și consultă anunțuri pentru vehicule, bunuri și servicii.', color: 0x2563eb, buttons: [{ label: 'Publică anunț', style: 1, id: 'panel:marketplace:legal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:legal:mine' }] },
       illegal_marketplace: { title: '🚨 Marketplace · Ilegal', description: 'Publică și consultă anunțuri Black Market, cu acces controlat.', color: 0xef4444, buttons: [{ label: 'Publică anunț', style: 4, id: 'panel:marketplace:illegal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:illegal:mine' }] },
       event_reminders: { title: '🗓️ Evenimente și remindere', description: 'Înregistrează evenimente și trimite remindere automate pe durata aleasă.', color: 0xf59e0b, buttons: [{ label: 'Adaugă eveniment', style: 1, id: 'panel:discovery:reminder_create' }, { label: 'Info remindere', style: 2, id: 'panel:discovery:reminder_info' }] },
-      giveaway: { title: '🎉 Giveaway · Panel Pro', description: 'Panou normal pentru lideri și administratori. Creează giveaway-ul, iar embedul public cu butonul „🎉 Participă” este trimis în canalul separat „Log giveaway”.', color: 0xec4899, buttons: [{ label: 'Creează giveaway', style: 1, id: 'panel:giveaway:create' }] },
+      giveaway: { title: '🎉 Giveaway · Panel Pro', description: 'Panou normal pentru lideri și administratori. Creează giveaway-ul sau închide ultimul giveaway activ. Embedul public cu butonul „🎉 Participă” este trimis în canalul separat „Log giveaway”.', color: 0xec4899, buttons: [{ label: 'Creează giveaway', style: 1, id: 'panel:giveaway:create' }, { label: 'Închide giveaway activ', style: 4, id: 'panel:giveaway:close_active' }] },
       contract_identity_weekly: { title: '📋 Raport săptămânal contracte', description: 'Generează exportul săptămânal cu numele și CNP-ul angajaților.', color: 0x14b8a6, buttons: [{ label: 'Generează raport', style: 1, id: 'panel:discovery:weekly_report' }, { label: 'Info raport', style: 2, id: 'panel:discovery:report_info' }] },
       actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
       stash_requests: { title: '📨 Cereri Stash', description: 'Solicită articole și urmărește cererile trimise pentru aprobare.', color: 0x3b82f6, buttons: [{ label: 'Solicită articol', style: 1, id: 'panel:stash:request' }, { label: 'Cereri în așteptare', style: 2, id: 'panel:stash:pending_requests' }] },
@@ -3245,6 +3245,18 @@ Deno.serve(async (request) => {
         await db.from('discord_giveaways').update({ message_id: messageId, updated_at: new Date().toISOString() }).eq('id', row.id);
         result = interactionMessage(`🎉 Giveaway-ul **${String(row.title)}** a fost publicat. Participanții se pot înscrie din embed.`);
       } catch (error) { result = interactionMessage(readableError(error, 'Giveaway-ul nu a putut fi creat.')); }
+      await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
+      return new Response(null, { status: 204 });
+    }
+    if (isButton && action === 'close_active') {
+      if (!isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, context.discordId))) return reply(interactionMessage('Doar un administrator poate închide giveaway-ul activ din panoul principal.'));
+      const deferred = await deferInteraction(interaction, false);
+      let result;
+      try {
+        const { data: active, error: activeError } = await db.from('discord_giveaways').select('*').eq('organization_id', context.organization.id).eq('guild_id', context.guildId).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle();
+        if (activeError) throw activeError;
+        result = active ? await closeGiveaway(db, context, active, context.discordId) : interactionMessage('Nu există niciun giveaway activ de închis.');
+      } catch (error) { result = interactionMessage(readableError(error, 'Giveaway-ul activ nu a putut fi închis.')); }
       await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
       return new Response(null, { status: 204 });
     }
