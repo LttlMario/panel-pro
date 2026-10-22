@@ -82,7 +82,7 @@ const moduleInfoMessage = (moduleKey: string) => {
     illegal_calculator: '**Începe calculul** deschide categoriile și materialele disponibile. Rezultatul este afișat doar utilizatorului care a calculat. **Instrucțiuni** afișează această explicație în același embed.',
     illegal_minigames: 'Embedul oferă acces rapid la biblioteca de **70 de minigame-uri ilegale** din panel: crime, heist-uri, hack-uri, joburi, mecanică, medicină și chimie. Apasă **Deschide Minigames** pentru a juca în panel. Jocurile sunt interactive în browser și nu pot rula nativ în interiorul unui embed Discord.',
     giveaway: '**Creează giveaway** deschide formularul pentru titlu, premiu, detalii, termen și numărul de câștigători. **Participă** înscrie o singură dată fiecare membru, iar **Închide giveaway** este disponibil creatorului și administratorilor. Rezultatul ajunge în Log giveaway, iar închiderea automată este procesată la expirare.',
-    streamers: '**Trimite link stream** cere doar linkul streamului. Panel Pro identifică automat platforma și canalul, apoi publică embedul în Log streameri cu buton direct către stream.',
+    streamers: '**Trimite link stream** cere linkul și o descriere opțională. Panel Pro identifică automat platforma și canalul, apoi publică embedul în Log streameri cu imaginea live-ului și buton direct către stream.',
   };
   return interactionMessage('', { embeds: [{ title: `ℹ️ Instrucțiuni · ${PANEL_ROUTE_LABELS[moduleKey] || moduleKey || 'Modul'}`, description: guides[moduleKey] || 'Folosește butoanele din embed pentru a începe. Dacă o acțiune nu funcționează, verifică accesul la modul, canalul configurat și permisiunile botului.', color: 0x5865f2, footer: { text: 'Panel Pro · instrucțiuni modul' } }] });
 };
@@ -224,7 +224,7 @@ const controlPayload = (routeKey: string, trialText = '', includeDonation = true
       illegal_marketplace: { title: '🚨 Marketplace · Ilegal', description: 'Publică și consultă anunțuri Black Market, cu acces controlat.', color: 0xef4444, buttons: [{ label: 'Publică anunț', style: 4, id: 'panel:marketplace:illegal:create' }, { label: 'Anunțurile mele', style: 2, id: 'panel:marketplace:illegal:mine' }] },
       event_reminders: { title: '🗓️ Evenimente și remindere', description: 'Înregistrează evenimente și trimite remindere automate pe durata aleasă.', color: 0xf59e0b, buttons: [{ label: 'Adaugă eveniment', style: 1, id: 'panel:discovery:reminder_create' }, { label: 'Info remindere', style: 2, id: 'panel:discovery:reminder_info' }] },
       giveaway: { title: '🎉 Giveaway · Panel Pro', description: 'Panou normal pentru lideri și administratori. Creează giveaway-ul sau închide ultimul giveaway activ. Embedul public cu butonul „🎉 Participă” este trimis în canalul separat „Log giveaway”.', color: 0xec4899, buttons: [{ label: 'Creează giveaway', style: 1, id: 'panel:giveaway:create' }, { label: 'Închide giveaway activ', style: 4, id: 'panel:giveaway:close_active' }] },
-      streamers: { title: '🎥 Streameri · Panel Pro', description: 'Trimite doar linkul streamului. Panel Pro identifică automat platforma și canalul, apoi îl publică în Log streameri.', color: 0x8b5cf6, buttons: [{ label: '🎥 Trimite link stream', style: 1, id: 'panel:streamers:submit' }] },
+      streamers: { title: '🎥 Streameri · Panel Pro', description: 'Trimite linkul și o descriere opțională. Panel Pro identifică automat platforma și canalul, apoi publică embedul cu imaginea live-ului în Log streameri.', color: 0x8b5cf6, buttons: [{ label: '🎥 Trimite link stream', style: 1, id: 'panel:streamers:submit' }] },
       contract_identity_weekly: { title: '📋 Raport săptămânal contracte', description: 'Generează exportul săptămânal cu numele și CNP-ul angajaților.', color: 0x14b8a6, buttons: [{ label: 'Generează raport', style: 1, id: 'panel:discovery:weekly_report' }, { label: 'Info raport', style: 2, id: 'panel:discovery:report_info' }] },
       actions_organization: { title: '🎯 Acțiuni · Organizație', description: 'Înregistrează și consultă acțiunile organizației.', color: 0x3b82f6, buttons: [{ label: 'Acțiune', style: 1, id: 'panel:actions:organization:create' }, { label: 'Clasament acțiuni', style: 2, id: 'panel:actions:organization:stats' }] },
       stash_requests: { title: '📨 Cereri Stash', description: 'Solicită articole și urmărește cererile trimise pentru aprobare.', color: 0x3b82f6, buttons: [{ label: 'Solicită articol', style: 1, id: 'panel:stash:request' }, { label: 'Cereri în așteptare', style: 2, id: 'panel:stash:pending_requests' }] },
@@ -1408,6 +1408,7 @@ function giveawayModal() {
 function streamerModal() {
   return { type: 9, data: { custom_id: 'panel:streamers:submit_form', title: 'Trimite link stream', components: [
     { type: 1, components: [universalTextInput('stream_url', 'Link stream', 1, true, 'https://twitch.tv/...', 500)] },
+    { type: 1, components: [universalTextInput('details', 'Descriere', 2, false, 'Scrie un mesaj pentru cei care vor intra pe live', 900)] },
   ] } };
 }
 
@@ -1451,11 +1452,11 @@ const streamerPayload = async (values: any, context: any, knownMetadata: any = n
   const platform = String(metadata.platform || 'Stream').slice(0, 40);
   const channel = String(metadata.channel || metadata.author || 'Canal stream').slice(0, 120);
   const title = String(metadata.title || `${platform} live · ${channel}`).slice(0, 160);
-  const details = `Urmărește streamul lui **${channel}** pe **${platform}** și susține streamerul comunității.`;
+  const details = String(values.details || '').trim().slice(0, 1200) || `Urmărește streamul lui **${channel}** pe **${platform}** și susține streamerul comunității.`;
   return { allowed_mentions: { parse: [] }, embeds: [{ title: `🔴 ${title}`, description: details, color: 0x8b5cf6, fields: [
     { name: '🎥 Streamer', value: `<@${context.discordId}> · ${context.displayName}\nCanal: **${channel}**`, inline: false },
     { name: '📺 Platformă', value: platform, inline: true },
-  ], ...(metadata.thumbnail ? { thumbnail: { url: metadata.thumbnail } } : {}), footer: { text: `${PANEL_FOOTER} · Streameri` }, timestamp: new Date().toISOString() }], components: [{ type: 1, components: [{ type: 2, style: 5, label: '🔗 Urmărește streamul', url }] }] };
+  ], ...(metadata.thumbnail ? { image: { url: metadata.thumbnail } } : {}), footer: { text: `${PANEL_FOOTER} · Streameri` }, timestamp: new Date().toISOString() }], components: [{ type: 1, components: [{ type: 2, style: 5, label: '🔗 Urmărește streamul', url }] }] };
 };
 
 const giveawayInputDate = (date = new Date()) => {
@@ -3303,7 +3304,7 @@ Deno.serve(async (request) => {
       const logRoute = context.settings?.discord_channel_routes?.log_streamers || {};
       const logTarget = logRoute?.[context.target] || Object.values(logRoute).find((route: any) => String(route?.channel_id || '').trim());
       if (!logTarget?.channel_id) throw new Error('Canalul „Log streameri” nu este configurat. Selectează-l în organizatii.html și salvează organizația.');
-      const { error: insertError } = await db.from('discord_streamer_submissions').insert({ organization_id: context.organization.id, guild_id: context.guildId, target: context.target, submitter_discord_id: context.discordId, submitter_name: context.displayName, platform: String(metadata.platform || 'Stream').slice(0, 40), title: String(metadata.title || `${metadata.platform || 'Stream'} live · ${metadata.channel || 'Canal stream'}`).slice(0, 160), stream_url: url, game: null, details: `Canal detectat: ${String(metadata.channel || 'Canal stream').slice(0, 120)}` });
+      const { error: insertError } = await db.from('discord_streamer_submissions').insert({ organization_id: context.organization.id, guild_id: context.guildId, target: context.target, submitter_discord_id: context.discordId, submitter_name: context.displayName, platform: String(metadata.platform || 'Stream').slice(0, 40), title: String(metadata.title || `${metadata.platform || 'Stream'} live · ${metadata.channel || 'Canal stream'}`).slice(0, 160), stream_url: url, game: null, details: String(values.details || '').trim().slice(0, 1200) || `Canal detectat: ${String(metadata.channel || 'Canal stream').slice(0, 120)}` });
       if (insertError) throw insertError;
       const delivery = await deliverDiscordRoute(db, context.settings, 'log_streamers', JSON.stringify(payload), { postOnly: true, organizationId: String(context.organization.id), messageKey: `streamer-${crypto.randomUUID()}`, retryPayload: payload, targets: [context.target] });
       if (!delivery?.results?.length) throw new Error('Embedul streamului nu a putut fi trimis în Log streameri.');
