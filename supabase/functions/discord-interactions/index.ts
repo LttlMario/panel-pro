@@ -3214,14 +3214,24 @@ Deno.serve(async (request) => {
   if (!isPontaj && !isRequests && !isContracts && !isAnnouncements && !isProposals && !isDiscipline && !isActions && !isStash && !isMarketplace && !isDiscovery && !isCalculator && !isIllegalLocations && !isWheel && !isPresenceEvents && !isTasks && !isGiveaway && !isCustomModule) return reply(interactionMessage('Acest buton nu aparține unui modul Panel Pro.'));
 
   if (isGiveaway) {
+    const parts = customId.split(':');
+    const action = parts[2] || '';
+    const buttonNeedsImmediateAck = isButton && ['join', 'leave', 'close', 'close_active'].includes(action);
+    const immediateDeferred = buttonNeedsImmediateAck ? await deferInteraction(interaction, false) : null;
     const secret = serviceKey();
-    if (!secret) return reply(interactionMessage('Cheia secretă Supabase lipsește.'));
+    if (!secret) {
+      const result = interactionMessage('Cheia secretă Supabase lipsește.');
+      if (immediateDeferred) { await sendFollowup(immediateDeferred.applicationId, immediateDeferred.interactionToken, result); return new Response(null, { status: 204 }); }
+      return reply(result);
+    }
     const db = createClient(Deno.env.get('SUPABASE_URL')!, secret);
     let context: any;
     try { context = await resolveUniversalModuleContext(db, interaction, 'giveaway', 'giveaway', ['log_giveaways']); context.interaction = interaction; }
-    catch (error) { return reply(interactionMessage(readableError(error, 'Giveaway-urile nu sunt disponibile pe acest canal.'))); }
-    const parts = customId.split(':');
-    const action = parts[2] || '';
+    catch (error) {
+      const result = interactionMessage(readableError(error, 'Giveaway-urile nu sunt disponibile pe acest canal.'));
+      if (immediateDeferred) { await sendFollowup(immediateDeferred.applicationId, immediateDeferred.interactionToken, result); return new Response(null, { status: 204 }); }
+      return reply(result);
+    }
     if (isButton && action === 'create') {
       if (!isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, context.discordId))) return reply(interactionMessage('Doar creatorii autorizați sau administratorii pot crea giveaway-uri.'));
       return reply(giveawayModal());
@@ -3253,7 +3263,7 @@ Deno.serve(async (request) => {
     }
     if (isButton && action === 'close_active') {
       if (!isDiscordManager(interaction) && !(await isPlatformAdminAccount(db, context.discordId))) return reply(interactionMessage('Doar un administrator poate închide giveaway-ul activ din panoul principal.'));
-      const deferred = await deferInteraction(interaction, false);
+      const deferred = immediateDeferred || await deferInteraction(interaction, false);
       let result;
       try {
         const { data: active, error: activeError } = await db.from('discord_giveaways').select('*').eq('organization_id', context.organization.id).eq('guild_id', context.guildId).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle();
@@ -3263,10 +3273,18 @@ Deno.serve(async (request) => {
       await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
       return new Response(null, { status: 204 });
     }
-    if (!['join', 'leave', 'close'].includes(action)) return reply(interactionMessage('Acțiunea giveaway nu este validă.'));
+    if (!['join', 'leave', 'close'].includes(action)) {
+      const result = interactionMessage('Acțiunea giveaway nu este validă.');
+      if (immediateDeferred) { await sendFollowup(immediateDeferred.applicationId, immediateDeferred.interactionToken, result); return new Response(null, { status: 204 }); }
+      return reply(result);
+    }
     const giveawayId = String(parts[3] || '').trim();
-    if (!UUID_RE.test(giveawayId)) return reply(interactionMessage('Giveaway-ul nu este valid.'));
-    const deferred = await deferInteraction(interaction, false);
+    if (!UUID_RE.test(giveawayId)) {
+      const result = interactionMessage('Giveaway-ul nu este valid.');
+      if (immediateDeferred) { await sendFollowup(immediateDeferred.applicationId, immediateDeferred.interactionToken, result); return new Response(null, { status: 204 }); }
+      return reply(result);
+    }
+    const deferred = immediateDeferred || await deferInteraction(interaction, false);
     let result;
     try {
       const { data: row, error: rowError } = await db.from('discord_giveaways').select('*').eq('id', giveawayId).eq('organization_id', context.organization.id).maybeSingle();
