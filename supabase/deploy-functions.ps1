@@ -23,6 +23,7 @@ $functions = @(
     'sync-discord-role',
     'manage-discord-config',
     'discord-interactions',
+    'process-giveaways',
     'discover-discord-channels',
     'manage-community-posts',
     'manage-public-feedback',
