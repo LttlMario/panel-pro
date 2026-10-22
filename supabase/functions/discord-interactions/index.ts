@@ -1392,7 +1392,7 @@ async function resolveUniversalModuleContext(db: any, interaction: any, routeKey
 }
 
 function giveawayModal() {
-  const defaultDeadline = giveawayInputDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const defaultDeadline = giveawayInputDate(new Date());
   return { type: 9, data: { custom_id: 'panel:giveaway:submit', title: 'Creează giveaway', components: [
     { type: 1, components: [universalTextInput('title', 'Titlu', 1, true, 'Ex: Giveaway de weekend', 120)] },
     { type: 1, components: [universalTextInput('prize', 'Premiu', 1, true, 'Ex: 100.000$', 200)] },
