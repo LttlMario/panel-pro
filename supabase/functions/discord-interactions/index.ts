@@ -3251,21 +3251,24 @@ Deno.serve(async (request) => {
     if (!['join', 'close'].includes(action)) return reply(interactionMessage('Acțiunea giveaway nu este validă.'));
     const giveawayId = String(parts[3] || '').trim();
     if (!UUID_RE.test(giveawayId)) return reply(interactionMessage('Giveaway-ul nu este valid.'));
-    const { data: row, error: rowError } = await db.from('discord_giveaways').select('*').eq('id', giveawayId).eq('organization_id', context.organization.id).maybeSingle();
-    if (rowError) throw rowError;
-    if (!row) return reply(interactionMessage('Giveaway-ul nu mai există.'));
-    if (action === 'join') {
-      if (String(row.status) !== 'active' || new Date(String(row.ends_at)).getTime() <= Date.now()) return reply(interactionMessage('Acest giveaway s-a încheiat.'));
-      const { error: joinError } = await db.from('discord_giveaway_participants').upsert({ giveaway_id: row.id, discord_id: context.discordId, display_name: context.displayName }, { onConflict: 'giveaway_id,discord_id', ignoreDuplicates: true });
-      if (joinError) throw joinError;
-      const participants = await giveawayParticipants(db, row.id);
-      await refreshGiveaway(db, context, row, participants);
-      return reply(interactionMessage(`✅ Ești înscris în giveaway. Participanți: ${participants.length}.`));
-    }
     const deferred = await deferInteraction(interaction, false);
     let result;
-    try { result = await closeGiveaway(db, context, row, context.discordId); }
-    catch (error) { result = interactionMessage(readableError(error, 'Giveaway-ul nu a putut fi închis.')); }
+    try {
+      const { data: row, error: rowError } = await db.from('discord_giveaways').select('*').eq('id', giveawayId).eq('organization_id', context.organization.id).maybeSingle();
+      if (rowError) throw rowError;
+      if (!row) result = interactionMessage('Giveaway-ul nu mai există.');
+      else if (action === 'join') {
+        if (String(row.status) !== 'active' || new Date(String(row.ends_at)).getTime() <= Date.now()) result = interactionMessage('Acest giveaway s-a încheiat.');
+        else {
+          const { error: joinError } = await db.from('discord_giveaway_participants').upsert({ giveaway_id: row.id, discord_id: context.discordId, display_name: context.displayName }, { onConflict: 'giveaway_id,discord_id', ignoreDuplicates: true });
+          if (joinError) throw joinError;
+          const participants = await giveawayParticipants(db, row.id);
+          await refreshGiveaway(db, context, row, participants);
+          result = interactionMessage(`✅ Ești înscris în giveaway. Participanți: ${participants.length}.`);
+        }
+      } else result = await closeGiveaway(db, context, row, context.discordId);
+    }
+    catch (error) { result = interactionMessage(readableError(error, 'Acțiunea giveaway nu a putut fi finalizată.')); }
     await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
     return new Response(null, { status: 204 });
   }
