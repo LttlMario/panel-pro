@@ -1441,6 +1441,7 @@ const giveawayEmbed = (row: any, participants: any[] = []) => {
 
 const giveawayPayload = (row: any, participants: any[] = []) => ({ allowed_mentions: { parse: [] }, embeds: [giveawayEmbed(row, participants)], components: [{ type: 1, components: [
   { type: 2, style: 3, label: '🎉 Participă', custom_id: `panel:giveaway:join:${row.id}`, disabled: String(row.status) !== 'active' },
+  { type: 2, style: 2, label: '❌ Retrage participarea', custom_id: `panel:giveaway:leave:${row.id}`, disabled: String(row.status) !== 'active' },
 ] }] });
 
 async function refreshGiveaway(db: any, context: any, row: any, participants: any[] = []) {
@@ -3262,7 +3263,7 @@ Deno.serve(async (request) => {
       await sendFollowup(deferred.applicationId, deferred.interactionToken, result);
       return new Response(null, { status: 204 });
     }
-    if (!['join', 'close'].includes(action)) return reply(interactionMessage('Acțiunea giveaway nu este validă.'));
+    if (!['join', 'leave', 'close'].includes(action)) return reply(interactionMessage('Acțiunea giveaway nu este validă.'));
     const giveawayId = String(parts[3] || '').trim();
     if (!UUID_RE.test(giveawayId)) return reply(interactionMessage('Giveaway-ul nu este valid.'));
     const deferred = await deferInteraction(interaction, false);
@@ -3271,14 +3272,20 @@ Deno.serve(async (request) => {
       const { data: row, error: rowError } = await db.from('discord_giveaways').select('*').eq('id', giveawayId).eq('organization_id', context.organization.id).maybeSingle();
       if (rowError) throw rowError;
       if (!row) result = interactionMessage('Giveaway-ul nu mai există.');
-      else if (action === 'join') {
+      else if (action === 'join' || action === 'leave') {
         if (String(row.status) !== 'active' || new Date(String(row.ends_at)).getTime() <= Date.now()) result = interactionMessage('Acest giveaway s-a încheiat.');
         else {
-          const { error: joinError } = await db.from('discord_giveaway_participants').upsert({ giveaway_id: row.id, discord_id: context.discordId, display_name: context.displayName }, { onConflict: 'giveaway_id,discord_id', ignoreDuplicates: true });
-          if (joinError) throw joinError;
+          if (action === 'join') {
+            const { error: joinError } = await db.from('discord_giveaway_participants').upsert({ giveaway_id: row.id, discord_id: context.discordId, display_name: context.displayName }, { onConflict: 'giveaway_id,discord_id', ignoreDuplicates: true });
+            if (joinError) throw joinError;
+          } else {
+            const { data: removed, error: leaveError } = await db.from('discord_giveaway_participants').delete().eq('giveaway_id', row.id).eq('discord_id', context.discordId).select('discord_id');
+            if (leaveError) throw leaveError;
+            if (!removed?.length) result = interactionMessage('Nu ești înscris în acest giveaway.');
+          }
           const participants = await giveawayParticipants(db, row.id);
           await refreshGiveaway(db, context, row, participants);
-          result = interactionMessage(`✅ Ești înscris în giveaway. Participanți: ${participants.length}.`);
+          if (!result) result = interactionMessage(action === 'join' ? `✅ Ești înscris în giveaway. Participanți: ${participants.length}.` : `✅ Participarea ta a fost retrasă. Participanți: ${participants.length}.`);
         }
       } else result = await closeGiveaway(db, context, row, context.discordId);
     }
