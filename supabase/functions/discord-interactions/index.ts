@@ -1434,19 +1434,32 @@ const streamDetails = (url: string) => {
     return { platform: 'YouTube', channel: channel || 'Canal YouTube', preview_image: videoId ? `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg` : '' };
   }
   if (host === 'kick.com' || host.endsWith('.kick.com')) return { platform: 'Kick', channel: segments[0] || 'Canal Kick' };
+  if (host === 'tiktok.com' || host.endsWith('.tiktok.com')) return { platform: 'TikTok', channel: segments.find((item) => item.startsWith('@')) || segments[0] || 'Profil TikTok' };
   return { platform: host.split('.')[0] ? host.split('.')[0].replace(/^./, (char) => char.toUpperCase()) : 'Stream', channel: segments[0] || 'Canal stream' };
 };
 
 const fetchStreamMetadata = async (url: string) => {
   const details = streamDetails(url);
-  if (!['Twitch', 'YouTube'].includes(details.platform)) return details;
+  if (!['Twitch', 'YouTube', 'TikTok'].includes(details.platform)) return details;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 2500);
   try {
-    const response = await fetch(`https://www.${details.platform === 'Twitch' ? 'twitch.tv' : 'youtube.com'}/oembed?url=${encodeURIComponent(url)}&format=json`, { signal: controller.signal, headers: { 'User-Agent': 'Panel-Pro-Streamers/1.0' } });
-    if (!response.ok) return details;
-    const metadata = await response.json().catch(() => ({}));
-    return { ...details, title: String(metadata?.title || '').trim().slice(0, 160), author: String(metadata?.author_name || '').trim().slice(0, 120), thumbnail: String(metadata?.thumbnail_url || '').trim().slice(0, 500) };
+    const provider = details.platform === 'Twitch' ? 'twitch.tv' : details.platform === 'YouTube' ? 'youtube.com' : 'tiktok.com';
+    const response = await fetch(`https://www.${provider}/oembed?url=${encodeURIComponent(url)}&format=json`, { signal: controller.signal, headers: { 'User-Agent': 'Panel-Pro-Streamers/1.0' } });
+    if (response.ok) {
+      const metadata = await response.json().catch(() => ({}));
+      if (metadata && typeof metadata === 'object' && (details.platform !== 'TikTok' || String(metadata?.thumbnail_url || '').trim())) return { ...details, title: String(metadata?.title || '').trim().slice(0, 160), author: String(metadata?.author_name || '').trim().slice(0, 120), thumbnail: String(metadata?.thumbnail_url || '').trim().slice(0, 500) };
+    }
+    if (details.platform === 'TikTok') {
+      const pageResponse = await fetch(url, { signal: controller.signal, headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Panel-Pro-Streamers/1.0)' } });
+      if (pageResponse.ok) {
+        const html = (await pageResponse.text()).slice(0, 400000);
+        const imageMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+        const titleMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i) || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
+        return { ...details, thumbnail: String(imageMatch?.[1] || '').replace(/&amp;/g, '&').slice(0, 500), title: String(titleMatch?.[1] || '').replace(/&amp;/g, '&').slice(0, 160) };
+      }
+    }
+    return details;
   } catch (_) { return details; } finally { clearTimeout(timeout); }
 };
 
