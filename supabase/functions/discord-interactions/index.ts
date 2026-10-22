@@ -1424,10 +1424,14 @@ const streamDetails = (url: string) => {
   const parsed = new URL(url);
   const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
   const segments = parsed.pathname.split('/').map((item) => decodeURIComponent(item)).filter(Boolean);
-  if (host === 'twitch.tv' || host.endsWith('.twitch.tv')) return { platform: 'Twitch', channel: segments[0] || 'Canal Twitch' };
+  if (host === 'twitch.tv' || host.endsWith('.twitch.tv')) {
+    const channel = segments[0] || 'Canal Twitch';
+    return { platform: 'Twitch', channel, preview_image: channel !== 'Canal Twitch' ? `https://static-cdn.jtvnw.net/previews-ttv/live_user_${encodeURIComponent(channel)}-640x360.jpg` : '' };
+  }
   if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'youtu.be') {
     const channel = segments.find((item) => item.startsWith('@')) || (segments[0] === 'channel' || segments[0] === 'c' || segments[0] === 'user' ? segments[1] : '') || (host === 'youtu.be' ? segments[0] : 'Canal YouTube');
-    return { platform: 'YouTube', channel: channel || 'Canal YouTube' };
+    const videoId = host === 'youtu.be' ? segments[0] : parsed.searchParams.get('v') || '';
+    return { platform: 'YouTube', channel: channel || 'Canal YouTube', preview_image: videoId ? `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg` : '' };
   }
   if (host === 'kick.com' || host.endsWith('.kick.com')) return { platform: 'Kick', channel: segments[0] || 'Canal Kick' };
   return { platform: host.split('.')[0] ? host.split('.')[0].replace(/^./, (char) => char.toUpperCase()) : 'Stream', channel: segments[0] || 'Canal stream' };
@@ -1452,11 +1456,12 @@ const streamerPayload = async (values: any, context: any, knownMetadata: any = n
   const platform = String(metadata.platform || 'Stream').slice(0, 40);
   const channel = String(metadata.channel || metadata.author || 'Canal stream').slice(0, 120);
   const title = String(metadata.title || `${platform} live · ${channel}`).slice(0, 160);
-  const details = String(values.details || '').trim().slice(0, 1200) || `Urmărește streamul lui **${channel}** pe **${platform}** și susține streamerul comunității.`;
-  return { allowed_mentions: { parse: [] }, embeds: [{ title: `🔴 ${title}`, description: details, color: 0x8b5cf6, fields: [
+  const details = String(values.details || '').trim().slice(0, 1200) || `Urmărește streamul lui ${channel} pe ${platform} și susține streamerul comunității.`;
+  const imageUrl = String(metadata.thumbnail || metadata.preview_image || '').trim().slice(0, 500);
+  return { allowed_mentions: { parse: [] }, embeds: [{ title: `🔴 ${title}`, description: `**${details}**`, color: 0x8b5cf6, fields: [
     { name: '🎥 Streamer', value: `<@${context.discordId}> · ${context.displayName}\nCanal: **${channel}**`, inline: false },
     { name: '📺 Platformă', value: platform, inline: true },
-  ], ...(metadata.thumbnail ? { image: { url: metadata.thumbnail } } : {}), footer: { text: `${PANEL_FOOTER} · Streameri` }, timestamp: new Date().toISOString() }], components: [{ type: 1, components: [{ type: 2, style: 5, label: '🔗 Urmărește streamul', url }] }] };
+  ], ...(imageUrl ? { image: { url: imageUrl }, thumbnail: { url: imageUrl } } : {}), footer: { text: `${PANEL_FOOTER} · Streameri` }, timestamp: new Date().toISOString() }], components: [{ type: 1, components: [{ type: 2, style: 5, label: '🔗 Urmărește streamul', url }] }] };
 };
 
 const giveawayInputDate = (date = new Date()) => {
