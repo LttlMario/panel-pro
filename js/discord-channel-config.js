@@ -498,7 +498,7 @@
         color: 0xf59e0b,
         fields: [
           { name: 'Ce poți face', value: 'Depune o învoire și consultă istoricul tău.', inline: false },
-          { name: 'Datele salvate', value: 'Tip, interval, motiv și dovadă opțională.', inline: false },
+          { name: 'Datele salvate', value: 'Tip și intervalul învoirii.', inline: false },
         ],
         footer: { text: `Panel Pro · Învoiri ${definition.audience}` },
       }],

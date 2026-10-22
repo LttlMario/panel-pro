@@ -2419,8 +2419,6 @@ function requestModal(audience: 'organization' | 'departments') {
   return { type: 9, data: { custom_id: `panel:requests:${audience}:submit`, title: `Învoire · ${label}`, components: [
     { type: 1, components: [input('start_date', 'Data începerii', 1, true, 'zz.ll.aaaa', 10, romanianDisplayDate())] },
     { type: 1, components: [input('end_date', 'Data sfârșitului', 1, true, 'zz.ll.aaaa', 10)] },
-    { type: 1, components: [input('reason', 'Motiv / mențiuni', 2, true, 'Explică pe scurt situația...', 1000)] },
-    { type: 1, components: [input('proof_url', 'Dovadă / document (opțional)', 1, false, 'https://...', 500)] },
   ] } };
 }
 
@@ -2639,8 +2637,6 @@ function requestEmbed(absence: any, context: any, title = 'Învoire nouă') {
     { name: '📌 Tip', value: String(absence.notice_type || 'Învoire').slice(0, 1024), inline: true },
     { name: '📅 Începe', value: requestDateLabel(start), inline: true },
     { name: '📅 Se termină', value: requestDateLabel(end, true), inline: true },
-    { name: '💬 Motiv', value: String(absence.reason || absence.notes || '—').slice(0, 1024), inline: false },
-    { name: '📎 Dovadă', value: String(absence.proof_url || 'Nu a fost atașat un link.').slice(0, 1024), inline: false },
   ], footer: { text: `Panel Pro · Log învoiri · ${audience}` }, timestamp: new Date().toISOString() };
 }
 
@@ -2667,7 +2663,7 @@ async function sendAbsenceLog(db: any, context: any, absence: any, title = 'Înv
 }
 
 async function myRequests(db: any, context: any) {
-  const { data, error } = await db.from('absences').select('notice_type,start_date,end_at,reason,created_at').eq('organization_id', context.organization.id).eq('discord_id', context.discordId).eq('request_audience', context.audience).order('created_at', { ascending: false }).limit(10);
+  const { data, error } = await db.from('absences').select('notice_type,start_date,end_at,created_at').eq('organization_id', context.organization.id).eq('discord_id', context.discordId).eq('request_audience', context.audience).order('created_at', { ascending: false }).limit(10);
   if (error) throw error;
   const rows = data || [];
   const value = rows.length ? rows.map((item: any) => `• **${String(item.notice_type || 'Învoire')}** · ${requestDateLabel(String(item.start_date || '').slice(0, 10))} → ${requestDateLabel(String(item.end_at || '').slice(0, 10), true)} · înregistrată`).join('\n').slice(0, 4000) : 'Nu ai încă învoiri înregistrate.';
@@ -2682,12 +2678,8 @@ async function handleRequestSubmit(db: any, context: any, interaction: any, valu
   const startDate = requestDateKey(values.start_date);
   const endDate = requestDateKey(values.end_date);
   const days = Math.max(1, Math.floor((end.getTime() - start.getTime()) / 86400000) + 1);
-  const reason = String(values.reason || '').trim().slice(0, 1000);
-  if (!reason) return interactionMessage('Motivul învoirii este obligatoriu.');
-  const proofUrl = String(values.proof_url || '').trim().slice(0, 500) || null;
-  if (proofUrl) { try { const parsed = new URL(proofUrl); if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('invalid'); } catch { return interactionMessage('Dovada trebuie să fie un link HTTP sau HTTPS valid.'); } }
   const now = new Date().toISOString();
-  const absence = { organization_id: context.organization.id, discord_id: context.discordId, request_audience: context.audience, colleague_name: `${context.displayName} [${context.role}]`, notice_type: noticeType, reason, start_date: startDate, days, notes: reason, start_at: start.toISOString(), end_at: end.toISOString(), proof_url: proofUrl, created_at: now };
+  const absence = { organization_id: context.organization.id, discord_id: context.discordId, request_audience: context.audience, colleague_name: `${context.displayName} [${context.role}]`, notice_type: noticeType, reason: 'Învoire', start_date: startDate, days, notes: null, start_at: start.toISOString(), end_at: end.toISOString(), proof_url: null, created_at: now };
   const { data: created, error } = await db.from('absences').insert(absence).select('*').single();
   if (error) throw error;
   const logResult = await sendAbsenceLog(db, context, created, 'Învoire nouă');

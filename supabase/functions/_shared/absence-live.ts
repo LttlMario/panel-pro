@@ -25,7 +25,7 @@ function absencePayload(audience: string, rows: any[], now: Date) {
     const end = row.end_at || row.end_date;
     const endTimestamp = Date.parse(String(end || ''));
     const remaining = Number.isFinite(endTimestamp) ? ` · ⏳ <t:${Math.floor(endTimestamp / 1000)}:R>` : '';
-    return `**${name}**\n📅 ${dateLabel(start)} → ${dateLabel(end)}${remaining}\n💬 ${cleanText(row.reason || row.notes)}`;
+    return `**${name}**\n📅 ${dateLabel(start)} → ${dateLabel(end)}${remaining}`;
   });
   const more = rows.length > 35 ? `\n\n… și încă ${rows.length - 35} învoiri active.` : '';
   const description = rows.length
