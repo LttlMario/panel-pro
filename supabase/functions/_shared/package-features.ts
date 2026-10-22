@@ -25,6 +25,7 @@ export const PACKAGE_FEATURES = Object.freeze({
   illegal_marketplace: { label: 'Marketplace ilegal', pages: ['marketplace-ilegal.html'] },
   illegal_minigames: { label: 'Minigames', pages: ['minigames.html'] },
   giveaway: { label: 'Giveaway Discord', pages: [] },
+  streamers: { label: 'Streameri Discord', pages: [] },
 });
 
 export const STANDARD_PACKAGE_FEATURES = Object.freeze([

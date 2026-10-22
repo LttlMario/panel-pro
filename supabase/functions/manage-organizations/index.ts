@@ -69,6 +69,8 @@ const channelRoutes=new Set([
   'event_reminders',
   'giveaway',
   'log_giveaways',
+  'streamers',
+  'log_streamers',
   'log_pontaj',
   'log_requests_organization',
   'log_requests_departments',
