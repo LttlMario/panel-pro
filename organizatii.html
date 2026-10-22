@@ -996,7 +996,7 @@ async function discoverGuildRoles(guildId,statusId){
         return null;
     }
 }
-async function editOrganization(id){const o=organizations.find(x=>x.id===id);await edit(id);if(!o)return;$('address').value=o.address||'';
+async function editOrganization(id){const o=organizations.find(x=>x.id===id);await edit(id);if(!o)return;const s=o.organization_settings?.[0]||{};$('address').value=o.address||'';
 
 pagePermissions =
     o.platform_settings?.page_permissions || {};

@@ -56,6 +56,8 @@ const levels: Record<string, number> = {
   live_status: 1,
   status_live: 1,
   event_reminders: 1,
+  giveaway: 1,
+  log_giveaways: 1,
   wheel_timer: 1,
   organization_expiration: 1,
   actions_organization: 1,
