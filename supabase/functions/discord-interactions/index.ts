@@ -1415,7 +1415,7 @@ const giveawayDate = (value: unknown) => {
     : Date.parse(raw.includes('Z') || /[+-]\d{2}:?\d{2}$/.test(raw) ? raw : `${raw.replace(' ', 'T')}+03:00`);
   if (!Number.isFinite(parsed)) throw new Error('Termenul-limită nu este valid. Folosește formatul zz/ll/aaaa hh:mm.');
   const date = new Date(parsed);
-  if (date.getTime() <= Date.now() + 60_000) throw new Error('Termenul-limită trebuie să fie în viitor.');
+  if (date.getTime() <= Date.now()) throw new Error('Termenul-limită trebuie să fie în viitor.');
   return date.toISOString();
 };
 
