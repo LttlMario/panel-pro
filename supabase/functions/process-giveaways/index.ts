@@ -5,7 +5,8 @@ import { requestDiscordTarget } from '../_shared/discord-delivery.ts';
 const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': 'https://panel-pro.ro', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-cron-secret', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const secretKey = () => Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
 const footer = 'Panel Pro - By Little Mario · Giveaway';
-const payloadFor = (row: any, participants: any[], winners: any[]) => ({ allowed_mentions: { parse: [] }, embeds: [{ title: `🏁 Giveaway închis · ${String(row.title).slice(0, 200)}`, description: String(row.details || 'Giveaway închis automat la expirarea termenului.').slice(0, 4000), color: 0x64748b, fields: [{ name: '🎁 Premiu', value: String(row.prize).slice(0, 1024), inline: true }, { name: '👥 Participanți', value: String(participants.length), inline: true }, { name: '🏆 Câștigători', value: winners.length ? winners.map((item: any) => `<@${item.discord_id}>`).join(', ') : 'Nu au existat participanți.', inline: false }], footer: { text: footer }, timestamp: new Date().toISOString() }], components: [{ type: 1, components: [{ type: 2, style: 3, label: '🎉 Participă', custom_id: `panel:giveaway:join:${row.id}`, disabled: true }, { type: 2, style: 4, label: '🔒 Închide giveaway', custom_id: `panel:giveaway:close:${row.id}`, disabled: true }] }] });
+const payloadFor = (row: any, participants: any[], winners: any[]) => ({ allowed_mentions: { parse: [] }, embeds: [{ title: `🏁 Giveaway închis · ${String(row.title).slice(0, 200)}`, description: String(row.details || 'Giveaway închis automat la expirarea termenului.').slice(0, 4000), color: 0x64748b, fields: [{ name: '🎁 Premiu', value: String(row.prize).slice(0, 1024), inline: true }, { name: '👥 Participanți', value: String(participants.length), inline: true }, { name: '🏆 Câștigători', value: winners.length ? winners.map((item: any) => `<@${item.discord_id}>`).join(', ') : 'Nu au existat participanți.', inline: false }], footer: { text: footer }, timestamp: new Date().toISOString() }], components: [{ type: 1, components: [{ type: 2, style: 3, label: '🎉 Participă', custom_id: `panel:giveaway:join:${row.id}`, disabled: true }] }] });
+const resultPayloadFor = (row: any, participants: any[], winners: any[]) => ({ allowed_mentions: { parse: [] }, embeds: [{ title: `🏆 Rezultat giveaway · ${String(row.title).slice(0, 200)}`, description: `🎁 Premiu: **${String(row.prize).slice(0, 200)}**\n👥 Participanți: **${participants.length}**\n🏆 Câștigători: ${winners.length ? winners.map((item: any) => `<@${item.discord_id}>`).join(', ') : 'Nu au existat participanți.'}`, color: 0xf59e0b, footer: { text: footer }, timestamp: new Date().toISOString() }] });
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
@@ -25,6 +26,7 @@ Deno.serve(async (request) => {
     if (!closed) continue;
     const payload = payloadFor(closed, list, winners);
     if (closed.message_id) await requestDiscordTarget(db, { target: row.target, transport: 'bot', channel_id: row.channel_id }, JSON.stringify(payload), { method: 'PATCH', messageId: row.message_id });
+    await requestDiscordTarget(db, { target: row.target, transport: 'bot', channel_id: row.channel_id }, JSON.stringify(resultPayloadFor(closed, list, winners)), { method: 'POST' });
     processed += 1;
   }
   return new Response(JSON.stringify({ ok: true, processed }), { headers });

@@ -1463,6 +1463,9 @@ async function closeGiveaway(db: any, context: any, row: any, actorId: string, a
   await refreshGiveaway(db, context, closed, participants);
   const winnerText = winners.length ? winners.map((item: any) => `<@${item.discord_id}>`).join(', ') : 'Nu au existat participanți.';
   const logPayload = { allowed_mentions: { parse: [] }, embeds: [{ title: '🏁 Giveaway închis', description: `**${String(closed.title).slice(0, 200)}**\n\n🎁 Premiu: **${String(closed.prize).slice(0, 200)}**\n👥 Participanți: **${participants.length}**\n🏆 Câștigători: ${winnerText}`, color: 0x64748b, footer: { text: `${PANEL_FOOTER} · Log giveaway` }, timestamp: closedAt }] };
+  try {
+    await requestDiscordTarget(db, { target: context.target, transport: 'bot', channel_id: String(closed.channel_id) }, JSON.stringify(logPayload), { method: 'POST' });
+  } catch (error) { console.error('[discord-interactions] giveaway result log failed', error); }
   return interactionMessage(winners.length ? `🏆 Giveaway închis. Câștigători: ${winnerText}` : '🏁 Giveaway închis. Nu au existat participanți.');
 }
 
