@@ -1392,19 +1392,28 @@ async function resolveUniversalModuleContext(db: any, interaction: any, routeKey
 }
 
 function giveawayModal() {
+  const defaultDeadline = giveawayInputDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
   return { type: 9, data: { custom_id: 'panel:giveaway:submit', title: 'Creează giveaway', components: [
     { type: 1, components: [universalTextInput('title', 'Titlu', 1, true, 'Ex: Giveaway de weekend', 120)] },
     { type: 1, components: [universalTextInput('prize', 'Premiu', 1, true, 'Ex: 100.000$', 200)] },
     { type: 1, components: [universalTextInput('details', 'Detalii', 2, false, 'Reguli, condiții sau informații suplimentare', 1000)] },
-    { type: 1, components: [universalTextInput('ends_at', 'Termen-limită', 1, true, 'AAAA-LL-ZZ HH:MM', 32)] },
+    { type: 1, components: [universalTextInput('ends_at', 'Termen-limită', 1, true, 'zz/ll/aaaa hh:mm', 16, defaultDeadline)] },
     { type: 1, components: [universalTextInput('winner_count', 'Număr câștigători', 1, true, '1', 2)] },
   ] } };
 }
 
+const giveawayInputDate = (date = new Date()) => {
+  const parts = romanianParts(date);
+  return `${String(parts.day).padStart(2, '0')}/${String(parts.month).padStart(2, '0')}/${parts.year} ${String(parts.hour).padStart(2, '0')}:${String(parts.minute).padStart(2, '0')}`;
+};
+
 const giveawayDate = (value: unknown) => {
   const raw = String(value || '').trim().replace('T', ' ');
-  const parsed = Date.parse(raw.includes('Z') || /[+-]\d{2}:?\d{2}$/.test(raw) ? raw : `${raw.replace(' ', 'T')}+03:00`);
-  if (!Number.isFinite(parsed)) throw new Error('Termenul-limită nu este valid. Folosește formatul AAAA-LL-ZZ HH:MM.');
+  const romanian = raw.match(/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})\s+(\d{1,2}):(\d{2})$/);
+  const parsed = romanian
+    ? zonedDateAt(Number(romanian[3]), Number(romanian[2]), Number(romanian[1]), Number(romanian[4]), Number(romanian[5])).getTime()
+    : Date.parse(raw.includes('Z') || /[+-]\d{2}:?\d{2}$/.test(raw) ? raw : `${raw.replace(' ', 'T')}+03:00`);
+  if (!Number.isFinite(parsed)) throw new Error('Termenul-limită nu este valid. Folosește formatul zz/ll/aaaa hh:mm.');
   const date = new Date(parsed);
   if (date.getTime() <= Date.now() + 60_000) throw new Error('Termenul-limită trebuie să fie în viitor.');
   return date.toISOString();
